@@ -70,7 +70,7 @@
 				"type": "bytes32[3]"
 			}
 		],
-		"name": "settleWinningCertificate",
+		"name": "submitWinningCertificate",
 		"outputs": [
 			{
 				"name": "result",
