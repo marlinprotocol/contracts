@@ -1,26 +1,24 @@
 const CertificateVerifier = artifacts.require('CertificateVerifier.sol');
 const Certificate = artifacts.require('Certificate.sol');
+const Upload = artifacts.require('Upload.sol');
 const MockToken = artifacts.require('MockToken.sol');
 
 module.exports = async function (deployer, network) {
   if (network === 'development') {
-    deployer.deploy(MockToken)
+    deployer.link(CertificateVerifier, Certificate)
       .then(() => {
-        return deployer.link(CertificateVerifier, Certificate);
+        return deployer.deploy(Certificate, MockToken.address, Upload.address);
       })
       .then(() => {
-        return deployer.deploy(Certificate, MockToken.address);
-      })
-      .then(() => {
-        console.log('Deployed Mock Token and Certificate');
+        console.log('Linked CertificateVerifier and deployed Certificate contract');
       });
   } else {
     deployer.link(CertificateVerifier, Certificate)
       .then(() => {
-        return deployer.deploy(Certificate, process.env.MARLIN_TOKEN_ADDRESS);
+        return deployer.deploy(Certificate, process.env.MARLIN_TOKEN_ADDRESS, Upload.address);
       })
       .then(() => {
-        console.log('Deployed Certificate');
+        console.log('Deployed Certificate contract');
       });
   }
 };
