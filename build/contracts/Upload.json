@@ -1,0 +1,386 @@
+{
+  "contractName": "Upload",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "name": "_certificateContractAddress",
+          "type": "address"
+        }
+      ],
+      "payable": false,
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b5060405160208060b483398101806040528101908080519060200190929190505050806000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555050603580607f6000396000f3006080604052600080fd00a165627a7a72305820e5036b678013418139f7b52774e6ee64117188bd75456d413cb4c5ba9449835c0029",
+  "deployedBytecode": "0x6080604052600080fd00a165627a7a72305820e5036b678013418139f7b52774e6ee64117188bd75456d413cb4c5ba9449835c0029",
+  "sourceMap": "26:199:2:-;;;92:131;8:9:-1;5:2;;;30:1;27;20:12;5:2;92:131:2;;;;;;;;;;;;;;;;;;;;;;;;;;;;;189:27;158:28;;:58;;;;;;;;;;;;;;;;;;92:131;26:199;;;;;;",
+  "deployedSourceMap": "26:199:2:-;;;;;",
+  "source": "pragma solidity ^0.4.24;\n\ncontract Upload {\n\n    address CERTIFICATE_CONTRACT_ADDRESS;\n\n    constructor(address _certificateContractAddress) public {\n        CERTIFICATE_CONTRACT_ADDRESS = _certificateContractAddress;\n    }\n}\n",
+  "sourcePath": "/Users/rohitnarurkar/Develop/marlin/marlin-contracts/contracts/Upload.sol",
+  "ast": {
+    "absolutePath": "/Users/rohitnarurkar/Develop/marlin/marlin-contracts/contracts/Upload.sol",
+    "exportedSymbols": {
+      "Upload": [
+        248
+      ]
+    },
+    "id": 249,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 235,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".24"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:2"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 248,
+        "linearizedBaseContracts": [
+          248
+        ],
+        "name": "Upload",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 237,
+            "name": "CERTIFICATE_CONTRACT_ADDRESS",
+            "nodeType": "VariableDeclaration",
+            "scope": 248,
+            "src": "49:36:2",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 236,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "49:7:2",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 246,
+              "nodeType": "Block",
+              "src": "148:75:2",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 244,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 242,
+                      "name": "CERTIFICATE_CONTRACT_ADDRESS",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 237,
+                      "src": "158:28:2",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "id": 243,
+                      "name": "_certificateContractAddress",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 239,
+                      "src": "189:27:2",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "158:58:2",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 245,
+                  "nodeType": "ExpressionStatement",
+                  "src": "158:58:2"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 247,
+            "implemented": true,
+            "isConstructor": true,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 240,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 239,
+                  "name": "_certificateContractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 247,
+                  "src": "104:35:2",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 238,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "104:7:2",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "103:37:2"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 241,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "148:0:2"
+            },
+            "scope": 248,
+            "src": "92:131:2",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 249,
+        "src": "26:199:2"
+      }
+    ],
+    "src": "0:226:2"
+  },
+  "legacyAST": {
+    "absolutePath": "/Users/rohitnarurkar/Develop/marlin/marlin-contracts/contracts/Upload.sol",
+    "exportedSymbols": {
+      "Upload": [
+        248
+      ]
+    },
+    "id": 249,
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 235,
+        "literals": [
+          "solidity",
+          "^",
+          "0.4",
+          ".24"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "0:24:2"
+      },
+      {
+        "baseContracts": [],
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": true,
+        "id": 248,
+        "linearizedBaseContracts": [
+          248
+        ],
+        "name": "Upload",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "constant": false,
+            "id": 237,
+            "name": "CERTIFICATE_CONTRACT_ADDRESS",
+            "nodeType": "VariableDeclaration",
+            "scope": 248,
+            "src": "49:36:2",
+            "stateVariable": true,
+            "storageLocation": "default",
+            "typeDescriptions": {
+              "typeIdentifier": "t_address",
+              "typeString": "address"
+            },
+            "typeName": {
+              "id": 236,
+              "name": "address",
+              "nodeType": "ElementaryTypeName",
+              "src": "49:7:2",
+              "typeDescriptions": {
+                "typeIdentifier": "t_address",
+                "typeString": "address"
+              }
+            },
+            "value": null,
+            "visibility": "internal"
+          },
+          {
+            "body": {
+              "id": 246,
+              "nodeType": "Block",
+              "src": "148:75:2",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 244,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 242,
+                      "name": "CERTIFICATE_CONTRACT_ADDRESS",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 237,
+                      "src": "158:28:2",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "id": 243,
+                      "name": "_certificateContractAddress",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 239,
+                      "src": "189:27:2",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address",
+                        "typeString": "address"
+                      }
+                    },
+                    "src": "158:58:2",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "id": 245,
+                  "nodeType": "ExpressionStatement",
+                  "src": "158:58:2"
+                }
+              ]
+            },
+            "documentation": null,
+            "id": 247,
+            "implemented": true,
+            "isConstructor": true,
+            "isDeclaredConst": false,
+            "modifiers": [],
+            "name": "",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 240,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 239,
+                  "name": "_certificateContractAddress",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 247,
+                  "src": "104:35:2",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 238,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "104:7:2",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "103:37:2"
+            },
+            "payable": false,
+            "returnParameters": {
+              "id": 241,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "148:0:2"
+            },
+            "scope": 248,
+            "src": "92:131:2",
+            "stateMutability": "nonpayable",
+            "superFunction": null,
+            "visibility": "public"
+          }
+        ],
+        "scope": 249,
+        "src": "26:199:2"
+      }
+    ],
+    "src": "0:226:2"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.4.24+commit.e67f0147.Emscripten.clang"
+  },
+  "networks": {
+    "1532749775264": {
+      "events": {},
+      "links": {},
+      "address": "0xa2d6e13e717a3601d798e1ab6a27a6025aea77f1",
+      "transactionHash": "0xb2667132f934381598791657265929ac7c84da42be692c9a716c0363d6d9e090"
+    }
+  },
+  "schemaVersion": "2.0.1",
+  "updatedAt": "2018-07-28T03:51:15.584Z"
+}

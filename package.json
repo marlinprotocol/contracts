@@ -1,0 +1,19 @@
+{
+  "name": "marlin-contracts",
+  "version": "1.0.0",
+  "description": "Ethereum Smart Contracts for Marlin Network",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "openzeppelin-solidity": "1.11.0",
+    "truffle-hdwallet-provider": "0.0.5",
+    "ganache-cli": "6.1.6"
+  },
+  "author": "Marlin Labs",
+  "license": "ISC"
+}
