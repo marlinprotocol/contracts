@@ -2,6 +2,7 @@
   "name": "@marlinprotocol/certificate-eth-backend",
   "version": "0.0.1",
   "description": "Backend implementation of certificates on Ethereum",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "directories": {
     "lib": "lib"
