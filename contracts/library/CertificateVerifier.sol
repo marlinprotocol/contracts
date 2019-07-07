@@ -1,5 +1,10 @@
 pragma solidity ^0.4.24;
 
+/**
+ * @title Library for certificate verification
+ * @author Marlin Labs
+ * @notice This will be used by the Certificate contract
+ */
 library CertificateVerifier {
 
     string constant SIGNED_MSG_AUTH_PREFIX = "\x19Ethereum Signed Message:\n41";
@@ -12,65 +17,65 @@ library CertificateVerifier {
     }
 
     function isValidServiceCertificate(
-        address publisher,
-        address client,
-        uint8 max,
-        uint8 auth_v,
-        bytes32 auth_r,
-        bytes32 auth_s,
-        uint8 nonce,
-        uint8 serv_v,
-        bytes32 serv_r,
-        bytes32 serv_s
+        address _publisher,
+        address _client,
+        uint8 _max,
+        uint8 _auth_v,
+        bytes32 _auth_r,
+        bytes32 _auth_s,
+        uint8 _nonce,
+        uint8 _serv_v,
+        bytes32 _serv_r,
+        bytes32 _serv_s
     )
         public
         pure
-        is_valid_nonce(nonce, max)
+        is_valid_nonce(_nonce, _max)
         returns (bool _valid)
     {
         require(isValidAuthCertificate(
-            publisher,
-            client,
-            max,
-            auth_v,
-            auth_r,
-            auth_s
+            _publisher,
+            _client,
+            _max,
+            _auth_v,
+            _auth_r,
+            _auth_s
         ));
-        bytes32 hashedMsg = keccak256(abi.encodePacked(
+        bytes32 _hashedMsg = keccak256(abi.encodePacked(
             SIGNED_MSG_SERV_PREFIX,
-            auth_r,
-            auth_s,
-            auth_v,
-            nonce
+            _auth_r,
+            _auth_s,
+            _auth_v,
+            _nonce
         ));
-        address signer = ecrecover(
-            hashedMsg,
-            serv_v,
-            serv_r,
-            serv_s
+        address _signer = ecrecover(
+            _hashedMsg,
+            _serv_v,
+            _serv_r,
+            _serv_s
         );
-        _valid = (signer == client);
+        _valid = (_signer == _client);
     }
 
     function isValidAuthCertificate(
-        address publisher,
-        address client,
-        uint8 max,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        address _publisher,
+        address _client,
+        uint8 _max,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
     )
         internal
         pure
         returns (bool _valid)
     {
-        bytes32 hashedMsg = keccak256(abi.encodePacked(
+        bytes32 _hashedMsg = keccak256(abi.encodePacked(
             SIGNED_MSG_AUTH_PREFIX,
-            publisher,
-            client,
-            max
+            _publisher,
+            _client,
+            _max
         ));
-        address signer = ecrecover(hashedMsg, v, r, s);
-        _valid = (signer == publisher);
+        address _signer = ecrecover(_hashedMsg, _v, _r, _s);
+        _valid = (_signer == _publisher);
     }
 }
