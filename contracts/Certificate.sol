@@ -5,7 +5,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 
 contract UploadInterface {
     function readStake(address _node) public constant returns (uint256);
-    function readUploadContract(bytes32 _id) public constant returns (address, string, string, uint256, uint256, uint256, uint256, uint256, uint256);
+    function readPublisherOffer(bytes32 _id) public constant returns (address, string, string, uint256, uint256, uint256, uint256, uint256, uint256);
 }
 
 /**
@@ -33,8 +33,8 @@ contract Certificate {
 
     /**
      * @notice Function to be called to fetch reward for delivery certificate
-     * @param _clauseId ID of the publisher clause from the Upload contract
-     * @param _publisher Address of the publisher who created the clause
+     * @param _offerId ID of the publisher offer from the Upload contract
+     * @param _publisher Address of the publisher who created the offer
      * @param _client Address of the master node
      * @param _max Max certificates
      * @param _nonce Nonce of this txn
@@ -44,7 +44,7 @@ contract Certificate {
      * @return _success Boolean, true if the payout was successful
      */
     function settleWinningCertificate(
-        bytes32 _clauseId,
+        bytes32 _offerId,
         address _publisher,
         address _client,
         uint8 _max,
@@ -72,7 +72,7 @@ contract Certificate {
 
         // fetch delivery reward from upload contract
         uint256 _deliveryReward;
-        (,,,,_deliveryReward,,,,) = UploadInterface(MARLIN_UPLOAD_CONTRACT_ADDRESS).readUploadContract(_clauseId);
+        (,,,,_deliveryReward,,,,) = UploadInterface(MARLIN_UPLOAD_CONTRACT_ADDRESS).readPublisherOffer(_offerId);
         require(ERC20(MARLIN_TOKEN_ADDRESS).transfer(msg.sender, _deliveryReward));
 
         _success = true;

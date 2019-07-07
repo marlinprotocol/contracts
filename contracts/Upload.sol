@@ -4,9 +4,9 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
- * @title Publisher-side upload clauses
+ * @title Publisher-side upload offers
  * @author Marlin Labs
- * @notice Publishers can create new clauses for storing and delivering content
+ * @notice Publishers can create new offers for storing and delivering content
  */
 contract Upload {
 
@@ -15,20 +15,20 @@ contract Upload {
     event PublisherContract(string namespace, string fileArchiveUrl);
 
     /**
-     * @notice Struct for Publisher Clause
+     * @notice Struct for Publisher Offer
      * @param publisher Address of the publisher
      * @param namespace Namespace of the website/project
      * @param archiveUrl URL of the file archive
      * @param storageReward Reward (LIN) for storing this content
      * @param deliveryReward Reward (LIN) for delivering/serving this content
-     * @param validTill UTC timestamp till which this clause is valid
-     * @param expiry UTC timestamp at which clause auto-expires if no master nodes join
+     * @param validTill UTC timestamp till which this offer is valid
+     * @param expiry UTC timestamp at which offer auto-expires if no master nodes join
      * @param replication Replication factor of the content
      * @param requiredStake Stake (LIN) required to store/deliver this content
-     * @param nodes Addresses of the master nodes that have joined this clause
-     * @param activeNodes Mapping of whether an address has joined this clause or not
+     * @param nodes Addresses of the master nodes that have joined this offer
+     * @param activeNodes Mapping of whether an address has joined this offer or not
      */
-    struct PublisherClause {
+    struct PublisherOffer {
         address publisher;
         string namespace;
         string archiveUrl;
@@ -42,7 +42,7 @@ contract Upload {
         mapping(address => bool) activeNodes;
     }
 
-    mapping(bytes32 => PublisherClause) clauses;
+    mapping(bytes32 => PublisherOffer) offers;
     mapping(address => uint256) refunds;
     address MARLIN_TOKEN_ADDRESS;
 
@@ -55,18 +55,18 @@ contract Upload {
     }
 
     /**
-     * @notice Function to create a new publisher-side clause
-     * @dev This may also be called to renew a clause whose validity was over
+     * @notice Function to create a new publisher-side offer
+     * @dev This may also be called to renew a offer whose validity was over
      * @param _namespace Namespace of the website/project
      * @param _archiveUrl URL of the file archive
      * @param _storageReward Reward (LIN) for storing this content
      * @param _deliveryReward Reward (LIN) for delivering/serving this content
-     * @param _duration Duration of the clause after which its validity ends (seconds)
-     * @param _expiry UTC timestamp at which clause auto-expires if no master nodes join
+     * @param _duration Duration of the offer after which its validity ends (seconds)
+     * @param _expiry UTC timestamp at which offer auto-expires if no master nodes join
      * @param _replication Replication factor of the content
      * @param _requiredStake Stake (LIN) required to store/deliver this content
      */
-    function addPublisherClause(
+    function addPublisherOffer(
         string _namespace,
         string _archiveUrl,
         uint256 _storageReward,
@@ -82,81 +82,81 @@ contract Upload {
         require(isUnique(_id));
         require(now < _expiry);
         require(_requiredStake > 0);
-        if (clauses[_id].nodes.length > 0) {
-            require(msg.sender == clauses[_id].publisher);
-            refundPublisherClause(_id);
+        if (offers[_id].nodes.length > 0) {
+            require(msg.sender == offers[_id].publisher);
+            refundPublisherOffer(_id);
         }
-        clauses[_id].publisher = msg.sender;
-        clauses[_id].namespace = _namespace;
-        clauses[_id].archiveUrl = _archiveUrl;
-        clauses[_id].storageReward = _storageReward;
-        clauses[_id].deliveryReward = _deliveryReward;
-        clauses[_id].validTill = now.add(_duration);
-        clauses[_id].expiry = _expiry;
-        clauses[_id].replication = _replication;
-        clauses[_id].requiredStake = _requiredStake;
+        offers[_id].publisher = msg.sender;
+        offers[_id].namespace = _namespace;
+        offers[_id].archiveUrl = _archiveUrl;
+        offers[_id].storageReward = _storageReward;
+        offers[_id].deliveryReward = _deliveryReward;
+        offers[_id].validTill = now.add(_duration);
+        offers[_id].expiry = _expiry;
+        offers[_id].replication = _replication;
+        offers[_id].requiredStake = _requiredStake;
         emit PublisherContract(_namespace, _archiveUrl);
     }
 
     /**
      * @notice Function to be called by publisher to scale out/in replication factor
      * @dev Can scale in only upto the already joined number of master nodes
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the clause
+     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
      * @param _replication Replication factor of the content
      * @return _success Boolean, true if updated successfully
      */
-    function scalePublisherClause(
+    function scalePublisherOffer(
         bytes32 _id,
         uint256 _replication
     )
         public
         returns (bool _success)
     {
-        require(msg.sender == clauses[_id].publisher);
+        require(msg.sender == offers[_id].publisher);
 
-        require(clauses[_id].nodes.length <= _replication);
-        clauses[_id].replication = _replication;
+        require(offers[_id].nodes.length <= _replication);
+        offers[_id].replication = _replication;
 
         _success = true;
     }
 
     /**
-     * @notice Function to join a clause and deliver/serve content
-     * @dev Clause can only be joined till the replication is not satisfied
+     * @notice Function to join a offer and deliver/serve content
+     * @dev Offer can only be joined till the replication is not satisfied
      *      msg.sender must approve this contract to transferFrom LIN tokens on their behalf
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the clause
-     * @return _success Boolean, true if joined the clause successfully
+     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+     * @return _success Boolean, true if joined the offer successfully
      */
-    function servePublisherClause(bytes32 _id)
+    function servePublisherOffer(bytes32 _id)
         public
         returns (bool _success)
     {
         // make sure upload contract is valid
-        require(clauses[_id].validTill > now);
-        require(clauses[_id].expiry > now);
+        require(offers[_id].validTill > now);
+        require(offers[_id].expiry > now);
 
         // make sure it is a new node
-        require(clauses[_id].activeNodes[msg.sender] == false);
+        require(offers[_id].activeNodes[msg.sender] == false);
 
         // make sure upload contract has slots remaining, if yes, add new node
-        require(clauses[_id].nodes.length < clauses[_id].replication);
-        clauses[_id].activeNodes[msg.sender] = true;
-        clauses[_id].nodes.push(msg.sender);
+        require(offers[_id].nodes.length < offers[_id].replication);
+        offers[_id].activeNodes[msg.sender] = true;
+        offers[_id].nodes.push(msg.sender);
 
         // make sure transfer of tokens is possible
         require(ERC20(MARLIN_TOKEN_ADDRESS).transferFrom(
             msg.sender,
             address(this),
-            clauses[_id].requiredStake
+            offers[_id].requiredStake
         ));
 
         _success = true;
     }
 
     /**
-     * @notice Leave the clause after its validity is over
+     * @notice Leave the offer after its validity is over
      * @dev This also means the staked LIN tokens will be transferred back
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the clause
+     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
      * @return _success Boolean, true if withdrawn successfully
      */
     function withdrawStake(bytes32 _id)
@@ -164,22 +164,22 @@ contract Upload {
         returns (bool _success)
     {
         // make sure upload contract is not valid anymore
-        require(now > clauses[_id].validTill);
+        require(now > offers[_id].validTill);
 
         // make sure this node was serving
-        require(clauses[_id].activeNodes[msg.sender] == true);
+        require(offers[_id].activeNodes[msg.sender] == true);
         removeNode(_id, msg.sender);
-        clauses[_id].activeNodes[msg.sender] = false;
+        offers[_id].activeNodes[msg.sender] = false;
 
         // withdraw tokens
-        require(ERC20(MARLIN_TOKEN_ADDRESS).transfer(msg.sender, clauses[_id].requiredStake));
+        require(ERC20(MARLIN_TOKEN_ADDRESS).transfer(msg.sender, offers[_id].requiredStake));
 
         _success = true;
     }
 
     /**
      * @notice Function to withdraw refundable LIN tokens from this contract
-     * @dev Tokens are refunded if the publisher renews their clause beyond the initial clause validity
+     * @dev Tokens are refunded if the publisher renews their offer beyond the initial offer validity
      */
     function withdrawRefund()
         public
@@ -191,19 +191,19 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read publisher-side clause details
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the clause
-     * @return _publisher Address of the publisher, who created this clause
+     * @notice Function to read publisher-side offer details
+     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+     * @return _publisher Address of the publisher, who created this offer
      * @return _namespace Namespace of the website/project
      * @return _archiveUrl URL of the file archive
      * @return _storageReward Reward (LIN) for storing this content
      * @return _deliveryReward Reward (LIN) for delivering/serving this content
-     * @return _validTill UTC timestamp at which clause's validity is over
-     * @return _expiry UTC timestamp at which clause auto-expires if no master nodes join
+     * @return _validTill UTC timestamp at which offer's validity is over
+     * @return _expiry UTC timestamp at which offer auto-expires if no master nodes join
      * @return _replication Replication factor of the content
      * @return _requiredStake Stake (LIN) required to store/deliver this content
      */
-    function readPublisherClause(bytes32 _id)
+    function readPublisherOffer(bytes32 _id)
         public
         constant
         returns (
@@ -218,15 +218,15 @@ contract Upload {
             uint256 _requiredStake
         )
     {
-        _publisher = clauses[_id].publisher;
-        _namespace = clauses[_id].namespace;
-        _archiveUrl = clauses[_id].archiveUrl;
-        _storageReward = clauses[_id].storageReward;
-        _deliveryReward = clauses[_id].deliveryReward;
-        _validTill = clauses[_id].validTill;
-        _expiry = clauses[_id].expiry;
-        _replication = clauses[_id].replication;
-        _requiredStake = clauses[_id].requiredStake;
+        _publisher = offers[_id].publisher;
+        _namespace = offers[_id].namespace;
+        _archiveUrl = offers[_id].archiveUrl;
+        _storageReward = offers[_id].storageReward;
+        _deliveryReward = offers[_id].deliveryReward;
+        _validTill = offers[_id].validTill;
+        _expiry = offers[_id].expiry;
+        _replication = offers[_id].replication;
+        _requiredStake = offers[_id].requiredStake;
     }
 
     /**
@@ -243,33 +243,33 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read the stake of a master node for specific clause
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the clause
+     * @notice Function to read the stake of a master node for specific offer
+     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
      * @param _node Address of the master node
-     * @return _value LIN tokens staked by the master node for this clause
+     * @return _value LIN tokens staked by the master node for this offer
      */
     function readStake(bytes32 _id, address _node)
         public
         constant
         returns (uint256 _value)
     {
-        if (clauses[_id].activeNodes[_node] == true) {
-            _value = clauses[_id].requiredStake;
+        if (offers[_id].activeNodes[_node] == true) {
+            _value = offers[_id].requiredStake;
         }
     }
 
-    function refundPublisherClause(bytes32 _id)
+    function refundPublisherOffer(bytes32 _id)
         internal
     {
         // make sure upload contract is not valid anymore
-        require(now > clauses[_id].validTill);
+        require(now > offers[_id].validTill);
 
-        address[] memory _nodes = clauses[_id].nodes;
+        address[] memory _nodes = offers[_id].nodes;
         for (uint256 i = _nodes.length; i > 0; i--) {
             address _node = _nodes[i];
-            refunds[_node] = refunds[_node].add(clauses[_id].requiredStake);
+            refunds[_node] = refunds[_node].add(offers[_id].requiredStake);
             removeNode(_id, _node);
-            clauses[_id].activeNodes[_node] = false;
+            offers[_id].activeNodes[_node] = false;
         }
     }
 
@@ -277,7 +277,7 @@ contract Upload {
         internal
         constant
     {
-        address[] memory _nodes = clauses[_id].nodes;
+        address[] memory _nodes = offers[_id].nodes;
         for (uint256 i = _nodes.length; i > 0; i--) {
             if (_nodes[i] == _node) {
                 delete _nodes[i];
@@ -292,9 +292,9 @@ contract Upload {
         returns (bool _is)
     {
         if (
-            (now > clauses[_id].expiry) ||
-            (clauses[_id].expiry == 0) ||
-            (now > clauses[_id].validTill)
+            (now > offers[_id].expiry) ||
+            (offers[_id].expiry == 0) ||
+            (now > offers[_id].validTill)
         ) {
             return true;
         }
