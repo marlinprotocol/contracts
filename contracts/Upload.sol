@@ -12,7 +12,7 @@ contract Upload {
 
     using SafeMath for uint256;
 
-    event PublisherContract(string namespace, string fileArchiveUrl);
+    event NewPublisherOffer(string namespace, string fileArchiveUrl);
 
     /**
      * @notice Struct for Publisher Offer
@@ -43,6 +43,7 @@ contract Upload {
     }
 
     mapping(bytes32 => PublisherOffer) offers;
+    mapping(address => bytes32[]) offersByPublisher;
     mapping(address => uint256) refunds;
     address MARLIN_TOKEN_ADDRESS;
 
@@ -86,6 +87,7 @@ contract Upload {
             require(msg.sender == offers[_id].publisher);
             refundPublisherOffer(_id);
         }
+        addToList(msg.sender, _id);
         offers[_id].publisher = msg.sender;
         offers[_id].namespace = _namespace;
         offers[_id].archiveUrl = _archiveUrl;
@@ -95,7 +97,7 @@ contract Upload {
         offers[_id].expiry = _expiry;
         offers[_id].replication = _replication;
         offers[_id].requiredStake = _requiredStake;
-        emit PublisherContract(_namespace, _archiveUrl);
+        emit NewPublisherOffer(_namespace, _archiveUrl);
     }
 
     /**
@@ -230,6 +232,19 @@ contract Upload {
     }
 
     /**
+     * @notice Function to read the offers owned by a publisher
+     * @param _publisher Address of the publisher
+     * @return _ids Array of bytes (IDs) of offers
+     */
+    function readOffersByPublisher(address _publisher)
+        public
+        constant
+        returns (bytes32[] _ids)
+    {
+        _ids = offersByPublisher[_publisher];
+    }
+
+    /**
      * @notice Function to read the refund value of a master node
      * @param _node Address of the master node
      * @return _value Refund value of the master node
@@ -255,6 +270,28 @@ contract Upload {
     {
         if (offers[_id].activeNodes[_node] == true) {
             _value = offers[_id].requiredStake;
+        }
+    }
+
+    function addToList(address _publisher, bytes32 _id)
+        internal
+    {
+        if (!isInList(offersByPublisher[_publisher], _id)) {
+            offersByPublisher[_publisher].push(_id);
+        }
+    }
+
+    function isInList(bytes32[] _list, bytes32 _item)
+        internal
+        pure
+        returns (bool _success)
+    {
+        uint256 _length = _list.length;
+        for (uint256 _i = 0; _i < _length; _i++) {
+            if (_item == _list[_i]) {
+                _success = true;
+                break;
+            }
         }
     }
 
