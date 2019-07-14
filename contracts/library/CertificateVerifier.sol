@@ -10,6 +10,10 @@ library CertificateVerifier {
     string constant SIGNED_MSG_AUTH_PREFIX = "\x19Ethereum Signed Message:\n41";
     string constant SIGNED_MSG_SERV_PREFIX = "\x19Ethereum Signed Message:\n66";
 
+    struct ReplayProtectionStruct {
+        mapping(bytes32 => bool) used;
+    }
+
     modifier is_valid_nonce(uint8 nonce, uint8 max) {
         require(nonce > 0);
         require(nonce <= max);
@@ -55,6 +59,14 @@ library CertificateVerifier {
             _serv_s
         );
         _valid = (_signer == _client);
+    }
+
+    function isServiceCertUsed(ReplayProtectionStruct storage _self, bytes32 _hash)
+        internal
+        constant
+        returns (bool _used)
+    {
+        _used = _self.used[_hash];
     }
 
     function isValidAuthCertificate(

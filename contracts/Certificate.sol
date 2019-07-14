@@ -16,10 +16,13 @@ contract UploadInterface {
 contract Certificate {
 
     using CertificateVerifier for CertificateVerifier;
+    using CertificateVerifier for CertificateVerifier.ReplayProtectionStruct;
 
     string constant SIGNED_MSG_WIN_PREFIX = "\x19Ethereum Signed Message:\n65";
     address MARLIN_TOKEN_ADDRESS;
     address MARLIN_UPLOAD_CONTRACT_ADDRESS;
+
+    CertificateVerifier.ReplayProtectionStruct serviceCerts;
 
     /**
      * @notice Constructor that sets the Marlin token contract address and Publisher-side Upload contract address
@@ -56,8 +59,10 @@ contract Certificate {
         public
         returns (bool _success)
     {
-        // make sure the sender is approved master node of upload contract
-        require(UploadInterface(MARLIN_UPLOAD_CONTRACT_ADDRESS).readStake(msg.sender) > 0);
+        // make sure service certificate is not re-used
+        bytes32 _servCertHashed = keccak256(abi.encodePacked(_vArray[1], _rArray[1], _sArray[1]));
+        require(serviceCerts.isServiceCertUsed(_servCertHashed) == false);
+        serviceCerts.used[_servCertHashed] = true;
 
         require(isWinningCertificate(
             _publisher,
