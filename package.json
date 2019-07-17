@@ -1,6 +1,6 @@
 {
   "name": "marlin-contracts",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Ethereum Smart Contracts for Marlin Network",
   "main": "truffle-config.js",
   "directories": {

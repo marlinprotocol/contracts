@@ -2,7 +2,7 @@ const Upload = artifacts.require('Upload.sol');
 const MockToken = artifacts.require('MockToken.sol');
 
 module.exports = async function (deployer, network) {
-  if (network === 'development') {
+  if (network === 'development' || network === 'private') {
      deployer.deploy(MockToken)
        .then(() => {
          return deployer.deploy(Upload, MockToken.address);

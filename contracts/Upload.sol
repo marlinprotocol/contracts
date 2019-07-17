@@ -12,7 +12,7 @@ contract Upload {
 
     using SafeMath for uint256;
 
-    event NewPublisherOffer(string namespace, string fileArchiveUrl);
+    event NewPublisherOffer(bytes32 id);
 
     /**
      * @notice Struct for Publisher Offer
@@ -97,7 +97,7 @@ contract Upload {
         offers[_id].expiry = _expiry;
         offers[_id].replication = _replication;
         offers[_id].requiredStake = _requiredStake;
-        emit NewPublisherOffer(_namespace, _archiveUrl);
+        emit NewPublisherOffer(_id);
     }
 
     /**

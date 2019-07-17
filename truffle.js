@@ -21,5 +21,13 @@ module.exports = {
       port: 8545,
       network_id: "*" // Match any network id
     }
+  },
+  private: {
+    provider: function() {
+      return new HDWalletProvider(process.env.MNEMONIC, "http://127.0.0.1:8545/", 0, 20);
+    },
+    network_id: "*",
+    gas: 4712388,
+    gasPrice: 0
   }
 };
