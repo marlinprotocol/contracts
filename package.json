@@ -7,12 +7,16 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:compile": "./node_modules/.bin/doxity compile",
+    "docs:publish": "./node_modules/.bin/doxity publish",
+    "docs:develop": "cd scripts/doxity && ./node_modules/.bin/gatsby develop"
   },
   "dependencies": {
     "openzeppelin-solidity": "1.11.0",
     "truffle-hdwallet-provider": "0.0.5",
-    "ganache-cli": "6.1.6"
+    "ganache-cli": "6.1.6",
+    "@digix/doxity-solc": "0.6.0"
   },
   "author": "Marlin Labs",
   "license": "SEE LICENSE IN LICENSE"

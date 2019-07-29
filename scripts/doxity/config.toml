@@ -1,0 +1,34 @@
+linkPrefix = "/marlin-contracts"
+name = "marlin-contracts"
+license = "SEE LICENSE IN LICENSE"
+version = "0.0.1"
+description = "Ethereum Smart Contracts for Marlin Network"
+author = "Marlin Labs"
+buildTime = 2018-08-20T14:26:06.983Z
+target = "scripts/doxity"
+src = "contracts/*"
+dir = "pages/docs"
+source = "https://github.com/DigixGlobal/doxity-gatsby-starter-project/archive/a4886b7a7a04c018ac04fed3125d7d4785e74bed.tar.gz"
+out = "docs"
+
+[interaction]
+
+[whitelist]
+
+[whitelist.all]
+abi = true
+source = true
+bytecode = false
+methods = true
+
+[whitelist.Upload]
+abi = true
+source = true
+bytecode = false
+methods = true
+
+[whitelist.Certificate]
+abi = true
+source = true
+bytecode = false
+methods = true

@@ -9,10 +9,10 @@ contract UploadInterface {
 }
 
 /**
-* @title Certificate-verification and payout-handling contract
-* @author Marlin Labs
-* @notice Master nodes/storage nodes can fetch rewards for their certificates
- */
+@title Certificate-verification and payout-handling contract
+@author Marlin Labs
+@notice Master nodes/storage nodes can fetch rewards for their certificates
+*/
 contract Certificate {
 
     using CertificateVerifier for CertificateVerifier;
@@ -25,27 +25,29 @@ contract Certificate {
     CertificateVerifier.ReplayProtectionStruct serviceCerts;
 
     /**
-     * @notice Constructor that sets the Marlin token contract address and Publisher-side Upload contract address
-     * @param _tokenContractAddress Address of the Marlin token contract
-     * @param _uploadContractAddress Address of the publisher-side Upload contract
-     */
+    @notice Constructor that sets the Marlin token contract address and Publisher-side Upload contract address
+    @param _tokenContractAddress Address of the Marlin token contract
+    @param _uploadContractAddress Address of the publisher-side Upload contract
+    */
     constructor(address _tokenContractAddress, address _uploadContractAddress) public {
         MARLIN_TOKEN_ADDRESS = _tokenContractAddress;
         MARLIN_UPLOAD_CONTRACT_ADDRESS = _uploadContractAddress;
     }
 
     /**
-     * @notice Function to be called to fetch reward for delivery certificate
-     * @param _offerId ID of the publisher offer from the Upload contract
-     * @param _publisher Address of the publisher who created the offer
-     * @param _client Address of the master node
-     * @param _max Max certificates
-     * @param _nonce Nonce of this txn
-     * @param _vArray Array of the recovery IDs of the signatures
-     * @param _rArray Array of the r-value of ECDSA signatures
-     * @param _sArray Array of the s-value of ECDSA signatures
-     * @return _success Boolean, true if the payout was successful
-     */
+    @notice Function to be called to fetch reward for delivery certificate
+    @param _offerId ID of the publisher offer from the Upload contract
+    @param _publisher Address of the publisher who created the offer
+    @param _client Address of the master node
+    @param _max Max certificates
+    @param _nonce Nonce of this txn
+    @param _vArray Array of the recovery IDs of the signatures
+    @param _rArray Array of the r-value of ECDSA signatures
+    @param _sArray Array of the s-value of ECDSA signatures
+    @return {
+      "_success": "Boolean, true if the payout was successful"
+    }
+    */
     function settleWinningCertificate(
         bytes32 _offerId,
         address _publisher,

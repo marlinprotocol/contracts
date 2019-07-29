@@ -4,10 +4,10 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
- * @title Publisher-side upload offers
- * @author Marlin Labs
- * @notice Publishers can create new offers for storing and delivering content
- */
+@title Publisher-side upload offers
+@author Marlin Labs
+@notice Publishers can create new offers for storing and delivering content
+*/
 contract Upload {
 
     using SafeMath for uint256;
@@ -15,19 +15,19 @@ contract Upload {
     event NewPublisherOffer(bytes32 id);
 
     /**
-     * @notice Struct for Publisher Offer
-     * @param publisher Address of the publisher
-     * @param namespace Namespace of the website/project
-     * @param archiveUrl URL of the file archive
-     * @param storageReward Reward (LIN) for storing this content
-     * @param deliveryReward Reward (LIN) for delivering/serving this content
-     * @param validTill UTC timestamp till which this offer is valid
-     * @param expiry UTC timestamp at which offer auto-expires if no master nodes join
-     * @param replication Replication factor of the content
-     * @param requiredStake Stake (LIN) required to store/deliver this content
-     * @param nodes Addresses of the master nodes that have joined this offer
-     * @param activeNodes Mapping of whether an address has joined this offer or not
-     */
+    @notice Struct for Publisher Offer
+    @param publisher Address of the publisher
+    @param namespace Namespace of the website/project
+    @param archiveUrl URL of the file archive
+    @param storageReward Reward (LIN) for storing this content
+    @param deliveryReward Reward (LIN) for delivering/serving this content
+    @param validTill UTC timestamp till which this offer is valid
+    @param expiry UTC timestamp at which offer auto-expires if no master nodes join
+    @param replication Replication factor of the content
+    @param requiredStake Stake (LIN) required to store/deliver this content
+    @param nodes Addresses of the master nodes that have joined this offer
+    @param activeNodes Mapping of whether an address has joined this offer or not
+    */
     struct PublisherOffer {
         address publisher;
         string namespace;
@@ -48,25 +48,25 @@ contract Upload {
     address MARLIN_TOKEN_ADDRESS;
 
     /**
-     * @notice Constructor that saves the address of the Marlin token contract
-     * @param _tokenContractAddress Address of Marlin token contract
-     */
+    @notice Constructor that saves the address of the Marlin token contract
+    @param _tokenContractAddress Address of Marlin token contract
+    */
     constructor(address _tokenContractAddress) public {
         MARLIN_TOKEN_ADDRESS = _tokenContractAddress;
     }
 
     /**
-     * @notice Function to create a new publisher-side offer
-     * @dev This may also be called to renew a offer whose validity was over
-     * @param _namespace Namespace of the website/project
-     * @param _archiveUrl URL of the file archive
-     * @param _storageReward Reward (LIN) for storing this content
-     * @param _deliveryReward Reward (LIN) for delivering/serving this content
-     * @param _duration Duration of the offer after which its validity ends (seconds)
-     * @param _expiry UTC timestamp at which offer auto-expires if no master nodes join
-     * @param _replication Replication factor of the content
-     * @param _requiredStake Stake (LIN) required to store/deliver this content
-     */
+    @notice Function to create a new publisher-side offer
+    @dev This may also be called to renew a offer whose validity was over
+    @param _namespace Namespace of the website/project
+    @param _archiveUrl URL of the file archive
+    @param _storageReward Reward (LIN) for storing this content
+    @param _deliveryReward Reward (LIN) for delivering/serving this content
+    @param _duration Duration of the offer after which its validity ends (seconds)
+    @param _expiry UTC timestamp at which offer auto-expires if no master nodes join
+    @param _replication Replication factor of the content
+    @param _requiredStake Stake (LIN) required to store/deliver this content
+    */
     function addPublisherOffer(
         string _namespace,
         string _archiveUrl,
@@ -101,12 +101,14 @@ contract Upload {
     }
 
     /**
-     * @notice Function to be called by publisher to scale out/in replication factor
-     * @dev Can scale in only upto the already joined number of master nodes
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
-     * @param _replication Replication factor of the content
-     * @return _success Boolean, true if updated successfully
-     */
+    @notice Function to be called by publisher to scale out/in replication factor
+    @dev Can scale in only upto the already joined number of master nodes
+    @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+    @param _replication Replication factor of the content
+    @return {
+      "_success": "Boolean, true if updated successfully"
+    }
+    */
     function scalePublisherOffer(
         bytes32 _id,
         uint256 _replication
@@ -123,12 +125,14 @@ contract Upload {
     }
 
     /**
-     * @notice Function to join a offer and deliver/serve content
-     * @dev Offer can only be joined till the replication is not satisfied
-     *      msg.sender must approve this contract to transferFrom LIN tokens on their behalf
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
-     * @return _success Boolean, true if joined the offer successfully
-     */
+    @notice Function to join a offer and deliver/serve content
+    @dev Offer can only be joined till the replication is not satisfied
+         msg.sender must approve this contract to transferFrom LIN tokens on their behalf
+    @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+    @return {
+      "_success": "Boolean, true if joined the offer successfully"
+    }
+    */
     function servePublisherOffer(bytes32 _id)
         public
         returns (bool _success)
@@ -156,11 +160,13 @@ contract Upload {
     }
 
     /**
-     * @notice Leave the offer after its validity is over
-     * @dev This also means the staked LIN tokens will be transferred back
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
-     * @return _success Boolean, true if withdrawn successfully
-     */
+    @notice Leave the offer after its validity is over
+    @dev This also means the staked LIN tokens will be transferred back
+    @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+    @return {
+      "_success": "Boolean, true if withdrawn successfully"
+    }
+    */
     function withdrawStake(bytes32 _id)
         public
         returns (bool _success)
@@ -180,9 +186,9 @@ contract Upload {
     }
 
     /**
-     * @notice Function to withdraw refundable LIN tokens from this contract
-     * @dev Tokens are refunded if the publisher renews their offer beyond the initial offer validity
-     */
+    @notice Function to withdraw refundable LIN tokens from this contract
+    @dev Tokens are refunded if the publisher renews their offer beyond the initial offer validity
+    */
     function withdrawRefund()
         public
     {
@@ -193,18 +199,20 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read publisher-side offer details
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
-     * @return _publisher Address of the publisher, who created this offer
-     * @return _namespace Namespace of the website/project
-     * @return _archiveUrl URL of the file archive
-     * @return _storageReward Reward (LIN) for storing this content
-     * @return _deliveryReward Reward (LIN) for delivering/serving this content
-     * @return _validTill UTC timestamp at which offer's validity is over
-     * @return _expiry UTC timestamp at which offer auto-expires if no master nodes join
-     * @return _replication Replication factor of the content
-     * @return _requiredStake Stake (LIN) required to store/deliver this content
-     */
+    @notice Function to read publisher-side offer details
+    @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+    @return {
+      "_publisher": "Address of the publisher, who created this offer",
+      "_namespace": "Namespace of the website/project",
+      "_archiveUrl": "URL of the file archive",
+      "_storageReward": "Reward (LIN) for storing this content",
+      "_deliveryReward": "Reward (LIN) for delivering/serving this content",
+      "_validTill": "UTC timestamp at which offer's validity is over",
+      "_expiry": "UTC timestamp at which offer auto-expires if no master nodes join",
+      "_replication": "Replication factor of the content",
+      "_requiredStake": "Stake (LIN) required to store/deliver this content"
+    }
+    */
     function readPublisherOffer(bytes32 _id)
         public
         constant
@@ -232,10 +240,12 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read the offers owned by a publisher
-     * @param _publisher Address of the publisher
-     * @return _ids Array of bytes (IDs) of offers
-     */
+    @notice Function to read the offers owned by a publisher
+    @param _publisher Address of the publisher
+    @return {
+      "_ids": "Array of bytes (IDs) of offers"
+    }
+    */
     function readOffersByPublisher(address _publisher)
         public
         constant
@@ -245,10 +255,12 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read the refund value of a master node
-     * @param _node Address of the master node
-     * @return _value Refund value of the master node
-     */
+    @notice Function to read the refund value of a master node
+    @param _node Address of the master node
+    @return {
+      "_value": "Refund value of the master node"
+    }
+    */
     function readRefund(address _node)
         public
         constant
@@ -258,11 +270,13 @@ contract Upload {
     }
 
     /**
-     * @notice Function to read the stake of a master node for specific offer
-     * @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
-     * @param _node Address of the master node
-     * @return _value LIN tokens staked by the master node for this offer
-     */
+    @notice Function to read the stake of a master node for specific offer
+    @param _id keccak256(_namespace, _archiveUrl) is the ID of the offer
+    @param _node Address of the master node
+    @return {
+      "_value": "LIN tokens staked by the master node for this offer"
+    }
+    */
     function readStake(bytes32 _id, address _node)
         public
         constant
