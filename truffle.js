@@ -18,6 +18,13 @@ module.exports = {
   // See <http://truffleframework.com/docs/advanced/configuration>
   // to customize your Truffle configuration!
   networks: {
+    ropsten: {
+      provider: function() {
+        return new HDWalletProvider(process.env.MNEMONIC, "https://ropsten.infura.io/v3/56a2f6543c244ce28411a49bf97cbb42");
+      },
+      network_id: 3,
+      gas: 4700000
+    },
     development: {
       host: "127.0.0.1",
       port: 8545,
