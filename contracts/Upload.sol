@@ -3,6 +3,7 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+
 /**
 @title Publisher-side upload offers
 @author Marlin Labs
@@ -12,25 +13,125 @@ contract Upload {
 
     using SafeMath for uint256;
 
-    event NewPublisherOffer(bytes32 id);
-    event ServePublisherOffer(bytes32 id, address node);
+
+    //-------------------------------- Initialization --------------------------------//
+
+    address public tokenContractAddress;
+
+    /**
+    @notice Constructor that saves the address of the Marlin token contract
+    @param _tokenContractAddress    Address of Marlin token contract
+    */
+    constructor(address _tokenContractAddress) public {
+        tokenContractAddress = _tokenContractAddress;
+    }
+
+
+    //-------------------------------- Offers token escrow --------------------------------//
+
+    // Map offers to balances
+    mapping(bytes32 => uint256) offerBalances;
+
+    function fundOffer(
+        bytes32 _id,
+        uint256 _amount
+    )
+        public
+        returns (bool success)
+    {
+        require(offers[_id].publisher == msg.sender, "Verify ownership");
+        require(
+            ERC20(tokenContractAddress).transferFrom(
+                msg.sender,
+                address(this),
+                _amount
+            ),
+            "Token transfer"
+        );
+        offerBalances[_id].add(_amount);
+        return true;
+    }
+
+    function closeOffer(
+        bytes32 _id
+    )
+        public
+        returns (bool success)
+    {
+        require(offers[_id].publisher == msg.sender, "Verify ownership");
+        require(now > offers[_id].expiry, "Offer should be expired");
+
+        balances[msg.sender] = offerBalances[_id];
+        offerBalances[_id] = 0;
+        return true;
+    }
+
+    //-------------------------------- Token balances --------------------------------//
+
+    mapping(address => uint256) balances;
+
+    function withdraw() public returns (bool success) {
+        require(
+            ERC20(tokenContractAddress).transfer(
+                msg.sender,
+                balances[msg.sender]
+            ),
+            "Token transfer"
+        );
+        balances[msg.sender] = 0;
+        return true;
+    }
+
+
+    //-------------------------------- Certificate transfer interface --------------------------------//
+
+    // Map publishers to certificate address approvals
+    mapping(bytes32 => bool) approvals;
+
+    function approve(
+        address certificateContractAddress
+    )
+        public
+        returns (bool success)
+    {
+        bytes32 hash = keccak256(abi.encodePacked(msg.sender, certificateContractAddress));
+        approvals[hash] = true;
+        return true;
+    }
+
+    function transfer(
+        bytes32 _offerId,
+        address _to,
+        uint256 _amount
+    )
+        public
+        returns (bool success)
+    {
+        bytes32 hash = keccak256(abi.encodePacked(offers[_offerId].publisher, msg.sender));
+        require(approvals[hash] == true, "Certificate contract should be approved");
+        offerBalances[_offerId].sub(_amount);
+        balances[_to].add(_amount);
+        return true;
+    }
+
+
 
     /**
     @notice Struct for Publisher Offer
-    @param publisher Address of the publisher
-    @param namespace Namespace of the website/project
-    @param archiveUrl URL of the file archive
-    @param storageReward Reward (LIN) for storing this content
-    @param deliveryReward Reward (LIN) for delivering/serving this content
-    @param validTill UTC timestamp till which this offer is valid
-    @param expiry UTC timestamp at which offer auto-expires if no master nodes join
-    @param replication Replication factor of the content
-    @param requiredStake Stake (LIN) required to store/deliver this content
-    @param nodes Addresses of the master nodes that have joined this offer
-    @param activeNodes Mapping of whether an address has joined this offer or not
-    @param geoHash Geohash specifies region from which nodes can accept offer
-    @param archiveSize size of archive
-    @param archiveHash hash of archive, will be used for validation
+    @param publisher        Address of the publisher
+    @param namespace        Namespace of the website/project
+    @param archiveUrl       URL of the file archive
+    @param storageReward    Reward (LIN) for storing this content
+    @param deliveryReward   Reward (LIN) for delivering/serving this content
+    @param validTill        UTC timestamp till which this offer is valid
+    @param expiry           UTC timestamp at which offer auto-expires if no master nodes join
+    @param replication      Replication factor of the content
+    @param requiredStake    Stake (LIN) required to store/deliver this content
+    @param nodes            Addresses of the master nodes that have joined this offer
+    @param activeNodes      Mapping of whether an address has joined this offer or not
+    @param geoHash          Geohash specifies region from which nodes can accept offer
+    @param archiveSize      Size of archive
+    @param archiveHash      Hash of archive, will be used for validation
     */
     struct PublisherOffer {
         address publisher;
@@ -50,17 +151,9 @@ contract Upload {
     }
 
     mapping(bytes32 => PublisherOffer) offers;
-    mapping(address => bytes32[]) offersByPublisher;
-    mapping(address => uint256) refunds;
-    address MARLIN_TOKEN_ADDRESS;
 
-    /**
-    @notice Constructor that saves the address of the Marlin token contract
-    @param _tokenContractAddress Address of Marlin token contract
-    */
-    constructor(address _tokenContractAddress) public {
-        MARLIN_TOKEN_ADDRESS = _tokenContractAddress;
-    }
+    event NewPublisherOffer(bytes32 id);
+    event ServePublisherOffer(bytes32 id, address node);
 
     /**
     @notice Function to create a new publisher-side offer
@@ -93,14 +186,14 @@ contract Upload {
         public
     {
         bytes32 _id = keccak256(abi.encodePacked(_namespace, _archiveUrl));
-        require(isUnique(_id));
-        require(now < _expiry);
-        require(_requiredStake > 0);
+        require(isUnique(_id), "Unique id");
+        require(now < _expiry, "Valid expiry");
+        require(_requiredStake > 0, "Valid required stake");
         if (offers[_id].nodes.length > 0) {
-            require(msg.sender == offers[_id].publisher);
+            require(msg.sender == offers[_id].publisher, "Existing offer");
             refundPublisherOffer(_id);
         }
-        addToList(msg.sender, _id);
+
         offers[_id].publisher = msg.sender;
         offers[_id].namespace = _namespace;
         offers[_id].archiveUrl = _archiveUrl;
@@ -113,6 +206,9 @@ contract Upload {
         offers[_id].geoHash = _geoHash;
         offers[_id].archiveSize = _archiveSize;
         offers[_id].archiveHash = _archiveHash;
+
+        fundOffer(_id, _deliveryReward.mul(1000));
+
         emit NewPublisherOffer(_id);
     }
 
@@ -132,9 +228,9 @@ contract Upload {
         public
         returns (bool _success)
     {
-        require(msg.sender == offers[_id].publisher);
+        require(msg.sender == offers[_id].publisher, "Verify sender");
 
-        require(offers[_id].nodes.length <= _replication);
+        require(offers[_id].nodes.length <= _replication, "Verify maximum replication");
         offers[_id].replication = _replication;
 
         _success = true;
@@ -154,23 +250,26 @@ contract Upload {
         returns (bool _success)
     {
         // make sure upload contract is valid
-        require(offers[_id].validTill > now);
-        require(offers[_id].expiry > now);
+        require(offers[_id].validTill > now, "Check validity");
+        require(offers[_id].expiry > now, "Check expiry");
 
         // make sure it is a new node
-        require(offers[_id].activeNodes[msg.sender] == false);
+        require(offers[_id].activeNodes[msg.sender] == false, "Check duplicate nodes");
 
         // make sure upload contract has slots remaining, if yes, add new node
-        require(offers[_id].nodes.length < offers[_id].replication);
+        require(offers[_id].nodes.length < offers[_id].replication, "Check replication");
         offers[_id].activeNodes[msg.sender] = true;
         offers[_id].nodes.push(msg.sender);
 
         // make sure transfer of tokens is possible
-        require(ERC20(MARLIN_TOKEN_ADDRESS).transferFrom(
-            msg.sender,
-            address(this),
-            offers[_id].requiredStake
-        ));
+        require(
+            ERC20(tokenContractAddress).transferFrom(
+                msg.sender,
+                address(this),
+                offers[_id].requiredStake
+            ),
+            "Token transfer"
+        );
 
         emit ServePublisherOffer(_id, msg.sender);
         _success = true;
@@ -189,15 +288,15 @@ contract Upload {
         returns (bool _success)
     {
         // make sure upload contract is not valid anymore
-        require(now > offers[_id].validTill);
+        require(now > offers[_id].validTill, "Check validity");
 
         // make sure this node was serving
-        require(offers[_id].activeNodes[msg.sender] == true);
+        require(offers[_id].activeNodes[msg.sender] == true, "Node should be serving");
         removeNode(_id, msg.sender);
         offers[_id].activeNodes[msg.sender] = false;
 
         // withdraw tokens
-        require(ERC20(MARLIN_TOKEN_ADDRESS).transfer(msg.sender, offers[_id].requiredStake));
+        require(ERC20(tokenContractAddress).transfer(msg.sender, offers[_id].requiredStake), "Token transfer");
 
         _success = true;
     }
@@ -209,10 +308,10 @@ contract Upload {
     function withdrawRefund()
         public
     {
-        uint256 _refund = refunds[msg.sender];
+        uint256 _refund = balances[msg.sender];
         require(_refund > 0);
-        refunds[msg.sender] = 0;
-        require(ERC20(MARLIN_TOKEN_ADDRESS).transfer(msg.sender, _refund));
+        balances[msg.sender] = 0;
+        require(ERC20(tokenContractAddress).transfer(msg.sender, _refund));
     }
 
     /**
@@ -235,7 +334,7 @@ contract Upload {
     */
     function readPublisherOffer(bytes32 _id)
         public
-        constant
+        view
         returns (
             address _publisher,
             string _namespace,
@@ -266,21 +365,6 @@ contract Upload {
     }
 
     /**
-    @notice Function to read the offers owned by a publisher
-    @param _publisher Address of the publisher
-    @return {
-      "_ids": "Array of bytes (IDs) of offers"
-    }
-    */
-    function readOffersByPublisher(address _publisher)
-        public
-        constant
-        returns (bytes32[] _ids)
-    {
-        _ids = offersByPublisher[_publisher];
-    }
-
-    /**
     @notice Function to read the refund value of a master node
     @param _node Address of the master node
     @return {
@@ -289,10 +373,10 @@ contract Upload {
     */
     function readRefund(address _node)
         public
-        constant
+        view
         returns (uint256 _value)
     {
-        _value = refunds[_node];
+        _value = balances[_node];
     }
 
     /**
@@ -305,19 +389,11 @@ contract Upload {
     */
     function readStake(bytes32 _id, address _node)
         public
-        constant
+        view
         returns (uint256 _value)
     {
         if (offers[_id].activeNodes[_node] == true) {
             _value = offers[_id].requiredStake;
-        }
-    }
-
-    function addToList(address _publisher, bytes32 _id)
-        internal
-    {
-        if (!isInList(offersByPublisher[_publisher], _id)) {
-            offersByPublisher[_publisher].push(_id);
         }
     }
 
@@ -344,7 +420,7 @@ contract Upload {
         address[] memory _nodes = offers[_id].nodes;
         for (uint256 i = _nodes.length; i > 0; i--) {
             address _node = _nodes[i];
-            refunds[_node] = refunds[_node].add(offers[_id].requiredStake);
+            balances[_node] = balances[_node].add(offers[_id].requiredStake);
             removeNode(_id, _node);
             offers[_id].activeNodes[_node] = false;
         }
@@ -352,7 +428,7 @@ contract Upload {
 
     function removeNode(bytes32 _id, address _node)
         internal
-        constant
+        view
     {
         address[] memory _nodes = offers[_id].nodes;
         for (uint256 i = _nodes.length; i > 0; i--) {
@@ -365,7 +441,7 @@ contract Upload {
 
     function isUnique(bytes32 _id)
         internal
-        constant
+        view
         returns (bool _is)
     {
         if (
