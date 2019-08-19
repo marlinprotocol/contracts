@@ -13,6 +13,7 @@ contract Upload {
     using SafeMath for uint256;
 
     event NewPublisherOffer(bytes32 id);
+    event ServePublisherOffer(bytes32 id, address node);
 
     /**
     @notice Struct for Publisher Offer
@@ -156,6 +157,7 @@ contract Upload {
             offers[_id].requiredStake
         ));
 
+        emit ServePublisherOffer(_id, msg.sender);
         _success = true;
     }
 
