@@ -1,1 +1,1 @@
-module.exports.certificateContract = require('./lib/certificateContract.js');
+module.exports.CertificateContract = require('./lib/certificateContract.js');

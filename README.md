@@ -1,3 +1,3 @@
-# certificateEthBackend.js
+# contract.js
 
-Backend implementation of certificates on Ethereum
+Ethereum contract interfaces

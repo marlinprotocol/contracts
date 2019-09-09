@@ -1,7 +1,7 @@
 {
-  "name": "@marlinprotocol/certificate-eth-backend",
+  "name": "@marlinprotocol/contract",
   "version": "0.0.1",
-  "description": "Backend implementation of certificates on Ethereum",
+  "description": "Ethereum contract interfaces",
   "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "directories": {
@@ -12,8 +12,6 @@
   },
   "author": "Roshan Raghupathy",
   "dependencies": {
-    "@marlinprotocol/ethereum-provider": "^0.0.1",
-    "ethereumjs-abi": "^0.6.5"
   },
   "devDependencies": {
     "chai": "^4.1.2",
