@@ -29,13 +29,11 @@ Class wrapping certificate contract.
 
 #### settleWinningCertificate
 
-Creates a new certificate contract instance.
+Settle payment for winning certificate.
 
 ##### Parameters
 
--   `offerId`  
--   `winningCertificate`  
--   `Web3Contract` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 Contract class - usually `web3.eth.Contract`
--   `address` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Address of contract, can be set after construction
+-   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Offer Id
+-   `winningCertificate` **ClaimCertificate** Winning claim certificate
 
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
