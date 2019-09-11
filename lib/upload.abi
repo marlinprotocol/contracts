@@ -1,0 +1,273 @@
+[
+  {
+    "inputs": [
+      {
+        "name": "_tokenContractAddress",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "name": "id",
+        "type": "bytes32"
+      }
+    ],
+    "name": "NewPublisherOffer",
+    "type": "event"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_namespace",
+        "type": "string"
+      },
+      {
+        "name": "_archiveUrl",
+        "type": "string"
+      },
+      {
+        "name": "_storageReward",
+        "type": "uint256"
+      },
+      {
+        "name": "_deliveryReward",
+        "type": "uint256"
+      },
+      {
+        "name": "_duration",
+        "type": "uint256"
+      },
+      {
+        "name": "_expiry",
+        "type": "uint256"
+      },
+      {
+        "name": "_replication",
+        "type": "uint256"
+      },
+      {
+        "name": "_requiredStake",
+        "type": "uint256"
+      },
+      {
+        "name": "_geoHash",
+        "type": "bytes32"
+      },
+      {
+        "name": "_archiveSize",
+        "type": "uint256"
+      },
+      {
+        "name": "_archiveHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "addPublisherOffer",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "bytes32"
+      },
+      {
+        "name": "_replication",
+        "type": "uint256"
+      }
+    ],
+    "name": "scalePublisherOffer",
+    "outputs": [
+      {
+        "name": "_success",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "bytes32"
+      }
+    ],
+    "name": "servePublisherOffer",
+    "outputs": [
+      {
+        "name": "_success",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "bytes32"
+      }
+    ],
+    "name": "withdrawStake",
+    "outputs": [
+      {
+        "name": "_success",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "withdrawRefund",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "bytes32"
+      }
+    ],
+    "name": "readPublisherOffer",
+    "outputs": [
+      {
+        "name": "_publisher",
+        "type": "address"
+      },
+      {
+        "name": "_namespace",
+        "type": "string"
+      },
+      {
+        "name": "_archiveUrl",
+        "type": "string"
+      },
+      {
+        "name": "_storageReward",
+        "type": "uint256"
+      },
+      {
+        "name": "_deliveryReward",
+        "type": "uint256"
+      },
+      {
+        "name": "_validTill",
+        "type": "uint256"
+      },
+      {
+        "name": "_expiry",
+        "type": "uint256"
+      },
+      {
+        "name": "_replication",
+        "type": "uint256"
+      },
+      {
+        "name": "_requiredStake",
+        "type": "uint256"
+      },
+      {
+        "name": "_geoHash",
+        "type": "bytes32"
+      },
+      {
+        "name": "_archiveSize",
+        "type": "uint256"
+      },
+      {
+        "name": "_archiveHash",
+        "type": "bytes32"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_publisher",
+        "type": "address"
+      }
+    ],
+    "name": "readOffersByPublisher",
+    "outputs": [
+      {
+        "name": "_ids",
+        "type": "bytes32[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_node",
+        "type": "address"
+      }
+    ],
+    "name": "readRefund",
+    "outputs": [
+      {
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "_id",
+        "type": "bytes32"
+      },
+      {
+        "name": "_node",
+        "type": "address"
+      }
+    ],
+    "name": "readStake",
+    "outputs": [
+      {
+        "name": "_value",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
