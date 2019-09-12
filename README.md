@@ -13,6 +13,15 @@ Ethereum contract interfaces
     -   [Properties](#properties)
     -   [settleWinningCertificate](#settlewinningcertificate)
         -   [Parameters](#parameters-1)
+-   [UploadContract](#uploadcontract)
+    -   [Parameters](#parameters-2)
+    -   [Properties](#properties-1)
+    -   [addPublisherOffer](#addpublisheroffer)
+        -   [Parameters](#parameters-3)
+    -   [servePublisherOffer](#servepublisheroffer)
+        -   [Parameters](#parameters-4)
+    -   [readPublisherOffer](#readpublisheroffer)
+        -   [Parameters](#parameters-5)
 
 ### CertificateContract
 
@@ -35,5 +44,48 @@ Settle payment for winning certificate.
 
 -   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Offer Id
 -   `winningCertificate` **ClaimCertificate** Winning claim certificate
+
+Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+
+### UploadContract
+
+Class wrapping upload contract.
+
+#### Parameters
+
+-   `Web3Contract` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 Contract class - usually `web3.eth.Contract`
+-   `address` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Address of contract, can be set after construction (optional, default `undefined`)
+
+#### Properties
+
+-   `address` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Contract address
+
+#### addPublisherOffer
+
+Create and add new publisher offer.
+
+##### Parameters
+
+-   `publisherOffer` **PublisherOffer** Publisher offer to add
+
+Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+
+#### servePublisherOffer
+
+Serve publisher offer.
+
+##### Parameters
+
+-   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Id of offer to serve
+
+Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+
+#### readPublisherOffer
+
+Read publisher offer.
+
+##### Parameters
+
+-   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Id of offer to read
 
 Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
