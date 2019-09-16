@@ -1,5 +1,5 @@
 {
-  "name": "ethereum-provider",
+  "name": "@marlinprotocol/ethereum-provider",
   "version": "0.0.1",
   "description": "Interface library for Ethereum",
   "main": "index.js",
