@@ -44,8 +44,9 @@ Settle payment for winning certificate.
 
 -   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Offer Id
 -   `winningCertificate` **ClaimCertificate** Winning claim certificate
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Transaction options
 
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+Returns **PromiEvent** PromiEvent, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id22>
 
 ### UploadContract
 
@@ -67,8 +68,9 @@ Create and add new publisher offer.
 ##### Parameters
 
 -   `publisherOffer` **PublisherOffer** Publisher offer to add
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Transaction options
 
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+Returns **PromiEvent** PromiEvent, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id22>
 
 #### servePublisherOffer
 
@@ -77,8 +79,9 @@ Serve publisher offer.
 ##### Parameters
 
 -   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Id of offer to serve
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Transaction options
 
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+Returns **PromiEvent** PromiEvent, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id22>
 
 #### readPublisherOffer
 
@@ -87,5 +90,6 @@ Read publisher offer.
 ##### Parameters
 
 -   `offerId` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Id of offer to read
+-   `options` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Transaction options
 
-Returns **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Web3 transaction object, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id14>
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** Return value of method call, ref: <https://web3js.readthedocs.io/en/1.0/web3-eth-contract.html#id17>
