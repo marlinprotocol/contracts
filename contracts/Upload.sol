@@ -28,6 +28,9 @@ contract Upload {
     @param requiredStake Stake (LIN) required to store/deliver this content
     @param nodes Addresses of the master nodes that have joined this offer
     @param activeNodes Mapping of whether an address has joined this offer or not
+    @param geoHash Geohash specifies region from which nodes can accept offer
+    @param archiveSize size of archive
+    @param archiveHash hash of archive, will be used for validation
     */
     struct PublisherOffer {
         address publisher;
@@ -41,6 +44,9 @@ contract Upload {
         uint256 requiredStake;
         address[] nodes;
         mapping(address => bool) activeNodes;
+        bytes32 geoHash;
+        uint256 archiveSize;
+        bytes32 archiveHash;
     }
 
     mapping(bytes32 => PublisherOffer) offers;
@@ -67,6 +73,9 @@ contract Upload {
     @param _expiry UTC timestamp at which offer auto-expires if no master nodes join
     @param _replication Replication factor of the content
     @param _requiredStake Stake (LIN) required to store/deliver this content
+    @param _geoHash geographic region from which nodes can accept this offer
+    @param _archiveSize size of archive
+    @param _archiveHash hash of archive
     */
     function addPublisherOffer(
         string _namespace,
@@ -76,7 +85,10 @@ contract Upload {
         uint256 _duration,
         uint256 _expiry,
         uint256 _replication,
-        uint256 _requiredStake
+        uint256 _requiredStake,
+        bytes32 _geoHash,
+        uint256 _archiveSize,
+        bytes32 _archiveHash
     )
         public
     {
@@ -98,6 +110,9 @@ contract Upload {
         offers[_id].expiry = _expiry;
         offers[_id].replication = _replication;
         offers[_id].requiredStake = _requiredStake;
+        offers[_id].geoHash = _geoHash;
+        offers[_id].archiveSize = _archiveSize;
+        offers[_id].archiveHash = _archiveHash;
         emit NewPublisherOffer(_id);
     }
 
@@ -212,7 +227,10 @@ contract Upload {
       "_validTill": "UTC timestamp at which offer's validity is over",
       "_expiry": "UTC timestamp at which offer auto-expires if no master nodes join",
       "_replication": "Replication factor of the content",
-      "_requiredStake": "Stake (LIN) required to store/deliver this content"
+      "_requiredStake": "Stake (LIN) required to store/deliver this content",
+      "_geoHash": "geographic region from which nodes can accpe this offer",
+      "_archiveSize": "size of archive",
+      "_archiveHash": "hash of archive"
     }
     */
     function readPublisherOffer(bytes32 _id)
@@ -227,7 +245,10 @@ contract Upload {
             uint256 _validTill,
             uint256 _expiry,
             uint256 _replication,
-            uint256 _requiredStake
+            uint256 _requiredStake,
+            bytes32 _geoHash,
+            uint256 _archiveSize,
+            bytes32 _archiveHash
         )
     {
         _publisher = offers[_id].publisher;
@@ -239,6 +260,9 @@ contract Upload {
         _expiry = offers[_id].expiry;
         _replication = offers[_id].replication;
         _requiredStake = offers[_id].requiredStake;
+        _geoHash = offers[_id].geoHash;
+        _archiveSize = offers[_id].archiveSize;
+        _archiveHash = offers[_id].archiveHash;
     }
 
     /**
