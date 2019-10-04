@@ -2,6 +2,7 @@
   "name": "@marlinprotocol/ethereum-provider",
   "version": "0.0.1",
   "description": "Interface library for Ethereum",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "directories": {
     "lib": "lib"
