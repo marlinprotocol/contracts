@@ -1,4 +1,4 @@
-const Utils = function base() {};
+const Utils = function Utils() {};
 
 Utils.prototype.arrToHexString = (arr) => {
   let hexStr = '';
