@@ -1,10 +1,5 @@
-const mocha = require('mocha');
-
-const { describe, it } = mocha;
-
-const chai = require('chai');
-
-const { expect } = chai;
+const { describe, it } = require('mocha');
+const { expect } = require('chai');
 
 const crypto = require('../lib/crypto.js');
 const utils = require('./utils.js');

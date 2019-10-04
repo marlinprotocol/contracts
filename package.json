@@ -11,6 +11,7 @@
   },
   "author": "Roshan Raghupathy",
   "dependencies": {
+    "config": "^1.30.0",
     "ethereumjs-util": "^5.2.0",
     "ethrpc": "https://github.com/roshanr95/ethrpc.git"
   },
