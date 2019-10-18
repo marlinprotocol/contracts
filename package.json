@@ -1,0 +1,17 @@
+{
+  "name": "@marlinprotocol/certificate-eth-backend",
+  "version": "0.0.1",
+  "description": "Backend implementation of certificates on Ethereum",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "mocha test/*.js"
+  },
+  "author": "Roshan Raghupathy",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}
