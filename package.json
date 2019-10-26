@@ -11,7 +11,7 @@
   },
   "author": "Roshan Raghupathy",
   "dependencies": {
-    "@marlinprotocol/ethereum-provider": "file:../ethereumProvider.js/marlinprotocol-ethereum-provider-0.0.1.tgz",
+    "@marlinprotocol/ethereum-provider": "^0.0.1",
     "ethereumjs-abi": "^0.6.5"
   },
   "devDependencies": {
