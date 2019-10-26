@@ -7891,15 +7891,15 @@
     "5777": {
       "events": {},
       "links": {
-        "CryptoLib": "0x4190b2d57C8F7dFf8699a0Cce76a3e7450D81ECa",
-        "Ops": "0x29055206868879Bf73b697144bb788A7526EFcF4"
+        "CryptoLib": "0xA06AFbd95C27E18468668c1195E889449d85A26B",
+        "Ops": "0x7f3A0940dA33398521c4f118Ff30c56F4079a8Ff"
       },
-      "address": "0xA53A26d9e3c8736F9e99e8DB7B08b2962D2E07E9",
-      "transactionHash": "0x09adb5ff679e279a2778532770cf7ad46744b9cfcdf96b64cd1e1aa3141116d8"
+      "address": "0xb31F9a0e9ACFEd17221C2E25d68d1ec830A804EF",
+      "transactionHash": "0x219b7fc9326ad1bafa064dfc1aea5d3b57f527cc6af3589ce6a7a9b38aaaef47"
     }
   },
   "schemaVersion": "3.0.16",
-  "updatedAt": "2019-10-15T17:40:26.228Z",
+  "updatedAt": "2019-10-26T17:47:46.435Z",
   "devdoc": {
     "methods": {}
   },

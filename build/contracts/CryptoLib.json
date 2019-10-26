@@ -1922,6 +1922,15 @@
                       }
                     },
                     {
+                      "v": {
+                        "declaration": 130,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "1568:1:0",
+                        "valueSize": 1
+                      }
+                    },
+                    {
                       "s": {
                         "declaration": 127,
                         "isOffset": false,
@@ -1936,15 +1945,6 @@
                         "isOffset": false,
                         "isSlot": false,
                         "src": "1539:9:0",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "v": {
-                        "declaration": 130,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "1568:1:0",
                         "valueSize": 1
                       }
                     },
@@ -4386,6 +4386,15 @@
                       }
                     },
                     {
+                      "v": {
+                        "declaration": 130,
+                        "isOffset": false,
+                        "isSlot": false,
+                        "src": "1568:1:0",
+                        "valueSize": 1
+                      }
+                    },
+                    {
                       "s": {
                         "declaration": 127,
                         "isOffset": false,
@@ -4400,15 +4409,6 @@
                         "isOffset": false,
                         "isSlot": false,
                         "src": "1539:9:0",
-                        "valueSize": 1
-                      }
-                    },
-                    {
-                      "v": {
-                        "declaration": 130,
-                        "isOffset": false,
-                        "isSlot": false,
-                        "src": "1568:1:0",
                         "valueSize": 1
                       }
                     },
@@ -4987,12 +4987,12 @@
     "5777": {
       "events": {},
       "links": {},
-      "address": "0x4190b2d57C8F7dFf8699a0Cce76a3e7450D81ECa",
-      "transactionHash": "0xc382a379d138d5a40df6d8d7946cc03e47aa1c2a8f126243056b48f434bd3675"
+      "address": "0xA06AFbd95C27E18468668c1195E889449d85A26B",
+      "transactionHash": "0xdf83582a466e89058a3eab10a32074c420a004a720e9173133bd88a8421e158d"
     }
   },
   "schemaVersion": "3.0.16",
-  "updatedAt": "2019-10-15T17:40:26.238Z",
+  "updatedAt": "2019-10-26T17:47:46.445Z",
   "devdoc": {
     "methods": {}
   },
