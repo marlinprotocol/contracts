@@ -1,6 +1,6 @@
 # Marlin Payment Channel
 
-## Truffle Test
+## Running Truffle Test
 ```sh
 $ truffle test
 ```
