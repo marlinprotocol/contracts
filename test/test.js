@@ -41,4 +41,17 @@ contract('MarlinPaymentChannel', () => {
         const senderBalance = await marlinPaymentChannel.getBalance("0xd03ea8624C8C5987235048901fB614fDcA89b117");
         assert(senderBalance.toNumber() == initialBalance - 40);
     })
+
+    it('Amount Should be Deducted and Added in others Accounts Correctly After Double Spend Attack', async () => {
+        const senderBalance = await marlinPaymentChannel.getBalance("0xd03ea8624C8C5987235048901fB614fDcA89b117");
+        assert(senderBalance.toNumber() == initialBalance - 40);
+        const firstPersonBalance = await marlinPaymentChannel.getBalance("0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1");
+        assert(firstPersonBalance.toNumber() == 16, "Funds to first not received");
+        const secondPersonBalance = await marlinPaymentChannel.getBalance("0xffcf8fdee72ac11b5c542428b35eef5769c409f0");
+        assert(secondPersonBalance.toNumber() == 12, "Funds to second not received");
+        const thirdPersonBalance = await marlinPaymentChannel.getBalance("0x22d491bde2303f2f43325b2108d26f1eaba1e32b");
+        assert(thirdPersonBalance.toNumber() == 8, "Funds to third not received");
+        const fourthPersonBalance = await marlinPaymentChannel.getBalance("0xe11ba2b4d45eaed5996cd0823791e0c93114882d");
+        assert(fourthPersonBalance.toNumber() == 4, "Funds to fourth not received");
+    })
 })
