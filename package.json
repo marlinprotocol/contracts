@@ -2,6 +2,7 @@
   "name": "@marlinprotocol/certificate",
   "version": "0.0.1",
   "description": "Utility library for certificates on the Marlin network",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "directories": {
     "lib": "lib"
