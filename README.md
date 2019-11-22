@@ -1,0 +1,3 @@
+# scaffold.js
+
+Scaffolding project
