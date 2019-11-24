@@ -12,6 +12,7 @@
   },
   "author": "Roshan Raghupathy",
   "dependencies": {
+    "ethereumjs-wallet": "^0.6.0"
   },
   "devDependencies": {
     "chai": "^4.1.2",
