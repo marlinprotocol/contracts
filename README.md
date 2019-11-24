@@ -1,3 +1,3 @@
-# scaffold.js
+# account.js
 
-Scaffolding project
+Account creation and management
