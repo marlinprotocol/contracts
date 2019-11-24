@@ -1,7 +1,7 @@
 {
-  "name": "@marlinprotocol/scaffold",
+  "name": "@marlinprotocol/account",
   "version": "0.0.1",
-  "description": "Scaffold project",
+  "description": "Account creation and management",
   "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "directories": {
