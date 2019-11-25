@@ -1,3 +1,4 @@
+const fs = require('fs');
 const ethUtil = require('ethereumjs-util');
 const { describe, it } = require('mocha');
 const { expect } = require('chai');
@@ -37,7 +38,7 @@ describe('account', () => {
   });
 });
 
-// ---------------- Existing account from private key ---------------- //
+// ---------------- New account from private key ---------------- //
 
 describe('account', () => {
   describe('from private key', () => {
@@ -78,7 +79,48 @@ describe('account', () => {
 
 describe('account', () => {
   describe('from file', () => {
-    const newAccount = Account.fromFile(`${__dirname}/v3wallet.json`, 'testpwd');
+    const account = Account.fromFile(`${__dirname}/v3wallet.json`, 'testpwd');
+    it('should contain valid private key', () => {
+      const isValid = ethUtil.isValidPrivate(account.privateKey);
+      expect(isValid).to.be.true; // eslint-disable-line no-unused-expressions
+    });
+    it('should contain valid public key', () => {
+      const isValid = ethUtil.isValidPublic(account.publicKey);
+      expect(isValid).to.be.true; // eslint-disable-line no-unused-expressions
+    });
+    it('should contain valid address', () => {
+      const isValid = ethUtil.isValidAddress(ethUtil.bufferToHex(account.address));
+      expect(isValid).to.be.true; // eslint-disable-line no-unused-expressions
+    });
+    it('should have correct public key corresponding to private key', () => {
+      const publicKey = ethUtil.privateToPublic(account.privateKey);
+      expect(publicKey).to.deep.equal(account.publicKey);
+    });
+    it('should have correct address corresponding to public key', () => {
+      const address = ethUtil.publicToAddress(account.publicKey);
+      expect(address).to.deep.equal(account.address);
+    });
+    it('should have correct private key', () => {
+      expect(account.privateKey).to.deep.equal(testPrivateKey);
+    });
+    it('should have correct public key', () => {
+      expect(account.publicKey).to.deep.equal(testPublicKey);
+    });
+    it('should have correct address', () => {
+      expect(account.address).to.deep.equal(testAddress);
+    });
+  });
+});
+
+// ---------------- Write account to file ---------------- //
+
+describe('account', () => {
+  describe('to file', () => {
+    const account = Account.fromPrivateKey(testPrivateKey);
+    account.toFile(`${__dirname}/v3wallet-test.json`, 'testpwd');
+
+    const newAccount = Account.fromFile(`${__dirname}/v3wallet-test.json`, 'testpwd');
+
     it('should contain valid private key', () => {
       const isValid = ethUtil.isValidPrivate(newAccount.privateKey);
       expect(isValid).to.be.true; // eslint-disable-line no-unused-expressions
@@ -108,5 +150,7 @@ describe('account', () => {
     it('should have correct address', () => {
       expect(newAccount.address).to.deep.equal(testAddress);
     });
+
+    fs.unlinkSync(`${__dirname}/v3wallet-test.json`);
   });
 });
