@@ -8,7 +8,8 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "mocha test/*.js"
+    "test": "mocha test/*.js",
+    "doc": "documentation readme index.js --section=API"
   },
   "author": "Roshan Raghupathy",
   "dependencies": {
