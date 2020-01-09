@@ -33,17 +33,17 @@ Class representing authorization certificates.
 
 #### Parameters
 
--   `publisherAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's address
--   `clientAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Client's address
+-   `publisherAddress` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Publisher's address
+-   `clientAddress` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Client's address
 -   `maxNonce` **Uint8** Maximum nonce permitted by the certificate
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating the certificate, signed by publisher (optional, default `undefined`)
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Signature validating the certificate, signed by publisher (optional, default `undefined`)
 
 #### Properties
 
--   `publisherAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's address
--   `clientAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Client's address
+-   `publisherAddress` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Publisher's address
+-   `clientAddress` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Client's address
 -   `maxNonce` **Uint8** Maximum nonce permitted by certificate for the session
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by publisher
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature validating certificate, signed by publisher
 
 #### sign
 
@@ -51,9 +51,9 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `publisherPrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's private key
+-   `publisherPrivateKey` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Publisher's private key
 
-Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
+Returns **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature
 
 #### verify
 
@@ -69,13 +69,13 @@ Class representing service certificates.
 
 -   `authorizationCertificate` **[AuthorizationCertificate](#authorizationcertificate)**                                      Authorization certificate for session
 -   `nonce` **Uint8** Nonce corresponding to request
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating certificate, signed by client (optional, default `undefined`)
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Signature validating certificate, signed by client (optional, default `undefined`)
 
 #### Properties
 
 -   `authorizationCertificate` **[AuthorizationCertificate](#authorizationcertificate)**                                      Authorization certificate for session
 -   `nonce` **Uint8** Nonce corresponding to request
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by client
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature validating certificate, signed by client
 
 #### sign
 
@@ -83,9 +83,9 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `clientPrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Client's private key
+-   `clientPrivateKey` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Client's private key
 
-Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
+Returns **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature
 
 #### verify
 
@@ -100,12 +100,12 @@ Class representing claim certificates.
 #### Parameters
 
 -   `serviceCertificate` **[ServiceCertificate](#servicecertificate)** Service certificate
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating certificate, signed by node (optional, default `undefined`)
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** Signature validating certificate, signed by node (optional, default `undefined`)
 
 #### Properties
 
 -   `serviceCertificate` **[ServiceCertificate](#servicecertificate)** Service certificate
--   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by node
+-   `signature` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature validating certificate, signed by node
 
 #### sign
 
@@ -113,9 +113,9 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `nodePrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Node's private key
+-   `nodePrivateKey` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Node's private key
 
-Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
+Returns **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Signature
 
 #### isWinning
 
