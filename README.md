@@ -26,7 +26,6 @@ Utility library for certificates on the Marlin network
     -   [sign](#sign-2)
         -   [Parameters](#parameters-5)
     -   [isWinning](#iswinning)
-    -   [submit](#submit)
 
 ### AuthorizationCertificate
 
@@ -34,17 +33,17 @@ Class representing authorization certificates.
 
 #### Parameters
 
--   `publisherAddress` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Publisher's address
--   `clientAddress` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Client's address
+-   `publisherAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's address
+-   `clientAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Client's address
 -   `maxNonce` **Uint8** Maximum nonce permitted by the certificate
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)?** Signature validating the certificate, signed by publisher (optional, default `undefined`)
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating the certificate, signed by publisher (optional, default `undefined`)
 
 #### Properties
 
--   `publisherAddress` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Publisher's address
--   `clientAddress` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Client's address
+-   `publisherAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's address
+-   `clientAddress` **[Buffer](https://nodejs.org/api/buffer.html)** Client's address
 -   `maxNonce` **Uint8** Maximum nonce permitted by certificate for the session
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature validating certificate, signed by publisher
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by publisher
 
 #### sign
 
@@ -52,9 +51,9 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `publisherPrivateKey` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Publisher's private key
+-   `publisherPrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Publisher's private key
 
-Returns **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature
+Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
 
 #### verify
 
@@ -70,13 +69,13 @@ Class representing service certificates.
 
 -   `authorizationCertificate` **[AuthorizationCertificate](#authorizationcertificate)**                                      Authorization certificate for session
 -   `nonce` **Uint8** Nonce corresponding to request
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)?** Signature validating certificate, signed by client (optional, default `undefined`)
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating certificate, signed by client (optional, default `undefined`)
 
 #### Properties
 
 -   `authorizationCertificate` **[AuthorizationCertificate](#authorizationcertificate)**                                      Authorization certificate for session
 -   `nonce` **Uint8** Nonce corresponding to request
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature validating certificate, signed by client
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by client
 
 #### sign
 
@@ -84,9 +83,9 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `clientPrivateKey` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Client's private key
+-   `clientPrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Client's private key
 
-Returns **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature
+Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
 
 #### verify
 
@@ -101,12 +100,12 @@ Class representing claim certificates.
 #### Parameters
 
 -   `serviceCertificate` **[ServiceCertificate](#servicecertificate)** Service certificate
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)?** Signature validating certificate, signed by node (optional, default `undefined`)
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)?** Signature validating certificate, signed by node (optional, default `undefined`)
 
 #### Properties
 
 -   `serviceCertificate` **[ServiceCertificate](#servicecertificate)** Service certificate
--   `signature` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature validating certificate, signed by node
+-   `signature` **[Buffer](https://nodejs.org/api/buffer.html)** Signature validating certificate, signed by node
 
 #### sign
 
@@ -114,16 +113,12 @@ Signs the certificate and sets signature.
 
 ##### Parameters
 
--   `nodePrivateKey` **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Node's private key
+-   `nodePrivateKey` **[Buffer](https://nodejs.org/api/buffer.html)** Node's private key
 
-Returns **[Uint8Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array)** Signature
+Returns **[Buffer](https://nodejs.org/api/buffer.html)** Signature
 
 #### isWinning
 
 Checks if the certificate wins the micropayment lottery.
 
 Returns **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** True if certificate is winning
-
-#### submit
-
-Submits the certificate to the blockchain.
