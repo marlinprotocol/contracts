@@ -16,6 +16,7 @@ Steps to deploy the contract:
 2) In case of Ganache (development), make sure the `port` in `networks.development` matches with that of the ganache port number. 
 3) On terminal (or cmd) goto the project directory and type the following commands:
     > truffle compile // to compile the smart contracts
+    
     > truffle migrate // migrate (deploy) the smart contract on development network
 
     In case, the network is different from development (ganache), then use the truffle migrate command with `--network` flag followed by the name of the network.
