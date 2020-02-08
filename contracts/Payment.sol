@@ -36,7 +36,7 @@ contract Payment{
     );
 
     mapping(address => uint) public lockedBalances;
-    mapping(string => Details) public unlockRequests; // string => (sender, timestamp, amount)
+    mapping(bytes32 => Details) public unlockRequests; // string => (sender, timestamp, amount)
     mapping(address => uint) public unlockedBalances;
 
 
@@ -46,6 +46,31 @@ contract Payment{
     	lockedBalances[msg.sender] += _amount;
     	token.transferFrom(msg.sender, address(this), _amount);
     	emit BalanceChanged(msg.sender);
+    }
+
+    bytes32[] public allHashes;
+
+    function unlock(uint256 _amount) public returns(bytes32){
+        require(lockedBalances[msg.sender] >= _amount, "Amount exceeds lockedBalance");
+        
+        bytes32 hash = keccak256(abi.encode(msg.sender,block.timestamp, _amount));
+    	unlockRequests[hash].sender = msg.sender;
+        unlockRequests[hash].timestamp = block.timestamp;
+        unlockRequests[hash].amount = _amount;
+        allHashes.push(hash);
+        
+    	return hash;
+    }
+
+    function sealUnlockRequest(bytes32 _id) public returns(bool){
+        require(unlockRequests[_id].sender == msg.sender, "You cannot seal this request");
+    	if(unlockRequests[_id].timestamp + 86400 > block.timestamp){
+            return false;
+        }
+    	lockedBalances[msg.sender] -= unlockRequests[_id].amount;
+    	unlockedBalances[msg.sender] += unlockRequests[_id].amount;
+    	delete(unlockRequests[_id]);
+    	return true;
     }
 
 }
