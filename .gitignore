@@ -1,5 +1,4 @@
 build
-contracts/Payment.sol
 contracts/Payments.md
 contracts/Stake.sol
 .gitignore
