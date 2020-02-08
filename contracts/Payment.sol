@@ -32,7 +32,16 @@ contract Payment{
     }
 
     event BalanceChanged(
-        address
+        address sender
+    );
+    event UnlockRequested(
+        address sender,
+        uint time,
+        uint256 amount
+    );
+    event UnlockRequestSealed(
+        bytes32 id,
+        bool changed
     );
 
     mapping(address => uint) public lockedBalances;
@@ -58,18 +67,22 @@ contract Payment{
         unlockRequests[hash].timestamp = block.timestamp;
         unlockRequests[hash].amount = _amount;
         allHashes.push(hash);
+        emit UnlockRequested(msg.sender, block.timestamp, _amount);
         
     	return hash;
     }
 
     function sealUnlockRequest(bytes32 _id) public returns(bool){
         require(unlockRequests[_id].sender == msg.sender, "You cannot seal this request");
+
     	if(unlockRequests[_id].timestamp + 86400 > block.timestamp){
+            emit UnlockRequestSealed(_id, false);
             return false;
         }
     	lockedBalances[msg.sender] -= unlockRequests[_id].amount;
     	unlockedBalances[msg.sender] += unlockRequests[_id].amount;
     	delete(unlockRequests[_id]);
+        emit UnlockRequestSealed(_id, true);
     	return true;
     }
 

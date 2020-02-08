@@ -20,13 +20,13 @@ contract("Payment", function (accounts) {
     });
 
     it("Adding Escrow by user", function () {
-        return Token.deployed().then(function(instance){
+        return Token.deployed().then(function (instance) {
             tokenInstance = instance;
             return Payment.deployed();
         }).then(function (instance) {
             paymentInstance = instance;
             return paymentInstance.address;
-        }).then(function(add){
+        }).then(function (add) {
             assert.notEqual(add, 0x0, "Incorrect address");
             paymentAddress = add;
             return tokenInstance.isMinter(accounts[0]);
@@ -42,7 +42,7 @@ contract("Payment", function (accounts) {
             return tokenInstance.balanceOf(accounts[0]);
         }).then(function (balance) {
             assert.equal(balance, 1000, "Wrong balance of owner");
-            return paymentInstance.addEscrow(100, {from: accounts[0]});
+            return paymentInstance.addEscrow(100, { from: accounts[0] });
         }).then(function (res) {
             assert.equal(res.logs[0].event, 'BalanceChanged', "Incorrect event");
             return tokenInstance.balanceOf(accounts[0]);
@@ -52,8 +52,35 @@ contract("Payment", function (accounts) {
         }).then(function (balance) {
             assert.equal(balance, 100, "Wrong balance in payment contract");
             return paymentInstance.lockedBalances(accounts[0]);
-        }).then(function(balance){
+        }).then(function (balance) {
             assert.equal(balance, 100, "Wrong Locked Balance");
+        });
+    });
+
+    var hash;
+    it("Testing unlock and sealUnlockRequest", function () {
+        return tokenInstance.isMinter(accounts[0]).then(function (isMinter) {
+            assert.equal(isMinter, true, "Owner is a minter");
+            return tokenInstance.mint(accounts[0], 1000);
+        }).then(function (minted) {
+            assert.equal(minted.logs[0].event, "Transfer", "Tokens not minted in owner");
+            return paymentInstance.addEscrow(100, { from: accounts[0] });
+        }).then(function (res) {
+            assert.equal(res.logs[0].event, 'BalanceChanged', "Incorrect event");
+            return paymentInstance.unlock(50);
+        }).then(function (unlocked) {
+            assert.equal(unlocked.logs[0].event, "UnlockRequested", "Wrong Request");
+            return paymentInstance.allHashes(0);
+        }).then(function (_hash) {
+            hash = _hash;
+            return paymentInstance.unlockRequests(_hash);
+        }).then(function (res) {
+            assert.equal(res.sender, accounts[0], "Wrong result")
+            assert.equal(res.amount.toNumber(), 50, "Wrong value result");
+            return paymentInstance.sealUnlockRequest(hash);
+        }).then(function (sealUnlock) {
+            assert.equal(sealUnlock.logs[0].args.id, hash, "Wrong ID");
+            assert.equal(sealUnlock.logs[0].event, "UnlockRequestSealed", "Wrong request");
         });
     });
 
