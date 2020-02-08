@@ -11,4 +11,14 @@ contract Token is ERC20, ERC20Detailed, ERC20Mintable, ERC20Burnable {
     {
         // solhint-disable-previous-line no-empty-blocks
     }
+
+    function approveContract(address _contract, address _spender, uint256 _amount) public{
+        _approve(_spender, _contract, _amount);
+        //     function _approve(address owner, address spender, uint256 value) internal {
+        // require(owner != address(0), "ERC20: approve from the zero address");
+        // require(spender != address(0), "ERC20: approve to the zero address");
+
+        // _allowances[owner][spender] = value;
+        emit Approval(_spender, _contract, _amount);
+    }
 }
