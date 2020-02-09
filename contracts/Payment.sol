@@ -34,14 +34,22 @@ contract Payment{
     event BalanceChanged(
         address sender
     );
+
     event UnlockRequested(
         address sender,
         uint time,
         uint256 amount
     );
+
     event UnlockRequestSealed(
         bytes32 id,
         bool changed
+    );
+
+    event Withdraw(
+        address sender,
+        uint256 amount,
+        bool withdrawn
     );
 
     mapping(address => uint) public lockedBalances;
@@ -84,6 +92,13 @@ contract Payment{
     	delete(unlockRequests[_id]);
         emit UnlockRequestSealed(_id, true);
     	return true;
+    }
+
+    function withdraw(uint256 _amount) public{
+    	require(_amount <= unlockedBalances[msg.sender], "Amount greater than the unlocked amount");
+    	unlockedBalances[msg.sender] -= _amount;
+    	token.transfer(msg.sender, _amount);
+        emit Withdraw(msg.sender, _amount, true);
     }
 
 }
