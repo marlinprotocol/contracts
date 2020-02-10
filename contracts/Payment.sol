@@ -5,24 +5,22 @@ import "./Token.sol";
 contract Payment{
     string public id;
     Token public token;
-    
-    struct Witness{ 
+
+    struct Witness{
         address relayer; // peer.publicKey (in DATA.md)
         uint256 relayerFraction; // relayerFraction (in DATA.md)
-        bytes signature; // self.privKey (in DATA.md)
+        bytes relayerSignature; // self.privKey (in DATA.md)
+    }
+
+    struct SignedWitness{
+        Witness[] witnessList;
+        bytes signature;
     }
 
     Witness[] public witness;
-    
+
     constructor(address _token) public {
         token = Token(_token);
-    }
-    
-    function isWinning(bytes memory _witness) public pure returns(byte, byte, uint, bool){
-        if(byte(_witness[0]) == byte(0)){
-            return(_witness[0], byte(0),_witness.length, true);
-        }
-        return(_witness[0], byte(0), _witness.length, false);
     }
 
     struct Details{
@@ -69,14 +67,12 @@ contract Payment{
 
     function unlock(uint256 _amount) public returns(bytes32){
         require(lockedBalances[msg.sender] >= _amount, "Amount exceeds lockedBalance");
-        
         bytes32 hash = keccak256(abi.encode(msg.sender,block.timestamp, _amount));
     	unlockRequests[hash].sender = msg.sender;
         unlockRequests[hash].timestamp = block.timestamp;
         unlockRequests[hash].amount = _amount;
         allHashes.push(hash);
         emit UnlockRequested(msg.sender, block.timestamp, _amount);
-        
     	return hash;
     }
 
@@ -99,6 +95,39 @@ contract Payment{
     	unlockedBalances[msg.sender] -= _amount;
     	token.transfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount, true);
+    }
+
+    event PayWitness(
+        address sender,
+        uint256 amount,
+        bool paid
+    );
+
+    function isWinning(bytes memory _witnessSignature) public pure returns(bool){
+        if(byte(_witnessSignature[0]) == byte(0)){
+            return(true);
+        }
+        return(false);
+    }
+
+    function payForWitness(SignedWitness memory _signedWitness, uint256 _amount) public returns(bool){
+
+        require(lockedBalances[msg.sender] >= _amount, "User doesn't have enough locked balance");
+
+    	if(isWinning(_signedWitness.signature) == false) {
+            emit PayWitness(msg.sender, _amount, false);
+            return false;
+        }
+
+        for(uint i = 0; i < _signedWitness.witnessList.length; i++){
+    		lockedBalances[msg.sender] -= _signedWitness.witnessList[i].relayerFraction*_amount;
+
+    		unlockedBalances[_signedWitness.witnessList[i].relayer] += _signedWitness.witnessList[i].relayerFraction*_amount;
+        }
+
+        emit PayWitness(msg.sender, _amount, true);
+        return true;
+
     }
 
 }

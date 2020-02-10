@@ -72,6 +72,9 @@ contract("Payment", function (accounts) {
         }).then(function (sealUnlock) {
             assert.equal(sealUnlock.logs[0].args.id, hash, "Wrong ID");
             assert.equal(sealUnlock.logs[0].event, "UnlockRequestSealed", "Wrong request");
+            return paymentInstance.lockedBalances(accounts[0]);
+        }).then(function (balance) {
+            assert.equal(balance, 100, "Wrong Locked Balance");
         });
     });
 
@@ -81,21 +84,58 @@ contract("Payment", function (accounts) {
             return tokenInstance.balanceOf(paymentAddress);
         }).then(function (amount) {
             assert.equal(amount, 100, "Wrong balance in payment contract");
+            return paymentInstance.lockedBalances(accounts[0]);
+        }).then(function (balance) {
+            assert.equal(balance, 100, "Wrong Locked Balance");
             return paymentInstance.withdraw(50);
         }).then(function (withdraw) {
             assert.equal(withdraw.logs[0].event, "Withdraw", "Wrong event");
             assert.equal(withdraw.logs[0].args.sender, accounts[0], "Wrong caller");
             assert.equal(withdraw.logs[0].args.amount, 50, "Incorrect amount");
             assert.equal(withdraw.logs[0].args.withdrawn, true, "Not Withdrawn");
-            return tokenInstance.balanceOf(accounts[0]);
-        }).then(function (amount) {
-            assert.equal(amount, 950, "Wrong balance in owner");
-            return tokenInstance.balanceOf(paymentAddress);
-        }).then(function (amount) {
-            assert.equal(amount, 50, "Wrong balance in payment contract");
         }).catch(function(res){
             console.log("ERROR IN WITHDRAW FUNCTION BECAUSE THE UNLOCK REQUEST IN NOT SEALED. Comment out lined 86-89 to make withdraw function work right now.");
+            return tokenInstance.balanceOf(accounts[0]);
+        }).then(function (amount) {
+            assert.notEqual(amount, 950, "Wrong balance in owner"); // beacause withdrawal function didn't completed
+            assert.equal(amount, 900, "Wrong balance in owner"); // beacause withdrawal function didn't completed
+            return tokenInstance.balanceOf(paymentAddress);
+        }).then(function (amount) {
+            console.log("RUN")
+            assert.notEqual(amount, 50, "Wrong balance in payment contract"); // beacause withdrawal function didn't completed
+            assert.equal(amount, 100, "Wrong balance in payment contract"); // beacause withdrawal function didn't completed
         });
     })
 
+    it("Testing payForWitness", function(){
+        return paymentInstance.lockedBalances(accounts[0]).then(function(amount){
+            assert.equal(amount, 100, "Wrong Locked Balance");
+            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x1111"], 1000);
+        }).catch(function(err){
+            console.log("Error because amount > locked balance (Checking require Statament)");
+            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x1111"], 10); // random signatures
+        }).then(function(res){
+            assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
+            assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
+            assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
+            assert.equal(res.logs[0].args.paid, false, "Not Withdrawn");
+            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x00111"], 10); // random signatures
+        }).then(function(res){
+            assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
+            assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
+            assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
+            assert.equal(res.logs[0].args.paid, true, "Not Withdrawn");
+            return paymentInstance.lockedBalances(accounts[0])
+        }).then(function(amount){
+            assert.equal(amount, 50, "Wrong Locked Balance");
+            return paymentInstance.unlockedBalances(accounts[9])
+        }).then(function(amount){
+            assert.equal(amount, 50, "Wrong Locked Balance");
+        })
+    })
+
 }); 
+
+// [[0x9D0910aBF81EE30195d9d96a43AfaeF3CD8c2c99, 5, 0x0011], 0x1111], 1000   
+// 
+// [{[{0x9D0910aBF81EE30195d9d96a43AfaeF3CD8c2c99, 5, 0x0011}], 0x1111}], 1000
