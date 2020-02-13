@@ -8,13 +8,13 @@ contract("Token", function (accounts) {
             tokenInstance = instance;
             return tokenInstance.name();
         }).then(function (name) {
-            assert.equal(name, "Marlin Protocol", "Incorrect name");
+            assert.equal(name, "Merlin Protocol", "Incorrect name");
             return tokenInstance.decimals();
         }).then(function (decimal) {
             assert.equal(decimal, 18, "Incorrect decimal");
             return tokenInstance.symbol();
         }).then(function (symbol) {
-            assert.equal(symbol, "LIN", "Incorrect symbol");
+            assert.equal(symbol, "MER", "Incorrect symbol");
         });
     });
 
