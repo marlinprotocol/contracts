@@ -37,7 +37,7 @@ contract("Payment", function (accounts) {
             return tokenInstance.balanceOf(accounts[0]);
         }).then(function (balance) {
             assert.equal(balance, 1000, "Wrong balance of owner");
-            return paymentInstance.addEscrow(100, { from: accounts[0] });
+            return paymentInstance.deposit(100, { from: accounts[0] });
         }).catch(function(res){
             console.log("Not enough allowance");
             console.log("\\--------/")
@@ -48,11 +48,10 @@ contract("Payment", function (accounts) {
             assert.equal(approve.logs[0].args.value, 100, "Wrong value");
             return tokenInstance.allowance(accounts[0], paymentAddress);
         }).then(function(res){
-            console.log(res);
             assert.equal(res, 100, "No equal");
-            return paymentInstance.addEscrow(100, { from: accounts[0] });
+            return paymentInstance.deposit(100, { from: accounts[0] });
         }).then(function (res) {
-            assert.equal(res.logs[0].event, 'BalanceChanged', "Incorrect event");
+            assert.equal(res.logs[0].event, 'Deposit', "Incorrect event");
             return tokenInstance.balanceOf(accounts[0]);
         }).then(function (balance) {
             assert.equal(balance, 900, "Wrong balance of owner");
@@ -69,10 +68,8 @@ contract("Payment", function (accounts) {
     it("Testing unlock and sealUnlockRequest", function () {
         return paymentInstance.unlock(50).then(function (unlocked) {
             assert.equal(unlocked.logs[0].event, "UnlockRequested", "Wrong Request");
-            return paymentInstance.allHashes(0);
-        }).then(function (_hash) {
-            hash = _hash;
-            return paymentInstance.unlockRequests(_hash);
+            hash = unlocked.logs[0].args.id;
+            return paymentInstance.unlockRequests(hash);
         }).then(function (res) {
             assert.equal(res.sender, accounts[0], "Wrong result")
             assert.equal(res.amount.toNumber(), 50, "Wrong value result");
