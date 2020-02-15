@@ -3,25 +3,11 @@ pragma experimental ABIEncoderV2;
 import "./Token.sol";
 import "./Stake.sol";
 
-contract Payment{
-    string public id;
-    Stake public stake;
+contract Payment is Stake{
+    Token public token;
 
-    struct Witness{
-        address relayer; // peer.publicKey (in DATA.md)
-        uint256 relayerFraction; // relayerFraction (in DATA.md)
-        bytes relayerSignature; // self.privKey (in DATA.md)
-    }
-
-    struct SignedWitness{
-        Witness[] witnessList;
-        bytes signature;
-    }
-
-    Witness[] public witness;
-
-    constructor(address _stake) public {
-        stake = Stake(_stake);
+    constructor(address _token) public {
+        token = Token(_token);
     }
 
     event BalanceChanged(
@@ -46,49 +32,45 @@ contract Payment{
     );
 
     function addEscrow(uint256 _amount) public{
-        require(stake.checkBalance(msg.sender) >= _amount,"Insufficient balance");
-        // token.approveContract(address(this), msg.sender, _amount);
-    	stake.setLockedBalance(msg.sender, _amount, true);
-    	// token.transferFrom(msg.sender, address(this), _amount);
-        stake.transferTokensFrom(_amount, msg.sender);
+        require(token.balanceOf(msg.sender) >= _amount,"Insufficient balance");
+        require(uint256(token.allowance(msg.sender, address(this))) >= _amount, "The contract is not allowed to spend on the user's behalf");
+    	lockedBalances[msg.sender] = lockedBalances[msg.sender].add(_amount);
+    	token.transferFrom(msg.sender, address(this), _amount);
     	emit BalanceChanged(msg.sender);
     }
 
     bytes32[] public allHashes;
 
     function unlock(uint256 _amount) public returns(bytes32){
-        require(stake.getLockedBalance(msg.sender) >= _amount, "Amount exceeds lockedBalance");
+        require(lockedBalances[msg.sender] >= _amount, "Amount exceeds lockedBalance");
         bytes32 hash = keccak256(abi.encode(msg.sender,block.timestamp, _amount));
-        stake.setUnlockRequests(hash, msg.sender, block.timestamp, _amount);
+    	unlockRequests[hash].sender = msg.sender;
+        unlockRequests[hash].timestamp = block.timestamp;
+        unlockRequests[hash].amount = unlockRequests[hash].amount.add(_amount);
         allHashes.push(hash);
         emit UnlockRequested(msg.sender, block.timestamp, _amount);
     	return hash;
     }
 
     function sealUnlockRequest(bytes32 _id) public returns(bool){
-        require(stake.getUnlockRequestsSender(_id) == msg.sender, "You cannot seal this request");
+        require(unlockRequests[_id].sender == msg.sender, "You cannot seal this request");
 
-    	if(stake.getUnlockRequestsTime(_id) + 86400 > block.timestamp){
+    	if(unlockRequests[_id].timestamp + 86400 > block.timestamp){
             emit UnlockRequestSealed(_id, false);
             return false;
         }
 
-        uint256 _amount = stake.getUnlockRequestsAmount(_id);
-
-    	stake.setLockedBalance(msg.sender, _amount, false);
-
-    	stake.setUnlockedBalance(msg.sender, _amount, true);
-
-    	stake.deleteUnlockRequest(_id);
-
+    	lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(unlockRequests[_id].amount);
+    	unlockedBalances[msg.sender] = unlockedBalances[msg.sender].add(unlockRequests[_id].amount);
+    	delete(unlockRequests[_id]);
         emit UnlockRequestSealed(_id, true);
     	return true;
     }
 
     function withdraw(uint256 _amount) public{
-    	require(_amount <= stake.getUnlockedBalance(msg.sender), "Amount greater than the unlocked amount");
-    	stake.setUnlockedBalance(msg.sender, _amount, false);
-    	stake.transferTokens(_amount, msg.sender);
+    	require(_amount <= unlockedBalances[msg.sender], "Amount greater than the unlocked amount");
+    	unlockedBalances[msg.sender] = unlockedBalances[msg.sender].sub(_amount);
+    	token.transfer(msg.sender, _amount);
         emit Withdraw(msg.sender, _amount, true);
     }
 
@@ -107,7 +89,7 @@ contract Payment{
 
     function payForWitness(SignedWitness memory _signedWitness, uint256 _amount) public returns(bool){
 
-        require(stake.getLockedBalance(msg.sender) >= _amount, "User doesn't have enough locked balance");
+        require(lockedBalances[msg.sender] >= _amount, "User doesn't have enough locked balance");
 
     	if(isWinning(_signedWitness.signature) == false) {
             emit PayWitness(msg.sender, _amount, false);
@@ -115,9 +97,9 @@ contract Payment{
         }
 
         for(uint i = 0; i < _signedWitness.witnessList.length; i++){
-    		stake.setLockedBalance(msg.sender, _signedWitness.witnessList[i].relayerFraction*_amount, false);
+    		lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(_signedWitness.witnessList[i].relayerFraction*_amount);
 
-    		stake.setUnlockedBalance(_signedWitness.witnessList[i].relayer, _signedWitness.witnessList[i].relayerFraction*_amount, true);
+    		unlockedBalances[_signedWitness.witnessList[i].relayer] = unlockedBalances[_signedWitness.witnessList[i].relayer].add(_signedWitness.witnessList[i].relayerFraction*_amount);
         }
 
         emit PayWitness(msg.sender, _amount, true);
