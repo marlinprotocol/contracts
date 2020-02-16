@@ -1,5 +1,5 @@
 pragma solidity 0.6.1;
-// solhint-disable-next-line two-lines-top-level-separator
+
 contract HelloWorld {
     string public message;
 
