@@ -1,5 +1,5 @@
 pragma solidity 0.6.1;
-
+// solhint-disable-next-line two-lines-top-level-separator
 contract HelloWorld {
     string public message;
 
@@ -22,6 +22,7 @@ contract HelloWorld {
     {
         string memory oldMessage = message;
         message = _newMessage;
+        // solhint-disable-next-line mark-callable-contracts
         emit LogMessageChanged(oldMessage, _newMessage, _timestamp);
     }
 }

@@ -1,4 +1,3 @@
-const { accounts, contract } = require('@openzeppelin/test-environment');
 const {
     BN,
     balance,
@@ -10,9 +9,9 @@ const {
     time,
 } = require('@openzeppelin/test-helpers');
 const { expect } = require('chai');
-const HelloWorld = contract.fromArtifact('HelloWorld');
+const HelloWorld = artifacts.require('HelloWorld');
 
-describe('HelloWorld', () => {
+contract('HelloWorld', (accounts) => {
     const [coinbase] = accounts;
     let contractInstance;
     before(async () => {
@@ -24,15 +23,13 @@ describe('HelloWorld', () => {
         const timestamp = Date.now();
         it('should change message to How are you, World?', async () => {
             receipt = await contractInstance.changeMessage('How are you, World?', timestamp, { from: coinbase })
-            console.log('Transaction receipt: ', receipt);
-
         })
 
         it('emits a LogMessageChanged event on successful changed message', async () => {
             expectEvent(receipt, 'LogMessageChanged', {
                 oldMessage: 'Hello, World !!!',
                 newMessage: 'How are you, World?',
-                timestamp: timestamp
+                timestamp: new BN(timestamp)
             })
         })
     })

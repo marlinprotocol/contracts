@@ -68,7 +68,8 @@ module.exports = {
         },
     },
     mocha: {
-        useColors: true
+        useColors: true,
+        timeout: 100000
     },
     compilers: {
         solc: {
