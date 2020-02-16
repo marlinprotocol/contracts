@@ -27,7 +27,6 @@
     "func-order": "warn",
     "imports-on-top": "warn",
     "separate-by-one-line-in-contract": "warn",
-    "two-lines-top-level-separator": "warn",
     "visibility-modifier-order": "warn",
     "code-complexity": [
       "error",
