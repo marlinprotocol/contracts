@@ -9,6 +9,7 @@ contract Network {
     /**
     @dev Returns something not yet decided
      */
+    // solhint-disable no-empty-blocks
     constructor(address _caller) public {
         // Returns something for now do not know what ?
     }
