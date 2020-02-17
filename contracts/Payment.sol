@@ -5,7 +5,7 @@ import "./Stake.sol";
 contract Payment is Stake {
 
     constructor(address _token) public Stake(_token) {
-        token = Token(_token);
+
     }
 
     struct Witness {
