@@ -1,0 +1,64 @@
+[
+  {
+    "inputs": [
+      {
+        "name": "_tokenContractAddress",
+        "type": "address"
+      },
+      {
+        "name": "_uploadContractAddress",
+        "type": "address"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "_offerId",
+        "type": "bytes32"
+      },
+      {
+        "name": "_publisher",
+        "type": "address"
+      },
+      {
+        "name": "_client",
+        "type": "address"
+      },
+      {
+        "name": "_max",
+        "type": "uint8"
+      },
+      {
+        "name": "_nonce",
+        "type": "uint8"
+      },
+      {
+        "name": "_vArray",
+        "type": "uint8[3]"
+      },
+      {
+        "name": "_rArray",
+        "type": "bytes32[3]"
+      },
+      {
+        "name": "_sArray",
+        "type": "bytes32[3]"
+      }
+    ],
+    "name": "settleWinningCertificate",
+    "outputs": [
+      {
+        "name": "_success",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]
