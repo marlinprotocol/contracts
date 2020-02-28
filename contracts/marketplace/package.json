@@ -1,0 +1,37 @@
+{
+  "name": "marlyn-labs",
+  "version": "1.0.0",
+  "description": "Truffle and Smart Contract Sandox",
+  "main": "",
+  "scripts": {
+    "clean": "rm -rf .config .npm .node-gyp node_modules && npm install",
+    "cleanSol": "rm -rf build/contracts",
+    "compile": "clear && truffle compile && npm run lint",
+    "coverage": "scripts/coverage.sh",
+    "lint": "solhint \"contracts/**/*.sol\"",
+    "migrate": "clear && truffle migrate",
+    "migrateAll": "clear && truffle migrate --reset",
+    "recompile": "clear && npm run cleanSol && truffle compile --all && npm run lint",
+    "test": "clear && truffle test"
+  },
+  "author": "Balaji Shetty Pachai <balaji.pachai08@gmail.com>",
+  "dependencies": {
+    "fix": "0.0.6",
+    "openzeppelin-solidity": "^2.5.0",
+    "truffle-flattener": "^1.4.2",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "web3": "^1.2.6"
+  },
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.4",
+    "@openzeppelin/test-environment": "^0.1.2",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
+    "coveralls": "^3.0.2",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-import": "^2.20.1",
+    "mocha": "^5.2.0",
+    "solidity-coverage": "^0.7.1"
+  }
+}

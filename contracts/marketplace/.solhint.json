@@ -1,0 +1,76 @@
+{
+  "extends": "solhint:default",
+  "rules": {
+    "array-declaration-spaces": "warn",
+    "bracket-align": "warn",
+    "expression-indent": "warn",
+    "indent": [
+      "error",
+      4
+    ],
+    "no-mix-tabs-and-spaces": "warn",
+    "no-spaces-before-semicolon": "warn",
+    "space-after-comma": "warn",
+    "statement-indent": "warn",
+    "quotes": [
+      "error",
+      "double"
+    ],
+    "const-name-snakecase": "warn",
+    "contract-name-camelcase": "warn",
+    "event-name-camelcase": "warn",
+    "func-name-mixedcase": "warn",
+    "func-param-name-mixedcase": "warn",
+    "modifier-name-mixedcase": "warn",
+    "use-forbidden-name": "warn",
+    "var-name-mixedcase": "warn",
+    "func-order": "warn",
+    "imports-on-top": "warn",
+    "separate-by-one-line-in-contract": "warn",
+    "visibility-modifier-order": "warn",
+    "code-complexity": [
+      "error",
+      7
+    ],
+    "function-max-lines": [
+      "error",
+      50
+    ],
+    "max-line-length": [
+      "error",
+      120
+    ],
+    "max-states-count": [
+      "error",
+      15
+    ],
+    "no-empty-blocks": "error",
+    "no-unused-vars": "error",
+    "payable-fallback": "error",
+    "reason-string": [
+      "error",
+      {
+        "maxLength": 32
+      }
+    ],
+    "constructor-syntax": "error",
+    "avoid-call-value": "error",
+    "avoid-low-level-calls": "error",
+    "avoid-sha3": "error",
+    "avoid-suicide": "error",
+    "avoid-throw": "error",
+    "avoid-tx-origin": "error",
+    "check-send-result": "error",
+    "compiler-fixed": "error",
+    "func-visibility": "error",
+    "mark-callable-contracts": "error",
+    "multiple-sends": "error",
+    "no-complex-fallback": "error",
+    "no-inline-assembly": "error",
+    "no-simple-event-func-name": "error",
+    "not-rely-on-block-hash": "error",
+    "not-rely-on-time": "error",
+    "reentrancy": "error",
+    "state-visibility": "error"
+  }
+}
