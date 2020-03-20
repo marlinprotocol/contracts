@@ -15,7 +15,7 @@ contract Stake {
     mapping(address => uint256) public lockedBalances;
     mapping(address => uint256) public unlockedBalances;
 
-    event Deposit(address sender);
+    event Deposit(address sender, uint256 amount);
     event Withdraw(address sender, uint256 amount, bool withdrawn);
 
     function deposit(uint256 _amount) public returns (uint256) {
@@ -26,7 +26,7 @@ contract Stake {
         );
         lockedBalances[msg.sender] = lockedBalances[msg.sender].add(_amount);
         token.transferFrom(msg.sender, address(this), _amount);
-        emit Deposit(msg.sender);
+        emit Deposit(msg.sender, _amount);
         return _amount;
     }
 
