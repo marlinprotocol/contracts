@@ -1,0 +1,35 @@
+{
+	"schemaVersion": "2.0.0",
+	"contractName": "Roles",
+	"compilerOutput": {
+		"abi": []
+	},
+	"sources": {
+		"vendor/openzeppelin/contracts/access/Roles.sol": {
+			"id": 3
+		}
+	},
+	"sourceCodes": {
+		"vendor/openzeppelin/contracts/access/Roles.sol": "pragma solidity ^0.6.1;\n\n/**\n * @title Roles\n * @dev Library for managing addresses assigned to a Role.\n */\nlibrary Roles {\n    struct Role {\n        mapping (address => bool) bearer;\n    }\n\n    /**\n     * @dev Give an account access to this role.\n     */\n    function add(Role storage role, address account) internal {\n        require(!has(role, account), \"Roles: account already has role\");\n        role.bearer[account] = true;\n    }\n\n    /**\n     * @dev Remove an account's access to this role.\n     */\n    function remove(Role storage role, address account) internal {\n        require(has(role, account), \"Roles: account does not have role\");\n        role.bearer[account] = false;\n    }\n\n    /**\n     * @dev Check if an account has this role.\n     * @return bool\n     */\n    function has(Role storage role, address account) internal view returns (bool) {\n        require(account != address(0), \"Roles: account is the zero address\");\n        return role.bearer[account];\n    }\n}"
+	},
+	"sourceTreeHashHex": "0xd4c5e7b84a511c285098de3434c68d5cb8b7536c29ff36ad4eb9e37f6ec6c328",
+	"compiler": {
+		"name": "solc",
+		"version": "soljson-v0.6.4+commit.1dca32f3.js",
+		"settings": {
+			"optimizer": {
+				"enabled": true,
+				"runs": 1000000
+			},
+			"outputSelection": {
+				"*": {
+					"*": [
+						"abi"
+					]
+				}
+			},
+			"remappings": []
+		}
+	},
+	"chains": {}
+}

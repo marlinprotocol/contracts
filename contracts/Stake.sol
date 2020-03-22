@@ -1,8 +1,9 @@
 // this contract will hold all tokens
 
 pragma solidity ^0.6.1;
+
 import "./Token.sol";
-import "../vendor/openzeppelin/contracts/math/SafeMath.sol";
+import "./vendor/openzeppelin/contracts/math/SafeMath.sol";
 
 contract Stake {
     using SafeMath for uint256;
