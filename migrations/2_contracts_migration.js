@@ -1,6 +1,7 @@
 const Token = artifacts.require("./Token.sol");
 const Payment = artifacts.require("./Payment.sol");
 const Stake = artifacts.require("./Stake.sol");
+const OverlappingStake = artifacts.require("./OverlappingStake.sol")
 
 var tokenAddress;
 
@@ -10,5 +11,7 @@ module.exports = function(deployer) {
     return deployer.deploy(Stake, Token.address);
   }).then(function(){
       return deployer.deploy(Payment, tokenAddress);
+  }).then(function(){
+    return deployer.deploy(OverlappingStake, tokenAddress);
   });
 };
