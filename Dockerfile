@@ -6,4 +6,4 @@ RUN npm i -g truffle
 RUN npm i -g ganache-cli
 RUN npm i -S truffle-privatekey-provider
 COPY . /home/app
-CMD [ "ganache-cli" , "-b" , "1" ]
+CMD [ "ganache-cli"]
