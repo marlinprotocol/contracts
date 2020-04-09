@@ -6,7 +6,7 @@ The way upgradable contracts can be written can be classified in 2 different way
 2. Breaking down the contracts functionality into 3 different parts, such as *Data Contract*, *Flow Contract* and *Application Contract* and using a **Controller Contract** to govern the three. 
 
 
-### *Simplest Way*
+### Simplest Way
 
 The simplest way you can upgrade a **Contract1** to **Contract2** keeping its state data same is by using a proxy contract with a *fallback* function where every method call/transaction is delegatedto the implementation contract. [Solidity/Delegatecall](https://solidity.readthedocs.io/en/v0.6.1/introduction-to-smart-contracts.html#delegatecall-callcode-and-libraries)
 
@@ -83,3 +83,5 @@ else
 ```
 
 [Openzeppelin API docs](https://docs.openzeppelin.com/upgrades/2.8/api)
+
+### 0xcert
