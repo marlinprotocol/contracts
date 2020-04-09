@@ -46,7 +46,7 @@ contract Capacity is Stake {
       * @param _submitterWithdrawAddress Address to which the stake should be rewarded
       * @return bool
       */
-    function reportOverlappingProducerStakes(bytes memory _attestation1, bytes memory _attestation2, address _submitterWithdrawAddress) public returns (bool){
+    function reportOverlappingProducerStakes(bytes calldata _attestation1, bytes calldata _attestation2, address _submitterWithdrawAddress) external returns (bool){
         Attestation memory a1 = getAttestation(_attestation1);
         Attestation memory a2 = getAttestation(_attestation2);
         address add1 = ecrecover(a1.sig.hash, a1.sig.v, a1.sig.r, a1.sig.s);
@@ -72,19 +72,11 @@ contract Capacity is Stake {
         uint256 amountToBeSlashed = uint256(a1.message.messageSize) * STAKE_PER_BYTE + uint256(a2.message.messageSize) * STAKE_PER_BYTE;
 
         if(max(attestation1StartStake, attestation2StartStake) <= min(attestation1EndStake, attestation2EndStake)){
-            slashStake(add1, _submitterWithdrawAddress, amountToBeSlashed);
+            slashStake(add1, _submitterWithdrawAddress, amountToBeSlashed, STAKE_TRANSFER_PERCENT);
             return true;
         }else{
             return false;
         }
-    }
-
-    function slashStake(address _duplicateStakeAddress, address _submitterWithdrawAddress, uint256 _amountToBeSlashed) internal returns (bool) {
-        require(lockedBalances[_duplicateStakeAddress] >= _amountToBeSlashed, "Amount to be slashed must be less than available balance");
-        // lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].add(_amountToBeSlashed);
-        lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].sub(_amountToBeSlashed);
-        unlockedBalances[_submitterWithdrawAddress] = unlockedBalances[_submitterWithdrawAddress].add(_amountToBeSlashed.mul(STAKE_TRANSFER_PERCENT).div(100));
-        return true;
     }
 
     function max(uint256 a, uint256 b) internal pure returns(uint256){
@@ -126,15 +118,6 @@ contract Capacity is Stake {
         bytes32 _s1 = _attestation1.slice(83,32).toBytes32(0);
         Signature memory sig = Signature(_hash1, _v1, _r1, _s1);
         return sig;
-    }
-
-    function bytesToBytes32(bytes memory b, uint offset) private pure returns (bytes32) {
-        bytes32 out;
-
-        for (uint i = 0; i < 32; i++) {
-            out |= bytes32(b[offset + i] & 0xFF) >> (i * 8);
-        }
-        return out;
     }
 
 }
