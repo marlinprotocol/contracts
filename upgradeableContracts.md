@@ -70,6 +70,16 @@ Pitfalls/Issues with
 
 1.  It is completely ok if the malicious user calls the logic contracts directly, however, if there is a *selfdestrcut()* declared in the contract, for some reason, the malicious is able to hit the *selfdestruct()* of the logic contract, then all our contracts will be delegating the calls to address which won't have any code, effectively breaking the contracts.
 2. The same can happen if there is another *delgatecall* in the logic contract to the malicious contract.
-3. We cannot modift/remove the variable type in this case. Reason `eth.storageAt(address, index_of_the_variable_in_contract)` should always remain same. We can only add a new variable
+3. We cannot modify/remove the variable type in this case. Reason `eth.storageAt(address, index_of_the_variable_in_contract)` should always remain same. We can only add a new variable
 4. If the proxy contract contains a logic contract address as it's first variable, then there will be storage conflict with first variable implemented in the logic contract. To avoid this, store the address in randomized slot. Explained in [EIP 1967](https://eips.ethereum.org/EIPS/eip-1967)
+5. Multiple implementations can not have different order of variable declaration. The newly added variable must be added the last. If not taken care, this may lead to the same error as state in **Point 3**
+6. Proxy Contract and the Logic Contract can have function conflict. Both can have functions like `changeOwner()` or `getAdmin()`. To avoid this, there can be logic implemented in fallback, or the delegate can happen only in the case of following condition
 
+```
+if(msg.sender is proxyAdmin)
+    return getAdmin();
+else
+    delegatecall(logic_contract)
+```
+
+[Openzeppelin API docs](https://docs.openzeppelin.com/upgrades/2.8/api)
