@@ -114,4 +114,5 @@ Any address with more than 100,000 COMP can propose an upgrade. The upgrades are
 
 Diagram illustrates how the Timelock Contract work
 
-![](./img/gov.png)
+![](../img/gov.png)
+
