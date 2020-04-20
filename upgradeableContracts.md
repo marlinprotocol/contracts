@@ -84,4 +84,34 @@ else
 
 [Openzeppelin API docs](https://docs.openzeppelin.com/upgrades/2.8/api)
 
-### 0xcert
+### Compound Protocol
+
+Each asset supported by the compound protocol has an underlying cToken that is [EIP20 compliant](https://eips.ethereum.org/EIPS/eip-20).
+
+All the contracts associated with [Compound Protocol](https://github.com/compound-finance/compound-protocol/tree/master/contracts) 
+
+asset/token  | supporting Token
+-|-
+Ether| cEther
+ERC20| cERC20
+
+The currently supported tokens in the mainnet are BAT, DAI, REP, SAI, WBTC, ZRX, USDC
+
+On transacting the `mint()` function of the contract the `msg.sender` is sent equivalent cTokens.
+
+On transacting the `redeem()` function of the contract `msg.sender` is send back the actual crypto/Tokens
+
+[Comptroller Contract](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Comptroller.sol) is implemented as an upgradable proxy.
+
+#### Governance
+The compound protocol is upgraded and governed by holders of special tokens called [COMP tokens](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol). 
+Together there are 3 components which help in upgrading the compound protocol. 
+1. COMP token holders
+2. [Governance Alpha Module](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/GovernorAlpha.sol)
+3. [Timelock](https://github.com/compound-finance/compound-protocol/blob/master/contracts/Timelock.sol)
+
+Any address with more than 100,000 COMP can propose an upgrade. The upgrades are executable code that will be queued in a contract (managed by Timelock contract). 
+
+Diagram illustrates how the Timelock Contract work
+
+![](./img/gov.png)
