@@ -28,6 +28,13 @@ contract Proxy {
         }
     }
 
+    function updateLogic(address _newLogic) public{
+        bytes32 slot = IMPLEMENTATION_SLOT;
+        assembly {
+            sstore(slot, _newLogic)
+        }
+    }
+
     fallback() external payable {
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {

@@ -1,6 +1,6 @@
 pragma solidity >=0.4.21 <0.7.0;
 
-contract Logic {
+contract Logic2 {
     uint256 public x;
     bool private initialized;
 
@@ -11,6 +11,6 @@ contract Logic {
     }
 
     function get() public view returns(uint256){
-        return x;
+        return 2*x;
     }
 }
