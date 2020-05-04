@@ -1,7 +1,13 @@
-const Capacity = artifacts.require("Proxy.sol")
+const ProxyC = artifacts.require("Proxy.sol")
+const Logic = artifacts.require("Logic.sol")
 
+var logicContractAddress;
 
 module.exports = function(deployer) {
-    deployer.deploy(Capacity, "0x0000000000000000000000000000000000000000");
+    deployer.deploy(Logic).then(function(){
+        logicContractAddress = Logic.address
+        return deployer.deploy(ProxyC, logicContractAddress);
+      })
+    
 };
   
