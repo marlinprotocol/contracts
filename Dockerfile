@@ -9,4 +9,4 @@ RUN npm i -S truffle-privatekey-provider
 RUN npm i -S @openzeppelin/upgrades
 
 COPY . /home/app
-CMD [ "ganache-cli","-b","5"]
+CMD [ "ganache-cli"]

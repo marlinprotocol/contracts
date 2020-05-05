@@ -9,50 +9,59 @@ var LogicContract2;
 var ProxyContract;
 
 contract("Capacity", function (accounts) {
-    it("Deploy Logic Contract", function(){
+    it("Deploy Logic/Logic2/Proxy Contracts", function(){
         return Logic.deployed().then(function(instance){
             LogicContract = instance;
-            return instance;
+            return;
+        })
+        .then(function(){
+            return Logic2.deployed().then(function(instance){
+                LogicContract2 = instance;
+            })
+        })
+        .then(function(){
+            return ProxyC.deployed(LogicContract.address).then(function(instance){
+                ProxyContract = instance;
+                return;
+            }) 
+        })
+        .then(async function(){
+            let tempProxy = await Logic.at(ProxyContract.address);
+            return tempProxy.initialize(initValue).then(function(result){
+                return;
+            })
         })
     })
-    it("Deploy Logic2 Contract", function(){
-        return Logic2.deployed().then(function(instance){
-            LogicContract2 = instance;
-            return instance;
+    
+    it("Check Storage", function(){
+        return Logic.at(ProxyContract.address).then( async function(instance){
+            let value = await instance.get.call();
+            assert.equal(value, initValue, "Value fetched from proxy should be equal to initValue")
+            return;
+        })
+        .then(function(){
+            return LogicContract.get.call().then(function(value){
+                assert.equal(value, 0, "value store in logic contract state should be zero");
+                return;
+            })
         })
     })
-    it("Deploy Proxy Contract", function(){
-        return ProxyC.deployed(LogicContract.address).then(function(instance){
-            ProxyContract = instance;
-            return ProxyContract.address
+    it("Update Logic Contract address and check values/storages", function(){
+        return ProxyContract.updateLogic(LogicContract2.address).then(function(result){
+            return;
         })
-    })
-    it("Init value via proxy contract", function(){
-        let tempProxy = Object.assign({}, LogicContract);
-        tempProxy.address = ProxyContract.address;
-        return tempProxy.initialize(initValue);
-    })
-    it("Check value via proxy and logic contract", async function(){
-        let tempProxy = Object.assign({}, LogicContract);
-        tempProxy.address = ProxyContract.address;
-
-        let value_via_proxy = await tempProxy.get.call();
-        let value_via_logic = await LogicContract.get.call();
-
-        console.log(tempProxy.address, "fetch value via proxy",value_via_proxy.toNumber());
-        console.log(LogicContract.address,"fetch value via logic" ,value_via_logic.toNumber());
-    })
-    it("update logic contract address in proxy", function(){
-        return ProxyContract.updateLogic(LogicContract2.address);
-    })
-    it("Check value via proxy and logic contract after updating the logic", async function(){
-        let tempProxy = Object.assign({}, LogicContract);
-        tempProxy.address = ProxyContract.address;
-
-        let value_via_proxy = await tempProxy.get.call();
-        let value_via_logic = await LogicContract.get.call();
-
-        console.log(tempProxy.address, "fetch value via proxy",value_via_proxy.toNumber());
-        console.log(LogicContract.address,"fetch value via logic" ,value_via_logic.toNumber());
+        .then(function(){
+            return Logic.at(ProxyContract.address).then( async function(instance){
+                let value = await instance.get.call();
+                assert.equal(value, 2*initValue, "Value should be twice(logic2 is written like that)")
+                return;
+            })
+        })
+        .then(function(){
+            return LogicContract2.get.call().then(function(value){
+                assert.equal(value, 0, "value store in logic2 contract state should be zero");
+                return;
+            })
+        })
     })
 })
