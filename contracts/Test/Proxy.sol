@@ -13,6 +13,33 @@ contract Proxy {
     bytes32 internal constant IMPLEMENTATION_SLOT = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
     bytes32 internal constant PROXY_ADMIN_SLOT = bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1);
 
+    function updateLogic(address _newLogic) public{
+        require(msg.sender == getAdmin(), "Only Admin should be able to update the contracts");
+        bytes32 slot = IMPLEMENTATION_SLOT;
+        assembly {
+            sstore(slot, _newLogic)
+        }
+    }
+    
+    function getImplementation() internal view returns(address result){
+        bytes32 slot = IMPLEMENTATION_SLOT;
+        assembly {
+            result := sload(slot)
+        }
+    }
+
+    function getAdmin() internal view returns(address result){
+        bytes32 slot = PROXY_ADMIN_SLOT;
+        assembly {
+            result := sload(slot)
+        }
+    }
+
+    function clash() public returns (string memory){
+        require(msg.sender == getAdmin(), "Only Admin, testing proxy clash");
+        return "Proxy";
+    }
+
     constructor(address contractLogic) public {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
@@ -24,13 +51,6 @@ contract Proxy {
         address sender = msg.sender;
         assembly {
             sstore(slot, sender)
-        }
-    }
-
-    function updateLogic(address _newLogic) public{
-        bytes32 slot = IMPLEMENTATION_SLOT;
-        assembly {
-            sstore(slot, _newLogic)
         }
     }
 

@@ -13,4 +13,8 @@ contract Logic {
     function get() public view returns(uint256){
         return x;
     }
+
+    function clash() public returns (string memory){
+        return "Logic";
+    }
 }

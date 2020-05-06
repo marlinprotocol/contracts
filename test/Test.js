@@ -8,7 +8,7 @@ var LogicContract;
 var LogicContract2;
 var ProxyContract;
 
-contract("Capacity", function (accounts) {
+contract("Test", function (accounts) {
     it("Deploy Logic/Logic2/Proxy Contracts", function(){
         return Logic.deployed().then(function(instance){
             LogicContract = instance;
@@ -62,6 +62,27 @@ contract("Capacity", function (accounts) {
                 assert.equal(value, 0, "value store in logic2 contract state should be zero");
                 return;
             })
+        })
+    })
+    it("Function clash and proxy checks", function(){
+        return Logic.at(ProxyContract.address).then( async function(instance){
+            let value;
+            try{
+                value = await instance.clash.call({from: accounts[1]});   
+            }catch(ex){
+                
+            }
+            let value2 = await instance.clash.call() // called from proxy admin
+            assert.notEqual(value, value2, "Values should not be same(accounts[1] should not be able to call)");
+            return;
+        }).then(function(){
+            return LogicContract.clash.call().then(function(value){
+                assert.equal(value, "Logic", "Logic should be fetched from Logic Contract");
+                return;
+            })
+        }).then(async function(){
+            let value = await ProxyContract.clash.call();
+            assert.equal(value, "Proxy", "Proxy should be fetched from proxy contract");
         })
     })
 })
