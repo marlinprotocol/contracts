@@ -35,7 +35,7 @@ contract Proxy {
         }
     }
 
-    function clash() public returns (string memory){
+    function clash() public view returns (string memory){
         require(msg.sender == getAdmin(), "Only Admin, testing proxy clash");
         return "Proxy";
     }

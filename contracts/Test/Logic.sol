@@ -14,7 +14,7 @@ contract Logic {
         return x;
     }
 
-    function clash() public returns (string memory){
+    function clash() public pure returns (string memory){
         return "Logic";
     }
 }
