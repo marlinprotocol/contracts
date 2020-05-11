@@ -1,23 +1,22 @@
-pragma solidity ^0.6.1;
+pragma solidity >=0.4.21 <0.7.0;
+
+import "./Initializable.sol";
 import "./IERC20.sol";
 
 /**
  * @dev Optional functions from the ERC20 standard.
  */
-abstract contract ERC20Detailed is IERC20 {
+contract ERC20Detailed is Initializable, IERC20 {
     string private _name;
     string private _symbol;
     uint8 private _decimals;
-    bool private initialized;
+
     /**
      * @dev Sets the values for `name`, `symbol`, and `decimals`. All three of
      * these values are immutable: they can only be set once during
      * construction.
      */
-
-    function initialize(string memory name, string memory symbol, uint8 decimals) public virtual{
-        require(!initialized, "Does the work of constructor");
-        initialized = true;
+    function initialize(string memory name, string memory symbol, uint8 decimals) public initializer {
         _name = name;
         _symbol = symbol;
         _decimals = decimals;
@@ -26,7 +25,7 @@ abstract contract ERC20Detailed is IERC20 {
     /**
      * @dev Returns the name of the token.
      */
-    function name() view external returns (string memory) {
+    function name() public view returns (string memory) {
         return _name;
     }
 
@@ -34,7 +33,7 @@ abstract contract ERC20Detailed is IERC20 {
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() external view returns (string memory) {
+    function symbol() public view returns (string memory) {
         return _symbol;
     }
 
@@ -46,11 +45,13 @@ abstract contract ERC20Detailed is IERC20 {
      * Tokens usually opt for a value of 18, imitating the relationship between
      * Ether and Wei.
      *
-     * > Note that this information is only used for _display_ purposes: it in
+     * NOTE: This information is only used for _display_ purposes: it in
      * no way affects any of the arithmetic of the contract, including
-     * `IERC20.balanceOf` and `IERC20.transfer`.
+     * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() external view returns (uint8) {
+    function decimals() public view returns (uint8) {
         return _decimals;
     }
+
+    uint256[50] private ______gap;
 }

@@ -1,24 +1,26 @@
-pragma solidity ^0.6.1;
+pragma solidity >=0.4.21 <0.7.0;
+
+import "../Initializable.sol";
+
+import "../Context.sol";
 import "../Roles.sol";
 
-
-contract MinterRole {
+contract MinterRole is Initializable, Context {
     using Roles for Roles.Role;
 
     event MinterAdded(address indexed account);
     event MinterRemoved(address indexed account);
 
     Roles.Role private _minters;
-    bool private initialized;
 
-    function initialize(address _address) public virtual {
-        require(!initialized, "Does the work of constructor");
-        initialized = true;
-        _addMinter(_address);
+    function initialize(address sender) public initializer {
+        if (!isMinter(sender)) {
+            _addMinter(sender);
+        }
     }
 
     modifier onlyMinter() {
-        require(isMinter(msg.sender), "MinterRole: caller does not have the Minter role");
+        require(isMinter(_msgSender()), "MinterRole: caller does not have the Minter role");
         _;
     }
 
@@ -31,7 +33,7 @@ contract MinterRole {
     }
 
     function renounceMinter() public {
-        _removeMinter(msg.sender);
+        _removeMinter(_msgSender());
     }
 
     function _addMinter(address account) internal {
@@ -43,4 +45,6 @@ contract MinterRole {
         _minters.remove(account);
         emit MinterRemoved(account);
     }
+
+    uint256[50] private ______gap;
 }

@@ -54,7 +54,7 @@ contract Proxy {
         }
     }
 
-    fallback() external payable {
+    function() external payable {
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
             let contractLogic := sload(slot)

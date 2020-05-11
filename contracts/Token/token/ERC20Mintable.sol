@@ -1,29 +1,31 @@
-pragma solidity ^0.6.1;
+pragma solidity >=0.4.21 <0.7.0;
+
+import "./Initializable.sol";
 import "./ERC20.sol";
 import "./roles/MinterRole.sol";
 
 /**
- * @dev Extension of `ERC20` that adds a set of accounts with the `MinterRole`,
+ * @dev Extension of {ERC20} that adds a set of accounts with the {MinterRole},
  * which have permission to mint (create) new tokens as they see fit.
  *
  * At construction, the deployer of the contract is the only minter.
  */
-contract ERC20Mintable is ERC20, MinterRole {
-    bool private initialized;
-    /**
-     * @dev See `ERC20._mint`.
-     *
-     * Requirements:
-     *
-     * - the caller must have the `MinterRole`.
-     */
-    function initialize(address sender) public override{
-        require(!initialized, "Does the work of constructor");
+contract ERC20Mintable is Initializable, ERC20, MinterRole {
+    function initialize(address sender) public initializer {
         MinterRole.initialize(sender);
     }
 
+    /**
+     * @dev See {ERC20-_mint}.
+     *
+     * Requirements:
+     *
+     * - the caller must have the {MinterRole}.
+     */
     function mint(address account, uint256 amount) public onlyMinter returns (bool) {
         _mint(account, amount);
         return true;
     }
+
+    uint256[50] private ______gap;
 }
