@@ -12,11 +12,6 @@ contract("Marlin Token", function (accounts) {
         return TokenProxy.deployed({from : accounts[1]}).then(function (instance) {
             tokenProxy = instance;
             return instance;
-        }).then(function(){
-            return TokenLogic.deployed().then(function(instance){
-                tokenLogic = instance;
-                return instance;
-            })
         })
     })
     it("initializes with token", function () {
