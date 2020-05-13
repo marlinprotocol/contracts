@@ -36,6 +36,7 @@ contract PaymentLogic is Initializable, StakeLogic {
     function initialize(address _token) public initializer{
         StakeLogic.initialize(_token);
     }
+    
     function unlock(uint256 _amount) public returns (bytes32) {
         require(
             lockedBalances[msg.sender] >= _amount,
