@@ -86,8 +86,8 @@ module.exports = {
       network_id: "*",       // Any network (default: none)
       gas: 4700000,
       gasPrice: 10000000000,
-      confirmations: 10,
-      timeoutBlocks: 200,
+      confirmations: 2,
+      timeoutBlocks: 2000,
       provider: () => new PrivateKeyProvider(privateKey, "http://68.183.87.16:8545")
     }
   },

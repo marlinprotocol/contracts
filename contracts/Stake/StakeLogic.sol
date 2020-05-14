@@ -46,6 +46,17 @@ contract StakeLogic  is Initializable{
         return _amount;
     }
 
+    function withdrawAll() public returns (uint256){
+        require(
+            unlockedBalances[msg.sender] > 0,
+            "Amount greater than the unlocked amount"
+        );
+        uint256 amount  = unlockedBalances[msg.sender];
+        unlockedBalances[msg.sender] = 0;
+        token.transfer(msg.sender, amount);
+        emit Withdraw(msg.sender, amount, true);
+        return amount;
+    }
     function lockBalance(uint256 _amount) private returns (bool) {
         require(
             _amount <= unlockedBalances[msg.sender],

@@ -11,11 +11,11 @@ import "./BytesLib.sol";
 contract CapacityLogic is Initializable, StakeLogic {
     using BytesLib for bytes;
     // To be decided by the team
-    uint32 PRODUCER_STAKE_LOCKTIME = 10 minutes;
+    uint32 PRODUCER_STAKE_LOCKTIME;
     // To be decided by the team
-    uint256 STAKE_PER_BYTE = 10;
+    uint256 STAKE_PER_BYTE;
     // To be decided by the team
-    uint256 STAKE_TRANSFER_PERCENT = 20;
+    uint256 STAKE_TRANSFER_PERCENT;
 
     struct Attestation {
         uint32 messageId;
@@ -39,6 +39,9 @@ contract CapacityLogic is Initializable, StakeLogic {
 
     function initialize(address _token) public initializer{
         StakeLogic.initialize(_token);
+        PRODUCER_STAKE_LOCKTIME = 10 minutes;
+        STAKE_PER_BYTE = 10;
+        STAKE_TRANSFER_PERCENT = 10;
     }
     /** @dev Calculates a rectangle's surface and perimeter.
       * @param _attestation1 Attestation bytes1.
@@ -111,8 +114,9 @@ contract CapacityLogic is Initializable, StakeLogic {
 
     function getSignature(bytes memory _attestation1) internal pure returns (Signature memory){
         //Image prefix to be decided by the team
-        bytes memory prefix = "\x19Marlin Signed Message:\n32";
-        bytes32 _hash1 = keccak256(abi.encodePacked(prefix, _attestation1.slice(0, 50)));
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 messageHash = keccak256(abi.encodePacked(_attestation1.slice(0, 50)));
+        bytes32 _hash1 = keccak256(abi.encodePacked(prefix, messageHash));
         uint8 _v1 = _attestation1.slice(50, 1).toUint8(0);
         bytes32 _r1 = _attestation1.slice(51, 32).toBytes32(0);
         bytes32 _s1 = _attestation1.slice(83,32).toBytes32(0);
@@ -120,4 +124,10 @@ contract CapacityLogic is Initializable, StakeLogic {
         return sig;
     }
 
+    function testEcrecover(bytes calldata message, uint8 v, bytes32 r, bytes32 s) external view returns (address){
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 messageHash = keccak256(abi.encodePacked(message));
+        bytes32 _hash = keccak256(abi.encodePacked(prefix, messageHash));
+        return (ecrecover(_hash, v, r, s));
+    }
 }

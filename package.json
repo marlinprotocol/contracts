@@ -20,6 +20,8 @@
   },
   "homepage": "https://gitlab.com/marlinprotocol/contracts#readme",
   "dependencies": {
-    "truffle-privatekey-provider": "^1.3.0"
+    "ethers": "^4.0.47",
+    "truffle-privatekey-provider": "^1.3.0",
+    "web3": "^1.2.7"
   }
 }

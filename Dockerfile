@@ -5,8 +5,11 @@ WORKDIR /home/app
 
 RUN npm i -g truffle
 RUN npm i -g ganache-cli
-RUN npm i -S truffle-privatekey-provider
+COPY package.json /home/app/package.json
+COPY package-lock.json /home/app/package-lock.json
+
+RUN npm install
 # RUN npm i -S @openzeppelin/upgrades
 
 COPY . /home/app
-CMD [ "ganache-cli"]
+CMD [ "ganache-cli","-a","50"]
