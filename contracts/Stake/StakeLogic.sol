@@ -83,11 +83,20 @@ contract StakeLogic  is Initializable{
         return true;
     }
 
-    function slashStake(address _duplicateStakeAddress, address _submitterWithdrawAddress, uint256 _amountToBeSlashed, uint256 _percentTransfer) internal returns (bool) {
-        require(lockedBalances[_duplicateStakeAddress] >= _amountToBeSlashed, "Amount to be slashed must be less than available balance");
+    function slashStake(
+        address _duplicateStakeAddress,
+        address _submitterWithdrawAddress,
+        uint256 _amountToBeSlashed,
+        uint256 _percentTransfer
+    ) internal returns (bool) {
+        require(lockedBalances[_duplicateStakeAddress] >= _amountToBeSlashed,
+            "Amount to be slashed must be less than available balance"
+        );
         // lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].add(_amountToBeSlashed);
         lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].sub(_amountToBeSlashed);
-        unlockedBalances[_submitterWithdrawAddress] = unlockedBalances[_submitterWithdrawAddress].add(_amountToBeSlashed.mul(_percentTransfer).div(100));
+        unlockedBalances[_submitterWithdrawAddress] = (
+            unlockedBalances[_submitterWithdrawAddress].add(_amountToBeSlashed.mul(_percentTransfer).div(100))
+        );
         return true;
     }
 }

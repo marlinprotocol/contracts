@@ -11,11 +11,14 @@ import "./BytesLib.sol";
 contract CapacityLogic is Initializable, StakeLogic {
     using BytesLib for bytes;
     // To be decided by the team
-    uint32 PRODUCER_STAKE_LOCKTIME;
+    // solhint-disable-next-line
+    uint32 public PRODUCER_STAKE_LOCKTIME;
     // To be decided by the team
-    uint256 STAKE_PER_BYTE;
+    // solhint-disable-next-line
+    uint256 public STAKE_PER_BYTE;
     // To be decided by the team
-    uint256 STAKE_TRANSFER_PERCENT;
+    // solhint-disable-next-line
+    uint256 public STAKE_TRANSFER_PERCENT;
 
     struct Attestation {
         uint32 messageId;
@@ -43,13 +46,19 @@ contract CapacityLogic is Initializable, StakeLogic {
         STAKE_PER_BYTE = 10;
         STAKE_TRANSFER_PERCENT = 10;
     }
-    /** @dev Calculates a rectangle's surface and perimeter.
+    /** @dev Reports a overlapping stake and rewards.
       * @param _attestation1 Attestation bytes1.
       * @param _attestation2 Attestation bytes2.
       * @param _submitterWithdrawAddress Address to which the stake should be rewarded
       * @return bool
       */
-    function reportOverlappingProducerStakes(bytes calldata _attestation1, bytes calldata _attestation2, address _submitterWithdrawAddress) external returns (bool){
+
+    function reportOverlappingProducerStakes(
+            bytes calldata _attestation1,
+            bytes calldata _attestation2,
+            address _submitterWithdrawAddress
+        ) external returns (bool)
+    {
         Attestation memory a1 = getAttestation(_attestation1);
         Attestation memory a2 = getAttestation(_attestation2);
         address add1 = ecrecover(a1.sig.hash, a1.sig.v, a1.sig.r, a1.sig.s);
@@ -59,7 +68,13 @@ contract CapacityLogic is Initializable, StakeLogic {
         return checkOverlappingProducerStakes(a1, a2, add1, _submitterWithdrawAddress);
     }
 
-    function checkOverlappingProducerStakes(Attestation memory a1, Attestation memory a2, address add1, address _submitterWithdrawAddress) internal returns (bool){
+    function checkOverlappingProducerStakes(
+            Attestation memory a1,
+            Attestation memory a2,
+            address add1,
+            address _submitterWithdrawAddress
+        ) internal returns (bool)
+    {
         uint256 producerTimedifference;
 
         if(a1.message.timestamp > a2.message.timestamp){
@@ -67,12 +82,17 @@ contract CapacityLogic is Initializable, StakeLogic {
         }else{
             producerTimedifference = a2.message.timestamp - a1.message.timestamp;
         }
-        require(producerTimedifference < PRODUCER_STAKE_LOCKTIME, "Duplicate Stake must be reported within set in time interval");
+        require(producerTimedifference < PRODUCER_STAKE_LOCKTIME,
+            "Duplicate Stake must be reported within set in time interval"
+        );
+
         uint256 attestation1StartStake = uint256(a1.message.stakeOffset);
         uint256 attestation1EndStake = attestation1StartStake + uint256(a1.message.messageSize) * STAKE_PER_BYTE;
         uint256 attestation2StartStake = uint256(a2.message.stakeOffset);
         uint256 attestation2EndStake = attestation2StartStake + uint256(a2.message.messageSize) * STAKE_PER_BYTE;
-        uint256 amountToBeSlashed = uint256(a1.message.messageSize) * STAKE_PER_BYTE + uint256(a2.message.messageSize) * STAKE_PER_BYTE;
+        uint256 amountToBeSlashed = (
+            uint256(a1.message.messageSize) * STAKE_PER_BYTE + uint256(a2.message.messageSize) * STAKE_PER_BYTE
+        );
 
         if(max(attestation1StartStake, attestation2StartStake) <= min(attestation1EndStake, attestation2EndStake)){
             slashStake(add1, _submitterWithdrawAddress, amountToBeSlashed, STAKE_TRANSFER_PERCENT);

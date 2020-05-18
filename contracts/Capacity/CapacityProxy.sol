@@ -1,18 +1,20 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 contract CapacityProxy {
-    bytes32 internal constant IMPLEMENTATION_SLOT = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
-    bytes32 internal constant PROXY_ADMIN_SLOT = bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1);
+    bytes32 internal constant IMPLEMENTATION_SLOT = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+    bytes32 internal constant PROXY_ADMIN_SLOT = bytes32(uint256(keccak256("eip1967.proxy.admin")) - 1);
 
     constructor(address contractLogic) public {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line
         assembly {
             sstore(slot, contractLogic)
         }
         // save the proxy admin
         slot = PROXY_ADMIN_SLOT;
         address sender = msg.sender;
+        // solhint-disable-next-line
         assembly {
             sstore(slot, sender)
         }
@@ -20,7 +22,8 @@ contract CapacityProxy {
 
     function() external payable {
         bytes32 slot = IMPLEMENTATION_SLOT;
-        assembly {
+        // solhint-disable-next-line
+        assembly { 
             let contractLogic := sload(slot)
             calldatacopy(0x0, 0x0, calldatasize())
             let success := delegatecall(sub(gas(), 10000), contractLogic, 0x0, calldatasize(), 0, 0)
