@@ -144,7 +144,7 @@ contract CapacityLogic is Initializable, StakeLogic {
         return sig;
     }
 
-    function testEcrecover(bytes calldata message, uint8 v, bytes32 r, bytes32 s) external view returns (address){
+    function testEcrecover(bytes calldata message, uint8 v, bytes32 r, bytes32 s) external pure returns (address){
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 messageHash = keccak256(abi.encodePacked(message));
         bytes32 _hash = keccak256(abi.encodePacked(prefix, messageHash));
