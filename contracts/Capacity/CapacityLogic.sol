@@ -2,7 +2,7 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../Stake/StakeLogic.sol";
-import "./BytesLib.sol";
+import "../vendor/GNSPS/solidity-bytes-utils/BytesLib.sol";
 
 /// @title Contract to reward overlapping stakes
 /// @author Marlin
@@ -59,6 +59,7 @@ contract CapacityLogic is Initializable, StakeLogic {
             address _submitterWithdrawAddress
         ) external returns (bool)
     {
+        require(!_attestation1.equal(_attestation2), "same bytes should not be used");
         Attestation memory a1 = getAttestation(_attestation1);
         Attestation memory a2 = getAttestation(_attestation2);
         address add1 = ecrecover(a1.sig.hash, a1.sig.v, a1.sig.r, a1.sig.s);

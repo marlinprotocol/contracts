@@ -12,7 +12,8 @@ contract('Capacity', function(accounts){
     var tokenInstance;
     var capacityAddress;
     var tokenAddress;
-    var attestationBytes;
+    var attestationBytes1;
+    var attestationBytes2;
 
     it("deploy token contract", function(){
         return TokenProxy.deployed({from : accounts[1]}).then(function (instance) {
@@ -49,7 +50,7 @@ contract('Capacity', function(accounts){
         })
     })
 
-    it("testEcrecover in solidity", async function () {
+    it("generate attestation bytes1", async function () {
         address = web3.utils.toChecksumAddress(accounts[10]);
         var attestationHexBytes = '1111111122223333333344444444555555556666666666666666666666666666666666666666666666666666666666666666'
         var msg = Buffer.from(attestationHexBytes, 'hex');      
@@ -62,7 +63,25 @@ contract('Capacity', function(accounts){
 
         return capacityInstance.testEcrecover.call('0x'+attestationHexBytes, v, r, s).then(function(data){
             let version = v == 27 ? "1b" : "1c"
-            attestationBytes = '0x' + attestationHexBytes + version + r.split('x')[1] + s.split('x')[1]; 
+            attestationBytes1 = '0x' + attestationHexBytes + version + r.split('x')[1] + s.split('x')[1]; 
+            assert.equal(data, address, "EC recover should return same address");
+        });
+    })
+
+    it("generate attestation bytes2", async function () {
+        address = web3.utils.toChecksumAddress(accounts[10]);
+        var attestationHexBytes = '2111111122223333333344444444555555556666666666666666666666666666666666666666666666666666666666666666'
+        var msg = Buffer.from(attestationHexBytes, 'hex');      
+        
+        var h = web3.utils.keccak256(msg);
+        let data = await web3.eth.sign(h, address);
+        var r = `0x${data.slice(2, 66)}`
+        var s = `0x${data.slice(66, 130)}`
+        var v = data.slice(130, 132) == "00" ? 27 : 28;
+
+        return capacityInstance.testEcrecover.call('0x'+attestationHexBytes, v, r, s).then(function(data){
+            let version = v == 27 ? "1b" : "1c"
+            attestationBytes2 = '0x' + attestationHexBytes + version + r.split('x')[1] + s.split('x')[1]; 
             assert.equal(data, address, "EC recover should return same address");
         });
     })
@@ -84,7 +103,7 @@ contract('Capacity', function(accounts){
             return;
         })
         .then(function(){
-            return capacityInstance.reportOverlappingProducerStakes(attestationBytes, attestationBytes, accounts[12]);
+            return capacityInstance.reportOverlappingProducerStakes(attestationBytes1, attestationBytes2, accounts[12]);
         })
         .then(function(){
             return capacityInstance.withdrawAll({from: accounts[12]});
