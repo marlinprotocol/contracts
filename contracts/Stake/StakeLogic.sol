@@ -3,9 +3,10 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "../Token/TokenLogic.sol";
-import "../vendor/utils/SafeMath.sol";
+import "./SafeMath.sol";
 
-contract StakeLogic  is Initializable{
+
+contract StakeLogic is Initializable {
     using Safemath for uint256;
     TokenLogic public token;
 
@@ -21,6 +22,7 @@ contract StakeLogic  is Initializable{
     function initialize(address _token) public initializer {
         token = TokenLogic(_token);
     }
+
     function deposit(uint256 _amount) public returns (uint256) {
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient balance");
         require(
@@ -46,17 +48,18 @@ contract StakeLogic  is Initializable{
         return _amount;
     }
 
-    function withdrawAll() public returns (uint256){
+    function withdrawAll() public returns (uint256) {
         require(
             unlockedBalances[msg.sender] > 0,
             "Amount greater than the unlocked amount"
         );
-        uint256 amount  = unlockedBalances[msg.sender];
+        uint256 amount = unlockedBalances[msg.sender];
         unlockedBalances[msg.sender] = 0;
         token.transfer(msg.sender, amount);
         emit Withdraw(msg.sender, amount, true);
         return amount;
     }
+
     function lockBalance(uint256 _amount) private returns (bool) {
         require(
             _amount <= unlockedBalances[msg.sender],
@@ -69,16 +72,16 @@ contract StakeLogic  is Initializable{
         emit Lock(msg.sender, _amount);
         return true;
     }
-    
+
     function unlockBalance(uint256 _amount) private returns (bool) {
         require(
             _amount <= unlockedBalances[msg.sender],
             "Amount greater than the unlocked amount"
         );
-        lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
+        lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(_amount);
+        unlockedBalances[msg.sender] = unlockedBalances[msg.sender].add(
             _amount
         );
-        unlockedBalances[msg.sender] = unlockedBalances[msg.sender].add(_amount);
         emit Unlock(msg.sender, _amount);
         return true;
     }
@@ -89,14 +92,20 @@ contract StakeLogic  is Initializable{
         uint256 _amountToBeSlashed,
         uint256 _percentTransfer
     ) internal returns (bool) {
-        require(lockedBalances[_duplicateStakeAddress] >= _amountToBeSlashed,
+        require(
+            lockedBalances[_duplicateStakeAddress] >= _amountToBeSlashed,
             "Amount to be slashed must be less than available balance"
         );
         // lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].add(_amountToBeSlashed);
-        lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress].sub(_amountToBeSlashed);
+        lockedBalances[_duplicateStakeAddress] = lockedBalances[_duplicateStakeAddress]
+            .sub(_amountToBeSlashed);
         unlockedBalances[_submitterWithdrawAddress] = (
-            unlockedBalances[_submitterWithdrawAddress].add(_amountToBeSlashed.mul(_percentTransfer).div(100))
+            unlockedBalances[_submitterWithdrawAddress].add(
+                _amountToBeSlashed.mul(_percentTransfer).div(100)
+            )
         );
         return true;
     }
+
+    uint256[50] private ______gap;
 }

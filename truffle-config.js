@@ -85,8 +85,8 @@ module.exports = {
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
       gas: 4700000,
-      gasPrice: 10000000000,
-      confirmations: 2,
+      gasPrice: 20000000000,
+      confirmations: 1,
       timeoutBlocks: 2000,
       provider: () => new PrivateKeyProvider(privateKey, "http://68.183.87.16:8545")
     }
@@ -94,7 +94,7 @@ module.exports = {
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
-    // timeout: 100000
+    enableTimeouts: false
   },
 
   // Configure your compilers

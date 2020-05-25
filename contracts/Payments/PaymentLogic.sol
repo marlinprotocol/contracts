@@ -3,8 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import "../Stake/StakeLogic.sol";
 
-contract PaymentLogic is Initializable, StakeLogic {
 
+contract PaymentLogic is Initializable, StakeLogic {
     struct Witness {
         address relayer; // peer.publicKey (in DATA.md)
         uint256 relayerFraction; // relayerFraction (in DATA.md)
@@ -33,10 +33,10 @@ contract PaymentLogic is Initializable, StakeLogic {
 
     event UnlockRequestSealed(bytes32 id, bool changed);
 
-    function initialize(address _token) public initializer{
+    function initialize(address _token) public initializer {
         StakeLogic.initialize(_token);
     }
-    
+
     function unlock(uint256 _amount) public returns (bytes32) {
         require(
             lockedBalances[msg.sender] >= _amount,
@@ -117,7 +117,7 @@ contract PaymentLogic is Initializable, StakeLogic {
 
         emit PayWitness(msg.sender, _amount, true);
         return true;
-
     }
 
+    uint256[50] private ______gap;
 }

@@ -1,5 +1,6 @@
 pragma solidity >=0.4.21 <0.7.0;
 
+
 contract Logic {
     uint256 public x;
     bool private initialized;
@@ -10,11 +11,11 @@ contract Logic {
         x = _x;
     }
 
-    function get() public view returns(uint256){
+    function get() public view returns (uint256) {
         return x;
     }
 
-    function clash() public pure returns (string memory){
+    function clash() public pure returns (string memory) {
         return "Logic";
     }
 }
