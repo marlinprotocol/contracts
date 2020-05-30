@@ -309,46 +309,46 @@
 			"id": 0
 		},
 		"Stake/StakeLogic.sol": {
-			"id": 3
+			"id": 6
 		},
 		"Token/TokenLogic.sol": {
-			"id": 8
-		},
-		"@openzeppelin/upgrades/contracts/Initializable.sol": {
-			"id": 19
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol": {
-			"id": 14
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol": {
-			"id": 10
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol": {
-			"id": 18
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol": {
-			"id": 13
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Detailed.sol": {
-			"id": 16
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Mintable.sol": {
-			"id": 17
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/access/roles/MinterRole.sol": {
-			"id": 12
-		},
-		"@openzeppelin/contracts-ethereum-package/contracts/access/Roles.sol": {
 			"id": 11
 		},
-		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Burnable.sol": {
+		"@openzeppelin/upgrades/contracts/Initializable.sol": {
+			"id": 22
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol": {
+			"id": 17
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol": {
+			"id": 13
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol": {
+			"id": 21
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol": {
+			"id": 16
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Detailed.sol": {
+			"id": 19
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Mintable.sol": {
+			"id": 20
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/access/roles/MinterRole.sol": {
 			"id": 15
 		},
+		"@openzeppelin/contracts-ethereum-package/contracts/access/Roles.sol": {
+			"id": 14
+		},
+		"@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Burnable.sol": {
+			"id": 18
+		},
 		"Stake/Safemath.sol": {
-			"id": 2
+			"id": 5
 		},
 		"solidity-bytes-utils/contracts/BytesLib.sol": {
-			"id": 20
+			"id": 23
 		}
 	},
 	"sourceCodes": {

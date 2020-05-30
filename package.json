@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "truffle test",
-    "solhint": "solhint -f table contracts/**/*.sol"
+    "solhint": "solhint -f table contracts/**/*.sol",
+    "solc": "node compile"
   },
   "repository": {
     "type": "git",
