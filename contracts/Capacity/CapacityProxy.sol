@@ -16,14 +16,12 @@ contract CapacityProxy {
     constructor(address contractLogic) public {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
-        // solhint-disable-next-line
         assembly {
             sstore(slot, contractLogic)
         }
         // save the proxy admin
         slot = PROXY_ADMIN_SLOT;
         address sender = msg.sender;
-        // solhint-disable-next-line
         assembly {
             sstore(slot, sender)
         }
@@ -56,7 +54,6 @@ contract CapacityProxy {
     /// @dev add functionality to forward the balance as well.
     function() external payable {
         bytes32 slot = IMPLEMENTATION_SLOT;
-        // solhint-disable-next-line
         assembly {
             let contractLogic := sload(slot)
             calldatacopy(0x0, 0x0, calldatasize())

@@ -43,14 +43,14 @@ contract PaymentLogic is Initializable, StakeLogic {
             "Amount exceeds lockedBalance"
         );
         bytes32 hash = keccak256(
-            // solhint-disable-next-line
+            // solhint-disable-next-line not-rely-on-time
             abi.encode(msg.sender, block.timestamp, _amount)
         );
         unlockRequests[hash].sender = msg.sender;
-        // solhint-disable-next-line
+        // solhint-disable-next-line not-rely-on-time
         unlockRequests[hash].timestamp = block.timestamp;
         unlockRequests[hash].amount = unlockRequests[hash].amount.add(_amount);
-        // solhint-disable-next-line
+        // solhint-disable-next-line not-rely-on-time
         emit UnlockRequested(hash, msg.sender, block.timestamp, _amount);
         return hash;
     }
@@ -60,7 +60,7 @@ contract PaymentLogic is Initializable, StakeLogic {
             unlockRequests[_id].sender == msg.sender,
             "You cannot seal this request"
         );
-        // solhint-disable-next-line
+        // solhint-disable-next-line not-rely-on-time
         if (unlockRequests[_id].timestamp + 86400 > block.timestamp) {
             emit UnlockRequestSealed(_id, false);
             return false;
