@@ -12,13 +12,13 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 contract CapacityLogic is Initializable, StakeLogic {
     using BytesLib for bytes;
     // To be decided by the team
-    // solhint-disable-next-line
+    // solhint-disable-next-line var-name-mixedcase
     uint32 public PRODUCER_STAKE_LOCKTIME;
     // To be decided by the team
-    // solhint-disable-next-line
+    // solhint-disable-next-line var-name-mixedcase
     uint256 public STAKE_PER_BYTE;
     // To be decided by the team
-    // solhint-disable-next-line
+    // solhint-disable-next-line var-name-mixedcase
     uint256 public STAKE_TRANSFER_PERCENT;
 
     struct Attestation {
