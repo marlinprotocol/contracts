@@ -9,7 +9,7 @@
   "scripts": {
     "test": "truffle test",
     "solhint": "solhint -f table contracts/**/*.sol",
-    "solc": "node compile"
+    "compile": "sol-compiler"
   },
   "repository": {
     "type": "git",
