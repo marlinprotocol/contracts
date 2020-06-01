@@ -1,5 +1,8 @@
-var Token = artifacts.require("./Token.sol");
-var Payment = artifacts.require("./Payment.sol");
+var TokenProxy = artifacts.require("TokenProxy.sol");
+var TokenLogic = artifacts.require("TokenLogic.sol");
+
+var PaymentLogic = artifacts.require("PaymentLogic.sol");
+var PaymentProxy = artifacts.require("PaymentProxy.sol");
 
 contract("Payment", function (accounts) {
     var paymentInstance;
@@ -7,22 +10,38 @@ contract("Payment", function (accounts) {
     var paymentAddress;
     var tokenAddress;
 
-    it("initializes contract it correct token address", function () {
-        return Token.deployed().then(function (instance) {
+    it("deploy token contract", function(){
+        return TokenProxy.deployed({from : accounts[1]}).then(function (instance) {
+            return instance;
+        }).then(function(instance){
+            return TokenLogic.at(instance.address);
+        }).then(function(instance){
             tokenInstance = instance;
-            return Payment.deployed();
-        }).then(function (instance) {
+            tokenAddress = instance.address;
+            return;
+        })
+    })
+
+    it("deploy payment contract", function(){
+        return PaymentProxy.deployed({from : accounts[1]}).then(function (instance) {
+            return instance;
+        }).then(function(instance){
+            return PaymentLogic.at(instance.address);
+        }).then(function(instance){
             paymentInstance = instance;
-            return paymentInstance.address;
-        }).then(function (address) {
-            assert.notEqual(address, 0x0, "Incorrect address");
-            paymentAddress = address;
-            return paymentInstance.token();
-        }).then(function (token) {
-            assert.notEqual(token, 0x0, "wrong address");
-            tokenAddress = token;
-        });
-    });
+            paymentAddress = instance.address;
+            return;
+        })
+    })
+
+    it("initialise both the contracts", function(){
+        return tokenInstance.initialize("Marlin Protocol", "LIN", 18).then(function(){
+            return;
+        })
+        .then(function(){
+            return paymentInstance.initialize(tokenAddress);
+        })
+    })
 
     it("Adding Escrow by user", function () {
         return tokenInstance.isMinter(accounts[0]).then(function (isMinter) {
@@ -139,8 +158,4 @@ contract("Payment", function (accounts) {
         })
     })
 
-}); 
-
-// [[0x9D0910aBF81EE30195d9d96a43AfaeF3CD8c2c99, 5, 0x0011], 0x1111], 1000   
-// 
-// [{[{0x9D0910aBF81EE30195d9d96a43AfaeF3CD8c2c99, 5, 0x0011}], 0x1111}], 1000
+})

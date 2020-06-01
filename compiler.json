@@ -2,11 +2,9 @@
     "contractsDir": "contracts",
     "artifactsDir": "artifacts",
     "contracts": "*",
+    "solcVersion":"0.5.0",
     "compilerSettings": {
-        "optimizer": {
-            "enabled": true,
-            "runs": 1000000
-        },
+        "optimizer": { "enabled": false },
         "outputSelection": {
             "*": {
                 "*": ["abi"]

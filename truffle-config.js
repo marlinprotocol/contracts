@@ -85,22 +85,22 @@ module.exports = {
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
       gas: 4700000,
-      gasPrice: 10000000000,
-      confirmations: 10,
-      timeoutBlocks: 200,
+      gasPrice: 20000000000,
+      confirmations: 1,
+      timeoutBlocks: 2000,
       provider: () => new PrivateKeyProvider(privateKey, "http://68.183.87.16:8545")
     }
   },
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
-    // timeout: 100000
+    enableTimeouts: false
   },
 
   // Configure your compilers
   compilers: {
     solc: {
-      version: "0.6.1",    // Fetch exact version from solc-bin (default: truffle's version)
+      version: "0.5.0",    // Fetch exact version from solc-bin (default: truffle's version)
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       settings: {          // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
