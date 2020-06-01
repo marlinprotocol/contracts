@@ -7,7 +7,7 @@
         "optimizer": { "enabled": false },
         "outputSelection": {
             "*": {
-                "*": ["abi", "evm.bytecode.object"]
+                "*": ["abi"]
             }
         }
     }
