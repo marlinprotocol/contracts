@@ -134,16 +134,16 @@ contract("Payment", function (accounts) {
     it("Testing payForWitness", function(){
         return paymentInstance.lockedBalances(accounts[0]).then(function(amount){
             assert.equal(amount, 100, "Wrong Locked Balance");
-            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x1111"], 1000);
+            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 1000);
         }).catch(function(err){
             console.log("Error because amount > locked balance (Checking require Statament)");
-            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x1111"], 10); // random signatures
+            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 10); // random signatures
         }).then(function(res){
             assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
             assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
             assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
             assert.equal(res.logs[0].args.paid, false, "Not Withdrawn");
-            return paymentInstance.payForWitness([[[accounts[9], 5, "0x0011"]], "0x00111"], 10); // random signatures
+            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x00111"], 10); // random signatures
         }).then(function(res){
             assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
             assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");

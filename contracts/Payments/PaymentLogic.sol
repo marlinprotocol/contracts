@@ -12,7 +12,7 @@ contract PaymentLogic is Initializable, StakeLogic {
     }
 
     struct SignedWitness {
-        Witness[] witnessList;
+        Witness witness;
         bytes signature;
     }
 
@@ -104,16 +104,14 @@ contract PaymentLogic is Initializable, StakeLogic {
             return false;
         }
 
-        for (uint256 i = 0; i < _signedWitness.witnessList.length; i++) {
-            lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
-                _signedWitness.witnessList[i].relayerFraction * _amount
-            );
+        lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
+            _signedWitness.witness.relayerFraction * _amount
+        );
 
-            unlockedBalances[_signedWitness.witnessList[i]
-                .relayer] = unlockedBalances[_signedWitness.witnessList[i]
+        unlockedBalances[_signedWitness.witness
+                .relayer] = unlockedBalances[_signedWitness.witness
                 .relayer]
-                .add(_signedWitness.witnessList[i].relayerFraction * _amount);
-        }
+                .add(_signedWitness.witness.relayerFraction * _amount);
 
         emit PayWitness(msg.sender, _amount, true);
         return true;
