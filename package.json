@@ -9,7 +9,8 @@
   "scripts": {
     "test": "truffle test",
     "solhint": "solhint -f table contracts/**/*.sol",
-    "compile": "sol-compiler"
+    "compile": "sol-compiler",
+    "prettify": "npx prettier --write contracts/**/*.sol"
   },
   "repository": {
     "type": "git",

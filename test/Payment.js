@@ -132,30 +132,57 @@ contract("Payment", function (accounts) {
     })
 
     it("Testing payForWitness", function(){
-        return paymentInstance.lockedBalances(accounts[0]).then(function(amount){
+        return paymentInstance.lockedBalances(accounts[0]).then(async function(amount){
             assert.equal(amount, 100, "Wrong Locked Balance");
-            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 1000);
-        }).catch(function(err){
-            console.log("Error because amount > locked balance (Checking require Statament)");
-            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 10); // random signatures
-        }).then(function(res){
-            assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
-            assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
-            assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
-            assert.equal(res.logs[0].args.paid, false, "Not Withdrawn");
-            return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x00111"], 10); // random signatures
-        }).then(function(res){
-            assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
-            assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
-            assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
-            assert.equal(res.logs[0].args.paid, true, "Not Withdrawn");
-            return paymentInstance.lockedBalances(accounts[0])
-        }).then(function(amount){
-            assert.equal(amount, 50, "Wrong Locked Balance");
-            return paymentInstance.unlockedBalances(accounts[9])
-        }).then(function(amount){
-            assert.equal(amount, 50, "Wrong Locked Balance");
+            let address = web3.utils.toChecksumAddress(accounts[10]);
+            var witnessBytes = accounts[9].split('x')[1]+"aaaabbbbccccdddd"+"0000000000000001"+"9999888877776666"
+            var msg = Buffer.from(witnessBytes, 'hex');
+
+            var h = web3.utils.keccak256(msg);
+            let data = await web3.eth.sign(h, address);
+            var r = `0x${data.slice(2, 66)}`
+            var s = `0x${data.slice(66, 130)}`
+            var v = data.slice(130, 132) == "00" ? 27 : 28;
+            let version = v == 27 ? "1b" : "1c"
+            let witnessBytes_receiverSig = witnessBytes + version + r.split('x')[1] + s.split('x')[1];
+            
+            let relayerAddress = accounts[9];
+            var witnessBytes_relayer = witnessBytes_receiverSig;
+            var msg_relayer = Buffer.from(witnessBytes_relayer, 'hex');
+            
+            var h_relayer = web3.utils.keccak256(msg_relayer);
+            let data_relayer = await web3.eth.sign(h_relayer, relayerAddress);
+            var r_relayer = `0x${data_relayer.slice(2, 66)}`
+            var s_relayer = `0x${data_relayer.slice(66, 130)}`
+            var v_relayer = data_relayer.slice(130, 132) == "00" ? 27 : 28;
+            let version_relayer = v_relayer == 27 ? "1b" : "1c"
+            let witnessBytes_receiverSig_relayerSig = witnessBytes_receiverSig + version_relayer + r_relayer.split('x')[1] + s_relayer.split('x')[1];
+            return paymentInstance.payForWitness2.call('0x'+witnessBytes_receiverSig_relayerSig).then(function(data){
+                console.log(data);
+            })
+            // return paymentInstance.payForWitness2([[accounts[9], 5, "0x0011"], "0x1111"], 1000);
         })
+        // .catch(function(err){
+        //     console.log("Error because amount > locked balance (Checking require Statament)");
+        //     return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 10); // random signatures
+        // }).then(function(res){
+        //     assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
+        //     assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
+        //     assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
+        //     assert.equal(res.logs[0].args.paid, false, "Not Withdrawn");
+        //     return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x00111"], 10); // random signatures
+        // }).then(function(res){
+        //     assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
+        //     assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
+        //     assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
+        //     assert.equal(res.logs[0].args.paid, true, "Not Withdrawn");
+        //     return paymentInstance.lockedBalances(accounts[0])
+        // }).then(function(amount){
+        //     assert.equal(amount, 50, "Wrong Locked Balance");
+        //     return paymentInstance.unlockedBalances(accounts[9])
+        // }).then(function(amount){
+        //     assert.equal(amount, 50, "Wrong Locked Balance");
+        // })
     })
 
 })
