@@ -157,32 +157,11 @@ contract("Payment", function (accounts) {
             var v_relayer = data_relayer.slice(130, 132) == "00" ? 27 : 28;
             let version_relayer = v_relayer == 27 ? "1b" : "1c"
             let witnessBytes_receiverSig_relayerSig = witnessBytes_receiverSig + version_relayer + r_relayer.split('x')[1] + s_relayer.split('x')[1];
-            return paymentInstance.payForWitness2.call('0x'+witnessBytes_receiverSig_relayerSig).then(function(data){
-                console.log(data);
+            return paymentInstance.payForWitness.call('0x'+witnessBytes_receiverSig_relayerSig).then(function(data){
+                assert.equal(data, true, "Should be a valid payForWitness");
             })
-            // return paymentInstance.payForWitness2([[accounts[9], 5, "0x0011"], "0x1111"], 1000);
         })
-        // .catch(function(err){
-        //     console.log("Error because amount > locked balance (Checking require Statament)");
-        //     return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x1111"], 10); // random signatures
-        // }).then(function(res){
-        //     assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
-        //     assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
-        //     assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
-        //     assert.equal(res.logs[0].args.paid, false, "Not Withdrawn");
-        //     return paymentInstance.payForWitness([[accounts[9], 5, "0x0011"], "0x00111"], 10); // random signatures
-        // }).then(function(res){
-        //     assert.equal(res.logs[0].event, "PayWitness", "Wrong event");
-        //     assert.equal(res.logs[0].args.sender, accounts[0], "Wrong caller");
-        //     assert.equal(res.logs[0].args.amount, 10, "Incorrect amount");
-        //     assert.equal(res.logs[0].args.paid, true, "Not Withdrawn");
-        //     return paymentInstance.lockedBalances(accounts[0])
-        // }).then(function(amount){
-        //     assert.equal(amount, 50, "Wrong Locked Balance");
-        //     return paymentInstance.unlockedBalances(accounts[9])
-        // }).then(function(amount){
-        //     assert.equal(amount, 50, "Wrong Locked Balance");
-        // })
+        
     })
 
 })

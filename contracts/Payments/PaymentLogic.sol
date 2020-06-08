@@ -86,41 +86,7 @@ contract PaymentLogic is Initializable, StakeLogic {
 
     event PayWitness(address sender, uint256 amount, bool paid);
 
-    function isWinning(bytes32 data) public pure returns (bool) {
-        if (bytes1(data[0]) != bytes1(0)) {
-            return (true);
-        }
-        return (false);
-    }
-
-    // function payForWitness(SignedWitness memory _signedWitness, uint256 _amount)
-    //     public
-    //     returns (bool)
-    // {
-    //     require(
-    //         lockedBalances[msg.sender] >= _amount,
-    //         "User doesn't have enough locked balance"
-    //     );
-
-    //     if (isWinning(_signedWitness.signature) == false) {
-    //         emit PayWitness(msg.sender, _amount, false);
-    //         return false;
-    //     }
-
-    //     lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
-    //         _signedWitness.witness.relayerFraction * _amount
-    //     );
-
-    //     unlockedBalances[_signedWitness.witness
-    //             .relayer] = unlockedBalances[_signedWitness.witness
-    //             .relayer]
-    //             .add(_signedWitness.witness.relayerFraction * _amount);
-
-    //     emit PayWitness(msg.sender, _amount, true);
-    //     return true;
-    // }
-
-    function payForWitness2(bytes calldata _witnessData)
+    function payForWitness(bytes calldata _witnessData)
         external
         returns (bool)
     {
@@ -141,16 +107,19 @@ contract PaymentLogic is Initializable, StakeLogic {
 
         require(receiver != address(0), "Receiver address should be valid");
         require(relayer != address(0), "Relayer address should be valid");
+        require(
+            witness.relayer != address(0),
+            "Witness should be non-zero address"
+        );
+        require(
+            witness.relayer == relayer,
+            "Relayer address should match witness"
+        );
 
         require(
             lockedBalances[msg.sender] >= witness.relayerFee,
             "User doesn't have enough locked balance"
         );
-
-        if (isWinning(witness.receiverSignature.r) == false) {
-            emit PayWitness(msg.sender, witness.relayerFee, false);
-            return false;
-        }
 
         lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
             witness.relayerFee
