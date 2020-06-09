@@ -92,17 +92,18 @@ contract PaymentLogic is Initializable, StakeLogic {
     {
         Witness memory witness = getWitness(_witnessData);
 
-        address receiver = ecrecover(
-            witness.receiverSignature.hash,
-            witness.receiverSignature.v,
-            witness.receiverSignature.r,
-            witness.receiverSignature.s
-        );
         address relayer = ecrecover(
             witness.relayerSignature.hash,
             witness.relayerSignature.v,
             witness.relayerSignature.r,
             witness.relayerSignature.s
+        );
+
+        address receiver = ecrecover(
+            witness.receiverSignature.hash,
+            witness.receiverSignature.v,
+            witness.receiverSignature.r,
+            witness.receiverSignature.s
         );
 
         require(receiver != address(0), "Receiver address should be valid");
@@ -117,11 +118,11 @@ contract PaymentLogic is Initializable, StakeLogic {
         );
 
         require(
-            lockedBalances[msg.sender] >= witness.relayerFee,
+            lockedBalances[receiver] >= witness.relayerFee,
             "User doesn't have enough locked balance"
         );
 
-        lockedBalances[msg.sender] = lockedBalances[msg.sender].sub(
+        lockedBalances[receiver] = lockedBalances[receiver].sub(
             witness.relayerFee
         );
 
@@ -133,7 +134,7 @@ contract PaymentLogic is Initializable, StakeLogic {
     }
 
     function getWitness(bytes memory _witnessData)
-        public
+        public pure
         returns (Witness memory witness)
     {
         address relayerAddress = _witnessData.slice(0, 20).toAddress(0);
@@ -148,7 +149,7 @@ contract PaymentLogic is Initializable, StakeLogic {
             _witnessData.slice(0, 174),
             109
         );
-        Witness memory witness = Witness(
+        witness = Witness(
             relayerAddress,
             nonce,
             relayerFee,
@@ -156,7 +157,6 @@ contract PaymentLogic is Initializable, StakeLogic {
             receiver,
             relayer
         );
-        return witness;
     }
 
     function getSignature(bytes memory _data, uint256 dataLength)
