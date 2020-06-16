@@ -318,33 +318,50 @@ contract("Payment", function (accounts) {
           r.replace("0x", "") +
           s.replace("0x", "");
 
-        var witnessBytes_relayer = witnessBytes_receiverSig;
-        var msg_relayer = Buffer.from(witnessBytes_relayer, "hex");
-
-        var h_relayer = web3.utils.keccak256(msg_relayer);
-        var data_relayer = await web3.eth.accounts.sign(h_relayer, privKeys[0]);
-        let witnessBytes_receiverSig_relayerSig =
-          witnessBytes_receiverSig +
-          data_relayer.v.replace("0x", "") +
-          data_relayer.r.replace("0x", "") +
-          data_relayer.s.replace("0x", "");
+        // uncomment to print the generate test vector
+        // console.log(witnessBytes_receiverSig)
         return paymentInstance.payForWitness
-          .call("0x" + witnessBytes_receiverSig_relayerSig)
+          .call("0x" + witnessBytes_receiverSig)
           .then(function (data) {
-            console.log(witnessBytes_receiverSig_relayerSig);
+            console.log(data);
             assert(data, "true", "Payments to witness should be successful");
           });
       });
   });
 
   it("PayForWitness Test vector", function () {
+    var balanceBeforePayment;
+    var balanceAfterPayment;
     var witnessBytes =
       "0x" +
-      "a8c276cf935d9ade207ba69ba262a56b5f2a9174aaaabbbbccccdddd000000000000001199998888777766661becfc1aa42c3d1105ad40eb82c62d02fd6f39f0e9287a745c6df15137728b3c940d00b1b60bfab7a5838c8fc5aba1bdca70c5b56c4e3547ca1e57f59f33fb474c1b45c6031c5c476431d1ec00d9db65600121d8e035925e4ada3e19bea74fa1c49d30716b9e5b1fc04199f117fb6c82d8a6262d405ff787d8dabac13fc7796aa14f";
-    return paymentInstance.payForWitness
-      .call(witnessBytes)
+      "a8c276cf935d9ade207ba69ba262a56b5f2a9174aaaabbbbccccdddd000000000000001199998888777766661becfc1aa42c3d1105ad40eb82c62d02fd6f39f0e9287a745c6df15137728b3c940d00b1b60bfab7a5838c8fc5aba1bdca70c5b56c4e3547ca1e57f59f33fb474c";
+    return paymentInstance.unlockedBalances
+      .call(offlineAddresses[0])
       .then(function (data) {
-        assert(data, "true", "Payments to witness should be successful");
+        balanceBeforePayment = data;
+        return;
+      })
+      .then(function () {
+        return paymentInstance.payForWitness.call(witnessBytes);
+      })
+      .then(function (data) {
+        assert.equal(data, true, "Payment should be possible (check via call)");
+        return;
+      })
+      .then(function () {
+        return paymentInstance.payForWitness(witnessBytes);
+      })
+      .then(function () {
+        return paymentInstance.unlockedBalances.call(offlineAddresses[0]);
+      })
+      .then(function (data) {
+        balanceAfterPayment = data;
+        console.log(balanceBeforePayment, balanceAfterPayment);
+        assert.equal(
+          balanceAfterPayment > balanceBeforePayment,
+          true,
+          "Balance should be more"
+        );
       });
   });
 });

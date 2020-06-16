@@ -13,7 +13,6 @@ contract PaymentLogic is Initializable, StakeLogic {
         uint64 relayerFee;
         uint64 timestamp;
         Signature receiverSignature;
-        Signature relayerSignature;
     }
 
     struct Signature {
@@ -92,13 +91,6 @@ contract PaymentLogic is Initializable, StakeLogic {
     {
         Witness memory witness = getWitness(_witnessData);
 
-        address relayer = ecrecover(
-            witness.relayerSignature.hash,
-            witness.relayerSignature.v,
-            witness.relayerSignature.r,
-            witness.relayerSignature.s
-        );
-
         address receiver = ecrecover(
             witness.receiverSignature.hash,
             witness.receiverSignature.v,
@@ -107,14 +99,9 @@ contract PaymentLogic is Initializable, StakeLogic {
         );
 
         require(receiver != address(0), "Receiver address should be valid");
-        require(relayer != address(0), "Relayer address should be valid");
         require(
             witness.relayer != address(0),
             "Witness should be non-zero address"
-        );
-        require(
-            witness.relayer == relayer,
-            "Relayer address should match witness"
         );
 
         require(
@@ -134,7 +121,8 @@ contract PaymentLogic is Initializable, StakeLogic {
     }
 
     function getWitness(bytes memory _witnessData)
-        public pure
+        public
+        pure
         returns (Witness memory witness)
     {
         address relayerAddress = _witnessData.slice(0, 20).toAddress(0);
@@ -145,17 +133,13 @@ contract PaymentLogic is Initializable, StakeLogic {
             _witnessData.slice(0, 109),
             44
         );
-        Signature memory relayer = getSignature(
-            _witnessData.slice(0, 174),
-            109
-        );
+
         witness = Witness(
             relayerAddress,
             nonce,
             relayerFee,
             timestamp,
-            receiver,
-            relayer
+            receiver
         );
     }
 
@@ -175,6 +159,10 @@ contract PaymentLogic is Initializable, StakeLogic {
         bytes32 _s1 = _data.slice(dataLength + 33, 32).toBytes32(0);
         Signature memory sig = Signature(_hash1, _v1, _r1, _s1);
         return sig;
+    }
+
+    function destroy() public {
+        selfdestruct(msg.sender);
     }
 
     uint256[50] private ______gap;
