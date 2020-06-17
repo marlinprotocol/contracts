@@ -58,7 +58,7 @@ contract CapacityProxy {
             let contractLogic := sload(slot)
             calldatacopy(0x0, 0x0, calldatasize())
             let success := delegatecall(
-                sub(gas(), 3200),
+                gas(),
                 contractLogic,
                 0x0,
                 calldatasize(),
