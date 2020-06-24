@@ -121,7 +121,7 @@ contract PaymentLogic is Initializable, StakeLogic {
     }
 
     function getWitness(bytes memory _witnessData)
-        public
+        internal
         pure
         returns (Witness memory witness)
     {
