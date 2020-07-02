@@ -41,6 +41,13 @@ contract CapacityLogic is Initializable, StakeLogic {
         uint32 stakeOffset;
     }
 
+    event ReportStake(
+        address indexed reportedAddress,
+        address indexed submitterWithdrawAddress,
+        uint256 amount,
+        uint256 stakeTransferPercent
+    );
+
     function initialize(address _token) public initializer {
         StakeLogic.initialize(_token);
         PRODUCER_STAKE_LOCKTIME = 10 minutes;
@@ -122,6 +129,12 @@ contract CapacityLogic is Initializable, StakeLogic {
             min(attestation1EndStake, attestation2EndStake)
         ) {
             slashStake(
+                add1,
+                _submitterWithdrawAddress,
+                amountToBeSlashed,
+                STAKE_TRANSFER_PERCENT
+            );
+            emit ReportStake(
                 add1,
                 _submitterWithdrawAddress,
                 amountToBeSlashed,

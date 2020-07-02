@@ -4,6 +4,7 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "../Token/TokenLogic.sol";
 
+
 contract StakeLogic is Initializable {
     using SafeMath for uint256;
     TokenLogic public token;
