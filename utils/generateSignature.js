@@ -23,13 +23,14 @@
 // // var s = "779cebcd2e7f46025c4669169f937627dcbd74b980f67709479d15d5c918ed5b" // bytes32
 // // var v = 27; //uint8 //1b hex
 
-var Web3 = require('web3');
-var web3 = new Web3(Web3.givenProvider || 'http://127.0.0.1:8545');
-
+var Web3 = require("web3");
+var web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
 // var msg = new Buffer('1111111122223333333344444444555555556666666666666666666666666666666666666666666666666666666666666666', 'hex').toString();
-var msg = Buffer.from('1111111122223333333344444444555555556666666666666666666666666666666666666666666666666666666666666666', 'hex');
-
+var msg = Buffer.from(
+  "1111111122223333333344444444555555556666666666666666666666666666666666666666666666666666666666666666",
+  "hex"
+);
 
 // web3.eth.getAccounts(function(err, accounts){
 //     if(!err){
@@ -47,18 +48,18 @@ var msg = Buffer.from('111111112222333333334444444455555555666666666666666666666
 //         });
 //     }
 // })
-async function test(){
-    let address = await web3.eth.getAccounts();
-    address = web3.utils.toChecksumAddress(address[0]);
+async function test() {
+  let address = await web3.eth.getAccounts();
+  address = web3.utils.toChecksumAddress(address[0]);
 
-    var h = web3.utils.keccak256(msg);
+  var h = web3.utils.keccak256(msg);
 
-    let data = await web3.eth.sign(h, address);
-    console.log("address", address)
-    var r = `0x${data.slice(2, 66)}`
-    var s = `0x${data.slice(66, 130)}`
-    var v = data.slice(130, 132) == "00" ? 27 : 28;
-    console.log({h,v,r,s})
+  let data = await web3.eth.sign(h, address);
+  console.log("address", address);
+  var r = `0x${data.slice(2, 66)}`;
+  var s = `0x${data.slice(66, 130)}`;
+  var v = data.slice(130, 132) == "00" ? 27 : 28;
+  console.log({h, v, r, s});
 }
 test();
 // setTimeout(function(){

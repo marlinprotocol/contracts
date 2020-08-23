@@ -3,7 +3,8 @@ var TokenLogic = artifacts.require("TokenLogic.sol");
 
 var tokenProxy;
 var tokenLogic;
-contract("Marlin Token", function (accounts) {
+
+contract.skip("Marlin Token", function (accounts) {
   var tokenInstance;
 
   it("deploy and initialise the contracts", function () {

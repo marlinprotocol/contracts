@@ -11,7 +11,7 @@ COPY package.json /home/app/package.json
 COPY package-lock.json /home/app/package-lock.json
 
 RUN npm install
-RUN npm audit
+# RUN npm audit
 
 COPY . /home/app
 CMD [ "ganache-cli","-a","50"]

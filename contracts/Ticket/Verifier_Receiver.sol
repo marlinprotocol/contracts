@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: <SPDX-License>
+
+pragma solidity >=0.4.21 <0.7.0;
+
+import "../Actors/Receiver.sol";
+import "../Actors/Relayer.sol";
+import "../Fund/FundManager.sol";
+import "../Fund/Pot.sol";
+import "./LuckManager.sol";
+
+contract VerifierReceiver {
+
+    Receiver receiverManager = Receiver(address(0));
+    Relayer relayerManager = Relayer(address(0));
+    Pot pot = Pot(address(0));
+    LuckManager luckManager = LuckManager(address(0));
+    FundManager fundManager = FundManager(address(0));
+    bytes32 receiverRole = 0;
+
+    mapping(bytes32 => bool) claimedTickets;
+
+    //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
+    function verifyClaim(bytes memory _blockHeader, 
+                        bytes memory _receiverSig, 
+                        bytes memory _relayerSig,
+                        bool _isAggregated) 
+                        public {
+        bytes32 blockHash = keccak256(_blockHeader);
+        address receiver = recoverSigner(blockHash, _receiverSig);
+        require(receiverManager.isValidReceiver(receiver), "Verifier_Receiver: Invalid Receiver");
+        bytes memory relayerSigPayload = abi.encodePacked(_blockHeader, _receiverSig);
+        address relayer = recoverSigner(keccak256(relayerSigPayload), _relayerSig);
+        require(relayerManager.isValidRelayer(relayer), "Verifier_Receiver: Invalid Relayer");
+        bytes32 ticket = keccak256(abi.encodePacked(relayerSigPayload, _relayerSig));
+        require(!claimedTickets[ticket], "Verifier_Receiver: Ticket already claimed");
+        uint blockNumber = extractBlockNumber(_blockHeader);
+        uint epoch = pot.getEpoch(blockNumber);
+        bytes32 luckLimit = luckManager.getLuck(epoch, receiverRole);
+        require(uint(luckLimit) > uint(ticket), "Verifier_Receiver: Ticket not in winning range");
+        if(pot.getPotValue(epoch) == 0) {
+            uint[] memory epochs;
+            uint[] memory values;
+            uint[][] memory inflationLog = fundManager.draw(address(pot));
+            for(uint i=0; i < inflationLog[0].length-1; i++) {
+                for(uint j=inflationLog[0][i]; j < inflationLog[0][i+1]; j++) {
+                    epochs.push(j);
+                    values.push(inflationLog[1][i]);
+                }
+            }
+            require(pot.addToPot(epochs, address(fundManager), values), "Verifier_Receiver: Could not add to pot");
+        }
+        if(!_isAggregated) {
+            require(Pot.claimTicket([receiverRole], [receiver], [epoch]), 
+                    "Verifier_Receiver: Ticket claim failed");
+        }
+        claimedTickets[ticket] = true;
+        return (receiverRole, receiver, epoch);
+    }
+
+    function verifyClaims(bytes[] memory _blockHeaders, bytes[] memory _relayerSigs, bytes[] memory _producerSigs) public {
+        require(_blockHeaders.length == _relayerSigs.length && _relayerSigs.length == _producerSigs.length
+                , "Verifier_Receiver: Invalid Inputs");
+        bytes32[] memory roles;
+        address[] memory claimers;
+        uint[] memory epochs;
+        for(uint i=0; i < _blockHeaders.length; i++) {
+            (bytes32 role, address claimer, uint epoch) = verifyClaim(_blockHeaders[i], 
+                                                                        _relayerSigs[i], 
+                                                                        _producerSigs[i],
+                                                                        true);
+            epochs.push(epoch);
+            claimers.push(claimer);
+            roles.push(role);
+        }
+        require(Pot.claimTicket(roles, claimers, epochs), "Verifier_Receiver: Aggregate ticket claim failed");
+    }
+
+    function extractBlockNumber(bytes memory blockHeader) public returns(uint) {
+        // TODO: Implementation specific for blockchain
+    }
+
+    //todo: Modify below 2 functions slightly
+    function splitSignature(bytes memory sig)
+        internal
+        pure
+        returns (uint8 v, bytes32 r, bytes32 s)
+    {
+        require(sig.length == 65);
+
+        assembly {
+            // first 32 bytes, after the length prefix.
+            r := mload(add(sig, 32))
+            // second 32 bytes.
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes).
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        return (v, r, s);
+    }
+
+    function recoverSigner(bytes32 message, bytes memory sig)
+        internal
+        pure
+        returns (address)
+    {
+        (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
+
+        return ecrecover(message, v, r, s);
+    }
+}
