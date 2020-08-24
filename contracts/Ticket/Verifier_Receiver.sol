@@ -23,6 +23,7 @@ contract VerifierReceiver {
     function verifyClaim(bytes memory _blockHeader, 
                         bytes memory _receiverSig, 
                         bytes memory _relayerSig,
+                        address _cluster,
                         bool _isAggregated) 
                         public {
         bytes32 blockHash = keccak256(_blockHeader);
@@ -30,7 +31,10 @@ contract VerifierReceiver {
         require(receiverManager.isValidReceiver(receiver), "Verifier_Receiver: Invalid Receiver");
         bytes memory relayerSigPayload = abi.encodePacked(_blockHeader, _receiverSig);
         address relayer = recoverSigner(keccak256(relayerSigPayload), _relayerSig);
-        require(relayerManager.isValidRelayer(relayer), "Verifier_Receiver: Invalid Relayer");
+
+        require(clusterRegistry.getClusterStatus(_cluster) == 2, "Verifier_Receiver: Cluster isn't active");
+        require(Cluster(_cluster).isRelayer(relayer), "Verifier_Receiver: Relayer isn't part of cluster");
+
         bytes32 ticket = keccak256(abi.encodePacked(relayerSigPayload, _relayerSig));
         require(!claimedTickets[ticket], "Verifier_Receiver: Ticket already claimed");
         uint blockNumber = extractBlockNumber(_blockHeader);
@@ -57,8 +61,10 @@ contract VerifierReceiver {
         return (receiverRole, receiver, epoch);
     }
 
-    function verifyClaims(bytes[] memory _blockHeaders, bytes[] memory _relayerSigs, bytes[] memory _producerSigs) public {
-        require(_blockHeaders.length == _relayerSigs.length && _relayerSigs.length == _producerSigs.length
+    function verifyClaims(bytes[] memory _blockHeaders, bytes[] memory _relayerSigs, bytes[] memory _producerSigs, address[] _clusters) public {
+        require(_blockHeaders.length == _relayerSigs.length && 
+                _relayerSigs.length == _producerSigs.length &&
+                _producerSigs.length == _clusters.length
                 , "Verifier_Receiver: Invalid Inputs");
         bytes32[] memory roles;
         address[] memory claimers;
@@ -67,6 +73,7 @@ contract VerifierReceiver {
             (bytes32 role, address claimer, uint epoch) = verifyClaim(_blockHeaders[i], 
                                                                         _relayerSigs[i], 
                                                                         _producerSigs[i],
+                                                                        _clusters[i],
                                                                         true);
             epochs.push(epoch);
             claimers.push(claimer);

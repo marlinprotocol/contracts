@@ -4,7 +4,8 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "../Token/TokenLogic.sol";
 import "./CoinBaseLinker.sol";
-import "../Actors/Relayer.sol";
+import "../Actors/Cluster.sol";
+import "../Actors/ClusterRegistry.sol";
 import "../Fund/Pot.sol";
 import "../Fund/FundManager.sol";
 import "./LuckManager.sol";
@@ -22,7 +23,8 @@ contract VerifierProducer {
 
     function verifyClaim(bytes memory _blockHeader, 
                         bytes memory _relayerSig, 
-                        bytes memory _producerSig, 
+                        bytes memory _producerSig,
+                        address _cluster, 
                         bool _isAggregated) 
                         public 
                         returns(uint epoch, address claimer, uint role) {
@@ -32,7 +34,10 @@ contract VerifierProducer {
         uint blockNumber = extractBlockNumber(_blockHeader);
         address actualProducer = coinbaseLinker(keccak256(coinBase));
         address relayer = recoverSigner(blockHash, _relayerSig);
-        require(relayerManager.isValidRelayer(relayer), "Verifier_Producer: Invalid Relayer");
+
+        require(clusterRegistry.getClusterStatus(_cluster) == 2, "Verifier_Producer: Cluster isn't active");
+        require(Cluster(_cluster).isRelayer(relayer), "Verifier_Producer: Relayer isn't part of cluster");
+
         bytes memory producerSigPayload = abi.encodePacked(_blockHeader, _relayerSig);
         address extractedProducer = recoverSigner(keccak256(producerSigPayload), _producerSig);
         require(extractedProducer == actualProducer, "Verifier_Producer: Producer sig doesn't match coinbase");
@@ -60,8 +65,14 @@ contract VerifierProducer {
         return (producerRole, actualProducer, epoch);
     }
 
-    function verifyClaims(bytes[] memory _blockHeaders, bytes[] memory _relayerSigs, bytes[] memory _producerSigs) public {
-        require(_blockHeaders.length == _relayerSigs.length && _relayerSigs.length == _producerSigs.length
+    function verifyClaims(bytes[] memory _blockHeaders, 
+                          bytes[] memory _relayerSigs, 
+                          bytes[] memory _producerSigs, 
+                          address[] _clusters) 
+                          public {
+        require(_blockHeaders.length == _relayerSigs.length && 
+                _relayerSigs.length == _producerSigs.length &&
+                _producerSigs.length == _clusters.length
                 , "Verifier_Producer: Invalid Inputs");
         bytes32[] memory roles;
         address[] memory claimers;
@@ -70,6 +81,7 @@ contract VerifierProducer {
             (bytes32 role, address claimer, uint epoch) = verifyClaim(_blockHeaders[i], 
                                                                         _relayerSigs[i], 
                                                                         _producerSigs[i],
+                                                                        _clusters[i],
                                                                         true);
             epochs.push(epoch);
             claimers.push(claimer);
