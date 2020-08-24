@@ -126,7 +126,7 @@ contract("Governance", function (accounts) {
       });
   });
 
-  it("change timelock admins", function () {
+  it.skip("change timelock admins", function () {
     return timelockInstance
       .admin()
       .then(function (data) {
@@ -196,13 +196,13 @@ contract("Governance", function (accounts) {
         console.log(proposal);
         return govInstance.state(proposalId);
       })
-      .then(function(state){
+      .then(function (state) {
         console.log("state after queueing", state);
         return addBlocks(200, accounts);
       })
-      .then(function(){
+      .then(function () {
         return govInstance.execute(proposalId);
-      })
+      });
   });
 });
 

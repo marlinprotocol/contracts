@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20Deta
 import "./Mintable.sol";
 
 
-contract LGTToken is Initializable, ERC20, ERC20Detailed, Mintable {
+contract LGTLogic is Initializable, ERC20, ERC20Detailed, Mintable {
     function initialize(
         string memory _name,
         string memory _symbol,
