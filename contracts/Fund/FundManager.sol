@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: <SPDX-License>
 
 pragma solidity >=0.4.21 <0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
 import "./Pot.sol";
@@ -78,7 +79,8 @@ contract FundManager {
         require(_endEpoch >= currentEpoch, "Fund cannot end before starting");
         require(unallocatedBalance >= _inflationPerEpoch*(_endEpoch - _lastDrawnEpoch), 
                 "Fund not sufficient to allocate");
-        Fund memory fund = Fund(_inflationPerEpoch, _endEpoch, _lastDrawnEpoch, _pot, 0, MAX_INT, 0, uint[][]);
+        uint[][] memory inflationLogInit;
+        Fund memory fund = Fund(_inflationPerEpoch, _endEpoch, _lastDrawnEpoch, _pot, 0, MAX_INT, 0, inflationLogInit);
         funds[_pot] = fund;
         emit FundCreated(_pot, _inflationPerEpoch, _endEpoch, _lastDrawnEpoch);
     }
@@ -96,8 +98,8 @@ contract FundManager {
         if(currentEpoch > fund.nextInflationUpdateEpoch) {
             fund.unclaimedInflationChangewithdrawal += fund.inflationPerEpoch*(fund.nextInflationUpdateEpoch 
                                                                                 - fund.lastDrawnEpoch);
-            fund.inflationLog[0].push(fund.nextInflationUpdateEpoch);
-            fund.inflationLog[1].push(fund.inflationPerEpoch);
+            fund.inflationLog[0][fund.inflationLog[0].length] = fund.nextInflationUpdateEpoch;
+            fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
             fund.inflationPerEpoch = fund.nextInflation;
             fund.lastDrawnEpoch = fund.nextInflationUpdateEpoch;
         }
@@ -175,12 +177,13 @@ contract FundManager {
 
         withdrawalAmount += fund.unclaimedInflationChangewithdrawal + 
                             fund.inflationPerEpoch*(lastEpochToDrawFrom - fund.lastDrawnEpoch);
-        fund.inflationLog[0].push(lastEpochToDrawFrom);
-        fund.inflationLog[1].push(fund.inflationPerEpoch);
+        fund.inflationLog[0][fund.inflationLog[0].length] = lastEpochToDrawFrom;
+        fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
         localInflationLog  = fund.inflationLog;
         // RESET Inflation log for next draw
-        fund.inflationLog[0] = [lastEpochToDrawFrom];
-        fund.inflationLog[1] = [];
+        delete fund.inflationLog[0];
+        fund.inflationLog[0][0] = lastEpochToDrawFrom;
+        delete fund.inflationLog[1];
         fund.unclaimedInflationChangewithdrawal = 0;
         fund.lastDrawnEpoch = lastEpochToDrawFrom;
         funds[_pot] = fund;
@@ -197,8 +200,8 @@ contract FundManager {
                                     returns(uint fundToWithdrawBeforeInflationChange) {
         Fund memory fund = funds[_pot];
         uint fundToWithdraw = fund.inflationPerEpoch*(_currentEpoch - fund.lastDrawnEpoch);
-        fund.inflationLog[0].push(_currentEpoch);
-        fund.inflationLog[1].push(fund.inflationPerEpoch);
+        fund.inflationLog[0][fund.inflationLog[0].length] = _currentEpoch;
+        fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
         fund.inflationPerEpoch = fund.nextInflation;
         fund.lastDrawnEpoch = _currentEpoch;
         fund.nextInflation = 0;

@@ -25,7 +25,7 @@ contract LuckManager {
 
     mapping(bytes32 => LuckPerRole) luckByRoles;
     
-    function getLuck(uint _epoch, bytes32 _role) public{
+    function getLuck(uint _epoch, bytes32 _role) public returns(uint) {
         uint currentEpoch = pot.getEpoch(block.number);
         require( currentEpoch >= _epoch , "LuckManager: can't get luck for future epochs");
         if(luckByRoles[_role].luckLimit[_epoch] == 0) {
@@ -35,7 +35,7 @@ contract LuckManager {
             for(uint epoch=epochAfterTrailing; (epochAfterTrailing-epoch>luckForCurrentRole.averagingEpochs) 
                                                 && (epoch > luckForCurrentRole.startingEpoch); epoch--) {
                 
-                if(!luckByRoles[_role].maxClaims[epoch]) {
+                if(luckByRoles[_role].maxClaims[epoch]!= 0) {
                     uint maxClaimAtEpoch = pot.getMaxClaims(epoch, _role);
                     luckByRoles[_role].maxClaims[epoch] = maxClaimAtEpoch;
                 }

@@ -125,11 +125,9 @@ contract Pot {
         require(_roles.length == _claimers.length && _claimers.length == _epochs.length, 
                     "Pot: Invalid inputs to claim ticket");
         for(uint i=0; i < _roles.length; i++) {
-            //TODO: read about storage structs
-            EpochPot storage currentPot = potByEpoch[_epochs[i]];
-            currentPot.claims[_roles[i]][_claimers[i]]++;
-            currentPot.claimsRemaining[_roles[i]]++;
-            currentPot.maxClaims[_roles[i]]++;
+            potByEpoch[_epochs[i]].claims[_roles[i]][_claimers[i]]++;
+            potByEpoch[_epochs[i]].claimsRemaining[_roles[i]]++;
+            potByEpoch[_epochs[i]].maxClaims[_roles[i]]++;
             emit TicketClaimed(_roles[i], _claimers[i], _epochs[i]);
         }
         return true;
@@ -142,25 +140,25 @@ contract Pot {
         for(uint i=0; i < _epochsToClaim.length; i++) {
             uint currentEpoch = getEpoch(block.number);
             //TODO: read about storage structs
-            EpochPot storage currentPot = potByEpoch[_epochsToClaim[i]];
+            EpochPot memory currentPot = potByEpoch[_epochsToClaim[i]];
             if(!currentPot.isClaimsStarted) {
                 if(currentEpoch - _epochsToClaim[i] > epochsToWaitForClaims[_role]) {
                     for(uint j=0; j < ids.length; j++) {
-                        currentPot.allocation[ids[j]] = potAllocation[ids[j]]*currentPot.value/100;
+                        potByEpoch[_epochsToClaim[i]].allocation[ids[j]] = potAllocation[ids[j]]*currentPot.value/100;
                     }
-                    currentPot.isClaimsStarted = true;   
+                    currentPot.isClaimsStarted = true;
+                    potByEpoch[_epochsToClaim[i]] = currentPot;
                 } else {
                     return;
                 }
             }
-            uint noOfClaims = currentPot.claims[_role][msg.sender];
-            uint claimAmount = currentPot.allocation[_role]*noOfClaims/currentPot.claimsRemaining[_role];
-            currentPot.allocation[_role] -= claimAmount;
-            currentPot.claimsRemaining[_role]  -= noOfClaims;
-            currentPot.claims[_role][msg.sender] = 0;
-            potByEpoch[_epochsToClaim[i]] = currentPot;
+            uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
+            uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role]*noOfClaims/potByEpoch[_epochsToClaim[i]].claimsRemaining[_role];
+            potByEpoch[_epochsToClaim[i]].allocation[_role] -= claimAmount;
+            potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]  -= noOfClaims;
+            potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender] = 0;
             emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
-                            noOfClaims, currentPot.allocation[_role]);
+                            noOfClaims, potByEpoch[_epochsToClaim[i]].allocation[_role]);
             claimedAmount += claimAmount;
         }
         LINProxy.transfer(msg.sender, claimedAmount);
@@ -174,11 +172,11 @@ contract Pot {
         return potByEpoch[_epoch].maxClaims[_role];
     }
 
-    function getPotValue(uint _epoch) public returns(uint) {
+    function getPotValue(uint _epoch) public view returns(uint) {
         return potByEpoch[_epoch].value;
     }
 
-    function getEpochsToWaitForClaims(bytes32 _role) public returns(uint) {
+    function getEpochsToWaitForClaims(bytes32 _role) public view returns(uint) {
         return epochsToWaitForClaims[_role];
     }
 }

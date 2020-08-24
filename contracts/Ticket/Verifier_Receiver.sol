@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: <SPDX-License>
 
 pragma solidity >=0.4.21 <0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "../Actors/Receiver.sol";
-import "../Actors/Relayer.sol";
+import "../Actors/Cluster.sol";
+import "../Actors/ClusterRegistry.sol";
 import "../Fund/FundManager.sol";
 import "../Fund/Pot.sol";
 import "./LuckManager.sol";
@@ -11,7 +13,7 @@ import "./LuckManager.sol";
 contract VerifierReceiver {
 
     Receiver receiverManager = Receiver(address(0));
-    Relayer relayerManager = Relayer(address(0));
+    ClusterRegistry clusterRegistry = ClusterRegistry(address(0));
     Pot pot = Pot(address(0));
     LuckManager luckManager = LuckManager(address(0));
     FundManager fundManager = FundManager(address(0));
@@ -25,7 +27,7 @@ contract VerifierReceiver {
                         bytes memory _relayerSig,
                         address _cluster,
                         bool _isAggregated) 
-                        public {
+                        public returns(bytes32, address, uint) {
         bytes32 blockHash = keccak256(_blockHeader);
         address receiver = recoverSigner(blockHash, _receiverSig);
         require(receiverManager.isValidReceiver(receiver), "Verifier_Receiver: Invalid Receiver");
@@ -39,7 +41,7 @@ contract VerifierReceiver {
         require(!claimedTickets[ticket], "Verifier_Receiver: Ticket already claimed");
         uint blockNumber = extractBlockNumber(_blockHeader);
         uint epoch = pot.getEpoch(blockNumber);
-        bytes32 luckLimit = luckManager.getLuck(epoch, receiverRole);
+        uint luckLimit = luckManager.getLuck(epoch, receiverRole);
         require(uint(luckLimit) > uint(ticket), "Verifier_Receiver: Ticket not in winning range");
         if(pot.getPotValue(epoch) == 0) {
             uint[] memory epochs;
@@ -47,21 +49,33 @@ contract VerifierReceiver {
             uint[][] memory inflationLog = fundManager.draw(address(pot));
             for(uint i=0; i < inflationLog[0].length-1; i++) {
                 for(uint j=inflationLog[0][i]; j < inflationLog[0][i+1]; j++) {
-                    epochs.push(j);
-                    values.push(inflationLog[1][i]);
+                    epochs[epochs.length] = j;
+                    values[values.length] = inflationLog[1][i];
                 }
             }
             require(pot.addToPot(epochs, address(fundManager), values), "Verifier_Receiver: Could not add to pot");
         }
+        //TODO: If encoderv2 can be used then remove isAggregated
         if(!_isAggregated) {
-            require(Pot.claimTicket([receiverRole], [receiver], [epoch]), 
+            //TODO: Find if there is a better way to initialize dynamic arrays
+            bytes32[] memory roles;
+            address[] memory claimers;
+            uint[] memory epochs;
+            roles[0] = receiverRole;
+            claimers[0] = receiver;
+            epochs[0] = epoch;
+            require(pot.claimTicket(roles, claimers, epochs), 
                     "Verifier_Receiver: Ticket claim failed");
         }
         claimedTickets[ticket] = true;
         return (receiverRole, receiver, epoch);
     }
 
-    function verifyClaims(bytes[] memory _blockHeaders, bytes[] memory _relayerSigs, bytes[] memory _producerSigs, address[] _clusters) public {
+    function verifyClaims(bytes[] memory _blockHeaders, 
+                          bytes[] memory _relayerSigs, 
+                          bytes[] memory _producerSigs, 
+                          address[] memory _clusters) 
+                          public {
         require(_blockHeaders.length == _relayerSigs.length && 
                 _relayerSigs.length == _producerSigs.length &&
                 _producerSigs.length == _clusters.length
@@ -75,11 +89,11 @@ contract VerifierReceiver {
                                                                         _producerSigs[i],
                                                                         _clusters[i],
                                                                         true);
-            epochs.push(epoch);
-            claimers.push(claimer);
-            roles.push(role);
+            epochs[epochs.length] = epoch;
+            claimers[claimers.length] = claimer;
+            roles[roles.length] = role;
         }
-        require(Pot.claimTicket(roles, claimers, epochs), "Verifier_Receiver: Aggregate ticket claim failed");
+        require(pot.claimTicket(roles, claimers, epochs), "Verifier_Receiver: Aggregate ticket claim failed");
     }
 
     function extractBlockNumber(bytes memory blockHeader) public returns(uint) {

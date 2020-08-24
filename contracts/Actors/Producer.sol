@@ -2,8 +2,6 @@
 
 pragma solidity >=0.4.21 <0.7.0;
 
-uint endBlock;
-
 // Note: This contract is chain specific as signature has to be verified
 contract Producer {
 
@@ -13,7 +11,7 @@ contract Producer {
         producers[_producer] = true;
     }
 
-    function isProducer(address _producer) public returns(bool) {
+    function isProducer(address _producer) public view returns(bool) {
         return producers[_producer];
     }
 }

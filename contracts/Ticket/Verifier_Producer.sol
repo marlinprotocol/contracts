@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: <SPDX-License>
 
 pragma solidity >=0.4.21 <0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
 import "./CoinBaseLinker.sol";
@@ -13,7 +14,7 @@ import "./LuckManager.sol";
 contract VerifierProducer {
 
     CoinBaseLinker coinbaseLinker = CoinBaseLinker(address(0));
-    Relayer relayerManager = Relayer(address(0));
+    ClusterRegistry clusterRegistry = ClusterRegistry(address(0));
     LuckManager luckManager = LuckManager(address(0));
     Pot pot = Pot(address(0));
     FundManager fundManager = FundManager(address(0));
@@ -24,15 +25,15 @@ contract VerifierProducer {
     function verifyClaim(bytes memory _blockHeader, 
                         bytes memory _relayerSig, 
                         bytes memory _producerSig,
-                        address _cluster, 
+                        address _cluster,
                         bool _isAggregated) 
                         public 
-                        returns(uint epoch, address claimer, uint role) {
+                        returns(bytes32, address, uint) {
         bytes32 blockHash = keccak256(_blockHeader);
         require(!rewardedBlocks[blockHash], "Block header already rewarded");
         bytes memory coinBase = extractCoinBase(_blockHeader);
         uint blockNumber = extractBlockNumber(_blockHeader);
-        address actualProducer = coinbaseLinker(keccak256(coinBase));
+        address actualProducer = coinbaseLinker.getProducer(coinBase);
         address relayer = recoverSigner(blockHash, _relayerSig);
 
         require(clusterRegistry.getClusterStatus(_cluster) == 2, "Verifier_Producer: Cluster isn't active");
@@ -43,7 +44,7 @@ contract VerifierProducer {
         require(extractedProducer == actualProducer, "Verifier_Producer: Producer sig doesn't match coinbase");
         bytes32 ticket = keccak256(abi.encodePacked(producerSigPayload, _producerSig));
         uint epoch = pot.getEpoch(blockNumber);
-        bytes32 luckLimit = luckManager.getLuck(epoch, producerRole);
+        uint luckLimit = luckManager.getLuck(epoch, producerRole);
         require(uint(luckLimit) > uint(ticket), "Verifier_Producer: Ticket not in winning range");
         if(pot.getPotValue(epoch) == 0) {
             uint[] memory epochs;
@@ -51,14 +52,22 @@ contract VerifierProducer {
             uint[][] memory inflationLog = fundManager.draw(address(pot));
             for(uint i=0; i < inflationLog[0].length-1; i++) {
                 for(uint j=inflationLog[0][i]; j < inflationLog[0][i+1]; j++) {
-                    epochs.push(j);
-                    values.push(inflationLog[1][i]);
+                    epochs[epochs.length] = j;
+                    values[values.length] = inflationLog[1][i];
                 }
             }
             require(pot.addToPot(epochs, address(fundManager), values), "Verifier_Producer: Could not add to pot");
         }
+        //TODO: If encoderv2 can be used then remove isAggregated
         if(!_isAggregated) {
-            require(Pot.claimTicket([producerRole], [actualProducer], [epoch]), 
+            //TODO: Find if there is a better way to initialize dynamic arrays
+            bytes32[] memory roles;
+            address[] memory claimers;
+            uint[] memory epochs;
+            roles[0] = producerRole;
+            claimers[0] = actualProducer;
+            epochs[0] = epoch;
+            require(pot.claimTicket(roles, claimers, epochs), 
                     "Verifier_Producer: Ticket claim failed");
         }
         rewardedBlocks[blockHash] = true;
@@ -68,7 +77,7 @@ contract VerifierProducer {
     function verifyClaims(bytes[] memory _blockHeaders, 
                           bytes[] memory _relayerSigs, 
                           bytes[] memory _producerSigs, 
-                          address[] _clusters) 
+                          address[] memory _clusters) 
                           public {
         require(_blockHeaders.length == _relayerSigs.length && 
                 _relayerSigs.length == _producerSigs.length &&
@@ -83,11 +92,11 @@ contract VerifierProducer {
                                                                         _producerSigs[i],
                                                                         _clusters[i],
                                                                         true);
-            epochs.push(epoch);
-            claimers.push(claimer);
-            roles.push(role);
+            epochs[epochs.length] = epoch;
+            claimers[claimers.length] = claimer;
+            roles[roles.length] = role;
         }
-        require(Pot.claimTicket(roles, claimers, epochs), "Verifier_Producer: Aggregate ticket claim failed");
+        require(pot.claimTicket(roles, claimers, epochs), "Verifier_Producer: Aggregate ticket claim failed");
     }
 
     function extractCoinBase(bytes memory blockHeader) public view returns(bytes memory) {

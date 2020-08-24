@@ -25,7 +25,7 @@ contract ClusterRegistry {
     //todo: Think about if a contract which does not conform to cluster contract spec joins
     //todo: Think if there will be queuing of clusters
     function addCluster(uint _stakeValue) public {
-        ClusterData cluster = clusters[msg.sender];
+        ClusterData memory cluster = clusters[msg.sender];
         require(cluster.stake + _stakeValue >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
         clusters[msg.sender].stake = cluster.stake + _stakeValue;
         clusters[msg.sender].startEpoch = pot.getEpoch(block.number) + 1;
@@ -43,7 +43,7 @@ contract ClusterRegistry {
     }
 
     function exit() public {
-        Clusterdata cluster = clusters[msg.sender];
+        ClusterData memory cluster = clusters[msg.sender];
         require(cluster.status == 4 && pot.getEpoch(block.number) > cluster.exitEpoch, 
                 "ClusterRegistry: Exit conditions not met");
         require(LINProxy.transfer(msg.sender, cluster.stake), "ClusterRegistry: Remaining stake couldn't be returned");
@@ -52,7 +52,7 @@ contract ClusterRegistry {
 
     // 0- doesn't exist, 1 - waitingToJoin 2 - active 3 - stakeBelowRequired 4 - exiting
     function getClusterStatus(address _clusterAddress) public returns(uint) {
-        ClusterData cluster = clusters[_clusterAddress];
+        ClusterData memory cluster = clusters[_clusterAddress];
         if(cluster.status == 1) {
             if(pot.getEpoch(block.number) >= cluster.startEpoch) {
                 clusters[_clusterAddress].status = 2;
