@@ -2,9 +2,10 @@
 
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Fund/Pot.sol";
 
-contract LuckManager {
+contract LuckManager is Initializable{
 
     Pot pot;
 
@@ -25,6 +26,10 @@ contract LuckManager {
 
     mapping(bytes32 => LuckPerRole) luckByRoles;
     
+    function initialize() public {
+        // if nothing to initialize then skip, then remove this
+    }
+
     function getLuck(uint _epoch, bytes32 _role) public returns(uint) {
         uint currentEpoch = pot.getEpoch(block.number);
         require( currentEpoch >= _epoch , "LuckManager: can't get luck for future epochs");

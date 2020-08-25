@@ -1,14 +1,22 @@
 // SPDX-License-Identifier: <SPDX-License>
-
 pragma solidity >=0.4.21 <0.7.0;
 
-contract Producer {
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-    bytes id = "\x19";
-    bytes byteVersion = "03";
-    bytes id_extended = "Ethereum Signed Message:\n";
+contract Producer is Initializable{
+
+    bytes id;
+    bytes byteVersion;
+    bytes id_extended;
 
     mapping(bytes32 => address) producerData;
+
+    function initialize() public {
+        // if nothing to initialize remove this function and Intializable
+        id = "\x19";
+        byteVersion = "03";
+        id_extended = "Ethereum Signed Message:\n";
+    }
 
     function addProducer(address _producer, bytes memory _sig) public {
         bytes32 sigPayload = createPayloadToSig(_producer);

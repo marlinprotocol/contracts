@@ -10,25 +10,45 @@ import "../Actors/ClusterRegistry.sol";
 import "../Fund/Pot.sol";
 import "../Fund/FundManager.sol";
 import "./LuckManager.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-contract VerifierProducer {
+contract VerifierProducer is Initializable{
 
-    Producer producerRegistry = Producer(address(0));
-    ClusterRegistry clusterRegistry = ClusterRegistry(address(0));
-    LuckManager luckManager = LuckManager(address(0));
-    Pot pot = Pot(address(0));
-    FundManager fundManager = FundManager(address(0));
-    bytes32 producerRole = 0;
+    Producer producerRegistry;
+    ClusterRegistry clusterRegistry;
+    LuckManager luckManager;
+    Pot pot;
+    FundManager fundManager;
+    bytes32 producerRole;
 
     mapping(bytes32 => bool) rewardedBlocks;
 
-    constructor(address _producerRegistry, 
+    // constructor(address _producerRegistry, 
+    //             address _clusterRegistry, 
+    //             address _luckManager, 
+    //             address _pot, 
+    //             address _fundManager, 
+    //             bytes32 _producerRole) 
+    //             public {
+
+    // }
+    function initialize(address _producerRegistry, 
                 address _clusterRegistry, 
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
                 bytes32 _producerRole) 
                 public {
+                    // add constructor data here
+
+                    //these direct data
+                    producerRegistry = Producer(address(0));
+                    clusterRegistry = ClusterRegistry(address(0));
+                    luckManager = LuckManager(address(0));
+                    pot = Pot(address(0));
+                    fundManager = FundManager(address(0));
+                    producerRole = 0;
+
 
     }
 
