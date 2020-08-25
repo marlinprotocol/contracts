@@ -11,19 +11,12 @@ import "./Pot.sol";
 contract FundManager {
     uint constant MAX_INT = 2**255-1;
     //TODO: Contract which contains all global variables like proxies
-    TokenLogic LINProxy = TokenLogic(address(0));
-    // TODO: Update the governanceEnforcerProxyAddress
-    address constant GovernanceEnforcerProxy = address(0);
+    TokenLogic LINProxy;
+    address GovernanceEnforcerProxy;
 
     struct Fund {
         // Amount to be rewarded per epoch
         uint inflationPerEpoch;
-        // // epoch length in number of Eth blocks
-        // uint epochLength; get this from the pot itself. Pot will have a getEpoch method
-        // TODO: Check if pot can be a source of truth for the epochlength or should it be 
-        // indepedently mauintained in the epoch as well. for security
-        // // fund start time stamp. This should be start block of an epoch.
-        // uint startBlock; Calculate the current epoch from the pot
         // Epoch before which pot can pull funds
         uint endEpoch;
         // Last epoch for which money was drawn
@@ -54,6 +47,11 @@ contract FundManager {
     modifier onlyGovernanceEnforcer() {
         require(msg.sender == address(GovernanceEnforcerProxy), "Function can only be invoked by Governance Enforcer");
         _;
+    }
+
+    constructor(address _LINProxy, address _governanceEnforcerProxy) public {
+        LINProxy = TokenLogic(_LINProxy);
+        GovernanceEnforcerProxy = _governanceEnforcerProxy;
     }
     
     // Note: If this function execute successfully when new fund 
