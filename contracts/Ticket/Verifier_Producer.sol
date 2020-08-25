@@ -4,7 +4,7 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
-import "./CoinBaseLinker.sol";
+import "../Actors/Producer.sol";
 import "../Actors/Cluster.sol";
 import "../Actors/ClusterRegistry.sol";
 import "../Fund/Pot.sol";
@@ -13,7 +13,7 @@ import "./LuckManager.sol";
 
 contract VerifierProducer {
 
-    CoinBaseLinker coinbaseLinker = CoinBaseLinker(address(0));
+    Producer producerRegistry = Producer(address(0));
     ClusterRegistry clusterRegistry = ClusterRegistry(address(0));
     LuckManager luckManager = LuckManager(address(0));
     Pot pot = Pot(address(0));
@@ -33,7 +33,7 @@ contract VerifierProducer {
         require(!rewardedBlocks[blockHash], "Block header already rewarded");
         bytes memory coinBase = extractCoinBase(_blockHeader);
         uint blockNumber = extractBlockNumber(_blockHeader);
-        address actualProducer = coinbaseLinker.getProducer(coinBase);
+        address actualProducer = producerRegistry.getProducer(coinBase);
         address relayer = recoverSigner(blockHash, _relayerSig);
 
         require(clusterRegistry.getClusterStatus(_cluster) == 2, "Verifier_Producer: Cluster isn't active");
