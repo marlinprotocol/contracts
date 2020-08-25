@@ -7,9 +7,9 @@ import "../Token/TokenLogic.sol";
 contract Pot {
 
     //TODO: Contract which contains all global variables like proxies
-    TokenLogic LINProxy = TokenLogic(address(0));
+    TokenLogic LINProxy;
     // TODO: Update the governanceEnforcerProxyAddress
-    address constant GovernanceEnforcerProxy = address(0);
+    address GovernanceEnforcerProxy;
 
     struct EpochPot {
         uint value;
@@ -47,6 +47,20 @@ contract Pot {
         _;
     }
 
+    constructor(address _governanceEnforcerProxy, 
+                address _LINToken,
+                uint _firstEpochStartBlock, 
+                uint _EthBlocksPerEpoch,
+                bytes32[] memory _ids,
+                uint[] memory _fractionPerCent) 
+                public {
+        GovernanceEnforcerProxy = _governanceEnforcerProxy;
+        LINProxy = TokenLogic(_LINToken);
+        firstEpochStartBlock = _firstEpochStartBlock;
+        EthBlocksPerEpoch = _EthBlocksPerEpoch;
+        _allocatePot(_ids, _fractionPerCent);
+    }
+
     function addVerifier(address _verifier) 
                         onlyGovernanceEnforcer 
                         public {
@@ -73,6 +87,12 @@ contract Pot {
                         uint[] memory _fractionPerCent) 
                         public 
                         onlyGovernanceEnforcer {
+        _allocatePot(_ids, _fractionPerCent);
+    }
+
+    function _allocatePot(bytes32[] memory _ids, 
+                        uint[] memory _fractionPerCent) 
+                        internal {
         require(_ids.length == _fractionPerCent.length);
         uint totalFraction;
         // clean the previous allocations
@@ -92,6 +112,7 @@ contract Pot {
         emit PotAllocated(_ids, _fractionPerCent);
     }
 
+    // TODO: Seperate this into a different contract
     function getEpoch(uint _blockNumber) public view returns(uint) {
         return (_blockNumber - firstEpochStartBlock)/EthBlocksPerEpoch;
     }

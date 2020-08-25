@@ -62,13 +62,13 @@ contract VerifierReceiver {
             address[] memory claimers;
             uint[] memory epochs;
             roles[0] = receiverRole;
-            claimers[0] = receiver;
+            claimers[0] = _cluster;
             epochs[0] = epoch;
             require(pot.claimTicket(roles, claimers, epochs), 
                     "Verifier_Receiver: Ticket claim failed");
         }
         claimedTickets[ticket] = true;
-        return (receiverRole, receiver, epoch);
+        return (receiverRole, _cluster, epoch);
     }
 
     function verifyClaims(bytes[] memory _blockHeaders, 

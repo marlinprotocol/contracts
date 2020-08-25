@@ -7,8 +7,9 @@ import "../Fund/Pot.sol";
 
 contract ClusterRegistry {
 
-    TokenLogic LINProxy = TokenLogic(address(0));
-    Pot pot = Pot(address(0));
+    TokenLogic LINProxy;
+    Pot pot;
+    address GovernanceEnforcerProxy;
 
     struct ClusterData {
         uint status;
@@ -22,9 +23,28 @@ contract ClusterRegistry {
 
     uint minStakeAmount;
 
+    constructor(address _defaultCluster, 
+                uint _clusterExitWaitEpochs, 
+                uint _minStakeAmount, 
+                address _LINToken, 
+                address _pot) 
+                public {
+        clusters[_defaultCluster] = ClusterData(2, 0, 0, 0);
+        clusterExitWaitEpochs = _clusterExitWaitEpochs;
+        minStakeAmount = _minStakeAmount;
+        LINProxy = TokenLogic(_LINToken);
+        pot = Pot(_pot);
+    }
+
+    modifier onlyGovernanceEnforcer() {
+        require(msg.sender == address(GovernanceEnforcerProxy), 
+                "Pot: Function can only be invoked by Governance Enforcer");
+        _;
+    }
+
     //todo: Think about if a contract which does not conform to cluster contract spec joins
     //todo: Think if there will be queuing of clusters
-    function addCluster(uint _stakeValue) public {
+    function addCluster(uint _stakeValue) public returns(bool) {
         ClusterData memory cluster = clusters[msg.sender];
         require(cluster.stake + _stakeValue >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
         clusters[msg.sender].stake = cluster.stake + _stakeValue;
@@ -33,6 +53,7 @@ contract ClusterRegistry {
             cluster.status = 1;
         }
         require(LINProxy.transferFrom(msg.sender, address(this), _stakeValue), "ClusterRegistry: Stake not received");
+        return true;
     }
 
     function proposeExit() public {
@@ -50,6 +71,7 @@ contract ClusterRegistry {
         delete clusters[msg.sender];
     }
 
+    // todo: Change to ENUM
     // 0- doesn't exist, 1 - waitingToJoin 2 - active 3 - stakeBelowRequired 4 - exiting
     function getClusterStatus(address _clusterAddress) public returns(uint) {
         ClusterData memory cluster = clusters[_clusterAddress];

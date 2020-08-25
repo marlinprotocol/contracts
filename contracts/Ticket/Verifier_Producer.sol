@@ -22,6 +22,16 @@ contract VerifierProducer {
 
     mapping(bytes32 => bool) rewardedBlocks;
 
+    constructor(address _producerRegistry, 
+                address _clusterRegistry, 
+                address _luckManager, 
+                address _pot, 
+                address _fundManager, 
+                bytes32 _producerRole) 
+                public {
+
+    }
+
     function verifyClaim(bytes memory _blockHeader, 
                         bytes memory _relayerSig, 
                         bytes memory _producerSig,
