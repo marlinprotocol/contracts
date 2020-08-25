@@ -1,10 +1,7 @@
-const Web3 = require("web3");
 const ClusterDefault = artifacts.require("ClusterDefault.sol");
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const LINProxy = artifacts.require("TokenProxy.sol");
 const Pot = artifacts.require("Pot.sol");
-
-const web3 = new Web3("http://127.0.0.1:8545/");
 
 module.exports = async function (deployer, network, accounts) {
     let admin = accounts[1];
