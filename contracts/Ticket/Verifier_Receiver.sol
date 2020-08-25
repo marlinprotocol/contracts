@@ -9,18 +9,27 @@ import "../Actors/ClusterRegistry.sol";
 import "../Fund/FundManager.sol";
 import "../Fund/Pot.sol";
 import "./LuckManager.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-contract VerifierReceiver {
+contract VerifierReceiver is Initializable{
 
-    Receiver receiverManager = Receiver(address(0));
-    ClusterRegistry clusterRegistry = ClusterRegistry(address(0));
-    Pot pot = Pot(address(0));
-    LuckManager luckManager = LuckManager(address(0));
-    FundManager fundManager = FundManager(address(0));
-    bytes32 receiverRole = 0;
+    Receiver receiverManager;
+    ClusterRegistry clusterRegistry;
+    Pot pot;
+    LuckManager luckManager;
+    FundManager fundManager;
+    bytes32 receiverRole;
 
     mapping(bytes32 => bool) claimedTickets;
 
+    function initialize() public {
+        receiverManager = Receiver(address(0));
+        clusterRegistry = ClusterRegistry(address(0));
+        pot = Pot(address(0));
+        luckManager = LuckManager(address(0));
+        fundManager = FundManager(address(0));
+        receiverRole = 0;
+    }
     //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
     function verifyClaim(bytes memory _blockHeader, 
                         bytes memory _receiverSig, 

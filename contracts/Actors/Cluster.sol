@@ -2,6 +2,7 @@
 
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Token/TokenLogic.sol";
 import "./ClusterRegistry.sol";
 
@@ -11,14 +12,19 @@ interface ICluster {
     function getTotalRelayers() external view returns(uint);
 }
 
-contract Cluster is ICluster {
+contract Cluster is Initializable, ICluster {
 
     mapping(address => bool) relayers;
     uint totalRelayers;
     TokenLogic LINToken;
     ClusterRegistry clusterRegistry;
 
-    constructor(address _LINToken, address _clusterRegistry) public {
+    // constructor(address _LINToken, address _clusterRegistry) public {
+    //     LINToken = TokenLogic(_LINToken);
+    //     clusterRegistry = ClusterRegistry(_clusterRegistry);
+    // }
+
+    function initialize(address _LINToken, address _clusterRegistry) public {
         LINToken = TokenLogic(_LINToken);
         clusterRegistry = ClusterRegistry(_clusterRegistry);
     }

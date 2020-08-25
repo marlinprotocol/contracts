@@ -4,8 +4,9 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "../Token/TokenLogic.sol";
 import "../Fund/Pot.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-contract ClusterRegistry {
+contract ClusterRegistry is Initializable{
 
     TokenLogic LINProxy;
     Pot pot;
@@ -23,7 +24,20 @@ contract ClusterRegistry {
 
     uint minStakeAmount;
 
-    constructor(address _defaultCluster, 
+    // constructor(address _defaultCluster, 
+    //             uint _clusterExitWaitEpochs, 
+    //             uint _minStakeAmount, 
+    //             address _LINToken, 
+    //             address _pot) 
+    //             public {
+    //     clusters[_defaultCluster] = ClusterData(2, 0, 0, 0);
+    //     clusterExitWaitEpochs = _clusterExitWaitEpochs;
+    //     minStakeAmount = _minStakeAmount;
+    //     LINProxy = TokenLogic(_LINToken);
+    //     pot = Pot(_pot);
+    // }
+
+    function initialize(address _defaultCluster, 
                 uint _clusterExitWaitEpochs, 
                 uint _minStakeAmount, 
                 address _LINToken, 

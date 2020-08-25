@@ -3,8 +3,9 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "../Token/TokenLogic.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-contract Pot {
+contract Pot is Initializable{
 
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
@@ -47,7 +48,20 @@ contract Pot {
         _;
     }
 
-    constructor(address _governanceEnforcerProxy, 
+    // constructor(address _governanceEnforcerProxy, 
+    //             address _LINToken,
+    //             uint _firstEpochStartBlock, 
+    //             uint _EthBlocksPerEpoch,
+    //             bytes32[] memory _ids,
+    //             uint[] memory _fractionPerCent) 
+    //             public {
+    //     GovernanceEnforcerProxy = _governanceEnforcerProxy;
+    //     LINProxy = TokenLogic(_LINToken);
+    //     firstEpochStartBlock = _firstEpochStartBlock;
+    //     EthBlocksPerEpoch = _EthBlocksPerEpoch;
+    //     _allocatePot(_ids, _fractionPerCent);
+    // }
+    function initialize(address _governanceEnforcerProxy, 
                 address _LINToken,
                 uint _firstEpochStartBlock, 
                 uint _EthBlocksPerEpoch,

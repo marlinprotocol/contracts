@@ -5,11 +5,12 @@ pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
 import "./Pot.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 // TODO:: Use safemath
 
-contract FundManager {
-    uint constant MAX_INT = 2**255-1;
+contract FundManager is Initializable{
+    uint MAX_INT;
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
     address GovernanceEnforcerProxy;
@@ -43,6 +44,10 @@ contract FundManager {
     event FundEndEpochUpdated(address pot, uint currentEndEpoch, uint updatedEndEpoch);
     event FundPotAddressUpdated(address previousPot, address  updatedPot);
     event FundDrawn(address pot, uint amountDrawn, uint fundBalance);
+
+    function initialize() public {
+        MAX_INT = 2**255-1;
+    }
 
     modifier onlyGovernanceEnforcer() {
         require(msg.sender == address(GovernanceEnforcerProxy), "Function can only be invoked by Governance Enforcer");
