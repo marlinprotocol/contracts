@@ -47,7 +47,7 @@ contract Pot is Initializable{
         _;
     }
 
-    function initialize(address _governanceEnforcerProxy, 
+    constructor(address _governanceEnforcerProxy, 
                 address _LINToken,
                 uint _firstEpochStartBlock, 
                 uint _EthBlocksPerEpoch,

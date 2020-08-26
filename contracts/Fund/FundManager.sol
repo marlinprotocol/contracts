@@ -45,7 +45,7 @@ contract FundManager is Initializable{
     event FundPotAddressUpdated(address previousPot, address  updatedPot);
     event FundDrawn(address pot, uint amountDrawn, uint fundBalance);
 
-    function initialize(address _LINProxy, address _governanceEnforcerProxy) public {
+    constructor(address _LINProxy, address _governanceEnforcerProxy) public {
         MAX_INT = 2**255-1;
         LINProxy = TokenLogic(_LINProxy);
         GovernanceEnforcerProxy = _governanceEnforcerProxy;

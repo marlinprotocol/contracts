@@ -11,7 +11,7 @@ contract Producer is Initializable{
 
     mapping(bytes32 => address) producerData;
 
-    function initialize() public {
+    constructor() public {
         // if nothing to initialize remove this function and Intializable
         id = "\x19";
         byteVersion = "03";

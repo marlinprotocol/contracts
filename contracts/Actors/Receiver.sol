@@ -7,7 +7,7 @@ contract Receiver is Initializable{
 
     //TODO: Are we doing the governance thing to get receiver that staked on base chain ?
     
-    function initialize() public {
+    constructor() public {
         // if nothing to initialize remove this function and Intializable
     }
     

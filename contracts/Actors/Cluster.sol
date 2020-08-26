@@ -23,7 +23,7 @@ contract Cluster is Initializable, ICluster {
     //     clusterRegistry = ClusterRegistry(_clusterRegistry);
     // }
 
-    function initialize(address _LINToken, address _clusterRegistry) public {
+    constructor(address _LINToken, address _clusterRegistry) public {
         LINToken = TokenLogic(_LINToken);
         clusterRegistry = ClusterRegistry(_clusterRegistry);
     }

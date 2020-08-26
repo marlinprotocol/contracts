@@ -33,24 +33,19 @@ contract VerifierProducer is Initializable{
     //             public {
 
     // }
-    function initialize(address _producerRegistry, 
+    constructor(address _producerRegistry, 
                 address _clusterRegistry, 
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
                 bytes32 _producerRole) 
                 public {
-                    // add constructor data here
-
-                    //these direct data
-                    producerRegistry = Producer(address(0));
-                    clusterRegistry = ClusterRegistry(address(0));
-                    luckManager = LuckManager(address(0));
-                    pot = Pot(address(0));
-                    fundManager = FundManager(address(0));
-                    producerRole = 0;
-
-
+        producerRegistry = Producer(_producerRegistry);
+        clusterRegistry = ClusterRegistry(_clusterRegistry);
+        luckManager = LuckManager(_luckManager);
+        pot = Pot(_pot);
+        fundManager = FundManager(_fundManager);
+        producerRole = _producerRole;
     }
 
     function verifyClaim(bytes memory _blockHeader, 

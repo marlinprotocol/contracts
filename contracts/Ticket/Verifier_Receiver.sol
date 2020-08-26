@@ -23,13 +23,19 @@ contract VerifierReceiver is Initializable{
 
     mapping(bytes32 => bool) claimedTickets;
 
-    function initialize() public {
-        receiverManager = Receiver(address(0));
-        clusterRegistry = ClusterRegistry(address(0));
-        pot = Pot(address(0));
-        luckManager = LuckManager(address(0));
-        fundManager = FundManager(address(0));
-        receiverRole = 0;
+    constructor(address _receiverRegistry, 
+                address _clusterRegistry, 
+                address _luckManager, 
+                address _pot, 
+                address _fundManager, 
+                bytes32 _receiverRole) 
+                public {
+        receiverManager = Receiver(_receiverRegistry);
+        clusterRegistry = ClusterRegistry(_clusterRegistry);
+        luckManager = LuckManager(_luckManager);
+        pot = Pot(_pot);
+        fundManager = FundManager(_fundManager);
+        receiverRole = _receiverRole;
     }
     //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
     function verifyClaim(bytes memory _blockHeader, 

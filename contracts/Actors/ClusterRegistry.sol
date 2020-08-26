@@ -30,7 +30,7 @@ contract ClusterRegistry is Initializable{
 
     //todo: add events 
 
-    function initialize(address _defaultCluster, 
+    constructor(address _defaultCluster, 
                 uint _clusterExitWaitEpochs, 
                 uint _minStakeAmount, 
                 address _LINToken, 
