@@ -33,13 +33,14 @@ contract VerifierProducer is Initializable{
     //             public {
 
     // }
-    constructor(address _producerRegistry, 
+    function initialize(address _producerRegistry, 
                 address _clusterRegistry, 
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
                 bytes32 _producerRole) 
-                public {
+                public 
+                initializer {
         producerRegistry = Producer(_producerRegistry);
         clusterRegistry = ClusterRegistry(_clusterRegistry);
         luckManager = LuckManager(_luckManager);

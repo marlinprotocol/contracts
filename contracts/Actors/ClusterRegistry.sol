@@ -30,12 +30,13 @@ contract ClusterRegistry is Initializable{
 
     //todo: add events 
 
-    constructor(address _defaultCluster, 
+    function initialize(address _defaultCluster, 
                 uint _clusterExitWaitEpochs, 
                 uint _minStakeAmount, 
                 address _LINToken, 
                 address _pot) 
-                public {
+                public
+                initializer {
         clusters[_defaultCluster] = ClusterData(ClusterStatus.ACTIVE, 0, 0, 0);
         clusterExitWaitEpochs = _clusterExitWaitEpochs;
         minStakeAmount = _minStakeAmount;

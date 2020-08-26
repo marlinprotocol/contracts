@@ -23,13 +23,14 @@ contract VerifierReceiver is Initializable{
 
     mapping(bytes32 => bool) claimedTickets;
 
-    constructor(address _receiverRegistry, 
+    function initialize(address _receiverRegistry, 
                 address _clusterRegistry, 
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
                 bytes32 _receiverRole) 
-                public {
+                public
+                initializer {
         receiverManager = Receiver(_receiverRegistry);
         clusterRegistry = ClusterRegistry(_clusterRegistry);
         luckManager = LuckManager(_luckManager);

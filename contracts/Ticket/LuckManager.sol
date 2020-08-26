@@ -34,11 +34,12 @@ contract LuckManager is Initializable{
         _;
     }
 
-    constructor(address _governanceEnforcerProxy, 
+    function initialize(address _governanceEnforcerProxy, 
                 address _pot, 
                 bytes32[] memory _roles, 
                 uint[][] memory _luckPerRoles ) 
-                public {
+                public 
+                initializer {
         for(uint i=0; i < _luckPerRoles.length; i++) {
             luckByRoles[_roles[i]] = LuckPerRole(_luckPerRoles[i][0],
                                                             _luckPerRoles[i][1], 
