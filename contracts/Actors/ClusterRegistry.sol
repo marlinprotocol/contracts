@@ -15,7 +15,7 @@ contract ClusterRegistry is Initializable{
     Pot pot;
     address GovernanceEnforcerProxy;
 
-    enum ClusterStatus { DOESNT_EXIST, WAITING_TO_JOIN, ACTIVE, LOW_STAKE, EXITING}
+    enum ClusterStatus { DOESNT_EXIST, WAITING_TO_JOIN, ACTIVE, EXITING}
 
     struct ClusterData {
         ClusterStatus status;
@@ -28,7 +28,12 @@ contract ClusterRegistry is Initializable{
     uint clusterExitWaitEpochs;
     uint minStakeAmount;
 
-    //todo: add events 
+    event ClusterJoined(address cluster, uint stake);
+    event ClusterStakeUpdated(address cluster, uint stake);
+    event ClusterExitProposed(address cluster, uint exitEpoch);
+    event ClusterExited(address cluster, uint stakeReturned, uint epoch);
+    event ClusterExitWaitEpochsChanged(uint updatedExitWaitEpochs);
+    event MinStakeChanged(uint updatedMinStake);
 
     function initialize(address _defaultCluster, 
                 uint _clusterExitWaitEpochs, 
@@ -50,14 +55,16 @@ contract ClusterRegistry is Initializable{
         _;
     }
 
-    //todo: Think if there will be queuing of clusters
     function addCluster(uint _stakeValue) public returns(bool) {
         ClusterData memory cluster = clusters[msg.sender];
         require(cluster.stake.add(_stakeValue) >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
         clusters[msg.sender].stake = cluster.stake.add(_stakeValue);
-        clusters[msg.sender].startEpoch = pot.getEpoch(block.number).add(1);
-        if(cluster.status != ClusterStatus.EXITING && cluster.status != ClusterStatus.ACTIVE) {
+        if(cluster.status == ClusterStatus.DOESNT_EXIST) {
             cluster.status = ClusterStatus.WAITING_TO_JOIN;
+            clusters[msg.sender].startEpoch = pot.getEpoch(block.number).add(1);
+            emit ClusterJoined(msg.sender, cluster.stake.add(_stakeValue));
+        } else {
+            emit ClusterStakeUpdated(msg.sender, cluster.stake.add(_stakeValue));
         }
         require(LINProxy.transferFrom(msg.sender, address(this), _stakeValue), "ClusterRegistry: Stake not received");
         return true;
@@ -66,15 +73,19 @@ contract ClusterRegistry is Initializable{
     function proposeExit() public {
         if(clusters[msg.sender].exitEpoch == 0) {
             clusters[msg.sender].status = ClusterStatus.EXITING;
-            clusters[msg.sender].exitEpoch = pot.getEpoch(block.number).add(clusterExitWaitEpochs);
+            uint exitEpoch = pot.getEpoch(block.number).add(clusterExitWaitEpochs);
+            clusters[msg.sender].exitEpoch = exitEpoch;
+            emit ClusterExitProposed(msg.sender, exitEpoch);
         }
     }
 
     function exit() public {
         ClusterData memory cluster = clusters[msg.sender];
-        require(cluster.status == ClusterStatus.EXITING && pot.getEpoch(block.number) > cluster.exitEpoch, 
+        uint currentEpoch  = pot.getEpoch(block.number);
+        require(cluster.status == ClusterStatus.EXITING && currentEpoch > cluster.exitEpoch, 
                 "ClusterRegistry: Exit conditions not met");
         require(LINProxy.transfer(msg.sender, cluster.stake), "ClusterRegistry: Remaining stake couldn't be returned");
+        emit ClusterExited(msg.sender, cluster.stake, currentEpoch);
         delete clusters[msg.sender];
     }
 
@@ -94,6 +105,7 @@ contract ClusterRegistry is Initializable{
                                         onlyGovernanceEnforcer 
                                         returns(bool) {
         clusterExitWaitEpochs = _updatedClusterExitWaitEpochs;
+        emit ClusterExitWaitEpochsChanged(_updatedClusterExitWaitEpochs);
         return true;
     }
 
@@ -102,8 +114,7 @@ contract ClusterRegistry is Initializable{
                                   onlyGovernanceEnforcer 
                                   returns(bool) {
         minStakeAmount = _updatedMinStakeAmount;
+        emit MinStakeChanged(_updatedMinStakeAmount);
         return true;
     }
-
-    //todo: slashing to be implemented in future versions
 }

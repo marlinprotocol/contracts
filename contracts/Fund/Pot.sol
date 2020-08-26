@@ -21,15 +21,14 @@ contract Pot is Initializable{
         bool isClaimsStarted;
     }
 
-    mapping(bytes32 => uint) potAllocation;
-    bytes32[] ids;
+    mapping(bytes32 => uint) public potAllocation;
+    bytes32[] public ids;
+    uint public firstEpochStartBlock;
+    uint public EthBlocksPerEpoch;
+    mapping(bytes32 => uint) public epochsToWaitForClaims;
+
     mapping(uint => EpochPot) potByEpoch;
-
-    uint firstEpochStartBlock;
-    uint EthBlocksPerEpoch;
-    mapping(bytes32 => uint) epochsToWaitForClaims;
-
-    mapping(address => bool) verifiers;
+    mapping(address => bool) public verifiers;
 
     event PotAllocated(bytes32[] ids, uint[] fractionPerCent);
     event PotFunded(address invoker, uint epoch, address funder, uint value, uint updatedPotValue);
@@ -52,7 +51,8 @@ contract Pot is Initializable{
                 uint _firstEpochStartBlock, 
                 uint _EthBlocksPerEpoch,
                 bytes32[] memory _ids,
-                uint[] memory _fractionPerCent) 
+                uint[] memory _fractionPerCent,
+                uint[] memory _epochsToWaitForClaims) 
                 public
                 initializer {
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
@@ -60,18 +60,25 @@ contract Pot is Initializable{
         firstEpochStartBlock = _firstEpochStartBlock;
         EthBlocksPerEpoch = _EthBlocksPerEpoch;
         _allocatePot(_ids, _fractionPerCent);
+        for(uint i=0; i < _ids.length; i++) {
+            epochsToWaitForClaims[_ids[i]] = _epochsToWaitForClaims[i];
+        }
     }
 
     function addVerifier(address _verifier) 
                         onlyGovernanceEnforcer 
-                        public {
+                        public 
+                        returns(bool) {
         verifiers[_verifier] = true;
+        return true;
     }
 
     function removeVerifier(address _verifier) 
                             onlyGovernanceEnforcer 
-                            public {
+                            public 
+                            returns(bool) {
         verifiers[_verifier] = false;
+        return true;
     }
 
     //todo: Enforce from next epoch boundary
@@ -112,7 +119,6 @@ contract Pot is Initializable{
         emit PotAllocated(_ids, _fractionPerCent);
     }
 
-    // TODO: Seperate this into a different contract
     function getEpoch(uint _blockNumber) public view returns(uint) {
         return _blockNumber.sub(firstEpochStartBlock).div(EthBlocksPerEpoch);
     }
@@ -204,6 +210,7 @@ contract Pot is Initializable{
         return potByEpoch[_epoch].value;
     }
 
+    //TODO: REMOVE redundent
     function getEpochsToWaitForClaims(bytes32 _role) public view returns(uint) {
         return epochsToWaitForClaims[_role];
     }

@@ -9,7 +9,7 @@ var timelockInstance;
 var proposalId;
 
 var governanceAddress;
-contract("Governance", function (accounts) {
+contract.skip("Governance", function (accounts) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   const tempAddress = accounts[9];
   const targets = [tempAddress];

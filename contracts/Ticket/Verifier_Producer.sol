@@ -24,15 +24,6 @@ contract VerifierProducer is Initializable{
 
     mapping(bytes32 => bool) rewardedBlocks;
 
-    // constructor(address _producerRegistry, 
-    //             address _clusterRegistry, 
-    //             address _luckManager, 
-    //             address _pot, 
-    //             address _fundManager, 
-    //             bytes32 _producerRole) 
-    //             public {
-
-    // }
     function initialize(address _producerRegistry, 
                 address _clusterRegistry, 
                 address _luckManager, 

@@ -2,14 +2,26 @@
 
 pragma solidity >=0.4.21 <0.7.0;
 
-contract ClusterDefault {
-    mapping(address => bool) relayers;
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-    function joinCluster() public {
+contract ClusterDefault is Initializable {
+    mapping(address => bool) relayers;
+    address admin;
+
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can invoke the function");
+        _;
+    }
+
+    function initialize(address _admin) public initializer {
+        admin = _admin;
+    }
+
+    function addRelayer() public onlyAdmin {
         relayers[msg.sender] = true;
     }
 
-    function exitCluster() public {
+    function removeRelayer() public onlyAdmin {
         relayers[msg.sender] = false;
     }
 

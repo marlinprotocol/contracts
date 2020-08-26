@@ -10,8 +10,10 @@ let EthBlockPerEpoch = 5;
 // Ensure that total allocation is 100
 let roleParams = {
     "producer": {
-        roleId: "0x0",
+        roleId: "0x0000000000000000000000000000000000000000000000000000000000000000",
         allocation: 30,
+        // Epochs to wait before claiming fee rewards
+        epochsToWaitForClaims: 5,
         // Epochs by which luck will trail
         // Last confirmed luck depends on how many epochs are allowed to submit tickets
         luckTrailingEpochs: 5,
@@ -27,8 +29,9 @@ let roleParams = {
         changeSteps: 20
     },
     "receiver": {
-        roleId: "0x1",
+        roleId: "0x0000000000000000000000000000000000000000000000000000000000000001",
         allocation: 70,
+        epochsToWaitForClaims: 5,
         luckTrailingEpochs: 5,
         targetClaims: 4,
         averaginingEpochs: 5,
@@ -42,6 +45,12 @@ let clusterExitWaitEpochs = 2;
 // Minimum number of LIN to stake for a cluster to join network
 let clusterMinStake = 10;
 
+let LINData = {
+    name: "Marlin Protocol",
+    symbol: "LIN",
+    decimals: 18
+}
+
 module.exports = {
     governanceProxyAccountIndex,
     potFirstEpochStartBlockDelay,
@@ -49,5 +58,6 @@ module.exports = {
     roleParams,
     relayerAccountIndex,
     clusterExitWaitEpochs,
-    clusterMinStake
+    clusterMinStake,
+    LINData
 }

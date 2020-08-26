@@ -1,4 +1,5 @@
 let FundManager = artifacts.require("FundManager.sol");
+let FundManagerProxy = artifacts.require("FundManagerProxy.sol");
 // let LINProxy = artifacts.require("TokenProxy.sol");
 // let appConfig = require("../app-config");
 
