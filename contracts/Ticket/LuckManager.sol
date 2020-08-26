@@ -7,6 +7,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Fund/Pot.sol";
 
 contract LuckManager is Initializable{
+    using SafeMath for uint256;
 
     Pot pot;
     address GovernanceEnforcerProxy;
@@ -78,36 +79,40 @@ contract LuckManager is Initializable{
         require( currentEpoch >= _epoch , "LuckManager: can't get luck for future epochs");
         if(luckByRoles[_role].luckLimit[_epoch] == 0) {
             LuckPerRole memory luckForCurrentRole = luckByRoles[_role];
-            uint epochAfterTrailing = currentEpoch-luckForCurrentRole.luckTrailingEpochs;
+            uint epochAfterTrailing = currentEpoch.sub(luckForCurrentRole.luckTrailingEpochs);
             uint totalClaims;
-            for(uint epoch=epochAfterTrailing; (epochAfterTrailing-epoch>luckForCurrentRole.averagingEpochs) 
+            for(uint epoch=epochAfterTrailing; (epochAfterTrailing.sub(epoch)>luckForCurrentRole.averagingEpochs) 
                                                 && (epoch > luckForCurrentRole.startingEpoch); epoch--) {
                 
                 if(luckByRoles[_role].maxClaims[epoch]!= 0) {
                     uint maxClaimAtEpoch = pot.getMaxClaims(epoch, _role);
                     luckByRoles[_role].maxClaims[epoch] = maxClaimAtEpoch;
                 }
-                totalClaims += luckByRoles[_role].maxClaims[epoch];
+                totalClaims = totalClaims.add(luckByRoles[_role].maxClaims[epoch]);
             }
             //todo: averaging epochs is not right it shoudl be 
             // epochAfterTrailing-epoch, so see how to fix it
             uint averageClaims = totalClaims/luckForCurrentRole.averagingEpochs;
-            if(luckByRoles[_role].luckLimit[_epoch-1] == 0) {
-                luckByRoles[_role].luckLimit[_epoch-1] = getLuck(_epoch-1, _role);
+            if(luckByRoles[_role].luckLimit[_epoch.sub(1)] == 0) {
+                luckByRoles[_role].luckLimit[_epoch.sub(1)] = getLuck(_epoch.sub(1), _role);
             }
             if(averageClaims > luckForCurrentRole.targetClaims) {
-                if(averageClaims*(100-luckForCurrentRole.varianceTolerance)/100 > luckForCurrentRole.targetClaims) {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch-1]
-                                                            *(100+luckForCurrentRole.changeSteps)/100;
+                if(averageClaims.mul(uint(100).sub(luckForCurrentRole.varianceTolerance)).div(100) > 
+                        luckForCurrentRole.targetClaims) {
+                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
+                                                                    luckForCurrentRole.changeSteps.add(100)
+                                                                ).div(100);
                 } else {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch - 1];
+                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
                 }
             } else {
-                if(averageClaims*(100+luckForCurrentRole.varianceTolerance)/100 < luckForCurrentRole.targetClaims) {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch-1]
-                                                            *(100-luckForCurrentRole.changeSteps)/100;
+                if(averageClaims.mul(luckForCurrentRole.varianceTolerance.add(100)).div(100) < 
+                        luckForCurrentRole.targetClaims) {
+                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
+                                                                    uint(100).sub(luckForCurrentRole.changeSteps)
+                                                                ).div(100);
                 } else {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch - 1];
+                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
                 }
             }
             // todo: delete unused maxClaim entries

@@ -7,7 +7,6 @@ import "../Token/TokenLogic.sol";
 import "./ClusterRegistry.sol";
 
 interface ICluster {
-    // TODO: make this an interface where only felow function is necessary
     function isRelayer(address _receiver) external view returns(bool);
     function getTotalRelayers() external view returns(uint);
 }

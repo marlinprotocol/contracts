@@ -7,9 +7,9 @@ import "../Token/TokenLogic.sol";
 import "./Pot.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-// TODO:: Use safemath
-
 contract FundManager is Initializable{
+    using SafeMath for uint256;
+
     uint MAX_INT;
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
@@ -45,18 +45,15 @@ contract FundManager is Initializable{
     event FundPotAddressUpdated(address previousPot, address  updatedPot);
     event FundDrawn(address pot, uint amountDrawn, uint fundBalance);
 
-    function initialize() public {
+    function initialize(address _LINProxy, address _governanceEnforcerProxy) public {
         MAX_INT = 2**255-1;
+        LINProxy = TokenLogic(_LINProxy);
+        GovernanceEnforcerProxy = _governanceEnforcerProxy;
     }
 
     modifier onlyGovernanceEnforcer() {
         require(msg.sender == address(GovernanceEnforcerProxy), "Function can only be invoked by Governance Enforcer");
         _;
-    }
-
-    constructor(address _LINProxy, address _governanceEnforcerProxy) public {
-        LINProxy = TokenLogic(_LINProxy);
-        GovernanceEnforcerProxy = _governanceEnforcerProxy;
     }
     
     // Note: If this function execute successfully when new fund 
@@ -67,7 +64,7 @@ contract FundManager is Initializable{
         uint _fundBalance = LINProxy.balanceOf(address(this));
         require(_fundBalance != fundBalance, "Fund Balance is as per the current balance");
         emit FundBalanceUpdated(fundBalance, _fundBalance);
-        unallocatedBalance = unallocatedBalance + _fundBalance - fundBalance;
+        unallocatedBalance = unallocatedBalance.add( _fundBalance).sub(fundBalance);
         fundBalance = _fundBalance;
     }
     
@@ -80,7 +77,7 @@ contract FundManager is Initializable{
                         external {
         uint currentEpoch = Pot(_pot).getEpoch(block.number);
         require(_endEpoch >= currentEpoch, "Fund cannot end before starting");
-        require(unallocatedBalance >= _inflationPerEpoch*(_endEpoch - _lastDrawnEpoch), 
+        require(unallocatedBalance >= _inflationPerEpoch.mul(_endEpoch.sub(_lastDrawnEpoch)), 
                 "Fund not sufficient to allocate");
         uint[][] memory inflationLogInit;
         Fund memory fund = Fund(_inflationPerEpoch, _endEpoch, _lastDrawnEpoch, _pot, 0, MAX_INT, 0, inflationLogInit);
@@ -99,17 +96,28 @@ contract FundManager is Initializable{
         Fund memory fund = funds[_pot];
         require(fund.endEpoch != 0, "Pot doesn't exist");
         if(currentEpoch > fund.nextInflationUpdateEpoch) {
-            fund.unclaimedInflationChangewithdrawal += fund.inflationPerEpoch*(fund.nextInflationUpdateEpoch 
-                                                                                - fund.lastDrawnEpoch);
+            fund.unclaimedInflationChangewithdrawal = fund.unclaimedInflationChangewithdrawal.add(
+                                                        fund.inflationPerEpoch.mul(
+                                                            fund.nextInflationUpdateEpoch.sub(
+                                                                fund.lastDrawnEpoch
+                                                            )
+                                                        )
+                                                    );
             fund.inflationLog[0][fund.inflationLog[0].length] = fund.nextInflationUpdateEpoch;
             fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
             fund.inflationPerEpoch = fund.nextInflation;
             fund.lastDrawnEpoch = fund.nextInflationUpdateEpoch;
         }
         // todo: Handle negative values for below
-        unallocatedBalance = unallocatedBalance + 
-                            (_updatedInflation - fund.inflationPerEpoch)*
-                            (fund.endEpoch - _epochOfUpdate);
+        unallocatedBalance = unallocatedBalance.add(
+                                _updatedInflation.sub(
+                                    fund.inflationPerEpoch
+                                )
+                            ).mul(
+                                fund.endEpoch.sub(
+                                    _epochOfUpdate
+                                )
+                            );
         fund.nextInflation = _updatedInflation;
         fund.nextInflationUpdateEpoch = _epochOfUpdate;
         funds[_pot] = fund;
@@ -132,15 +140,31 @@ contract FundManager is Initializable{
             } else {
                 finalInflation = fund.nextInflation;
             }
-            uint requiredBalance = finalInflation*(_updatedEndEpoch - fund.endEpoch);
-            require(unallocatedBalance >= requiredBalance);
-            unallocatedBalance -= requiredBalance;
+            uint requiredBalance = finalInflation.mul(_updatedEndEpoch.sub(fund.endEpoch));
+            unallocatedBalance = unallocatedBalance.sub(requiredBalance);
         } else {
             if(_updatedEndEpoch >= fund.nextInflationUpdateEpoch) {
-                unallocatedBalance += fund.nextInflation*(fund.endEpoch - _updatedEndEpoch);
+                unallocatedBalance = unallocatedBalance.add(
+                                        fund.nextInflation.mul(
+                                            fund.endEpoch.sub(
+                                                _updatedEndEpoch
+                                            )
+                                        )
+                                    );
             } else {
-                unallocatedBalance += fund.nextInflation*(fund.endEpoch - fund.nextInflationUpdateEpoch) 
-                                    + fund.inflationPerEpoch*(fund.nextInflationUpdateEpoch - _updatedEndEpoch);
+                unallocatedBalance = unallocatedBalance.add(
+                                        fund.nextInflation.mul(
+                                            fund.endEpoch.sub(
+                                                fund.nextInflationUpdateEpoch
+                                            )
+                                        )
+                                    ).add(
+                                        fund.inflationPerEpoch.mul(
+                                            fund.nextInflationUpdateEpoch.sub(
+                                                _updatedEndEpoch
+                                            )
+                                        )
+                                    );
             }
         }
         funds[_pot].endEpoch = _updatedEndEpoch;
@@ -156,7 +180,6 @@ contract FundManager is Initializable{
     }
 
     // This function is used by Pot contract to draw money till the previous epoch
-    // TODO: think about balance that will probably be left at  the very end of a fund allocation
     // todo: Add feature such that it is possible to draw till specified epoch
     function draw(address _pot) external returns(uint[][] memory) {
         Fund memory fund = funds[_pot];
@@ -168,7 +191,7 @@ contract FundManager is Initializable{
         uint[][] memory localInflationLog;
 
         if(fund.nextInflationUpdateEpoch <= currentEpoch) {
-            withdrawalAmount += handleInflationChange(_pot, currentEpoch);
+            withdrawalAmount = withdrawalAmount.add(handleInflationChange(_pot, currentEpoch));
             fund = funds[_pot];
         }
 
@@ -178,8 +201,15 @@ contract FundManager is Initializable{
             lastEpochToDrawFrom = currentEpoch;
         }
 
-        withdrawalAmount += fund.unclaimedInflationChangewithdrawal + 
-                            fund.inflationPerEpoch*(lastEpochToDrawFrom - fund.lastDrawnEpoch);
+        withdrawalAmount = withdrawalAmount.add(
+                                fund.unclaimedInflationChangewithdrawal
+                            ).add(
+                                fund.inflationPerEpoch.mul(
+                                    lastEpochToDrawFrom.sub(
+                                        fund.lastDrawnEpoch
+                                    )
+                                )
+                            );
         fund.inflationLog[0][fund.inflationLog[0].length] = lastEpochToDrawFrom;
         fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
         localInflationLog  = fund.inflationLog;
@@ -192,7 +222,7 @@ contract FundManager is Initializable{
         funds[_pot] = fund;
         require(fundBalance >= withdrawalAmount, "Balance with fund not sufficient");
         require(LINProxy.approve(_pot, withdrawalAmount), "Fund not allocated to pot");
-        fundBalance -= withdrawalAmount;
+        fundBalance = fundBalance.sub(withdrawalAmount);
         emit FundDrawn(_pot, withdrawalAmount, fundBalance);
         return localInflationLog;
     }
@@ -202,7 +232,7 @@ contract FundManager is Initializable{
                                     private 
                                     returns(uint fundToWithdrawBeforeInflationChange) {
         Fund memory fund = funds[_pot];
-        uint fundToWithdraw = fund.inflationPerEpoch*(_currentEpoch - fund.lastDrawnEpoch);
+        uint fundToWithdraw = fund.inflationPerEpoch.mul(_currentEpoch.sub(fund.lastDrawnEpoch));
         fund.inflationLog[0][fund.inflationLog[0].length] = _currentEpoch;
         fund.inflationLog[1][fund.inflationLog[1].length] = fund.inflationPerEpoch;
         fund.inflationPerEpoch = fund.nextInflation;

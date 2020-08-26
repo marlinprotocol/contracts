@@ -5,15 +5,20 @@ pragma solidity >=0.4.21 <0.7.0;
 import "../Token/TokenLogic.sol";
 import "../Fund/Pot.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
+// import "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract ClusterRegistry is Initializable{
+    using SafeMath for uint256;
 
+    //todo: Should these addresses be editable by governance
     TokenLogic LINProxy;
     Pot pot;
     address GovernanceEnforcerProxy;
 
+    enum ClusterStatus { DOESNT_EXIST, WAITING_TO_JOIN, ACTIVE, LOW_STAKE, EXITING}
+
     struct ClusterData {
-        uint status;
+        ClusterStatus status;
         uint stake;
         uint startEpoch;
         uint exitEpoch;
@@ -21,21 +26,9 @@ contract ClusterRegistry is Initializable{
 
     mapping(address => ClusterData) clusters;
     uint clusterExitWaitEpochs;
-
     uint minStakeAmount;
 
-    // constructor(address _defaultCluster, 
-    //             uint _clusterExitWaitEpochs, 
-    //             uint _minStakeAmount, 
-    //             address _LINToken, 
-    //             address _pot) 
-    //             public {
-    //     clusters[_defaultCluster] = ClusterData(2, 0, 0, 0);
-    //     clusterExitWaitEpochs = _clusterExitWaitEpochs;
-    //     minStakeAmount = _minStakeAmount;
-    //     LINProxy = TokenLogic(_LINToken);
-    //     pot = Pot(_pot);
-    // }
+    //todo: add events 
 
     function initialize(address _defaultCluster, 
                 uint _clusterExitWaitEpochs, 
@@ -43,7 +36,7 @@ contract ClusterRegistry is Initializable{
                 address _LINToken, 
                 address _pot) 
                 public {
-        clusters[_defaultCluster] = ClusterData(2, 0, 0, 0);
+        clusters[_defaultCluster] = ClusterData(ClusterStatus.ACTIVE, 0, 0, 0);
         clusterExitWaitEpochs = _clusterExitWaitEpochs;
         minStakeAmount = _minStakeAmount;
         LINProxy = TokenLogic(_LINToken);
@@ -56,15 +49,14 @@ contract ClusterRegistry is Initializable{
         _;
     }
 
-    //todo: Think about if a contract which does not conform to cluster contract spec joins
     //todo: Think if there will be queuing of clusters
     function addCluster(uint _stakeValue) public returns(bool) {
         ClusterData memory cluster = clusters[msg.sender];
-        require(cluster.stake + _stakeValue >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
-        clusters[msg.sender].stake = cluster.stake + _stakeValue;
-        clusters[msg.sender].startEpoch = pot.getEpoch(block.number) + 1;
-        if(cluster.status != 4 && cluster.status != 2) {
-            cluster.status = 1;
+        require(cluster.stake.add(_stakeValue) >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
+        clusters[msg.sender].stake = cluster.stake.add(_stakeValue);
+        clusters[msg.sender].startEpoch = pot.getEpoch(block.number).add(1);
+        if(cluster.status != ClusterStatus.EXITING && cluster.status != ClusterStatus.ACTIVE) {
+            cluster.status = ClusterStatus.WAITING_TO_JOIN;
         }
         require(LINProxy.transferFrom(msg.sender, address(this), _stakeValue), "ClusterRegistry: Stake not received");
         return true;
@@ -72,31 +64,45 @@ contract ClusterRegistry is Initializable{
 
     function proposeExit() public {
         if(clusters[msg.sender].exitEpoch == 0) {
-            clusters[msg.sender].status = 4;
-            clusters[msg.sender].exitEpoch = pot.getEpoch(block.number) + clusterExitWaitEpochs;
+            clusters[msg.sender].status = ClusterStatus.EXITING;
+            clusters[msg.sender].exitEpoch = pot.getEpoch(block.number).add(clusterExitWaitEpochs);
         }
     }
 
     function exit() public {
         ClusterData memory cluster = clusters[msg.sender];
-        require(cluster.status == 4 && pot.getEpoch(block.number) > cluster.exitEpoch, 
+        require(cluster.status == ClusterStatus.EXITING && pot.getEpoch(block.number) > cluster.exitEpoch, 
                 "ClusterRegistry: Exit conditions not met");
         require(LINProxy.transfer(msg.sender, cluster.stake), "ClusterRegistry: Remaining stake couldn't be returned");
         delete clusters[msg.sender];
     }
 
-    // todo: Change to ENUM
-    // 0- doesn't exist, 1 - waitingToJoin 2 - active 3 - stakeBelowRequired 4 - exiting
-    function getClusterStatus(address _clusterAddress) public returns(uint) {
+    function getClusterStatus(address _clusterAddress) public returns(ClusterStatus) {
         ClusterData memory cluster = clusters[_clusterAddress];
-        if(cluster.status == 1) {
+        if(cluster.status == ClusterStatus.WAITING_TO_JOIN) {
             if(pot.getEpoch(block.number) >= cluster.startEpoch) {
-                clusters[_clusterAddress].status = 2;
-                cluster.status = 2;
+                clusters[_clusterAddress].status = ClusterStatus.ACTIVE;
+                cluster.status = ClusterStatus.ACTIVE;
             }
         }
         return cluster.status;
     }
 
-    //todo: slashing to be implemented
+    function changeClusterExitWaitEpochs(uint _updatedClusterExitWaitEpochs) 
+                                        public 
+                                        onlyGovernanceEnforcer 
+                                        returns(bool) {
+        clusterExitWaitEpochs = _updatedClusterExitWaitEpochs;
+        return true;
+    }
+
+    function changeMinStakeAmount(uint _updatedMinStakeAmount) 
+                                  public 
+                                  onlyGovernanceEnforcer 
+                                  returns(bool) {
+        minStakeAmount = _updatedMinStakeAmount;
+        return true;
+    }
+
+    //todo: slashing to be implemented in future versions
 }

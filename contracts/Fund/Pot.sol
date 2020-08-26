@@ -6,10 +6,10 @@ import "../Token/TokenLogic.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 contract Pot is Initializable{
+    using SafeMath for uint256;
 
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
-    // TODO: Update the governanceEnforcerProxyAddress
     address GovernanceEnforcerProxy;
 
     struct EpochPot {
@@ -26,7 +26,6 @@ contract Pot is Initializable{
     mapping(uint => EpochPot) potByEpoch;
 
     uint firstEpochStartBlock;
-    // think  if this should be per role
     uint EthBlocksPerEpoch;
     mapping(bytes32 => uint) epochsToWaitForClaims;
 
@@ -48,19 +47,6 @@ contract Pot is Initializable{
         _;
     }
 
-    // constructor(address _governanceEnforcerProxy, 
-    //             address _LINToken,
-    //             uint _firstEpochStartBlock, 
-    //             uint _EthBlocksPerEpoch,
-    //             bytes32[] memory _ids,
-    //             uint[] memory _fractionPerCent) 
-    //             public {
-    //     GovernanceEnforcerProxy = _governanceEnforcerProxy;
-    //     LINProxy = TokenLogic(_LINToken);
-    //     firstEpochStartBlock = _firstEpochStartBlock;
-    //     EthBlocksPerEpoch = _EthBlocksPerEpoch;
-    //     _allocatePot(_ids, _fractionPerCent);
-    // }
     function initialize(address _governanceEnforcerProxy, 
                 address _LINToken,
                 uint _firstEpochStartBlock, 
@@ -116,9 +102,8 @@ contract Pot is Initializable{
         }
         delete ids;
         // set the new allocations
-        //todo: is denomination of 100 for the fraction sufficient
         for(uint i=0; i < _ids.length; i++) {
-            totalFraction += _fractionPerCent[i];
+            totalFraction = totalFraction.add(_fractionPerCent[i]);
             potAllocation[_ids[i]] = _fractionPerCent[i];
         }
         require(totalFraction == 100, "Pot: Total is not 100%");
@@ -128,12 +113,10 @@ contract Pot is Initializable{
 
     // TODO: Seperate this into a different contract
     function getEpoch(uint _blockNumber) public view returns(uint) {
-        return (_blockNumber - firstEpochStartBlock)/EthBlocksPerEpoch;
+        return _blockNumber.sub(firstEpochStartBlock).div(EthBlocksPerEpoch);
     }
 
     // todo: Is pot exclusively LIN pot and doesn't contain any other tokens
-    // note: there might be extra money left with contract which might be because unclaimed or
-    // money was sent late to the pot after distribution started, how to use that money
     function addToPot(uint[] memory _epochs, 
                         address _source, 
                         uint[] memory _values) 
@@ -142,10 +125,10 @@ contract Pot is Initializable{
         require(_epochs.length == _values.length, "Pot: Invalid inputs");
         uint totalValue;
         for(uint i=0; i < _epochs.length; i++) {
-            uint updatedPotPerEpoch = potByEpoch[_epochs[i]].value + _values[i];
+            uint updatedPotPerEpoch = potByEpoch[_epochs[i]].value.add(_values[i]);
             potByEpoch[_epochs[i]].value = updatedPotPerEpoch;
             emit PotFunded(msg.sender, _epochs[i], _source, _values[i], updatedPotPerEpoch);
-            totalValue += _values[i];
+            totalValue = totalValue.add(_values[i]);
         }
         require(LINProxy.transferFrom(_source, address(this), totalValue), "Pot: Couldn't add to pot");
         return true;
@@ -160,9 +143,11 @@ contract Pot is Initializable{
         require(_roles.length == _claimers.length && _claimers.length == _epochs.length, 
                     "Pot: Invalid inputs to claim ticket");
         for(uint i=0; i < _roles.length; i++) {
-            potByEpoch[_epochs[i]].claims[_roles[i]][_claimers[i]]++;
-            potByEpoch[_epochs[i]].claimsRemaining[_roles[i]]++;
-            potByEpoch[_epochs[i]].maxClaims[_roles[i]]++;
+            potByEpoch[_epochs[i]].claims[_roles[i]][_claimers[i]] = 
+                potByEpoch[_epochs[i]].claims[_roles[i]][_claimers[i]].add(1);
+            potByEpoch[_epochs[i]].claimsRemaining[_roles[i]] =  
+                potByEpoch[_epochs[i]].claimsRemaining[_roles[i]].add(1);
+            potByEpoch[_epochs[i]].maxClaims[_roles[i]] = potByEpoch[_epochs[i]].maxClaims[_roles[i]].add(1);
             emit TicketClaimed(_roles[i], _claimers[i], _epochs[i]);
         }
         return true;
@@ -177,9 +162,11 @@ contract Pot is Initializable{
             //TODO: read about storage structs
             EpochPot memory currentPot = potByEpoch[_epochsToClaim[i]];
             if(!currentPot.isClaimsStarted) {
-                if(currentEpoch - _epochsToClaim[i] > epochsToWaitForClaims[_role]) {
+                if(currentEpoch.sub(_epochsToClaim[i]) > epochsToWaitForClaims[_role]) {
                     for(uint j=0; j < ids.length; j++) {
-                        potByEpoch[_epochsToClaim[i]].allocation[ids[j]] = potAllocation[ids[j]]*currentPot.value/100;
+                        potByEpoch[_epochsToClaim[i]].allocation[ids[j]] = potAllocation[ids[j]].mul(
+                                                                                currentPot.value
+                                                                             ).div(100);
                     }
                     currentPot.isClaimsStarted = true;
                     potByEpoch[_epochsToClaim[i]] = currentPot;
@@ -188,13 +175,18 @@ contract Pot is Initializable{
                 }
             }
             uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
-            uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role]*noOfClaims/potByEpoch[_epochsToClaim[i]].claimsRemaining[_role];
-            potByEpoch[_epochsToClaim[i]].allocation[_role] -= claimAmount;
-            potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]  -= noOfClaims;
+            uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role].mul(noOfClaims).div(
+                                    potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]
+                                );
+            potByEpoch[_epochsToClaim[i]].allocation[_role] = potByEpoch[_epochsToClaim[i]].allocation[_role].sub(
+                                                                    claimAmount
+                                                                );
+            potByEpoch[_epochsToClaim[i]].claimsRemaining[_role] = 
+                potByEpoch[_epochsToClaim[i]].claimsRemaining[_role].sub(noOfClaims);
             potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender] = 0;
             emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
                             noOfClaims, potByEpoch[_epochsToClaim[i]].allocation[_role]);
-            claimedAmount += claimAmount;
+            claimedAmount = claimedAmount.add(claimAmount);
         }
         LINProxy.transfer(msg.sender, claimedAmount);
     }

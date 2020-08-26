@@ -13,6 +13,7 @@ import "./LuckManager.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 contract VerifierProducer is Initializable{
+    using SafeMath for uint256;
 
     Producer producerRegistry;
     ClusterRegistry clusterRegistry;
@@ -66,7 +67,7 @@ contract VerifierProducer is Initializable{
         address actualProducer = producerRegistry.getProducer(coinBase);
         address relayer = recoverSigner(blockHash, _relayerSig);
 
-        require(clusterRegistry.getClusterStatus(_cluster) == 2, "Verifier_Producer: Cluster isn't active");
+        require(uint(clusterRegistry.getClusterStatus(_cluster)) == 2, "Verifier_Producer: Cluster isn't active");
         require(Cluster(_cluster).isRelayer(relayer), "Verifier_Producer: Relayer isn't part of cluster");
 
         bytes memory producerSigPayload = abi.encodePacked(_blockHeader, _relayerSig);
@@ -80,7 +81,7 @@ contract VerifierProducer is Initializable{
             uint[] memory epochs;
             uint[] memory values;
             uint[][] memory inflationLog = fundManager.draw(address(pot));
-            for(uint i=0; i < inflationLog[0].length-1; i++) {
+            for(uint i=0; i < inflationLog[0].length.sub(1); i++) {
                 for(uint j=inflationLog[0][i]; j < inflationLog[0][i+1]; j++) {
                     epochs[epochs.length] = j;
                     values[values.length] = inflationLog[1][i];
