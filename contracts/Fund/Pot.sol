@@ -43,13 +43,7 @@ contract Pot is Initializable{
     event PotAllocated(bytes32[] ids, uint[] fractionPerCent);
     event PotFunded(address invoker, uint epoch, bytes32 token, address funder, uint value, uint updatedPotValue);
     event TicketClaimed(bytes32 role, address claimer, uint epoch);
-    event FeeClaimed(bytes32 role, 
-        address claimer, 
-        uint value, 
-        uint epoch, 
-        uint noOfClaims, 
-        bytes32 token, 
-        uint updatedRolePot);
+    event FeeClaimed(bytes32 role, address claimer, uint value, uint epoch, uint noOfClaims, bytes32 token);
 
     modifier onlyGovernanceEnforcer() {
         require(msg.sender == address(GovernanceEnforcerProxy), 
@@ -245,7 +239,7 @@ contract Pot is Initializable{
                 
                 claimedAmount[j] = claimedAmount[j].add(claimAmount);
                 emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
-                            noOfClaims, tokenList[j], potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]]);
+                            noOfClaims, tokenList[j]);
             }
             potByEpoch[_epochsToClaim[i]].claimsRemaining[_role] = 
                 potByEpoch[_epochsToClaim[i]].claimsRemaining[_role].sub(noOfClaims);

@@ -95,30 +95,37 @@ contract LuckManager is Initializable{
                 totalClaims = totalClaims.add(luckByRoles[_role].maxClaims[epochCounter]);
             }
             uint averageClaims = totalClaims.div(epochAfterTrailing.sub(epochCounter));
+            delete epochCounter;
             if(luckByRoles[_role].luckLimit[_epoch.sub(1)] == 0) {
                 luckByRoles[_role].luckLimit[_epoch.sub(1)] = getLuck(_epoch.sub(1), _role);
             }
-            if(averageClaims > luckForCurrentRole.targetClaims) {
-                if(averageClaims.mul(uint(100).sub(luckForCurrentRole.varianceTolerance)).div(100) > 
-                        luckForCurrentRole.targetClaims) {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
-                                                                    uint(100).sub(luckForCurrentRole.changeSteps)
-                                                                ).div(100);
-                } else {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
-                }
-            } else {
-                if(averageClaims.mul(luckForCurrentRole.varianceTolerance.add(100)).div(100) < 
-                        luckForCurrentRole.targetClaims) {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
-                                                                    luckForCurrentRole.changeSteps.add(100)
-                                                                ).div(100);
-                } else {
-                    luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
-                }
-            }
+            luckByRoles[_role].luckLimit[_epoch] = getNextLuck(luckByRoles[_role].luckLimit[_epoch.sub(1)],
+                                                                    averageClaims, 
+                                                                    luckForCurrentRole);
+            
         }
         return luckByRoles[_role].luckLimit[_epoch];
+    }
+
+    function getNextLuck(uint _previousLuck, uint _averageClaims, LuckPerRole memory luckData) 
+                        internal 
+                        pure 
+                        returns(uint luck) {
+        if(_averageClaims > luckData.targetClaims) {
+            if(_averageClaims.mul(uint(100).sub(luckData.varianceTolerance)).div(100) > 
+                    luckData.targetClaims) {
+                luck = _previousLuck.mul(uint(100).sub(luckData.changeSteps)).div(100);
+            } else {
+                luck = _previousLuck;
+            }
+        } else {
+            if(_averageClaims.mul(luckData.varianceTolerance.add(100)).div(100) < 
+                    luckData.targetClaims) {
+                luck = _previousLuck.mul(luckData.changeSteps.add(100)).div(100);
+            } else {
+                luck = _previousLuck;
+            }
+        }
     }
 
     function changeLuckTrailingEpochs(bytes32 _role, 

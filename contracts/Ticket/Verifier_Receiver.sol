@@ -20,6 +20,7 @@ contract VerifierReceiver is Initializable{
     LuckManager luckManager;
     FundManager fundManager;
     bytes32 receiverRole;
+    bytes32 tokenId;
 
     mapping(bytes32 => bool) claimedTickets;
 
@@ -28,7 +29,8 @@ contract VerifierReceiver is Initializable{
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
-                bytes32 _receiverRole) 
+                bytes32 _receiverRole,
+                bytes32 _tokenId) 
                 public
                 initializer {
         receiverManager = Receiver(_receiverRegistry);
@@ -37,6 +39,7 @@ contract VerifierReceiver is Initializable{
         pot = Pot(_pot);
         fundManager = FundManager(_fundManager);
         receiverRole = _receiverRole;
+        tokenId = _tokenId;
     }
     //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
     function verifyClaim(bytes memory _blockHeader, 
@@ -60,7 +63,7 @@ contract VerifierReceiver is Initializable{
         uint epoch = pot.getEpoch(blockNumber);
         uint luckLimit = luckManager.getLuck(epoch, receiverRole);
         require(uint(luckLimit) > uint(ticket), "Verifier_Receiver: Ticket not in winning range");
-        if(pot.getPotValue(epoch) == 0) {
+        if(pot.getPotValue(epoch, tokenId) == 0) {
             uint[] memory epochs;
             uint[] memory values;
             uint[][] memory inflationLog = fundManager.draw(address(pot), block.number);
@@ -70,7 +73,8 @@ contract VerifierReceiver is Initializable{
                     values[values.length] = inflationLog[1][i];
                 }
             }
-            require(pot.addToPot(epochs, address(fundManager), values), "Verifier_Receiver: Could not add to pot");
+            require(pot.addToPot(epochs, address(fundManager), tokenId, values), 
+                "Verifier_Receiver: Could not add to pot");
         }
         //TODO: If encoderv2 can be used then remove isAggregated
         if(!_isAggregated) {

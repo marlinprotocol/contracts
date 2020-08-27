@@ -21,6 +21,7 @@ contract VerifierProducer is Initializable{
     Pot pot;
     FundManager fundManager;
     bytes32 producerRole;
+    bytes32 tokenId;
 
     mapping(bytes32 => bool) rewardedBlocks;
 
@@ -29,7 +30,8 @@ contract VerifierProducer is Initializable{
                 address _luckManager, 
                 address _pot, 
                 address _fundManager, 
-                bytes32 _producerRole) 
+                bytes32 _producerRole,
+                bytes32 _tokenId) 
                 public 
                 initializer {
         producerRegistry = Producer(_producerRegistry);
@@ -38,6 +40,7 @@ contract VerifierProducer is Initializable{
         pot = Pot(_pot);
         fundManager = FundManager(_fundManager);
         producerRole = _producerRole;
+        tokenId = _tokenId;
     }
 
     function verifyClaim(bytes memory _blockHeader, 
@@ -64,7 +67,7 @@ contract VerifierProducer is Initializable{
         uint epoch = pot.getEpoch(blockNumber);
         uint luckLimit = luckManager.getLuck(epoch, producerRole);
         require(uint(luckLimit) > uint(ticket), "Verifier_Producer: Ticket not in winning range");
-        if(pot.getPotValue(epoch) == 0) {
+        if(pot.getPotValue(epoch, tokenId) == 0) {
             uint[] memory epochs;
             uint[] memory values;
             uint[][] memory inflationLog = fundManager.draw(address(pot), block.number);
@@ -74,7 +77,8 @@ contract VerifierProducer is Initializable{
                     values[values.length] = inflationLog[1][i];
                 }
             }
-            require(pot.addToPot(epochs, address(fundManager), values), "Verifier_Producer: Could not add to pot");
+            require(pot.addToPot(epochs, address(fundManager), tokenId, values), 
+                "Verifier_Producer: Could not add to pot");
         }
         //TODO: If encoderv2 can be used then remove isAggregated
         if(!_isAggregated) {
