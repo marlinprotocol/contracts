@@ -201,7 +201,6 @@ contract FundManager is Initializable{
     // todo: Add feature such that it is possible to draw till specified epoch
     function draw(address _pot) external returns(uint[][] memory) {
         Fund memory fund = funds[_pot];
-        // require(fund.lastDrawnEpoch > fund.endEpoch, "Fund closed");
         require(fund.endEpoch > 0, "Fund doesn't exist");
         uint currentEpoch = Pot(_pot).getEpoch(block.number);
         uint lastEpochToDrawFrom;
