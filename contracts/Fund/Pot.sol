@@ -145,6 +145,7 @@ contract Pot is Initializable{
     }
 
     // todo: Is pot exclusively LIN pot and doesn't contain any other tokens
+    // Note: These tokens should be approved by governance else can be attacked
     function addToPot(uint[] memory _epochs, 
                         address _source, 
                         uint[] memory _values) 

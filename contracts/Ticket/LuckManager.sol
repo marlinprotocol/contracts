@@ -41,12 +41,14 @@ contract LuckManager is Initializable{
                 public 
                 initializer {
         for(uint i=0; i < _luckPerRoles.length; i++) {
+            require(_luckPerRoles[i].length == 7, "LuckManager: Invalid Input");
             luckByRoles[_roles[i]] = LuckPerRole(_luckPerRoles[i][0],
                                                             _luckPerRoles[i][1], 
                                                             _luckPerRoles[i][2], 
                                                             _luckPerRoles[i][3], 
                                                             _luckPerRoles[i][4],
                                                             _luckPerRoles[i][5]);
+            luckByRoles[_roles[i]].luckLimit[_luckPerRoles[i][3]] = _luckPerRoles[i][6];
         }
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
         pot = Pot(_pot);
@@ -58,7 +60,8 @@ contract LuckManager is Initializable{
                                    uint _averagingEpochs,
                                    uint _startingEpoch,
                                    uint _varianceTolerance,
-                                   uint _changeSteps)
+                                   uint _changeSteps,
+                                   uint _initialLuck)
                                    public
                                    onlyGovernanceEnforcer 
                                    returns(bool) {
@@ -68,32 +71,30 @@ contract LuckManager is Initializable{
                                           _startingEpoch,
                                           _varianceTolerance,
                                           _changeSteps);
+        luckByRoles[_role].luckLimit[_startingEpoch] = _initialLuck;
         return true;
-    }
-    
-    function initialize() public {
-        // if nothing to initialize then skip, then remove this
     }
 
     function getLuck(uint _epoch, bytes32 _role) public returns(uint) {
         uint currentEpoch = pot.getEpoch(block.number);
         require( currentEpoch >= _epoch , "LuckManager: can't get luck for future epochs");
+        // If luck for the epoch and role wasn't calculated before
         if(luckByRoles[_role].luckLimit[_epoch] == 0) {
             LuckPerRole memory luckForCurrentRole = luckByRoles[_role];
             uint epochAfterTrailing = currentEpoch.sub(luckForCurrentRole.luckTrailingEpochs);
             uint totalClaims;
-            for(uint epoch=epochAfterTrailing; (epochAfterTrailing.sub(epoch)>luckForCurrentRole.averagingEpochs) 
-                                                && (epoch > luckForCurrentRole.startingEpoch); epoch--) {
-                
-                if(luckByRoles[_role].maxClaims[epoch]!= 0) {
-                    uint maxClaimAtEpoch = pot.getMaxClaims(epoch, _role);
-                    luckByRoles[_role].maxClaims[epoch] = maxClaimAtEpoch;
+            uint epochCounter;
+            for(epochCounter=epochAfterTrailing; (epochAfterTrailing.sub(epochCounter)<
+                                                luckForCurrentRole.averagingEpochs) 
+                                                && (epochCounter > luckForCurrentRole.startingEpoch); 
+                                                epochCounter--) {
+                if(luckByRoles[_role].maxClaims[epochCounter]!= 0) {
+                    uint maxClaimAtEpoch = pot.getMaxClaims(epochCounter, _role);
+                    luckByRoles[_role].maxClaims[epochCounter] = maxClaimAtEpoch;
                 }
-                totalClaims = totalClaims.add(luckByRoles[_role].maxClaims[epoch]);
+                totalClaims = totalClaims.add(luckByRoles[_role].maxClaims[epochCounter]);
             }
-            //todo: averaging epochs is not right it shoudl be 
-            // epochAfterTrailing-epoch, so see how to fix it
-            uint averageClaims = totalClaims/luckForCurrentRole.averagingEpochs;
+            uint averageClaims = totalClaims.div(epochAfterTrailing.sub(epochCounter));
             if(luckByRoles[_role].luckLimit[_epoch.sub(1)] == 0) {
                 luckByRoles[_role].luckLimit[_epoch.sub(1)] = getLuck(_epoch.sub(1), _role);
             }
@@ -101,7 +102,7 @@ contract LuckManager is Initializable{
                 if(averageClaims.mul(uint(100).sub(luckForCurrentRole.varianceTolerance)).div(100) > 
                         luckForCurrentRole.targetClaims) {
                     luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
-                                                                    luckForCurrentRole.changeSteps.add(100)
+                                                                    uint(100).sub(luckForCurrentRole.changeSteps)
                                                                 ).div(100);
                 } else {
                     luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
@@ -110,13 +111,12 @@ contract LuckManager is Initializable{
                 if(averageClaims.mul(luckForCurrentRole.varianceTolerance.add(100)).div(100) < 
                         luckForCurrentRole.targetClaims) {
                     luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)].mul(
-                                                                    uint(100).sub(luckForCurrentRole.changeSteps)
+                                                                    luckForCurrentRole.changeSteps.add(100)
                                                                 ).div(100);
                 } else {
                     luckByRoles[_role].luckLimit[_epoch] = luckByRoles[_role].luckLimit[_epoch.sub(1)];
                 }
             }
-            // todo: delete unused maxClaim entries
         }
         return luckByRoles[_role].luckLimit[_epoch];
     }
