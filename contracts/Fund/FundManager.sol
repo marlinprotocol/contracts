@@ -197,12 +197,12 @@ contract FundManager is Initializable{
         emit FundPotAddressUpdated(_currentPotAddress, _updatedPotAddress);
     }
 
-    // This function is used by Pot contract to draw money till the previous epoch
-    // todo: Add feature such that it is possible to draw till specified epoch
-    function draw(address _pot) external returns(uint[][] memory) {
+    // This function is used by Pot contract to draw money till the epoch of specified block
+    function draw(address _pot, uint _blockNo) external returns(uint[][] memory) {
         Fund memory fund = funds[_pot];
         require(fund.endEpoch > 0, "Fund doesn't exist");
-        uint currentEpoch = Pot(_pot).getEpoch(block.number);
+        uint currentEpoch = Pot(_pot).getEpoch(_blockNo);
+        require(currentEpoch > fund.lastDrawnEpoch, "Can't draw from already drawn epoch");
         uint lastEpochToDrawFrom;
         uint withdrawalAmount;
         uint[][] memory localInflationLog;
@@ -238,8 +238,8 @@ contract FundManager is Initializable{
         fund.lastDrawnEpoch = lastEpochToDrawFrom;
         funds[_pot] = fund;
         require(fundBalance >= withdrawalAmount, "Balance with fund not sufficient");
-        require(LINProxy.approve(_pot, withdrawalAmount), "Fund not allocated to pot");
         fundBalance = fundBalance.sub(withdrawalAmount);
+        require(LINProxy.approve(_pot, withdrawalAmount), "Fund not allocated to pot");
         emit FundDrawn(_pot, withdrawalAmount, fundBalance);
         return localInflationLog;
     }

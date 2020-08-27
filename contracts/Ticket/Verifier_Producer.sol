@@ -67,7 +67,7 @@ contract VerifierProducer is Initializable{
         if(pot.getPotValue(epoch) == 0) {
             uint[] memory epochs;
             uint[] memory values;
-            uint[][] memory inflationLog = fundManager.draw(address(pot));
+            uint[][] memory inflationLog = fundManager.draw(address(pot), block.number);
             for(uint i=0; i < inflationLog[0].length.sub(1); i++) {
                 for(uint j=inflationLog[0][i]; j < inflationLog[0][i+1]; j++) {
                     epochs[epochs.length] = j;
