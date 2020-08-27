@@ -9,6 +9,9 @@ var timelockInstance;
 var proposalId;
 
 var governanceAddress;
+var compAddress;
+var timelockAddress;
+
 contract.skip("Governance", function (accounts) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   const tempAddress = accounts[9];
@@ -25,18 +28,25 @@ contract.skip("Governance", function (accounts) {
         governanceAddress = instance.address;
         return govInstance.comp();
       })
-      .then(function (compAddress) {
+      .then(function (address) {
+        compAddress = address;
         return Comp.at(compAddress);
       })
       .then(function (instance) {
         compInstance = instance;
         return govInstance.timelock();
       })
-      .then(function (timelockAddress) {
+      .then(function (address) {
+        timelockAddress = address;
         return Timelock.at(timelockAddress);
       })
       .then(function (instance) {
         timelockInstance = instance;
+        return;
+      })
+      .then(function () {
+        let valuesToCheck = {governanceAddress, compAddress, timelockAddress};
+        console.log(valuesToCheck);
         return;
       });
   });
