@@ -8,6 +8,8 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 contract Pot is Initializable{
     using SafeMath for uint256;
 
+    uint MAX_INT;
+
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
     address GovernanceEnforcerProxy;
@@ -21,11 +23,17 @@ contract Pot is Initializable{
         bool isClaimsStarted;
     }
 
+    struct ClaimWait {
+        uint epochsToWaitForClaims;
+        uint nextEpochsToWaitForClaims;
+        uint epochOfepochsToWaitForClaimsUpdate;
+    }
+
     mapping(bytes32 => uint) public potAllocation;
     bytes32[] public ids;
     uint public firstEpochStartBlock;
-    uint public EthBlocksPerEpoch;
-    mapping(bytes32 => uint) public epochsToWaitForClaims;
+    uint public blocksPerEpoch;
+    mapping(bytes32 => ClaimWait) public claimWait;
 
     mapping(uint => EpochPot) potByEpoch;
     mapping(address => bool) public verifiers;
@@ -55,13 +63,14 @@ contract Pot is Initializable{
                 uint[] memory _epochsToWaitForClaims) 
                 public
                 initializer {
+        MAX_INT = 2**255-1;
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
         LINProxy = TokenLogic(_LINToken);
         firstEpochStartBlock = _firstEpochStartBlock;
-        EthBlocksPerEpoch = _EthBlocksPerEpoch;
+        blocksPerEpoch = _EthBlocksPerEpoch;
         _allocatePot(_ids, _fractionPerCent);
         for(uint i=0; i < _ids.length; i++) {
-            epochsToWaitForClaims[_ids[i]] = _epochsToWaitForClaims[i];
+            claimWait[_ids[i]] = ClaimWait(_epochsToWaitForClaims[i], 0, MAX_INT);
         }
     }
 
@@ -81,15 +90,27 @@ contract Pot is Initializable{
         return true;
     }
 
-    //todo: Enforce from next epoch boundary
-    function changeEpochsToWaitForClaims(uint _updatedWaitEpochs, bytes32 _role) onlyGovernanceEnforcer public {
-        epochsToWaitForClaims[_role] = _updatedWaitEpochs;
+    function changeEpochsToWaitForClaims(uint _updatedWaitEpochs, 
+                                        uint _epochToUpdate, 
+                                        bytes32 _role) 
+                                        onlyGovernanceEnforcer 
+                                        public 
+                                        returns(bool) {
+        claimWait[_role].nextEpochsToWaitForClaims = _updatedWaitEpochs;
+        claimWait[_role].epochOfepochsToWaitForClaimsUpdate = _epochToUpdate;
+        return true;
     }
 
-    // todo: Enforce from next epoch boundary
-    function changeEthBlocksPerEpoch(uint _updatedBlockPerEpoch) onlyGovernanceEnforcer public {
-        EthBlocksPerEpoch = _updatedBlockPerEpoch;
-    }
+    // Note: Updating blocksperepoch will lead to too many complications
+    // function changeEthBlocksPerEpoch(uint _updatedBlockPerEpoch, 
+    //                                 uint _epochToUpdate) 
+    //                                 onlyGovernanceEnforcer 
+    //                                 public 
+    //                                 returns(bool) {
+    //     blocksPerEpoch.nextEthBlockPerEpoch = _updatedBlockPerEpoch;
+    //     blocksPerEpoch.epochOfEthBlocksPerEpochUpdate = _epochToUpdate;
+    //     return true;
+    // }
 
     function allocatePot(bytes32[] memory _ids, 
                         uint[] memory _fractionPerCent) 
@@ -120,7 +141,7 @@ contract Pot is Initializable{
     }
 
     function getEpoch(uint _blockNumber) public view returns(uint) {
-        return _blockNumber.sub(firstEpochStartBlock).div(EthBlocksPerEpoch);
+        return _blockNumber.sub(firstEpochStartBlock).div(blocksPerEpoch);
     }
 
     // todo: Is pot exclusively LIN pot and doesn't contain any other tokens
@@ -164,21 +185,26 @@ contract Pot is Initializable{
                             uint[] memory _epochsToClaim) 
                             public {
         uint claimedAmount;
+        uint currentEpoch = getEpoch(block.number);
+        ClaimWait memory claimWaitForRole = claimWait[_role];
+        if(claimWaitForRole.epochOfepochsToWaitForClaimsUpdate <= currentEpoch) {
+            claimWaitForRole.epochsToWaitForClaims = claimWaitForRole.nextEpochsToWaitForClaims;
+            claimWaitForRole.epochOfepochsToWaitForClaimsUpdate = MAX_INT;
+            claimWait[_role] = claimWaitForRole;
+        }
         for(uint i=0; i < _epochsToClaim.length; i++) {
-            uint currentEpoch = getEpoch(block.number);
-            //TODO: read about storage structs
             EpochPot memory currentPot = potByEpoch[_epochsToClaim[i]];
             if(!currentPot.isClaimsStarted) {
-                if(currentEpoch.sub(_epochsToClaim[i]) > epochsToWaitForClaims[_role]) {
+                if(currentEpoch.sub(_epochsToClaim[i]) > claimWaitForRole.epochsToWaitForClaims) {
                     for(uint j=0; j < ids.length; j++) {
                         potByEpoch[_epochsToClaim[i]].allocation[ids[j]] = potAllocation[ids[j]].mul(
                                                                                 currentPot.value
                                                                              ).div(100);
                     }
-                    currentPot.isClaimsStarted = true;
-                    potByEpoch[_epochsToClaim[i]] = currentPot;
+                    potByEpoch[_epochsToClaim[i]].isClaimsStarted = true;
                 } else {
-                    return;
+                    //todo: Should we throw error here or continue
+                    continue;
                 }
             }
             uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
@@ -208,10 +234,5 @@ contract Pot is Initializable{
 
     function getPotValue(uint _epoch) public view returns(uint) {
         return potByEpoch[_epoch].value;
-    }
-
-    //TODO: REMOVE redundent
-    function getEpochsToWaitForClaims(bytes32 _role) public view returns(uint) {
-        return epochsToWaitForClaims[_role];
     }
 }
