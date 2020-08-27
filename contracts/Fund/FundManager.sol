@@ -59,6 +59,8 @@ contract FundManager is Initializable{
     // Note: If this function execute successfully when new fund 
     // wasn't allocated to rewards, then something is not right
     // The update should never result in lower Balance than the fund balance
+    //todo: Is it a security risk to keep this open, just in case, there is a 
+    // leak in the way fundbalance or unallocated balance is calculated.
     function updateLINAllocation() 
                                 public {
         uint _fundBalance = LINProxy.balanceOf(address(this));
@@ -94,6 +96,8 @@ contract FundManager is Initializable{
         // todo: should we leave more time.
         require(currentEpoch < _epochOfUpdate, "Can't update inflation of previous epochs");
         Fund memory fund = funds[_pot];
+        // Note: Haven't used > currentepoch because it  is possible to allocate 
+        // more funds to a pot after it has expired
         require(fund.endEpoch != 0, "Pot doesn't exist");
         if(currentEpoch > fund.nextInflationUpdateEpoch) {
             fund.unclaimedInflationChangewithdrawal = fund.unclaimedInflationChangewithdrawal.add(
@@ -108,16 +112,30 @@ contract FundManager is Initializable{
             fund.inflationPerEpoch = fund.nextInflation;
             fund.lastDrawnEpoch = fund.nextInflationUpdateEpoch;
         }
-        // todo: Handle negative values for below
-        unallocatedBalance = unallocatedBalance.add(
-                                _updatedInflation.sub(
-                                    fund.inflationPerEpoch
-                                )
-                            ).mul(
-                                fund.endEpoch.sub(
-                                    _epochOfUpdate
-                                )
-                            );
+        // TODO: Can signed math be used here, makes things easier
+        if(fund.endEpoch >= _epochOfUpdate) {
+            if(_updatedInflation >= fund.inflationPerEpoch) {
+                unallocatedBalance = unallocatedBalance.sub(
+                                        _updatedInflation.sub(
+                                            fund.inflationPerEpoch
+                                        ).mul(
+                                            fund.endEpoch.sub(
+                                                _epochOfUpdate
+                                            )
+                                        )
+                                    );
+            } else {
+                unallocatedBalance = unallocatedBalance.add(
+                                        fund.inflationPerEpoch.sub(
+                                            _updatedInflation
+                                        ).mul(
+                                            fund.endEpoch.sub(
+                                                _epochOfUpdate
+                                            )
+                                        )
+                                    );
+            }
+        }
         fund.nextInflation = _updatedInflation;
         fund.nextInflationUpdateEpoch = _epochOfUpdate;
         funds[_pot] = fund;
@@ -129,10 +147,10 @@ contract FundManager is Initializable{
                             onlyGovernanceEnforcer 
                             external {
         uint currentEpoch = Pot(_pot).getEpoch(block.number);
-        require(_updatedEndEpoch != 0);
         Fund memory fund = funds[_pot];
         require(fund.endEpoch != 0, "Pot doesn't exist");
-        require(_updatedEndEpoch > currentEpoch, "Can't change inflation for previous or ongoing epochs");
+        // TODO: Should there be more time
+        require(_updatedEndEpoch > currentEpoch, "Can't change endEpoch to previous or ongoing epochs");
         if(_updatedEndEpoch >= fund.endEpoch) {
             uint finalInflation;
             if(fund.nextInflationUpdateEpoch == MAX_INT) {
