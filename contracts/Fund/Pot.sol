@@ -2,7 +2,8 @@
 
 pragma solidity >=0.4.21 <0.7.0;
 
-import "../Token/TokenLogic.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 contract Pot is Initializable{
@@ -11,12 +12,11 @@ contract Pot is Initializable{
     uint MAX_INT;
 
     //TODO: Contract which contains all global variables like proxies
-    TokenLogic LINProxy;
     address GovernanceEnforcerProxy;
 
     struct EpochPot {
-        uint value;
-        mapping(bytes32 => uint) allocation;
+        mapping(bytes32 => uint) value;
+        mapping(bytes32 => mapping(bytes32 => uint)) allocation;
         mapping(bytes32 => mapping(address => uint)) claims;
         mapping(bytes32 => uint) claimsRemaining;
         mapping(bytes32 => uint) maxClaims;
@@ -31,6 +31,8 @@ contract Pot is Initializable{
 
     mapping(bytes32 => uint) public potAllocation;
     bytes32[] public ids;
+    mapping(bytes32 => address) public tokens;
+    bytes32[] tokenList;
     uint public firstEpochStartBlock;
     uint public blocksPerEpoch;
     mapping(bytes32 => ClaimWait) public claimWait;
@@ -39,9 +41,15 @@ contract Pot is Initializable{
     mapping(address => bool) public verifiers;
 
     event PotAllocated(bytes32[] ids, uint[] fractionPerCent);
-    event PotFunded(address invoker, uint epoch, address funder, uint value, uint updatedPotValue);
+    event PotFunded(address invoker, uint epoch, bytes32 token, address funder, uint value, uint updatedPotValue);
     event TicketClaimed(bytes32 role, address claimer, uint epoch);
-    event FeeClaimed(bytes32 role, address claimer, uint value, uint epoch, uint noOfClaims, uint updatedRolePot);
+    event FeeClaimed(bytes32 role, 
+        address claimer, 
+        uint value, 
+        uint epoch, 
+        uint noOfClaims, 
+        bytes32 token, 
+        uint updatedRolePot);
 
     modifier onlyGovernanceEnforcer() {
         require(msg.sender == address(GovernanceEnforcerProxy), 
@@ -55,23 +63,27 @@ contract Pot is Initializable{
     }
 
     function initialize(address _governanceEnforcerProxy, 
-                address _LINToken,
                 uint _firstEpochStartBlock, 
                 uint _EthBlocksPerEpoch,
                 bytes32[] memory _ids,
                 uint[] memory _fractionPerCent,
+                bytes32[] memory _tokens,
+                address[] memory _tokenContracts,
                 uint[] memory _epochsToWaitForClaims) 
                 public
                 initializer {
         MAX_INT = 2**255-1;
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
-        LINProxy = TokenLogic(_LINToken);
         firstEpochStartBlock = _firstEpochStartBlock;
         blocksPerEpoch = _EthBlocksPerEpoch;
         _allocatePot(_ids, _fractionPerCent);
         for(uint i=0; i < _ids.length; i++) {
             claimWait[_ids[i]] = ClaimWait(_epochsToWaitForClaims[i], 0, MAX_INT);
         }
+        for(uint i=0; i < _tokens.length; i++) {
+            tokens[_tokens[i]] = _tokenContracts[i];
+        }
+        tokenList = _tokens;
     }
 
     function addVerifier(address _verifier) 
@@ -87,6 +99,17 @@ contract Pot is Initializable{
                             public 
                             returns(bool) {
         verifiers[_verifier] = false;
+        return true;
+    }
+
+    function updateSupportedTokenList(bytes32[] memory _tokens, address[] memory _tokenContracts) 
+                        onlyGovernanceEnforcer 
+                        public 
+                        returns(bool) {
+        for(uint i=0; i < _tokens.length; i++) {
+            tokens[_tokens[i]] = _tokenContracts[i];
+        }
+        tokenList = _tokens;
         return true;
     }
 
@@ -148,18 +171,19 @@ contract Pot is Initializable{
     // Note: These tokens should be approved by governance else can be attacked
     function addToPot(uint[] memory _epochs, 
                         address _source, 
+                        bytes32 _token,
                         uint[] memory _values) 
                         public 
                         returns(bool) {
         require(_epochs.length == _values.length, "Pot: Invalid inputs");
         uint totalValue;
         for(uint i=0; i < _epochs.length; i++) {
-            uint updatedPotPerEpoch = potByEpoch[_epochs[i]].value.add(_values[i]);
-            potByEpoch[_epochs[i]].value = updatedPotPerEpoch;
-            emit PotFunded(msg.sender, _epochs[i], _source, _values[i], updatedPotPerEpoch);
+            uint updatedPotPerEpoch = potByEpoch[_epochs[i]].value[_token].add(_values[i]);
+            potByEpoch[_epochs[i]].value[_token] = updatedPotPerEpoch;
+            emit PotFunded(msg.sender, _epochs[i], _token, _source, _values[i], updatedPotPerEpoch);
             totalValue = totalValue.add(_values[i]);
         }
-        require(LINProxy.transferFrom(_source, address(this), totalValue), "Pot: Couldn't add to pot");
+        require(IERC20(tokens[_token]).transferFrom(_source, address(this), totalValue), "Pot: Couldn't add to pot");
         return true;
     }
 
@@ -185,7 +209,7 @@ contract Pot is Initializable{
     function claimFeeReward(bytes32 _role, 
                             uint[] memory _epochsToClaim) 
                             public {
-        uint claimedAmount;
+        uint[] memory claimedAmount;
         uint currentEpoch = getEpoch(block.number);
         ClaimWait memory claimWaitForRole = claimWait[_role];
         if(claimWaitForRole.epochOfepochsToWaitForClaimsUpdate <= currentEpoch) {
@@ -198,9 +222,12 @@ contract Pot is Initializable{
             if(!currentPot.isClaimsStarted) {
                 if(currentEpoch.sub(_epochsToClaim[i]) > claimWaitForRole.epochsToWaitForClaims) {
                     for(uint j=0; j < ids.length; j++) {
-                        potByEpoch[_epochsToClaim[i]].allocation[ids[j]] = potAllocation[ids[j]].mul(
-                                                                                currentPot.value
-                                                                             ).div(100);
+                        for(uint k=0; k < tokenList.length; k++) {
+                            potByEpoch[_epochsToClaim[i]].allocation[ids[j]][tokenList[k]] = 
+                                potAllocation[ids[j]].mul(
+                                    potByEpoch[_epochsToClaim[i]].value[tokenList[k]]
+                                ).div(100);
+                        }
                     }
                     potByEpoch[_epochsToClaim[i]].isClaimsStarted = true;
                 } else {
@@ -209,20 +236,24 @@ contract Pot is Initializable{
                 }
             }
             uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
-            uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role].mul(noOfClaims).div(
+            for(uint j=0; j < tokenList.length; j++) {
+                uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]].mul(noOfClaims).div(
                                     potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]
                                 );
-            potByEpoch[_epochsToClaim[i]].allocation[_role] = potByEpoch[_epochsToClaim[i]].allocation[_role].sub(
-                                                                    claimAmount
-                                                                );
+                potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]] = 
+                    potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]].sub(claimAmount);
+                
+                claimedAmount[j] = claimedAmount[j].add(claimAmount);
+                emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
+                            noOfClaims, tokenList[j], potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]]);
+            }
             potByEpoch[_epochsToClaim[i]].claimsRemaining[_role] = 
                 potByEpoch[_epochsToClaim[i]].claimsRemaining[_role].sub(noOfClaims);
             potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender] = 0;
-            emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
-                            noOfClaims, potByEpoch[_epochsToClaim[i]].allocation[_role]);
-            claimedAmount = claimedAmount.add(claimAmount);
         }
-        LINProxy.transfer(msg.sender, claimedAmount);
+        for(uint i=0; i < tokenList.length; i++) {
+            IERC20(tokens[tokenList[i]]).transfer(msg.sender, claimedAmount[i]);
+        }
     }
 
     function getMaxClaims(uint _epoch, 
@@ -233,7 +264,7 @@ contract Pot is Initializable{
         return potByEpoch[_epoch].maxClaims[_role];
     }
 
-    function getPotValue(uint _epoch) public view returns(uint) {
-        return potByEpoch[_epoch].value;
+    function getPotValue(uint _epoch, bytes32 _tokenId) public view returns(uint) {
+        return potByEpoch[_epoch].value[_tokenId];
     }
 }

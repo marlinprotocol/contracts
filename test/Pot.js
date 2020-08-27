@@ -107,7 +107,7 @@ contract("Reward Pot", async function (accounts) {
 
     });
 
-    it("check adding  funds to pot", () => {
+    it("check adding funds to pot", () => {
 
     });
 
