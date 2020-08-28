@@ -113,21 +113,20 @@ contract Pot is Initializable{
                                         onlyGovernanceEnforcer 
                                         public 
                                         returns(bool) {
+        require(_epochToUpdate > Pot.getEpoch(block.number), "Pot: can't  change wait time for claims in previous epochs");
         claimWait[_role].nextEpochsToWaitForClaims = _updatedWaitEpochs;
         claimWait[_role].epochOfepochsToWaitForClaimsUpdate = _epochToUpdate;
         return true;
     }
 
     // Note: Updating blocksperepoch will lead to too many complications
-    // function changeEthBlocksPerEpoch(uint _updatedBlockPerEpoch, 
-    //                                 uint _epochToUpdate) 
-    //                                 onlyGovernanceEnforcer 
-    //                                 public 
-    //                                 returns(bool) {
-    //     blocksPerEpoch.nextEthBlockPerEpoch = _updatedBlockPerEpoch;
-    //     blocksPerEpoch.epochOfEthBlocksPerEpochUpdate = _epochToUpdate;
-    //     return true;
-    // }
+    function changeEthBlocksPerEpoch(uint _updatedBlockPerEpoch) 
+                                    onlyGovernanceEnforcer 
+                                    public 
+                                    returns(bool) {
+        blocksPerEpoch = _updatedBlockPerEpoch;
+        return true;
+    }
 
     function allocatePot(bytes32[] memory _ids, 
                         uint[] memory _fractionPerCent) 
@@ -226,10 +225,11 @@ contract Pot is Initializable{
                     potByEpoch[_epochsToClaim[i]].isClaimsStarted = true;
                 } else {
                     //todo: Should we throw error here or continue
-                    continue;
+                    require(false, "Pot: Fee can't be redeemed before wait time");
                 }
             }
             uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
+            require(noOfClaims > 0, "Pot: No claims to redeem");
             for(uint j=0; j < tokenList.length; j++) {
                 uint claimAmount = potByEpoch[_epochsToClaim[i]].allocation[_role][tokenList[j]].mul(noOfClaims).div(
                                     potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]
@@ -260,5 +260,17 @@ contract Pot is Initializable{
 
     function getPotValue(uint _epoch, bytes32 _tokenId) public view returns(uint) {
         return potByEpoch[_epoch].value[_tokenId];
+    }
+
+    function getClaims(uint _epoch, bytes32 _role, address _claimer) public view returns(uint) {
+        return potByEpoch[_epoch].claims[_role][_claimer];
+    }
+
+    function getRemainingClaims(uint _epoch, bytes32 _role) public view returns(uint) {
+        return potByEpoch[_epoch].claimsRemaining[_role];
+    }
+
+    function getEpochAllocation(uint _epoch, bytes32 _role, bytes32 _token) public view returns(uint) {
+        return potByEpoch[_epoch].allocation[_role][_token];
     }
 }

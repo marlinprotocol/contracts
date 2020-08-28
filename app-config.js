@@ -4,7 +4,7 @@ let governanceProxyAccountIndex = 6;
 let relayerAccountIndex = 7;
 // Number of blocks to Delay from the current block to start the pot
 // This block should be start of first epoch
-let potFirstEpochStartBlockDelay = 10;
+let potFirstEpochStartBlockDelay = 1;
 // Number of Eth Blocks per epoch
 let EthBlockPerEpoch = 5;
 // Ensure that total allocation is 100
@@ -13,7 +13,7 @@ let roleParams = {
         roleId: "0x0000000000000000000000000000000000000000000000000000000000000000",
         allocation: 30,
         // Epochs to wait before claiming fee rewards
-        epochsToWaitForClaims: 5,
+        epochsToWaitForClaims: 1,
         // Epochs by which luck will trail
         // Last confirmed luck depends on how many epochs are allowed to submit tickets
         luckTrailingEpochs: 5,
@@ -48,7 +48,8 @@ let clusterMinStake = 10;
 let LINData = {
     name: "Marlin Protocol",
     symbol: "LIN",
-    decimals: 18
+    decimals: 18,
+    id: "0xf16beb5846e557de31bd8fec4a0a6ec8dd91f2aa17a5118d4b2ab7d9ab14abbc" // keccak256("LIN")
 }
 
 module.exports = {

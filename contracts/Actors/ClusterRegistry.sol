@@ -15,6 +15,8 @@ contract ClusterRegistry is Initializable{
     Pot pot;
     address GovernanceEnforcerProxy;
 
+    bool isClustersAccepted;
+
     enum ClusterStatus { DOESNT_EXIST, WAITING_TO_JOIN, ACTIVE, EXITING}
 
     struct ClusterData {
@@ -55,8 +57,19 @@ contract ClusterRegistry is Initializable{
         _;
     }
 
+    function openClusterRegistry() public onlyGovernanceEnforcer returns(bool)  {
+        isClustersAccepted = true;
+        return true;
+    }
+
+    function closeClusterRegistry() public onlyGovernanceEnforcer returns(bool)  {
+        isClustersAccepted = false;
+        return true;
+    }
+
     function addCluster(uint _stakeValue) public returns(bool) {
         ClusterData memory cluster = clusters[msg.sender];
+        require(isClustersAccepted, "ClusterRegistry: Clusters are not accepted");
         require(cluster.stake.add(_stakeValue) >= minStakeAmount, "ClusterRegistry: Stake less than min reqd stake");
         clusters[msg.sender].stake = cluster.stake.add(_stakeValue);
         if(cluster.status == ClusterStatus.DOESNT_EXIST) {

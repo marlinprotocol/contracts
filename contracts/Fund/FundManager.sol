@@ -239,6 +239,8 @@ contract FundManager is Initializable{
         funds[_pot] = fund;
         require(fundBalance >= withdrawalAmount, "Balance with fund not sufficient");
         fundBalance = fundBalance.sub(withdrawalAmount);
+        uint approvedTokens = LINProxy.allowance(address(this), _pot);
+        withdrawalAmount = withdrawalAmount.add(approvedTokens);
         require(LINProxy.approve(_pot, withdrawalAmount), "Fund not allocated to pot");
         emit FundDrawn(_pot, withdrawalAmount, fundBalance);
         return localInflationLog;
