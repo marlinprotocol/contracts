@@ -113,7 +113,8 @@ contract Pot is Initializable{
                                         onlyGovernanceEnforcer 
                                         public 
                                         returns(bool) {
-        require(_epochToUpdate > Pot.getEpoch(block.number), "Pot: can't  change wait time for claims in previous epochs");
+        require(_epochToUpdate > Pot.getEpoch(block.number), 
+            "Pot: can't  change wait time for claims in previous epochs");
         claimWait[_role].nextEpochsToWaitForClaims = _updatedWaitEpochs;
         claimWait[_role].epochOfepochsToWaitForClaimsUpdate = _epochToUpdate;
         return true;

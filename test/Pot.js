@@ -3,6 +3,7 @@ const LINProxy = artifacts.require("TokenProxy.sol");
 
 const Pot = artifacts.require("Pot.sol");
 const PotProxy = artifacts.require("PotProxy.sol");
+
 const utils = require("web3-utils");
 const truffleAssert = require("truffle-assertions");
 
