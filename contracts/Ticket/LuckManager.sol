@@ -88,7 +88,7 @@ contract LuckManager is Initializable{
                                                 luckForCurrentRole.averagingEpochs) 
                                                 && (epochCounter > luckForCurrentRole.startingEpoch); 
                                                 epochCounter--) {
-                if(luckByRoles[_role].maxClaims[epochCounter]!= 0) {
+                if(luckByRoles[_role].maxClaims[epochCounter] == 0) {
                     uint maxClaimAtEpoch = pot.getMaxClaims(epochCounter, _role);
                     luckByRoles[_role].maxClaims[epochCounter] = maxClaimAtEpoch;
                 }
