@@ -1,2 +1,2 @@
-// Initialize 
+// Initialize
 // Producer.sol

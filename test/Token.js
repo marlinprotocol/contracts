@@ -14,6 +14,7 @@ contract.skip("Marlin Token", function (accounts) {
       return instance;
     });
   });
+
   it("initializes with token", function () {
     return TokenLogic.at(TokenProxy.address)
       .then(function (instance) {
