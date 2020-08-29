@@ -6,19 +6,24 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Token/TokenLogic.sol";
 import "./ClusterRegistry.sol";
 
+
 interface ICluster {
-    function isRelayer(address _receiver) external view returns(bool);
-    function getTotalRelayers() external view returns(uint);
+    function isRelayer(address _receiver) external view returns (bool);
+
+    function getTotalRelayers() external view returns (uint256);
 }
 
-contract Cluster is Initializable, ICluster {
 
+contract Cluster is Initializable, ICluster {
     mapping(address => bool) relayers;
-    uint totalRelayers;
+    uint256 totalRelayers;
     TokenLogic LINToken;
     ClusterRegistry clusterRegistry;
 
-    function initialize(address _LINToken, address _clusterRegistry) public initializer {
+    function initialize(address _LINToken, address _clusterRegistry)
+        public
+        initializer
+    {
         LINToken = TokenLogic(_LINToken);
         clusterRegistry = ClusterRegistry(_clusterRegistry);
     }
@@ -33,16 +38,22 @@ contract Cluster is Initializable, ICluster {
         totalRelayers--;
     }
 
-    function register(uint _amountToStake) public {
-        require(LINToken.approve(address(clusterRegistry), _amountToStake), "Stake could not be allocated");
-        require(clusterRegistry.addCluster(_amountToStake), "couldn't register cluster with registry");
+    function register(uint256 _amountToStake) public {
+        require(
+            LINToken.approve(address(clusterRegistry), _amountToStake),
+            "Stake could not be allocated"
+        );
+        require(
+            clusterRegistry.addCluster(_amountToStake),
+            "couldn't register cluster with registry"
+        );
     }
 
-    function isRelayer(address _receiver) public view returns(bool) {
+    function isRelayer(address _receiver) public view returns (bool) {
         return relayers[_receiver];
     }
 
-    function getTotalRelayers() public view returns(uint) {
+    function getTotalRelayers() public view returns (uint256) {
         return totalRelayers;
     }
 }

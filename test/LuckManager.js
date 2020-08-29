@@ -1,5 +1,3 @@
-const { it } = require("ethers/wordlists");
-
 const Pot = artifacts.require("Pot.sol");
 const PotProxy = artifacts.require("PotProxy.sol");
 
@@ -36,7 +34,7 @@ contract("Luck Manager", function (accounts) {
   it("Get luck for a specific epoch and role", async () => {
     // Try getting luck for future epochs and verify against expected
     // Try getting luck for startingEpoch+1 and verify against expected
-    // Try getting luck for startingEpoch+5 and verify against expected basically skip some epochs so that it computes luck for skipped epochs recursively 
+    // Try getting luck for startingEpoch+5 and verify against expected basically skip some epochs so that it computes luck for skipped epochs recursively
     // Try getting a alreday fetched luck and see that gas costs should be very low and verify against expected
   });
 
@@ -48,10 +46,10 @@ contract("Luck Manager", function (accounts) {
   });
 
   it("Change Role params with goverance", async () => {
-      // Check if changeLuckTrailingEpochs is being set with and without governance
-      // Check if changeTargetClaims is being set with and without governance
-      // Check if changeAveragingEpochs is being set with and without governance
-      // Check if changeVarianceTolerance is being set with and without governance
-      // Check if changeChangeSteps is being set with and without governance
+    // Check if changeLuckTrailingEpochs is being set with and without governance
+    // Check if changeTargetClaims is being set with and without governance
+    // Check if changeAveragingEpochs is being set with and without governance
+    // Check if changeVarianceTolerance is being set with and without governance
+    // Check if changeChangeSteps is being set with and without governance
   });
 });

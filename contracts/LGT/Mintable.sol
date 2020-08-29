@@ -6,6 +6,7 @@ import "../Token/TokenLogic.sol";
 import "./Curve.sol";
 import "./VoteDelegate.sol";
 
+
 contract Mintable is Initializable, ERC20, Curve, VoteDelegate {
     address tokenToBurn;
     TokenLogic token;
