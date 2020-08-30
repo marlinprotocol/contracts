@@ -18,7 +18,7 @@ var defaultInstance;
 var potInstance;
 var govInstance;
 
-contract("Cluster Registry", function (accounts) {
+contract.skip("Cluster Registry", function (accounts) {
   it("deploy and initialise the contracts", function () {
     return TokenProxy.deployed({from: accounts[1]})
       .then(function () {

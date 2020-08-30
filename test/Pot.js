@@ -227,7 +227,7 @@ contract("Reward Pot", async function (accounts) {
 
   it("check Epoch calculations", async () => {});
 
-  it.skip("check adding funds to pot", async () => {
+  it("check adding funds to pot", async () => {
     await before();
     await LINInstance.approve(PotInstance.address, 40);
     await truffleAssert.reverts(
@@ -242,7 +242,7 @@ contract("Reward Pot", async function (accounts) {
       )
     );
     assert(
-      LINInstance.allowance(accounts[0], PotInstance.address) == 40,
+      await LINInstance.allowance(accounts[0], PotInstance.address) == 40,
       "Allowance not set correctly"
     );
     await LINInstance.approve(PotInstance.address, 99);
@@ -255,7 +255,7 @@ contract("Reward Pot", async function (accounts) {
         from: accounts[20],
       }
     );
-    let potValue = PotInstance.getPotValue(4, appConfig.LINData.id);
+    let potValue = await PotInstance.getPotValue(4, appConfig.LINData.id);
     assert(potValue == 47, "Funds not added to pot");
   });
 
@@ -320,13 +320,6 @@ contract("Reward Pot", async function (accounts) {
         5,
         appConfig.roleParams.producer.roleId
       )) == 1
-    );
-    assert(
-      (await PotInstance.getEpochAllocation(
-        5,
-        appConfig.roleParams.producer.roleId,
-        appConfig.LINData.id
-      )) == 0
     );
     await PotInstance.claimTicket(
       [
@@ -441,9 +434,13 @@ contract("Reward Pot", async function (accounts) {
     );
     // Fails as wait time is not completed
     await truffleAssert.reverts(
-      PotInstance.claimFeeReward(appConfig.roleParams.receiver.roleId, [
-        originalEpoch,
-      ]),
+      PotInstance.claimFeeReward(
+        appConfig.roleParams.receiver.roleId, 
+        [originalEpoch],
+        {
+          from: accounts[13],
+        }
+      ),
       "Pot: Fee can't be redeemed before wait time"
     );
     let currentEpoch = await PotInstance.getEpoch(
@@ -534,6 +531,10 @@ contract("Reward Pot", async function (accounts) {
       [appConfig.LINData.id],
       [LINInstance.address],
       claimWaitEpochs
+    );
+    await LINInstance.mint(
+      accounts[0], 
+      100000
     );
   }
 

@@ -1,5 +1,3 @@
-const { it } = require("ethers/wordlists");
-
 const Pot = artifacts.require("Pot.sol");
 const PotProxy = artifacts.require("PotProxy.sol");
 
