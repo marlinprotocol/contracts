@@ -34,13 +34,16 @@ contract Curve {
     }
 
     function curve(uint256 x, uint256 amount) public pure returns (uint256 y) {
-        require(x >= 10**27, "Tokens should be more than or equal to 1 billion");
+        require(
+            x >= 10**27,
+            "Tokens should be more than or equal to 1 billion"
+        );
         uint256 _temp = add(x, amount);
         _temp = sub(_temp, 10**27);
         _temp = multiply(_temp, _temp);
-        _temp = multiply(_temp, 4113*(10**10));
+        _temp = multiply(_temp, 4113 * (10**10));
         _temp = divide(_temp, 10**54);
-        _temp = add(_temp, 8570*(10**10));
+        _temp = add(_temp, 8570 * (10**10));
         _temp = multiply(_temp, amount);
         y = divide(_temp, 10**12);
     }

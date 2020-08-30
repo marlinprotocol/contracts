@@ -9,7 +9,7 @@ const truffleAssert = require("truffle-assertions");
 
 const appConfig = require("../app-config");
 
-contract("Reward Pot", async function (accounts) {
+contract.skip("Reward Pot", async function (accounts) {
   let LINInstance;
   let PotInstance;
   let localConfig;
