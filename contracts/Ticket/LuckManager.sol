@@ -26,7 +26,7 @@ contract LuckManager is Initializable {
         mapping(uint256 => uint256) maxClaims;
     }
 
-    mapping(bytes32 => LuckPerRole) luckByRoles;
+    mapping(bytes32 => LuckPerRole) public luckByRoles;
 
     modifier onlyGovernanceEnforcer() {
         require(
@@ -79,6 +79,11 @@ contract LuckManager is Initializable {
         );
         luckByRoles[_role].luckLimit[_startingEpoch] = _initialLuck;
         return true;
+    }
+
+    function getCurrentLuck(bytes32 _role) public returns (uint256) {
+        uint256 currentEpoch = pot.getEpoch(block.number);
+        return getLuck(currentEpoch, _role);
     }
 
     function getLuck(uint256 _epoch, bytes32 _role) public returns (uint256) {

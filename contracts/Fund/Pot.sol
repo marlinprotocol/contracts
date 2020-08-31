@@ -263,10 +263,11 @@ contract Pot is Initializable {
     function claimFeeReward(bytes32 _role, uint256[] memory _epochsToClaim)
         public
     {
-        uint256[] memory claimedAmount;
         uint256 currentEpoch = getEpoch(block.number);
         uint256 currentClaimWait = handleChangeToEpochWait(_role, currentEpoch);
         bytes32[] memory memTokenList = tokenList;
+        uint256[] memory claimedAmount = new uint256[](memTokenList.length);
+
         for (uint256 i = 0; i < _epochsToClaim.length; i++) {
             require(
                 currentEpoch.sub(_epochsToClaim[i]) > currentClaimWait,
@@ -297,7 +298,8 @@ contract Pot is Initializable {
                     noOfClaims,
                     tokenList[j]
                 );
-                claimedAmount[j] = claimedAmount[j].add(claimAmount);
+                uint256 newAmount = claimedAmount[j].add(claimAmount);
+                claimedAmount[j] = newAmount;
             }
             potByEpoch[_epochsToClaim[i]]
                 .claimsRemaining[_role] = potByEpoch[_epochsToClaim[i]]
