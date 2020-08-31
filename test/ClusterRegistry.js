@@ -181,9 +181,9 @@ contract.skip("Cluster Registry", function (accounts) {
         console.log(epoch);
         return addBlocks(30, accounts);
       })
-      .then(function(){
+      .then(function () {
         return clusterInstance.exit();
-      })
+      });
   });
 });
 

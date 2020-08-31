@@ -26,7 +26,9 @@ let roleParams = {
         // Maximum variance from average of previous epochs during which luck doesn't change (in %)
         varianceTolerance: 20,
         // Steps in which luck changes (in %)
-        changeSteps: 20
+        changeSteps: 20,
+        // inital luck user
+        initialLuck: 20
     },
     "receiver": {
         roleId: "0x0000000000000000000000000000000000000000000000000000000000000001",
@@ -37,7 +39,8 @@ let roleParams = {
         averaginingEpochs: 5,
         startingEpoch: 0,
         varianceTolerance: 20,
-        changeSteps: 20
+        changeSteps: 20,
+        initialLuck: 45
     }
 };
 // Number of epochs for clusters to wait before exiting the network.

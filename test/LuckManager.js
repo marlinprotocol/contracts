@@ -1,10 +1,19 @@
+const LINToken = artifacts.require("TokenLogic.sol");
+const LINProxy = artifacts.require("TokenProxy.sol");
+
 const Pot = artifacts.require("Pot.sol");
 const PotProxy = artifacts.require("PotProxy.sol");
 
 const Luck = artifacts.require("LuckManager.sol");
 const LuckProxy = artifacts.require("LuckManagerProxy.sol");
 
-contract.skip("Luck Manager", function (accounts) {
+const appConfig = require("../app-config");
+
+var LuckInstance;
+var PotInstance;
+var LinInstance;
+
+contract("Luck Manager", function (accounts) {
   let LuckInstance;
   let PotInstance;
   it("deploy all contracts", async function () {
@@ -14,9 +23,76 @@ contract.skip("Luck Manager", function (accounts) {
     let luckDeployment = await Luck.new();
     let luckProxyInstance = await LuckProxy.new(luckDeployment.address);
     LuckInstance = await Pot.at(luckProxyInstance.address);
+    let linDeployment = await LINToken.new();
+    let linProxy = await LINProxy.new(linDeployment.address);
+    LinInstance = await LINToken.at(linProxy.address);
   });
 
-  it("Initialize all contracts", async () => {});
+  it("Initialize all contracts", async () => {
+    // address _governanceEnforcerProxy,
+    // address _pot,
+    // bytes32[] memory _roles,
+    // uint256[][] memory _luckPerRoles
+    let {name, symbol, decimals} = appConfig.LINData;
+
+    return LinInstance.initialize(name, symbol, decimals)
+      .then(async function () {
+        let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
+        let firstEpochStartBlock;
+        let EthBlocksPerEpoch = appConfig.EthBlockPerEpoch;
+        await web3.eth.getBlockNumber((err, blockNo) => {
+          firstEpochStartBlock =
+            blockNo + appConfig.potFirstEpochStartBlockDelay;
+        });
+        let roles = [];
+        let distribution = [];
+        let claimWaitEpochs = [];
+        for (let role in appConfig.roleParams) {
+          let currentRole = appConfig.roleParams[role];
+          roles.push(currentRole.roleId);
+          distribution.push(currentRole.allocation);
+          claimWaitEpochs.push(currentRole.epochsToWaitForClaims);
+        }
+        return PotInstance.initialize(
+          governanceProxy,
+          firstEpochStartBlock,
+          EthBlocksPerEpoch,
+          roles,
+          distribution,
+          [appConfig.LINData.id],
+          [LinInstance.address],
+          claimWaitEpochs
+        );
+      })
+      .then(function () {
+        let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
+        let {producer, receiver} = appConfig.roleParams;
+        let luckRoleParams = [producer, receiver].map(function (entity) {
+          return [
+            entity.luckTrailingEpochs,
+            entity.targetClaims,
+            entity.averaginingEpochs,
+            entity.startingEpoch,
+            entity.varianceTolerance,
+            entity.changeSteps,
+            entity.initialLuck,
+          ];
+        });
+
+        console.log(
+          governanceProxy,
+          PotInstance.address,
+          [producer.roleId, receiver.roleId],
+          luckRoleParams
+        );
+        return LuckInstance.initialize(
+          governanceProxy,
+          PotInstance.address,
+          [producer.roleId, receiver.roleId],
+          luckRoleParams
+        );
+      });
+  });
 
   it("Check all initilization params", async () => {
     // check  if luckTrailingEpochs, targetClaims, averagingEpochs, startingEpoch,
