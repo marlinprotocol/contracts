@@ -4,7 +4,7 @@ const PotProxy = artifacts.require("PotProxy.sol");
 const Luck = artifacts.require("LuckManager.sol");
 const LuckProxy = artifacts.require("LuckManagerProxy.sol");
 
-contract("Luck Manager", function (accounts) {
+contract.skip("Luck Manager", function (accounts) {
   let LuckInstance;
   let PotInstance;
   it("deploy all contracts", async function () {

@@ -388,9 +388,9 @@ contract.skip("Reward Pot", async function (accounts) {
     });
     // approve LIN to pot
     await LINInstance.approve(PotInstance.address, 99);
-    let originalEpoch = await PotInstance.getEpoch(
+    let originalEpoch = parseInt(await PotInstance.getEpoch(
       await web3.eth.getBlockNumber()
-    );
+    ), "hex");
     console.log(originalEpoch);
     await truffleAssert.reverts(
       PotInstance.changeEpochsToWaitForClaims(
