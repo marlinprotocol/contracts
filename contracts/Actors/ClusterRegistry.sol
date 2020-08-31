@@ -129,12 +129,12 @@ contract ClusterRegistry is Initializable {
                 currentEpoch > cluster.exitEpoch,
             "ClusterRegistry: Exit conditions not met"
         );
+        delete clusters[msg.sender];
         require(
             LINProxy.transfer(msg.sender, cluster.stake),
             "ClusterRegistry: Remaining stake couldn't be returned"
         );
         emit ClusterExited(msg.sender, cluster.stake, currentEpoch);
-        delete clusters[msg.sender];
     }
 
     function getClusterStatus(address _clusterAddress)

@@ -59,6 +59,7 @@ contract VerifierProducer is Initializable {
         )
     {
         bytes32 blockHash = keccak256(_blockHeader);
+        rewardedBlocks[blockHash] = true;
         require(!rewardedBlocks[blockHash], "Block header already rewarded");
         bytes memory coinBase = extractCoinBase(_blockHeader);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
@@ -131,7 +132,7 @@ contract VerifierProducer is Initializable {
                 "Verifier_Producer: Ticket claim failed"
             );
         }
-        rewardedBlocks[blockHash] = true;
+        
         return (producerRole, actualProducer, epoch);
     }
 

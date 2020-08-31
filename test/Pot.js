@@ -466,7 +466,7 @@ contract.skip("Reward Pot", async function (accounts) {
         from: accounts[13],
       }
     );
-    // Should fail as fee is already
+    // Should fail as fee is already claimed
     await truffleAssert.reverts(
       PotInstance.claimFeeReward(
         appConfig.roleParams.receiver.roleId,
@@ -494,8 +494,9 @@ contract.skip("Reward Pot", async function (accounts) {
     let proxyInstance = await LINProxy.new(LINDeployment.address);
     LINInstance = await LINToken.at(proxyInstance.address);
     let potDeployment = await Pot.new();
-    let potProxyInstance = await PotProxy.new(potDeployment.address);
-    PotInstance = await Pot.at(potProxyInstance.address);
+    // let potProxyInstance = await PotProxy.new(potDeployment.address);
+    // PotInstance = await Pot.at(potProxyInstance.address);
+    PotInstance  = potDeployment;
     // Initialize
     await LINInstance.initialize(
       appConfig.LINData.name,

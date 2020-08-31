@@ -73,6 +73,12 @@ contract VerifierReceiver is Initializable {
             _relayerSig
         );
 
+        bytes32 ticket = keccak256(
+            abi.encodePacked(relayerSigPayload, _relayerSig)
+        );
+
+        claimedTickets[ticket] = true;
+
         require(
             uint256(clusterRegistry.getClusterStatus(_cluster)) == 2,
             "Verifier_Receiver: Cluster isn't active"
@@ -82,9 +88,6 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Relayer isn't part of cluster"
         );
 
-        bytes32 ticket = keccak256(
-            abi.encodePacked(relayerSigPayload, _relayerSig)
-        );
         require(
             !claimedTickets[ticket],
             "Verifier_Receiver: Ticket already claimed"
@@ -132,7 +135,6 @@ contract VerifierReceiver is Initializable {
                 "Verifier_Receiver: Ticket claim failed"
             );
         }
-        claimedTickets[ticket] = true;
         return (receiverRole, _cluster, epoch);
     }
 
