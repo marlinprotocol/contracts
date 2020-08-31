@@ -9,10 +9,14 @@ contract.skip("Marlin Token", function (accounts) {
 
   it("deploy and initialise the contracts", function () {
     // proxy admin is a different account
-    return TokenProxy.deployed({from: accounts[1]}).then(function (instance) {
-      tokenProxy = instance;
-      return instance;
-    });
+    return TokenLogic.new({from: accounts[1]})
+      .then(function (logic) {
+        return TokenProxy.new(logic.address, {from: accounts[1]});
+      })
+      .then(function (instance) {
+        tokenProxy = instance;
+        return instance;
+      });
   });
 
   it("initializes with token", function () {

@@ -12,14 +12,20 @@ contract.skip("LGT", function (accounts) {
   var tokenAddress;
 
   it("deploy all contracts", function () {
-    return TokenProxy.deployed({from: accounts[1]})
+    return TokenLogic.new({from: accounts[1]})
+      .then(function (logic) {
+        return TokenProxy.new(logic.address, {from: accounts[1]});
+      })
       .then(function (instance) {
         return TokenLogic.at(instance.address);
       })
       .then(function (instance) {
         tokenInstance = instance;
         tokenAddress = instance.address;
-        return LGTProxy.deployed({from: accounts[1]});
+        return LGTLogic.new({from: accounts[1]});
+      })
+      .then(function (logic) {
+        return LGTProxy.new(logic.address, {from: accounts[1]});
       })
       .then(function (instance) {
         return LGTLogic.at(instance.address);

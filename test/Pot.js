@@ -242,7 +242,7 @@ contract.skip("Reward Pot", async function (accounts) {
       )
     );
     assert(
-      await LINInstance.allowance(accounts[0], PotInstance.address) == 40,
+      (await LINInstance.allowance(accounts[0], PotInstance.address)) == 40,
       "Allowance not set correctly"
     );
     await LINInstance.approve(PotInstance.address, 99);
@@ -435,7 +435,7 @@ contract.skip("Reward Pot", async function (accounts) {
     // Fails as wait time is not completed
     await truffleAssert.reverts(
       PotInstance.claimFeeReward(
-        appConfig.roleParams.receiver.roleId, 
+        appConfig.roleParams.receiver.roleId,
         [originalEpoch],
         {
           from: accounts[13],
@@ -496,7 +496,7 @@ contract.skip("Reward Pot", async function (accounts) {
     let potDeployment = await Pot.new();
     // let potProxyInstance = await PotProxy.new(potDeployment.address);
     // PotInstance = await Pot.at(potProxyInstance.address);
-    PotInstance  = potDeployment;
+    PotInstance = potDeployment;
     // Initialize
     await LINInstance.initialize(
       appConfig.LINData.name,
@@ -533,10 +533,7 @@ contract.skip("Reward Pot", async function (accounts) {
       [LINInstance.address],
       claimWaitEpochs
     );
-    await LINInstance.mint(
-      accounts[0], 
-      100000
-    );
+    await LINInstance.mint(accounts[0], 100000);
   }
 
   function getRole(roleIndex) {
