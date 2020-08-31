@@ -9,7 +9,7 @@ const truffleAssert = require("truffle-assertions");
 
 const appConfig = require("../app-config");
 
-contract.skip("Reward Pot", async function (accounts) {
+contract("Reward Pot", async function (accounts) {
   let LINInstance;
   let PotInstance;
   let localConfig;
@@ -156,13 +156,16 @@ contract.skip("Reward Pot", async function (accounts) {
       "Random account is able to add verifiers"
     );
     // changeEpochsToWaitForClaims
-    await PotInstance.changeEpochsToWaitForClaims(1217, 2, "0x0", {
+    let currentEpoch = await PotInstance.getEpoch(
+      await web3.eth.getBlockNumber()
+    );
+    await PotInstance.changeEpochsToWaitForClaims(1217, currentEpoch+1, "0x0", {
       from: accounts[appConfig.governanceProxyAccountIndex],
     });
     let claimWait = await PotInstance.claimWait("0x0");
     assert(
       claimWait.nextEpochsToWaitForClaims == 1217 &&
-        claimWait.epochOfepochsToWaitForClaimsUpdate == 2,
+        claimWait.epochOfepochsToWaitForClaimsUpdate == currentEpoch+1,
       "Governance unable to change epochsToWaitForClaims"
     );
 
@@ -406,7 +409,7 @@ contract.skip("Reward Pot", async function (accounts) {
     // this will be effected from next epoch
     await PotInstance.changeEpochsToWaitForClaims(
       7,
-      originalEpoch + 2,
+      originalEpoch + 3,
       appConfig.roleParams.receiver.roleId,
       {
         from: accounts[appConfig.governanceProxyAccountIndex],
@@ -433,6 +436,16 @@ contract.skip("Reward Pot", async function (accounts) {
       }
     );
     // Fails as wait time is not completed
+    await truffleAssert.reverts(
+      PotInstance.claimFeeReward(
+        appConfig.roleParams.receiver.roleId,
+        [originalEpoch],
+        {
+          from: accounts[13],
+        }
+      ),
+      "Pot: Fee can't be redeemed before wait time"
+    );
     await truffleAssert.reverts(
       PotInstance.claimFeeReward(
         appConfig.roleParams.receiver.roleId,

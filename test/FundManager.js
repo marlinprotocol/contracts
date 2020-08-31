@@ -201,6 +201,12 @@ contract("Fund Manager", function (accounts) {
   });
 
   it("update fund pot", async () => {
+    await before();
+    let originalEpoch = parseInt(await PotInstance.getEpoch(
+      await web3.eth.getBlockNumber()
+    ), "hex");
+    let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
+    await FundInstance.createFund(PotInstance.address, 800, originalEpoch+100, originalEpoch, {from: governanceProxy});
     // try updating fund pot without governance
     // update pot fund address with governance and without governance
     // check if previous fund was remove and new one was added
@@ -208,6 +214,7 @@ contract("Fund Manager", function (accounts) {
 
   it("Draw from pot", async () => {
     // try drawing from a pot that doesn't exist
+    
     // try drawing from  a block which is already drawn
     // try drawing when there was a inflation change after last drawn epoch to drawn block
     // try drawing when fund ended

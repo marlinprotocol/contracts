@@ -22,7 +22,7 @@ contract("Luck Manager", function (accounts) {
     PotInstance = await Pot.at(potProxyInstance.address);
     let luckDeployment = await Luck.new();
     let luckProxyInstance = await LuckProxy.new(luckDeployment.address);
-    LuckInstance = await Pot.at(luckProxyInstance.address);
+    LuckInstance = await Luck.at(luckProxyInstance.address);
     let linDeployment = await LINToken.new();
     let linProxy = await LINProxy.new(linDeployment.address);
     LinInstance = await LINToken.at(linProxy.address);
