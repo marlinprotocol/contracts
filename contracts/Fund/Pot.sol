@@ -12,7 +12,6 @@ contract Pot is Initializable {
 
     uint256 MAX_INT;
 
-    //TODO: Contract which contains all global variables like proxies
     address GovernanceEnforcerProxy;
 
     struct EpochPot {

@@ -11,15 +11,26 @@ contract Receiver is Initializable {
 
     TokenLogic LINToken;
     Pot pot;
+    address governanceEnforcerProxy;
+    
     uint256 subscriptionFee;
     mapping(uint256 => mapping(address => uint256)) receivers;
 
-    function initialize(address _LINAddress, address _potAddress)
+    modifier onlyGovernanceEnforcer() {
+        require(
+            msg.sender == address(governanceEnforcerProxy),
+            "ClusterRegistry: Function can only be invoked by Governance Enforcer"
+        );
+        _;
+    }
+
+    function initialize(address _LINAddress, address _potAddress, address _governanceEnforcerProxy)
         public
         initializer
     {
         LINToken = TokenLogic(_LINAddress);
         pot = Pot(_potAddress);
+        governanceEnforcerProxy = _governanceEnforcerProxy;
     }
 
     // Note: Both the startEpoch and  EndEpoch are included
@@ -73,5 +84,10 @@ contract Receiver is Initializable {
         returns (bool)
     {
         return (receivers[_blockNo][_receiver] > 0);
+    }
+
+    function changeSubscriptionFee(uint _updatedSubscriptionFee) external onlyGovernanceEnforcer returns(bool) {
+        subscriptionFee = _updatedSubscriptionFee;
+        return true;
     }
 }
