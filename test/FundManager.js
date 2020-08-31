@@ -24,7 +24,9 @@ contract("Fund Manager", function (accounts) {
     FundInstance = await Pot.at(fundProxyInstance.address);
   });
 
-  it("Initialize all contracts", async () => {});
+  it("Initialize all contracts", async () => {
+    
+  });
 
   it("verify all initilized variables", async () => {
     // check MAX_INT
