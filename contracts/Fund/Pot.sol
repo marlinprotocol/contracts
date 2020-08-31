@@ -17,12 +17,12 @@ contract Pot is Initializable {
 
     struct EpochPot {
         // tokenId to tokenValue in pot
-        mapping(bytes32 => uint) value;
-        mapping(bytes32 => uint) currentValue;
+        mapping(bytes32 => uint256) value;
+        mapping(bytes32 => uint256) currentValue;
         // roleId to address of claim to noOfClaims
-        mapping(bytes32 => mapping(address => uint)) claims;
-        mapping(bytes32 => uint) claimsRemaining;
-        mapping(bytes32 => uint) maxClaims;
+        mapping(bytes32 => mapping(address => uint256)) claims;
+        mapping(bytes32 => uint256) claimsRemaining;
+        mapping(bytes32 => uint256) maxClaims;
     }
 
     struct ClaimWait {
@@ -206,8 +206,17 @@ contract Pot is Initializable {
             uint256 updatedPotPerEpoch = potByEpoch[_epochs[i]].value[_token]
                 .add(_values[i]);
             potByEpoch[_epochs[i]].value[_token] = updatedPotPerEpoch;
-            potByEpoch[_epochs[i]].currentValue[_token] = potByEpoch[_epochs[i]].currentValue[_token].add(_values[i]);
-            emit PotFunded(msg.sender, _epochs[i], _token, _source, _values[i], updatedPotPerEpoch);
+            potByEpoch[_epochs[i]].currentValue[_token] = potByEpoch[_epochs[i]]
+                .currentValue[_token]
+                .add(_values[i]);
+            emit PotFunded(
+                msg.sender,
+                _epochs[i],
+                _token,
+                _source,
+                _values[i],
+                updatedPotPerEpoch
+            );
             totalValue = totalValue.add(_values[i]);
         }
         require(
@@ -248,31 +257,43 @@ contract Pot is Initializable {
         return true;
     }
 
-    function claimFeeReward(bytes32 _role, 
-                            uint[] memory _epochsToClaim) 
-                            public {
-        uint[] memory claimedAmount;
-        uint currentEpoch = getEpoch(block.number);
-        uint currentClaimWait = handleChangeToEpochWait(_role, currentEpoch);
+    function claimFeeReward(bytes32 _role, uint256[] memory _epochsToClaim)
+        public
+    {
+        uint256[] memory claimedAmount;
+        uint256 currentEpoch = getEpoch(block.number);
+        uint256 currentClaimWait = handleChangeToEpochWait(_role, currentEpoch);
         bytes32[] memory memTokenList = tokenList;
-        for(uint i=0; i < _epochsToClaim.length; i++) {
-            require(currentEpoch.sub(_epochsToClaim[i]) > currentClaimWait, 
-                "Pot: Fee can't be redeemed before wait time");
-            uint noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg.sender];
+        for (uint256 i = 0; i < _epochsToClaim.length; i++) {
+            require(
+                currentEpoch.sub(_epochsToClaim[i]) > currentClaimWait,
+                "Pot: Fee can't be redeemed before wait time"
+            );
+            uint256 noOfClaims = potByEpoch[_epochsToClaim[i]].claims[_role][msg
+                .sender];
             require(noOfClaims > 0, "Pot: No claims to redeem");
-            uint rolePotAllocation = potAllocation[_role];
-            for(uint j=0; j < memTokenList.length; j++) {
-                uint allocatedValue = potByEpoch[_epochsToClaim[i]].value[memTokenList[j]].mul(
-                                        rolePotAllocation
-                                    ).div(100);
-                uint claimAmount = allocatedValue.mul(noOfClaims).div(
-                                        potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]
-                                    );
-                potByEpoch[_epochsToClaim[i]].currentValue[memTokenList[j]] = 
-                    potByEpoch[_epochsToClaim[i]].currentValue[memTokenList[j]].sub(claimAmount);
-                
-                emit FeeClaimed(_role, msg.sender, claimAmount, _epochsToClaim[i], 
-                            noOfClaims, tokenList[j]);
+            uint256 rolePotAllocation = potAllocation[_role];
+            for (uint256 j = 0; j < memTokenList.length; j++) {
+                uint256 allocatedValue = potByEpoch[_epochsToClaim[i]]
+                    .value[memTokenList[j]]
+                    .mul(rolePotAllocation)
+                    .div(100);
+                uint256 claimAmount = allocatedValue.mul(noOfClaims).div(
+                    potByEpoch[_epochsToClaim[i]].claimsRemaining[_role]
+                );
+                potByEpoch[_epochsToClaim[i]]
+                    .currentValue[memTokenList[j]] = potByEpoch[_epochsToClaim[i]]
+                    .currentValue[memTokenList[j]]
+                    .sub(claimAmount);
+
+                emit FeeClaimed(
+                    _role,
+                    msg.sender,
+                    claimAmount,
+                    _epochsToClaim[i],
+                    noOfClaims,
+                    tokenList[j]
+                );
                 claimedAmount[j] = claimedAmount[j].add(claimAmount);
             }
             potByEpoch[_epochsToClaim[i]]
@@ -286,34 +307,38 @@ contract Pot is Initializable {
         }
     }
 
-    function handleChangeToEpochWait(bytes32 _role, uint _currentEpoch) 
+    function handleChangeToEpochWait(bytes32 _role, uint256 _currentEpoch)
         internal
-        returns(uint) {
+        returns (uint256)
+    {
         ClaimWait memory claimWaitForRole = claimWait[_role];
-        if(claimWaitForRole.epochOfepochsToWaitForClaimsUpdate <= _currentEpoch) {
-            claimWaitForRole.epochsToWaitForClaims = claimWaitForRole.nextEpochsToWaitForClaims;
+        if (
+            claimWaitForRole.epochOfepochsToWaitForClaimsUpdate <= _currentEpoch
+        ) {
+            claimWaitForRole.epochsToWaitForClaims = claimWaitForRole
+                .nextEpochsToWaitForClaims;
             claimWaitForRole.epochOfepochsToWaitForClaimsUpdate = MAX_INT;
             claimWait[_role] = claimWaitForRole;
         }
         return claimWaitForRole.epochsToWaitForClaims;
     }
 
-    // function getClaimedAmountByTokens(bytes32[] memory memTokenList, 
-    //         uint claimEpoch, 
-    //         bytes32 role, 
+    // function getClaimedAmountByTokens(bytes32[] memory memTokenList,
+    //         uint claimEpoch,
+    //         bytes32 role,
     //         uint noOfClaims,
     //         uint[] memory claimedAmount
     //     )  internal
     //     returns(uint[] memory) {
-        
+
     //     return claimedAmount;
     // }
 
-    function getMaxClaims(uint _epoch, 
-                        bytes32 _role) 
-                        public 
-                        view 
-                        returns(uint) {
+    function getMaxClaims(uint256 _epoch, bytes32 _role)
+        public
+        view
+        returns (uint256)
+    {
         return potByEpoch[_epoch].maxClaims[_role];
     }
 
