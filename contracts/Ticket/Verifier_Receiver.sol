@@ -60,8 +60,9 @@ contract VerifierReceiver is Initializable {
     {
         bytes32 blockHash = keccak256(_blockHeader);
         address receiver = recoverSigner(blockHash, _receiverSig);
+        uint256 blockNumber = extractBlockNumber(_blockHeader);
         require(
-            receiverManager.isValidReceiver(receiver),
+            receiverManager.isValidReceiver(receiver, blockNumber),
             "Verifier_Receiver: Invalid Receiver"
         );
         bytes memory relayerSigPayload = abi.encodePacked(
@@ -92,7 +93,6 @@ contract VerifierReceiver is Initializable {
             !claimedTickets[ticket],
             "Verifier_Receiver: Ticket already claimed"
         );
-        uint256 blockNumber = extractBlockNumber(_blockHeader);
         uint256 epoch = pot.getEpoch(blockNumber);
         uint256 luckLimit = luckManager.getLuck(epoch, receiverRole);
         require(
@@ -175,7 +175,7 @@ contract VerifierReceiver is Initializable {
         public
         returns (uint256)
     {
-        // TODO: Implementation specific for blockchain
+        return 0;
     }
 
     //todo: Modify below 2 functions slightly

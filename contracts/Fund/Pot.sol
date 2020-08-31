@@ -191,9 +191,6 @@ contract Pot is Initializable {
         return _blockNumber.sub(firstEpochStartBlock).div(blocksPerEpoch);
     }
 
-    function getCurrentEpoch() public view returns (uint256){
-        return block.number.sub(firstEpochStartBlock).div(blocksPerEpoch);
-    }
 
     // todo: Is pot exclusively LIN pot and doesn't contain any other tokens
     // Note: These tokens should be approved by governance else can be attacked

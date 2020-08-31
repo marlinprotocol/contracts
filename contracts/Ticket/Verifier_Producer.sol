@@ -175,6 +175,7 @@ contract VerifierProducer is Initializable {
         returns (bytes memory)
     {
         // TODO: Implementation specific for blockchain
+        return bytes("0x00");
     }
 
     function extractBlockNumber(bytes memory blockHeader)
@@ -183,6 +184,7 @@ contract VerifierProducer is Initializable {
         returns (uint256)
     {
         // TODO: Implementation specific for blockchain
+        return 0;
     }
 
     //todo: Modify below 2 functions slightly
