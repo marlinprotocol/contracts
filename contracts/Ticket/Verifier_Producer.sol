@@ -132,7 +132,7 @@ contract VerifierProducer is Initializable {
                 "Verifier_Producer: Ticket claim failed"
             );
         }
-        
+
         return (producerRole, actualProducer, epoch);
     }
 
