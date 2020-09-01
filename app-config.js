@@ -1,13 +1,15 @@
 //TODO: remove this variable to use actual Governance Proxy
 let governanceProxyAccountIndex = 6;
 let verifiedClaimAccountIndex = 13;
-let rewardClaimerIndex = 14;
+let reward1ClaimerIndex = 14;
+let reward2ClaimerIndex = 14;
+let reward3ClaimerIndex = 14;
 let relayerAccountIndex = 7;
 // Number of blocks to Delay from the current block to start the pot
 // This block should be start of first epoch
 let potFirstEpochStartBlockDelay = 1;
 // Number of Eth Blocks per epoch
-let EthBlockPerEpoch = 5;
+let EthBlockPerEpoch = 1;
 // Ensure that total allocation is 100
 let roleParams = {
   producer: {
@@ -68,5 +70,5 @@ module.exports = {
   clusterMinStake,
   LINData,
   verifiedClaimAccountIndex,
-  rewardClaimerIndex,
+  reward1ClaimerIndex, reward2ClaimerIndex, reward3ClaimerIndex
 };

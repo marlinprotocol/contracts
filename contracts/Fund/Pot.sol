@@ -12,7 +12,6 @@ contract Pot is Initializable {
 
     uint256 MAX_INT;
 
-    //TODO: Contract which contains all global variables like proxies
     address GovernanceEnforcerProxy;
 
     struct EpochPot {
@@ -195,7 +194,6 @@ contract Pot is Initializable {
         return block.number.sub(firstEpochStartBlock).div(blocksPerEpoch);
     }
 
-    // todo: Is pot exclusively LIN pot and doesn't contain any other tokens
     // Note: These tokens should be approved by governance else can be attacked
     function addToPot(
         uint256[] memory _epochs,
@@ -267,7 +265,6 @@ contract Pot is Initializable {
         uint256 currentClaimWait = handleChangeToEpochWait(_role, currentEpoch);
         bytes32[] memory memTokenList = tokenList;
         uint256[] memory claimedAmount = new uint256[](memTokenList.length);
-
         for (uint256 i = 0; i < _epochsToClaim.length; i++) {
             require(
                 currentEpoch.sub(_epochsToClaim[i]) > currentClaimWait,

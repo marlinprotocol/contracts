@@ -12,7 +12,6 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 contract ClusterRegistry is Initializable {
     using SafeMath for uint256;
 
-    //todo: Should these addresses be editable by governance
     TokenLogic LINProxy;
     Pot pot;
     address public GovernanceEnforcerProxy;

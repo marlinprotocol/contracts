@@ -119,9 +119,14 @@ contract LuckManager is Initializable {
                     luckByRoles[_role].maxClaims[epochCounter]
                 );
             }
-            uint256 averageClaims = totalClaims.div(
-                epochAfterTrailing.sub(epochCounter)
-            );
+            uint256 averageClaims;
+            if (epochAfterTrailing == epochCounter) {
+                averageClaims = 0;
+            } else {
+                averageClaims = totalClaims.div(
+                    epochAfterTrailing.sub(epochCounter)
+                );
+            }
             delete epochCounter;
             if (luckByRoles[_role].luckLimit[_epoch.sub(1)] == 0) {
                 luckByRoles[_role].luckLimit[_epoch.sub(1)] = getLuck(

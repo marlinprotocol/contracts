@@ -18,9 +18,9 @@ contract("Luck Manager", function (accounts) {
   let PotInstance;
   it("deploy all contracts", async function () {
     let potDeployment = await Pot.new();
-    let potProxyInstance = await PotProxy.new(potDeployment.address);
-    PotInstance = await Pot.at(potProxyInstance.address);
-    // PotInstance = await Pot.at(potDeployment.address);
+    // let potProxyInstance = await PotProxy.new(potDeployment.address);
+    // PotInstance = await Pot.at(potProxyInstance.address);
+    PotInstance = await Pot.at(potDeployment.address);
     let luckDeployment = await Luck.new();
     let luckProxyInstance = await LuckProxy.new(luckDeployment.address);
     LuckInstance = await Luck.at(luckProxyInstance.address);
@@ -185,7 +185,7 @@ contract("Luck Manager", function (accounts) {
         assert.equal(luckByRole.startingEpoch, 5, "updated params");
         assert.equal(luckByRole.varianceTolerance, 6, "updated params");
         assert.equal(luckByRole.changeSteps, 7, "updated params");
-        return addBlocks(100, accounts);
+        return execute(LuckInstance.getCurrentLuck, producer.roleId, 100);
       });
     // .then(function () {
     //   return PotInstance.getCurrentEpoch();
@@ -315,6 +315,48 @@ contract("Luck Manager", function (accounts) {
     // Try getting luck when avergaeclaims are less than target by large margin
     // Try getting luck when avergaeclaims are greater than target by small margin
     // Try getting luck when avergaeclaims are greater than target by large margin
+    let {producer} = appConfig.roleParams;
+    let startingLuck;
+    let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
+    let verifier = accounts[appConfig.verifiedClaimAccountIndex];
+    let luckAfter1Claim;
+    let rewardAddress1 = accounts[appConfig.reward1ClaimerIndex];
+    let rewardAddress2 = accounts[appConfig.reward2ClaimerIndex];
+    await LinInstance.mint(accounts[0], 4000);
+    await LinInstance.mint(accounts[8], 4000);
+    await LinInstance.approve(PotInstance.address, 4000);
+    await LinInstance.approve(PotInstance.address, 4000, {from: accounts[8]});
+    let epoch = await PotInstance.getCurrentEpoch();
+    await PotInstance.addToPot(
+      [epoch, epoch + 1],
+      accounts[0],
+      appConfig.LINData.id,
+      [1800, 1850]
+    );
+    await PotInstance.addToPot(
+      [epoch, epoch + 1],
+      accounts[8],
+      appConfig.LINData.id,
+      [1800, 1850]
+    );
+    startingLuck = await LuckInstance.getLuck.call(epoch, producer.roleId);
+    await PotInstance.addVerifier(verifier, {from: governanceProxy});
+    await PotInstance.claimTicket(
+      [producer.roleId],
+      [rewardAddress1],
+      [epoch],
+      {from: verifier}
+    );
+    await PotInstance.claimTicket(
+      [producer.roleId],
+      [rewardAddress1],
+      [epoch],
+      {from: verifier}
+    );
+    await execute(LuckInstance.getCurrentLuck, producer.roleId, 5);
+    // this is luck in next epoch
+    luckAfter1Claim = await LuckInstance.getCurrentLuck.call(producer.roleId);
+    console.log({startingLuck, luckAfter1Claim});
   });
 
   it("Change Role params with goverance", async () => {
@@ -346,4 +388,11 @@ async function addBlocks(count, accounts) {
   //   id: 12345
   // });
   // return;
+}
+
+async function execute(contractCall, param, count) {
+  for (let index = 0; index < count; index++) {
+    await contractCall(param);
+  }
+  return;
 }

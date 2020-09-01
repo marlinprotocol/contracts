@@ -34,9 +34,9 @@ contract FundManager is Initializable {
         uint256[][] inflationLog;
     }
 
-    uint256 fundBalance;
-    uint256 unallocatedBalance;
-    mapping(address => Fund) funds;
+    uint256 public fundBalance;
+    uint256 public unallocatedBalance;
+    mapping(address => Fund) public funds;
 
     event FundBalanceUpdated(uint256 prevBalance, uint256 currentBalance);
     event FundCreated(
@@ -101,13 +101,19 @@ contract FundManager is Initializable {
         uint256 _endEpoch,
         uint256 _lastDrawnEpoch
     ) external onlyGovernanceEnforcer {
-        uint256 currentEpoch = Pot(_pot).getEpoch(block.number);
-        require(_endEpoch >= currentEpoch, "Fund cannot end before starting");
+        require(funds[_pot].endEpoch == 0, "Fund already exists");
         require(
-            unallocatedBalance >=
-                _inflationPerEpoch.mul(_endEpoch.sub(_lastDrawnEpoch)),
+            _endEpoch > _lastDrawnEpoch,
+            "Fund should start before endEpoch"
+        );
+        uint256 potForFund = _inflationPerEpoch.mul(
+            _endEpoch.sub(_lastDrawnEpoch)
+        );
+        require(
+            unallocatedBalance >= potForFund,
             "Fund not sufficient to allocate"
         );
+        unallocatedBalance = unallocatedBalance.sub(potForFund);
         uint256[][] memory inflationLogInit;
         Fund memory fund = Fund(
             _inflationPerEpoch,
@@ -127,9 +133,8 @@ contract FundManager is Initializable {
         uint256 _updatedInflation,
         uint256 _epochOfUpdate,
         address _pot
-    ) external onlyGovernanceEnforcer {
+    ) external onlyGovernanceEnforcer returns (bool) {
         uint256 currentEpoch = Pot(_pot).getEpoch(block.number);
-        // todo: should we leave more time.
         require(
             currentEpoch < _epochOfUpdate,
             "Can't update inflation of previous epochs"
@@ -152,6 +157,22 @@ contract FundManager is Initializable {
                 .inflationPerEpoch;
             fund.inflationPerEpoch = fund.nextInflation;
             fund.lastDrawnEpoch = fund.nextInflationUpdateEpoch;
+        } else if (fund.nextInflationUpdateEpoch != MAX_INT) {
+            if (fund.endEpoch >= fund.nextInflationUpdateEpoch) {
+                if (fund.nextInflation >= fund.inflationPerEpoch) {
+                    unallocatedBalance = unallocatedBalance.add(
+                        fund.nextInflation.sub(fund.inflationPerEpoch).mul(
+                            fund.endEpoch.sub(fund.nextInflationUpdateEpoch)
+                        )
+                    );
+                } else {
+                    unallocatedBalance = unallocatedBalance.sub(
+                        fund.inflationPerEpoch.sub(fund.nextInflation).mul(
+                            fund.endEpoch.sub(fund.nextInflationUpdateEpoch)
+                        )
+                    );
+                }
+            }
         }
         // TODO: Can signed math be used here, makes things easier
         if (fund.endEpoch >= _epochOfUpdate) {
@@ -178,11 +199,13 @@ contract FundManager is Initializable {
             _updatedInflation,
             _epochOfUpdate
         );
+        return true;
     }
 
     function updateEndEpoch(uint256 _updatedEndEpoch, address _pot)
         external
         onlyGovernanceEnforcer
+        returns (bool)
     {
         uint256 currentEpoch = Pot(_pot).getEpoch(block.number);
         Fund memory fund = funds[_pot];
@@ -224,17 +247,19 @@ contract FundManager is Initializable {
         }
         funds[_pot].endEpoch = _updatedEndEpoch;
         emit FundEndEpochUpdated(_pot, fund.endEpoch, _updatedEndEpoch);
+        return true;
     }
 
     function updateFundPot(
         address _currentPotAddress,
         address _updatedPotAddress
-    ) external onlyGovernanceEnforcer {
+    ) external onlyGovernanceEnforcer returns (bool) {
         // Ensure that the  updated pot does not override current pots
         require(funds[_updatedPotAddress].endEpoch == 0);
         funds[_updatedPotAddress] = funds[_currentPotAddress];
         delete funds[_currentPotAddress];
         emit FundPotAddressUpdated(_currentPotAddress, _updatedPotAddress);
+        return true;
     }
 
     // This function is used by Pot contract to draw money till the epoch of specified block
