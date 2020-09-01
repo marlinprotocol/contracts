@@ -95,6 +95,7 @@ contract LuckManager is Initializable {
         // If luck for the epoch and role wasn't calculated before
         if (luckByRoles[_role].luckLimit[_epoch] == 0) {
             LuckPerRole memory luckForCurrentRole = luckByRoles[_role];
+            require(_epoch >  luckForCurrentRole.startingEpoch, "Can't calculate luck for epochs before startingEpoch");
             uint256 epochAfterTrailing = currentEpoch.sub(
                 luckForCurrentRole.luckTrailingEpochs
             );
