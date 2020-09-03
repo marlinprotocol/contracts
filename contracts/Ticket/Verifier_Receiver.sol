@@ -22,6 +22,7 @@ contract VerifierReceiver is Initializable {
     FundManager fundManager;
     bytes32 receiverRole;
     bytes32 tokenId;
+    bytes MarlinPrefix;
 
     mapping(bytes32 => bool) claimedTickets;
 
@@ -41,6 +42,7 @@ contract VerifierReceiver is Initializable {
         fundManager = FundManager(_fundManager);
         receiverRole = _receiverRole;
         tokenId = _tokenId;
+        MarlinPrefix = "\x19Marlin Receiver Ticket:\n";
     }
 
     //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
@@ -58,7 +60,13 @@ contract VerifierReceiver is Initializable {
             uint256
         )
     {
-        bytes32 blockHash = keccak256(_blockHeader);
+        bytes32 blockHash = keccak256(
+            abi.encodePacked(
+                MarlinPrefix,
+                _blockHeader.length,
+                _blockHeader
+            )
+        );
         address receiver = recoverSigner(blockHash, _receiverSig);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
         require(
@@ -66,6 +74,8 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Invalid Receiver"
         );
         bytes memory relayerSigPayload = abi.encodePacked(
+            MarlinPrefix,
+            _blockHeader.length+_receiverSig.length,
             _blockHeader,
             _receiverSig
         );

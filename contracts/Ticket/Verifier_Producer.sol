@@ -23,6 +23,7 @@ contract VerifierProducer is Initializable {
     FundManager fundManager;
     bytes32 producerRole;
     bytes32 tokenId;
+    bytes MarlinPrefix;
 
     mapping(bytes32 => bool) rewardedBlocks;
 
@@ -42,6 +43,7 @@ contract VerifierProducer is Initializable {
         fundManager = FundManager(_fundManager);
         producerRole = _producerRole;
         tokenId = _tokenId;
+        MarlinPrefix = "\x19Marlin Producer Ticket:\n";
     }
 
     function verifyClaim(
@@ -58,13 +60,19 @@ contract VerifierProducer is Initializable {
             uint256
         )
     {
-        bytes32 blockHash = keccak256(_blockHeader);
-        rewardedBlocks[blockHash] = true;
-        require(!rewardedBlocks[blockHash], "Block header already rewarded");
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(
+                MarlinPrefix,
+                uint256(40),
+                _blockHeader
+            )
+        );
+        rewardedBlocks[messageHash] = true;
+        require(!rewardedBlocks[messageHash], "Block header already rewarded");
         bytes memory coinBase = extractCoinBase(_blockHeader);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
         address actualProducer = producerRegistry.getProducer(coinBase);
-        address relayer = recoverSigner(blockHash, _relayerSig);
+        address relayer = recoverSigner(messageHash, _relayerSig);
 
         require(
             uint256(clusterRegistry.getClusterStatus(_cluster)) == 2,
