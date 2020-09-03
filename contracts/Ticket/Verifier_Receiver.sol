@@ -102,18 +102,22 @@ contract VerifierReceiver is Initializable {
         if (pot.getPotValue(epoch, tokenId) == 0) {
             uint256[] memory epochs;
             uint256[] memory values;
-            uint256[][] memory inflationLog = fundManager.draw(
+            (
+                uint256[6] memory inflationEpochLog, 
+                uint256[6] memory inflationLog, 
+                uint256 inflationEpochLogIndex
+            ) = fundManager.draw(
                 address(pot),
                 block.number
             );
-            for (uint256 i = 0; i < inflationLog[0].length.sub(1); i++) {
+            for (uint256 i = 0; i < inflationEpochLogIndex; i++) {
                 for (
-                    uint256 j = inflationLog[0][i];
-                    j < inflationLog[0][i + 1];
+                    uint256 j = inflationEpochLog[i];
+                    j < inflationEpochLog[i+1];
                     j++
                 ) {
                     epochs[epochs.length] = j;
-                    values[values.length] = inflationLog[1][i];
+                    values[values.length] = inflationLog[i];
                 }
             }
             require(

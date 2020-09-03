@@ -187,6 +187,7 @@ contract Pot is Initializable {
     }
 
     function getEpoch(uint256 _blockNumber) public view returns (uint256) {
+        require(_blockNumber >= firstEpochStartBlock, "Pot: Pot hasn't started yet");
         return _blockNumber.sub(firstEpochStartBlock).div(blocksPerEpoch);
     }
 
