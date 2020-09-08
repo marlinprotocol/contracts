@@ -67,8 +67,8 @@ contract VerifierProducer is Initializable {
                 _blockHeader
             )
         );
-        rewardedBlocks[messageHash] = true;
         require(!rewardedBlocks[messageHash], "Block header already rewarded");
+        rewardedBlocks[messageHash] = true;
         bytes memory coinBase = extractCoinBase(_blockHeader);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
         address actualProducer = producerRegistry.getProducer(coinBase);
@@ -105,29 +105,9 @@ contract VerifierProducer is Initializable {
             "Verifier_Producer: Ticket not in winning range"
         );
         if (pot.getPotValue(epoch, tokenId) == 0) {
-            uint256[] memory epochs;
-            uint256[] memory values;
-            (
-                uint256[6] memory inflationEpochLog, 
-                uint256[6] memory inflationLog, 
-                uint256 inflationEpochLogIndex
-            ) = fundManager.draw(
+            fundManager.draw(
                 address(pot),
                 block.number
-            );
-            for (uint256 i = 0; i < inflationEpochLogIndex; i++) {
-                for (
-                    uint256 j = inflationEpochLog[i];
-                    j < inflationEpochLog[i+1];
-                    j++
-                ) {
-                    epochs[epochs.length] = j;
-                    values[values.length] = inflationLog[i];
-                }
-            }
-            require(
-                pot.addToPot(epochs, address(fundManager), tokenId, values),
-                "Verifier_Producer: Could not add to pot"
             );
         }
         //TODO: If encoderv2 can be used then remove isAggregated

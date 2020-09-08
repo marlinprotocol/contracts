@@ -88,6 +88,11 @@ contract VerifierReceiver is Initializable {
             abi.encodePacked(relayerSigPayload, _relayerSig)
         );
 
+        require(
+            !claimedTickets[ticket],
+            "Verifier_Receiver: Ticket already claimed"
+        );
+
         claimedTickets[ticket] = true;
 
         require(
@@ -99,10 +104,6 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Relayer isn't part of cluster"
         );
 
-        require(
-            !claimedTickets[ticket],
-            "Verifier_Receiver: Ticket already claimed"
-        );
         uint256 epoch = pot.getEpoch(blockNumber);
         uint256 luckLimit = luckManager.getLuck(epoch, receiverRole);
         require(
@@ -110,29 +111,9 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Ticket not in winning range"
         );
         if (pot.getPotValue(epoch, tokenId) == 0) {
-            uint256[] memory epochs;
-            uint256[] memory values;
-            (
-                uint256[6] memory inflationEpochLog, 
-                uint256[6] memory inflationLog, 
-                uint256 inflationEpochLogIndex
-            ) = fundManager.draw(
+            fundManager.draw(
                 address(pot),
                 block.number
-            );
-            for (uint256 i = 0; i < inflationEpochLogIndex; i++) {
-                for (
-                    uint256 j = inflationEpochLog[i];
-                    j < inflationEpochLog[i+1];
-                    j++
-                ) {
-                    epochs[epochs.length] = j;
-                    values[values.length] = inflationLog[i];
-                }
-            }
-            require(
-                pot.addToPot(epochs, address(fundManager), tokenId, values),
-                "Verifier_Receiver: Could not add to pot"
             );
         }
         //TODO: If encoderv2 can be used then remove isAggregated

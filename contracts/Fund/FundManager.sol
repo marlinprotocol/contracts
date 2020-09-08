@@ -15,6 +15,7 @@ contract FundManager is Initializable {
     //TODO: Contract which contains all global variables like proxies
     TokenLogic LINProxy;
     address GovernanceEnforcerProxy;
+    bytes32 tokenId;
 
     struct Fund {
         // Amount to be rewarded per epoch
@@ -61,13 +62,14 @@ contract FundManager is Initializable {
     event FundPotAddressUpdated(address previousPot, address updatedPot);
     event FundDrawn(address pot, uint256 amountDrawn, uint256 fundBalance);
 
-    function initialize(address _LINProxy, address _governanceEnforcerProxy)
+    function initialize(address _LINProxy, address _governanceEnforcerProxy, bytes32 _tokenId)
         public
         initializer
     {
         MAX_INT = 2**255 - 1;
         LINProxy = TokenLogic(_LINProxy);
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
+        tokenId = _tokenId;
     }
 
     modifier onlyGovernanceEnforcer() {
@@ -273,7 +275,7 @@ contract FundManager is Initializable {
     // This function is used by Pot contract to draw money till the epoch of specified block
     function draw(address _pot, uint256 _epoch)
         external
-        returns (uint256[6] memory, uint256[6] memory, uint256)
+        // returns (uint256[6] memory, uint256[6] memory)
     {
         Fund memory fund = funds[_pot];
         require(fund.endEpoch > 0, "Fund doesn't exist");
@@ -289,7 +291,7 @@ contract FundManager is Initializable {
 
         if (fund.nextInflationUpdateEpoch <= currentEpoch) {
             withdrawalAmount = withdrawalAmount.add(
-                handleInflationChange(_pot, fund, currentEpoch)
+                handleInflationChange(_pot, fund)
             );
             fund = funds[_pot];
         }
@@ -334,16 +336,38 @@ contract FundManager is Initializable {
             LINProxy.approve(_pot, withdrawalAmount),
             "Fund not allocated to pot"
         );
+        uint256[] memory epochs = new uint256[](
+            localInflationEpochLog[localInflationEpochLogIndex.sub(1)].sub(
+                localInflationEpochLog[0]
+            )
+        );
+        uint256[] memory values = epochs;
+        uint256 index = 0;
+        for (uint256 i = 0; i < localInflationEpochLogIndex-1; i++) {
+            for (
+                uint256 j = localInflationEpochLog[i];
+                j < localInflationEpochLog[i+1];
+                j++
+            ) {
+                epochs[index] = j;
+                values[index] = localInflationLog[i];
+                index++;
+            }
+        }
+        require(
+            Pot(_pot).addToPot(epochs, address(this), tokenId, values),
+            "Verifier_Producer: Could not add to pot"
+        );
         emit FundDrawn(_pot, withdrawalAmount, fundBalance);
-        return (localInflationEpochLog, localInflationLog, localInflationEpochLogIndex);
+        // return (localInflationEpochLog, localInflationLog);
     }
 
-    function handleInflationChange(address _pot, Fund memory fund, uint256 _currentEpoch)
+    function handleInflationChange(address _pot, Fund memory fund)
         private
         returns (uint256 fundToWithdrawBeforeInflationChange)
     {
         uint256 fundToWithdraw = fund.inflationPerEpoch.mul(
-            _currentEpoch.sub(fund.lastDrawnEpoch)
+            fund.nextInflationUpdateEpoch.sub(fund.lastDrawnEpoch)
         );
         require(fund.inflationEpochLogIndex < 5, "Draw  before performing more operations");
         fund.inflationEpochLog[fund.inflationEpochLogIndex] = fund.nextInflationUpdateEpoch;

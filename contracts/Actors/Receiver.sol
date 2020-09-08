@@ -46,7 +46,7 @@ contract Receiver is Initializable {
         );
         for (uint256 i = _startEpoch; i <= _endEpoch; i++) {
             require(
-                receivers[i][msg.sender] > 0,
+                receivers[i][msg.sender] == 0,
                 "Receiver: Already subscribed to epoch"
             );
             receivers[i][msg.sender] = subscriptionFee;

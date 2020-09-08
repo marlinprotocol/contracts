@@ -32,7 +32,7 @@ const FundProxy = artifacts.require("FundManagerProxy.sol");
 const defaultCluster = artifacts.require("ClusterDefault.sol");
 const defaultClusterProxy = artifacts.require("ClusterDefaultProxy.sol");
 
-contract("Producer Verifier", (accounts) => {
+contract.skip("Producer Verifier", (accounts) => {
     let LINInstance;
     let PotInstance;
     let LuckInstance;
@@ -108,7 +108,7 @@ contract("Producer Verifier", (accounts) => {
             claimWaitEpochs
         );
     
-        await FundInstance.initialize(LINInstance.address, governanceProxy);
+        await FundInstance.initialize(LINInstance.address, governanceProxy, appConfig.LINData.id);
 
         let {producer, receiver} = appConfig.roleParams;
         let luckRoleParams = [producer, receiver].map(function (entity) {
@@ -155,6 +155,7 @@ contract("Producer Verifier", (accounts) => {
     })
 
     it("Setup flow for producer to claim ticket", async () => {
+        let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
         // Mint some tokens
         await LINInstance.mint(accounts[0], 1000000);
         // Allocate tokens to Fund
@@ -172,6 +173,6 @@ contract("Producer Verifier", (accounts) => {
             {from: governanceProxy}
           );
         // register producer
-        ProducerInstance
+        // ProducerInstance
     });
 })
