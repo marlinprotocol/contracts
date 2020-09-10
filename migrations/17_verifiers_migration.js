@@ -13,20 +13,18 @@ let Verifier_ReceiverProxy = artifacts.require("Verifier_ProducerProxy.sol");
 // module.exports = async function (deployer, network, accounts) {
 //     let receiverRole = appConfig.roleParams.receiver.roleId;
 //     let producerRole = appConfig.roleParams.producer.roleId;
-    
+
 //     await deployer.deploy(Verifier_Producer, Producer.address, ClusterRegistry.address, LuckManager.address, Pot.address, FundManager.address, producerRole);
 //     // deployer.deploy(Verifier_Receiver, Receiver.address, ClusterRegistry.address, LuckManager.address, Pot.address, FundManager.address, receiverRole);
 // };
 
-module.exports = async function(deployer) {
-    await deployer
-    .deploy(Verifier_Producer)
-    .then(function () {
+module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
+    await deployer.deploy(Verifier_Producer).then(function () {
       return deployer.deploy(Verifier_ProducerProxy, Verifier_Producer.address);
     });
-    await deployer
-    .deploy(Verifier_Receiver)
-    .then(function () {
+    await deployer.deploy(Verifier_Receiver).then(function () {
       return deployer.deploy(Verifier_ReceiverProxy, Verifier_Receiver.address);
     });
-}
+  }
+};

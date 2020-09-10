@@ -86,6 +86,8 @@ contract Pot is Initializable {
         address[] memory _tokenContracts,
         uint256[] memory _epochsToWaitForClaims
     ) public initializer {
+        require(_tokens.length == _tokenContracts.length, "Pot: Invalid Inputs");
+        require(_ids.length == _epochsToWaitForClaims.length, "Pot: Invalid Inputs");
         MAX_INT = 2**255 - 1;
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
         firstEpochStartBlock = _firstEpochStartBlock;
@@ -126,6 +128,7 @@ contract Pot is Initializable {
         bytes32[] memory _tokens,
         address[] memory _tokenContracts
     ) public onlyGovernanceEnforcer returns (bool) {
+        require(_tokens.length == _tokenContracts.length, "Pot: Invalid Inputs");
         for (uint256 i = 0; i < _tokens.length; i++) {
             tokens[_tokens[i]] = _tokenContracts[i];
         }

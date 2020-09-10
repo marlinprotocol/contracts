@@ -66,7 +66,11 @@ contract.skip("Fund Manager", function (accounts) {
       claimWaitEpochs
     );
 
-    await FundInstance.initialize(LINInstance.address, governanceProxy);
+    await FundInstance.initialize(
+      LINInstance.address,
+      governanceProxy,
+      appConfig.LINData.id
+    );
   });
 
   it("verify all initilized variables", async () => {
@@ -379,19 +383,14 @@ contract.skip("Fund Manager", function (accounts) {
       FundInstance.draw(PotInstance.address, originalEpoch),
       "Can't draw from already drawn epoch"
     );
-    let initialAllowance = await LINInstance.allowance(
-      FundInstance.address,
-      PotInstance.address
-    );
+    let initialAllowance = await LINInstance.balanceOf(PotInstance.address);
     await FundInstance.draw(PotInstance.address, originalEpoch + 1);
-    let allowanceAfterOneDraw = await LINInstance.allowance(
-      FundInstance.address,
+    let allowanceAfterOneDraw = await LINInstance.balanceOf(
       PotInstance.address
     );
     assert(allowanceAfterOneDraw - initialAllowance == 800);
     await FundInstance.draw(PotInstance.address, originalEpoch + 2);
-    let allowanceAfterTwoDraw = await LINInstance.allowance(
-      FundInstance.address,
+    let allowanceAfterTwoDraw = await LINInstance.balanceOf(
       PotInstance.address
     );
     assert(allowanceAfterTwoDraw - initialAllowance == 1600);
@@ -416,6 +415,12 @@ contract.skip("Fund Manager", function (accounts) {
       originalEpoch + 8
     );
     console.log(returnValues);
+    let returns = await FundInstance.draw(
+      PotInstance.address,
+      originalEpoch + 8
+    );
+    console.log(returns.logs[0].args);
+    await truffleAssertions.eventEmitted(returns, "FundDrawn");
     // try drawing from  a block which is already drawn
     // try drawing when there was a inflation change after last drawn epoch to drawn block
     // try drawing when fund ended
@@ -469,7 +474,11 @@ contract.skip("Fund Manager", function (accounts) {
       claimWaitEpochs
     );
 
-    await FundInstance.initialize(LINInstance.address, governanceProxy);
+    await FundInstance.initialize(
+      LINInstance.address,
+      governanceProxy,
+      appConfig.LINData.id
+    );
     await LINInstance.mint(accounts[0], 1000000000, {from: accounts[0]});
     await LINInstance.transfer(FundInstance.address, 100000, {
       from: accounts[0],

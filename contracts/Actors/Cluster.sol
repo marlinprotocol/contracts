@@ -29,11 +29,13 @@ contract Cluster is Initializable, ICluster {
     }
 
     function joinCluster() public {
+        require(!relayers[msg.sender], "Cluster already exist");
         relayers[msg.sender] = true;
         totalRelayers++;
     }
 
     function exitCluster() public {
+        require(relayers[msg.sender], "Cluster doesn't exist");
         relayers[msg.sender] = false;
         totalRelayers--;
     }

@@ -9,7 +9,7 @@ const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 // module.exports = async function (deployer, network, accounts) {
 //     let admin = accounts[1];
 //     let relayer = accounts[7];
-    
+
 //     await deployer.deploy(ClusterDefault)
 //         .then((clusterDefaultContract) => {
 //             clusterDefaultContract.joinCluster({from: relayer});
@@ -19,15 +19,13 @@ const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 //         });
 // }
 
-module.exports = async function(deployer) {
-    await deployer
-    .deploy(ClusterDefault)
-    .then(function () {
+module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
+    await deployer.deploy(ClusterDefault).then(function () {
       return deployer.deploy(ClusterDefaultProxy, ClusterDefault.address);
     });
-    await deployer
-    .deploy(ClusterRegistry)
-    .then(function () {
+    await deployer.deploy(ClusterRegistry).then(function () {
       return deployer.deploy(ClusterRegistryProxy, ClusterRegistry.address);
     });
-}
+  }
+};

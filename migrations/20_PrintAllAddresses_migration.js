@@ -9,6 +9,7 @@ let Verifier_Producer = artifacts.require("VerifierProducer.sol");
 let Verifier_Receiver = artifacts.require("VerifierReceiver.sol");
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
     console.log("********************************************************");
     console.log("Default Cluster Address   :", ClusterDefault.address);
     // console.log("Receiver Registry Address :", Receiver.address);
@@ -20,4 +21,5 @@ module.exports = async function (deployer, network, accounts) {
     console.log("Verifier Producer Address :", Verifier_Producer.address);
     // console.log("Verifier Receiver Address :", Verifier_Receiver.address);
     console.log("********************************************************");
-}
+  }
+};

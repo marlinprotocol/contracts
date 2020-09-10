@@ -5,10 +5,10 @@ let ProducerProxy = artifacts.require("ProducerProxy.sol");
 //     deployer.deploy(Producer);
 // }
 
-module.exports = async function(deployer) {
-    await deployer
-    .deploy(Producer)
-    .then(function () {
+module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
+    await deployer.deploy(Producer).then(function () {
       return deployer.deploy(ProducerProxy, Producer.address);
     });
-}
+  }
+};

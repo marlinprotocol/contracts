@@ -10,7 +10,9 @@
     "test": "truffle test",
     "solhint": "solhint -f table contracts/**/*.sol",
     "compile": "sol-compiler",
-    "prettify": "npx prettier --write contracts/**/*.sol"
+    "prettify:contracts": "npx prettier --write contracts/**/*.sol",
+    "prettify:test": "npx prettier --write test/*.js",
+    "prettify:migrations": "npx prettier --write migrations/*.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,7 @@
     "ethers": "^4.0.47",
     "rlp": "^2.2.6",
     "solidity-bytes-utils": "0.0.8",
+    "truffle-hdwallet-provider": "^1.0.17",
     "web3": "^1.2.7",
     "web3-utils": "^1.2.8"
   },

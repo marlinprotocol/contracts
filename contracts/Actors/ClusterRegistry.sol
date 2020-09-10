@@ -110,7 +110,7 @@ contract ClusterRegistry is Initializable {
     }
 
     function proposeExit() public {
-        if (clusters[msg.sender].exitEpoch == 0) {
+        if (clusters[msg.sender].exitEpoch == 0 && clusters[msg.sender].status != ClusterStatus.DOESNT_EXIST) {
             clusters[msg.sender].status = ClusterStatus.EXITING;
             uint256 exitEpoch = pot.getEpoch(block.number).add(
                 clusterExitWaitEpochs

@@ -5,21 +5,20 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
 contract Producer is Initializable {
-    bytes id;
-    bytes byteVersion;
-    bytes id_extended;
+    bytes EthPrefix;
+    bytes MarlinPrefix;
 
     mapping(bytes32 => address) producerData;
 
     function initialize() public initializer {
-        id = "\x19";
-        byteVersion = "03";
-        id_extended = "Ethereum Signed Message:\n";
+        EthPrefix = "\x19Ethereum Signed Message:\n";
+        MarlinPrefix = "Marlin Producer Registration:\n";
     }
 
     function addProducer(address _producer, bytes memory _sig) public {
         bytes32 sigPayload = createPayloadToSig(_producer);
         address baseChainProducer = recoverSigner(sigPayload, _sig);
+        require(baseChainProducer != address(0), "Producer: Invalid basechain producer");
         bytes memory baseChainProducerAsBytes = abi.encodePacked(
             baseChainProducer
         );
@@ -32,10 +31,9 @@ contract Producer is Initializable {
         returns (bytes32)
     {
         bytes memory sigMessage = abi.encodePacked(
-            id,
-            byteVersion,
-            id_extended,
-            int256(40),
+            EthPrefix,
+            MarlinPrefix.length+40,
+            MarlinPrefix,
             _producer
         );
         return keccak256(sigMessage);

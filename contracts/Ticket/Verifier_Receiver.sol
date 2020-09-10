@@ -22,6 +22,7 @@ contract VerifierReceiver is Initializable {
     FundManager fundManager;
     bytes32 receiverRole;
     bytes32 tokenId;
+    bytes MarlinPrefix;
 
     mapping(bytes32 => bool) claimedTickets;
 
@@ -41,6 +42,7 @@ contract VerifierReceiver is Initializable {
         fundManager = FundManager(_fundManager);
         receiverRole = _receiverRole;
         tokenId = _tokenId;
+        MarlinPrefix = "\x19Marlin Receiver Ticket:\n";
     }
 
     //todo: think about possibility of same ticket being used for producer claim as well as receiver claim
@@ -58,7 +60,13 @@ contract VerifierReceiver is Initializable {
             uint256
         )
     {
-        bytes32 blockHash = keccak256(_blockHeader);
+        bytes32 blockHash = keccak256(
+            abi.encodePacked(
+                MarlinPrefix,
+                _blockHeader.length,
+                _blockHeader
+            )
+        );
         address receiver = recoverSigner(blockHash, _receiverSig);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
         require(
@@ -66,6 +74,8 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Invalid Receiver"
         );
         bytes memory relayerSigPayload = abi.encodePacked(
+            MarlinPrefix,
+            _blockHeader.length+_receiverSig.length,
             _blockHeader,
             _receiverSig
         );
@@ -76,6 +86,11 @@ contract VerifierReceiver is Initializable {
 
         bytes32 ticket = keccak256(
             abi.encodePacked(relayerSigPayload, _relayerSig)
+        );
+
+        require(
+            !claimedTickets[ticket],
+            "Verifier_Receiver: Ticket already claimed"
         );
 
         claimedTickets[ticket] = true;
@@ -89,10 +104,6 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Relayer isn't part of cluster"
         );
 
-        require(
-            !claimedTickets[ticket],
-            "Verifier_Receiver: Ticket already claimed"
-        );
         uint256 epoch = pot.getEpoch(blockNumber);
         uint256 luckLimit = luckManager.getLuck(epoch, receiverRole);
         require(
@@ -100,29 +111,9 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Ticket not in winning range"
         );
         if (pot.getPotValue(epoch, tokenId) == 0) {
-            uint256[] memory epochs;
-            uint256[] memory values;
-            (
-                uint256[6] memory inflationEpochLog, 
-                uint256[6] memory inflationLog, 
-                uint256 inflationEpochLogIndex
-            ) = fundManager.draw(
+            fundManager.draw(
                 address(pot),
                 block.number
-            );
-            for (uint256 i = 0; i < inflationEpochLogIndex; i++) {
-                for (
-                    uint256 j = inflationEpochLog[i];
-                    j < inflationEpochLog[i+1];
-                    j++
-                ) {
-                    epochs[epochs.length] = j;
-                    values[values.length] = inflationLog[i];
-                }
-            }
-            require(
-                pot.addToPot(epochs, address(fundManager), tokenId, values),
-                "Verifier_Receiver: Could not add to pot"
             );
         }
         //TODO: If encoderv2 can be used then remove isAggregated

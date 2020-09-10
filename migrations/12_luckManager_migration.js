@@ -17,10 +17,10 @@ const LuckManagerProxy = artifacts.require("LuckManagerProxy.sol");
 //     deployer.deploy(LuckManager, governanceProxy, Pot.address, roles, params);
 // }
 
-module.exports = async function(deployer) {
-    await deployer
-    .deploy(LuckManager)
-    .then(function () {
+module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
+    await deployer.deploy(LuckManager).then(function () {
       return deployer.deploy(LuckManagerProxy, LuckManager.address);
     });
-}
+  }
+};

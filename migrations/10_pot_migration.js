@@ -24,10 +24,10 @@ const PotProxy = artifacts.require("PotProxy.sol");
 //     await deployer.deploy(Pot, governanceProxy, LINProxy.address, firstEpochStartBlock, EthBlocksPerEpoch, roles, distribution);
 // }
 
-module.exports = async function (deployer) {
-    await deployer
-    .deploy(Pot)
-    .then(function () {
+module.exports = async function (deployer, network, accounts) {
+  if (network == "development") {
+    await deployer.deploy(Pot).then(function () {
       return deployer.deploy(PotProxy, Pot.address);
     });
-} 
+  }
+};

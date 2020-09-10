@@ -18,10 +18,23 @@
  *
  */
 // const PrivateKeyProvider = require("truffle-privatekey-provider");
-// const privateKey = "4b306d0ee52f310b23aafd093298b896755ac389fa169d99378f9becac5a6e71";
+// const privateKey =
+// "4b306d0ee52f310b23aafd093298b896755ac389fa169d99378f9becac5a6e71";
 // Address of the above private key: 0x0AE167943B6d5bD1a1763Cb64d014a08c4125FA1
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
+const privKeys = [
+  "1b83be2fc81050af5c5ebc714105d87f52636edc01dc2c62257fef7f562fc654",
+  "1eae96f17cfe5ca1995530ca9f3b595583d713052a6e3898f1e1c441e89eae51",
+  "172d94caea195103ee412de2d0b1a9db3b1e83a027ad15483f3c66223eb3aa31",
+];
+
+const addresses = [
+  "0xFC57cBd6d372d25678ecFDC50f95cA6759b3162b",
+  "0xdeFF2Cd841Bd47592760cE068a113b8E594F8553",
+  "0xAF2f0545245C13a4a3a8e4E597a2F4cf65B65088",
+];
+
+const HDWalletProvider = require("truffle-hdwallet-provider");
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
@@ -86,9 +99,10 @@ module.exports = {
       network_id: "*", // Any network (default: none)
       gas: 4700000,
       gasPrice: 20000000000,
-      confirmations: 1,
+      confirmations: 6,
       timeoutBlocks: 2000,
-      // provider: () => new PrivateKeyProvider(privateKey, "http://68.183.87.16:8545")
+      provider: () =>
+        new HDWalletProvider(privKeys, "http://68.183.87.16:8545", 0, 3),
     },
   },
 

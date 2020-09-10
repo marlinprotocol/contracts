@@ -42,6 +42,7 @@ contract LuckManager is Initializable {
         bytes32[] memory _roles,
         uint256[][] memory _luckPerRoles
     ) public initializer {
+        require(_roles.length == _luckPerRoles.length, "LuckManager: Invalid Inputs");
         for (uint256 i = 0; i < _luckPerRoles.length; i++) {
             require(_luckPerRoles[i].length == 7, "LuckManager: Invalid Input");
             luckByRoles[_roles[i]] = LuckPerRole(
