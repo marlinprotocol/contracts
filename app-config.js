@@ -9,7 +9,7 @@ let relayerAccountIndex = 7;
 // This block should be start of first epoch
 let potFirstEpochStartBlockDelay = 1;
 // Number of Eth Blocks per epoch
-let EthBlockPerEpoch = 5;
+let EthBlockPerEpoch = 1;
 // Ensure that total allocation is 100
 let roleParams = {
   producer: {

@@ -13,7 +13,7 @@ const truffleAssertions = require("truffle-assertions");
 const {BigNumber} = require("ethers/utils");
 const {utils} = require("ethers");
 
-contract("Fund Manager", function (accounts) {
+contract.skip("Fund Manager", function (accounts) {
   let LINInstance;
   let FundInstance;
   let PotInstance;
@@ -374,30 +374,48 @@ contract("Fund Manager", function (accounts) {
       {from: governanceProxy}
     );
     // try drawing from a pot that doesn't exist
-    
-    await truffleAssertions.reverts(FundInstance.draw(PotInstance.address, originalEpoch), "Can't draw from already drawn epoch");
-    let initialAllowance = await LINInstance.allowance(FundInstance.address, PotInstance.address);
-    await FundInstance.draw(PotInstance.address, originalEpoch+1);
-    let allowanceAfterOneDraw = await LINInstance.allowance(FundInstance.address, PotInstance.address);
+
+    await truffleAssertions.reverts(
+      FundInstance.draw(PotInstance.address, originalEpoch),
+      "Can't draw from already drawn epoch"
+    );
+    let initialAllowance = await LINInstance.allowance(
+      FundInstance.address,
+      PotInstance.address
+    );
+    await FundInstance.draw(PotInstance.address, originalEpoch + 1);
+    let allowanceAfterOneDraw = await LINInstance.allowance(
+      FundInstance.address,
+      PotInstance.address
+    );
     assert(allowanceAfterOneDraw - initialAllowance == 800);
-    await FundInstance.draw(PotInstance.address, originalEpoch+2);
-    let allowanceAfterTwoDraw = await LINInstance.allowance(FundInstance.address, PotInstance.address);
+    await FundInstance.draw(PotInstance.address, originalEpoch + 2);
+    let allowanceAfterTwoDraw = await LINInstance.allowance(
+      FundInstance.address,
+      PotInstance.address
+    );
     assert(allowanceAfterTwoDraw - initialAllowance == 1600);
-    let returnValues = await FundInstance.draw.call(PotInstance.address, originalEpoch+3);
-    console.log(returnValues)
+    let returnValues = await FundInstance.draw.call(
+      PotInstance.address,
+      originalEpoch + 3
+    );
+    console.log(returnValues);
     // change inflation so that things are appended to log
     await FundInstance.updateFundInflation(
       100,
-      originalEpoch+6,
+      originalEpoch + 6,
       PotInstance.address,
       {from: governanceProxy}
     );
     // dummy function to pass more epochs
-    for(let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
       await LINInstance.mint(accounts[0], 1, {from: accounts[0]});
     }
-    returnValues = await FundInstance.draw.call(PotInstance.address, originalEpoch+8);
-    console.log(returnValues)
+    returnValues = await FundInstance.draw.call(
+      PotInstance.address,
+      originalEpoch + 8
+    );
+    console.log(returnValues);
     // try drawing from  a block which is already drawn
     // try drawing when there was a inflation change after last drawn epoch to drawn block
     // try drawing when fund ended
@@ -442,7 +460,7 @@ contract("Fund Manager", function (accounts) {
     };
     await PotInstance.initialize(
       governanceProxy,
-      parseInt(await web3.eth.getBlockNumber()),// firstEpochStartBlock
+      parseInt(await web3.eth.getBlockNumber()), // firstEpochStartBlock
       EthBlocksPerEpoch,
       roles,
       distribution,

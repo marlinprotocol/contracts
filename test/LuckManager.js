@@ -13,7 +13,7 @@ var LuckInstance;
 var PotInstance;
 var LinInstance;
 
-contract.skip("Luck Manager", function (accounts) {
+contract("Luck Manager", function (accounts) {
   let LuckInstance;
   let PotInstance;
   it("deploy all contracts", async function () {
@@ -166,90 +166,58 @@ contract.skip("Luck Manager", function (accounts) {
     let {producer} = appConfig.roleParams;
     return LuckInstance.initializeLuckForRole(
       producer.roleId,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      20,
+      producer.luckTrailingEpochs,
+      producer.targetClaims,
+      producer.averaginingEpochs,
+      producer.startingEpoch,
+      producer.varianceTolerance,
+      producer.changeSteps,
+      producer.initialLuck,
       {from: governanceProxy}
     )
       .then(function () {
         return LuckInstance.luckByRoles(producer.roleId);
       })
       .then(function (luckByRole) {
-        assert.equal(luckByRole.luckTrailingEpochs, 2, "updated params");
-        assert.equal(luckByRole.targetClaims, 3, "updated params");
-        assert.equal(luckByRole.averagingEpochs, 4, "updated params");
-        assert.equal(luckByRole.startingEpoch, 5, "updated params");
-        assert.equal(luckByRole.varianceTolerance, 6, "updated params");
-        assert.equal(luckByRole.changeSteps, 7, "updated params");
-        return addBlocks(10, accounts);
+        assert.equal(
+          luckByRole.luckTrailingEpochs,
+          producer.luckTrailingEpochs,
+          "updated params"
+        );
+        assert.equal(
+          luckByRole.targetClaims,
+          producer.targetClaims,
+          "updated params"
+        );
+        assert.equal(
+          luckByRole.averagingEpochs,
+          producer.averaginingEpochs,
+          "updated params"
+        );
+        assert.equal(
+          luckByRole.startingEpoch,
+          producer.startingEpoch,
+          "updated params"
+        );
+        assert.equal(
+          luckByRole.varianceTolerance,
+          producer.varianceTolerance,
+          "updated params"
+        );
+        assert.equal(
+          luckByRole.changeSteps,
+          producer.changeSteps,
+          "updated params"
+        );
+        return addBlocks(parseInt(appConfig.EthBlockPerEpoch * 2), accounts);
       })
       .then(function () {
-        return execute(LuckInstance.getCurrentLuck, producer.roleId, 100);
+        return execute(
+          LuckInstance.getCurrentLuck,
+          producer.roleId,
+          parseInt(appConfig.EthBlockPerEpoch * 20)
+        );
       });
-    // .then(function (epoch) {
-    //   console.log("epoch before adding to pot", epoch);
-    //   return LinInstance.approve(PotInstance.address, 4000);
-    // })
-    // .then(function () {
-    //   return LinInstance.mint(accounts[0], 4000);
-    // })
-    // .then(function () {
-    //   return PotInstance.getCurrentEpoch();
-    // })
-    // .then(function (epoch) {
-    //   return PotInstance.addToPot([epoch], accounts[0], appConfig.LINData.id, [
-    //     1800,
-    //   ]);
-    // })
-    // .then(function () {
-    //   return PotInstance.getCurrentEpoch();
-    // })
-    // .then(function (epoch) {
-    //   console.log("epoch before calling luck", epoch);
-    //   let {producer} = appConfig.roleParams;
-    //   return LuckInstance.getLuck.call(epoch, producer.roleId);
-    // })
-    // .then(function (luck) {
-    //   console.log("luck before adding claim ticket", luck);
-    //   let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
-    //   let verifier = accounts[appConfig.verifiedClaimAccountIndex];
-    //   return PotInstance.addVerifier(verifier, {from: governanceProxy});
-    // })
-    // .then(function () {
-    //   let verifier = accounts[appConfig.verifiedClaimAccountIndex];
-    //   let rewardAddress = accounts[appConfig.rewardClaimerIndex];
-    //   let {producer} = appConfig.roleParams;
-    //   return PotInstance.claimTicket(
-    //     [producer.roleId],
-    //     [rewardAddress],
-    //     [2],
-    //     {from: verifier}
-    //   );
-    // })
-    // .then(function () {
-    //   return PotInstance.getCurrentEpoch();
-    // })
-    // .then(function (epoch) {
-    //   console.log("epoch", epoch);
-    //   let rewardAddress = accounts[appConfig.rewardClaimerIndex];
-    //   let {producer} = appConfig.roleParams;
-    //   return PotInstance.claimFeeReward(producer.roleId, [0x2], {
-    //     from: rewardAddress,
-    //   });
-    // })
-    // .then(function () {
-    //   return LuckInstance.getLuck.call(0x2, producer.roleId);
-    // })
-    // .then(function (luck) {
-    //   console.log("luck after claimingFee", luck);
-    // });
-    // check  if luckTrailingEpochs, targetClaims, averagingEpochs, startingEpoch,
-    // varianceTolerance, changeSteps are correctly set
-    // check if initialLuckLimit was set
   });
 
   it("Get luck for a specific epoch and role", async () => {
@@ -270,7 +238,7 @@ contract.skip("Luck Manager", function (accounts) {
         return LinInstance.mint(accounts[0], 4000);
       })
       .then(function () {
-        return addBlocks(10, accounts);
+        return addBlocks(parseInt(appConfig.EthBlockPerEpoch * 2), accounts);
       })
       .then(function () {
         return PotInstance.getCurrentEpoch();
@@ -282,7 +250,7 @@ contract.skip("Luck Manager", function (accounts) {
       })
       .then(function (luck) {
         luckAtStartingEpoch = luck;
-        return addBlocks(5, accounts);
+        return addBlocks(parseInt(appConfig.EthBlockPerEpoch), accounts);
       })
       .then(function () {
         return PotInstance.getCurrentEpoch();
@@ -294,7 +262,7 @@ contract.skip("Luck Manager", function (accounts) {
       })
       .then(function (luck) {
         luckAtStartingEpoch_plus_1 = luck;
-        return addBlocks(20, accounts);
+        return addBlocks(parseInt(appConfig.EthBlockPerEpoch * 4), accounts);
       })
       .then(function () {
         return PotInstance.getCurrentEpoch();
@@ -363,10 +331,14 @@ contract.skip("Luck Manager", function (accounts) {
       [epoch],
       {from: verifier}
     );
-    let startingEpoch = await PotInstance.getCurrentEpoch();
-    await execute(LuckInstance.getCurrentLuck, producer.roleId, 5);
+    let startingEpoch = await PotInstance.getCurrentEpoch.call();
+    await execute(
+      LuckInstance.getCurrentLuck,
+      producer.roleId,
+      parseInt(appConfig.EthBlockPerEpoch)
+    );
     // this is luck in next epoch
-    let endingEpoch = await PotInstance.getCurrentEpoch();
+    let endingEpoch = await PotInstance.getCurrentEpoch.call();
     luckAfter1ClaimInNextEpoch = await LuckInstance.getCurrentLuck.call(
       producer.roleId
     );
