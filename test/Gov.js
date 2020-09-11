@@ -12,7 +12,7 @@ var governanceAddress;
 var compAddress;
 var timelockAddress;
 
-contract.skip("Governance", function (accounts) {
+contract("Governance", function (accounts) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   const tempAddress = accounts[9];
   const targets = [tempAddress];
