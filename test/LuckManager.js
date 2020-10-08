@@ -13,7 +13,7 @@ var LuckInstance;
 var PotInstance;
 var LinInstance;
 
-contract("Luck Manager", function (accounts) {
+contract.skip("Luck Manager", function (accounts) {
   let LuckInstance;
   let PotInstance;
   it("deploy all contracts", async function () {
