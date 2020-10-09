@@ -62,10 +62,11 @@ contract FundManager is Initializable {
     event FundPotAddressUpdated(address previousPot, address updatedPot);
     event FundDrawn(address pot, uint256 amountDrawn, uint256 fundBalance);
 
-    function initialize(address _LINProxy, address _governanceEnforcerProxy, bytes32 _tokenId)
-        public
-        initializer
-    {
+    function initialize(
+        address _LINProxy,
+        address _governanceEnforcerProxy,
+        bytes32 _tokenId
+    ) public initializer {
         MAX_INT = 2**255 - 1;
         LINProxy = TokenLogic(_LINProxy);
         GovernanceEnforcerProxy = _governanceEnforcerProxy;
@@ -119,7 +120,14 @@ contract FundManager is Initializable {
         );
         unallocatedBalance = unallocatedBalance.sub(potForFund);
         uint256[6] memory inflationLogInit = [uint256(0), 0, 0, 0, 0, 0];
-        uint256[6] memory inflationEpochLogInit = [_lastDrawnEpoch, 0, 0, 0, 0, 0];
+        uint256[6] memory inflationEpochLogInit = [
+            _lastDrawnEpoch,
+            0,
+            0,
+            0,
+            0,
+            0
+        ];
         Fund memory fund = Fund(
             _inflationPerEpoch,
             _endEpoch,
@@ -128,7 +136,7 @@ contract FundManager is Initializable {
             0,
             MAX_INT,
             0,
-            inflationEpochLogInit, 
+            inflationEpochLogInit,
             inflationLogInit,
             1
         );
@@ -159,10 +167,13 @@ contract FundManager is Initializable {
                 )
             );
             //  Draw can need 2 indexes
-            require(fund.inflationEpochLogIndex < 4, "Draw  before performing more operations");
+            require(
+                fund.inflationEpochLogIndex < 4,
+                "Draw  before performing more operations"
+            );
             fund.inflationEpochLog[fund.inflationEpochLogIndex] = fund
                 .nextInflationUpdateEpoch;
-            fund.inflationLog[fund.inflationEpochLogIndex-1] = fund
+            fund.inflationLog[fund.inflationEpochLogIndex - 1] = fund
                 .inflationPerEpoch;
             fund.inflationEpochLogIndex++;
             fund.inflationPerEpoch = fund.nextInflation;
@@ -275,11 +286,14 @@ contract FundManager is Initializable {
     // This function is used by Pot contract to draw money till the epoch of specified block
     function draw(address _pot, uint256 _epoch)
         external
-        // returns (uint256[6] memory, uint256[6] memory)
+    // returns (uint256[6] memory, uint256[6] memory)
     {
         Fund memory fund = funds[_pot];
         require(fund.endEpoch > 0, "Fund doesn't exist");
-        require(_epoch <= Pot(_pot).getEpoch(block.number), "Can't draw from future epochs");
+        require(
+            _epoch <= Pot(_pot).getEpoch(block.number),
+            "Can't draw from future epochs"
+        );
         uint256 currentEpoch = _epoch;
         require(
             currentEpoch > fund.lastDrawnEpoch,
@@ -287,7 +301,6 @@ contract FundManager is Initializable {
         );
         uint256 lastEpochToDrawFrom;
         uint256 withdrawalAmount;
-        
 
         if (fund.nextInflationUpdateEpoch <= currentEpoch) {
             withdrawalAmount = withdrawalAmount.add(
@@ -309,9 +322,13 @@ contract FundManager is Initializable {
                 lastEpochToDrawFrom.sub(fund.lastDrawnEpoch)
             )
         );
-        require(fund.inflationEpochLogIndex <= 5, "Draw  before performing more operations");
-        fund.inflationEpochLog[fund.inflationEpochLogIndex] = lastEpochToDrawFrom;
-        fund.inflationLog[fund.inflationEpochLogIndex-1] = fund
+        require(
+            fund.inflationEpochLogIndex <= 5,
+            "Draw  before performing more operations"
+        );
+        fund.inflationEpochLog[fund
+            .inflationEpochLogIndex] = lastEpochToDrawFrom;
+        fund.inflationLog[fund.inflationEpochLogIndex - 1] = fund
             .inflationPerEpoch;
         fund.inflationEpochLogIndex++;
         uint256[6] memory localInflationLog = fund.inflationLog;
@@ -343,10 +360,10 @@ contract FundManager is Initializable {
         );
         uint256[] memory values = epochs;
         uint256 index = 0;
-        for (uint256 i = 0; i < localInflationEpochLogIndex-1; i++) {
+        for (uint256 i = 0; i < localInflationEpochLogIndex - 1; i++) {
             for (
                 uint256 j = localInflationEpochLog[i];
-                j < localInflationEpochLog[i+1];
+                j < localInflationEpochLog[i + 1];
                 j++
             ) {
                 epochs[index] = j;
@@ -369,9 +386,13 @@ contract FundManager is Initializable {
         uint256 fundToWithdraw = fund.inflationPerEpoch.mul(
             fund.nextInflationUpdateEpoch.sub(fund.lastDrawnEpoch)
         );
-        require(fund.inflationEpochLogIndex < 5, "Draw  before performing more operations");
-        fund.inflationEpochLog[fund.inflationEpochLogIndex] = fund.nextInflationUpdateEpoch;
-        fund.inflationLog[fund.inflationEpochLogIndex-1] = fund
+        require(
+            fund.inflationEpochLogIndex < 5,
+            "Draw  before performing more operations"
+        );
+        fund.inflationEpochLog[fund.inflationEpochLogIndex] = fund
+            .nextInflationUpdateEpoch;
+        fund.inflationLog[fund.inflationEpochLogIndex - 1] = fund
             .inflationPerEpoch;
         fund.inflationEpochLogIndex++;
         fund.inflationPerEpoch = fund.nextInflation;
