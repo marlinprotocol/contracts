@@ -18,7 +18,10 @@ contract Producer is Initializable {
     function addProducer(address _producer, bytes memory _sig) public {
         bytes32 sigPayload = createPayloadToSig(_producer);
         address baseChainProducer = recoverSigner(sigPayload, _sig);
-        require(baseChainProducer != address(0), "Producer: Invalid basechain producer");
+        require(
+            baseChainProducer != address(0),
+            "Producer: Invalid basechain producer"
+        );
         bytes memory baseChainProducerAsBytes = abi.encodePacked(
             baseChainProducer
         );
@@ -32,7 +35,7 @@ contract Producer is Initializable {
     {
         bytes memory sigMessage = abi.encodePacked(
             EthPrefix,
-            MarlinPrefix.length+40,
+            MarlinPrefix.length + 40,
             MarlinPrefix,
             _producer
         );

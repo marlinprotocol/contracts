@@ -61,11 +61,7 @@ contract VerifierReceiver is Initializable {
         )
     {
         bytes32 blockHash = keccak256(
-            abi.encodePacked(
-                MarlinPrefix,
-                _blockHeader.length,
-                _blockHeader
-            )
+            abi.encodePacked(MarlinPrefix, _blockHeader.length, _blockHeader)
         );
         address receiver = recoverSigner(blockHash, _receiverSig);
         uint256 blockNumber = extractBlockNumber(_blockHeader);
@@ -75,7 +71,7 @@ contract VerifierReceiver is Initializable {
         );
         bytes memory relayerSigPayload = abi.encodePacked(
             MarlinPrefix,
-            _blockHeader.length+_receiverSig.length,
+            _blockHeader.length + _receiverSig.length,
             _blockHeader,
             _receiverSig
         );
@@ -111,10 +107,7 @@ contract VerifierReceiver is Initializable {
             "Verifier_Receiver: Ticket not in winning range"
         );
         if (pot.getPotValue(epoch, tokenId) == 0) {
-            fundManager.draw(
-                address(pot),
-                block.number
-            );
+            fundManager.draw(address(pot), block.number);
         }
         //TODO: If encoderv2 can be used then remove isAggregated
         if (!_isAggregated) {

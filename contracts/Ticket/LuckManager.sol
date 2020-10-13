@@ -42,7 +42,10 @@ contract LuckManager is Initializable {
         bytes32[] memory _roles,
         uint256[][] memory _luckPerRoles
     ) public initializer {
-        require(_roles.length == _luckPerRoles.length, "LuckManager: Invalid Inputs");
+        require(
+            _roles.length == _luckPerRoles.length,
+            "LuckManager: Invalid Inputs"
+        );
         for (uint256 i = 0; i < _luckPerRoles.length; i++) {
             require(_luckPerRoles[i].length == 7, "LuckManager: Invalid Input");
             luckByRoles[_roles[i]] = LuckPerRole(
@@ -96,7 +99,10 @@ contract LuckManager is Initializable {
         // If luck for the epoch and role wasn't calculated before
         if (luckByRoles[_role].luckLimit[_epoch] == 0) {
             LuckPerRole memory luckForCurrentRole = luckByRoles[_role];
-            require(_epoch >  luckForCurrentRole.startingEpoch, "Can't calculate luck for epochs before startingEpoch");
+            require(
+                _epoch > luckForCurrentRole.startingEpoch,
+                "Can't calculate luck for epochs before startingEpoch"
+            );
             uint256 epochAfterTrailing = currentEpoch.sub(
                 luckForCurrentRole.luckTrailingEpochs
             );

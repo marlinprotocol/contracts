@@ -61,11 +61,7 @@ contract VerifierProducer is Initializable {
         )
     {
         bytes32 messageHash = keccak256(
-            abi.encodePacked(
-                MarlinPrefix,
-                uint256(40),
-                _blockHeader
-            )
+            abi.encodePacked(MarlinPrefix, uint256(40), _blockHeader)
         );
         require(!rewardedBlocks[messageHash], "Block header already rewarded");
         rewardedBlocks[messageHash] = true;
@@ -105,10 +101,7 @@ contract VerifierProducer is Initializable {
             "Verifier_Producer: Ticket not in winning range"
         );
         if (pot.getPotValue(epoch, tokenId) == 0) {
-            fundManager.draw(
-                address(pot),
-                block.number
-            );
+            fundManager.draw(address(pot), block.number);
         }
         //TODO: If encoderv2 can be used then remove isAggregated
         if (!_isAggregated) {

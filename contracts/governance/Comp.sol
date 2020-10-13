@@ -1,4 +1,4 @@
-pragma solidity ^0.5.16;
+pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 
@@ -7,7 +7,7 @@ contract Comp {
     string public constant name = "Marlin Governance Token";
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "LIN";
+    string public constant symbol = "POND";
 
     /// @notice EIP-20 token decimals for this token
     uint8 public constant decimals = 18;

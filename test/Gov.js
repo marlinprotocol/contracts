@@ -12,8 +12,9 @@ var governanceAddress;
 var compAddress;
 var timelockAddress;
 
-contract.skip("Governance", function (accounts) {
+contract.skip("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
+  console.log(network);
   const tempAddress = accounts[9];
   const targets = [tempAddress];
   const values = ["0x2223"];
