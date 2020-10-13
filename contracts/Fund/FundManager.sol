@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: <SPDX-License>
 
 pragma solidity >=0.4.21 <0.7.0;
-pragma experimental ABIEncoderV2;
+// pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
 import "./Pot.sol";
