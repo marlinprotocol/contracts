@@ -14,8 +14,8 @@ contract Bridge {
     address governanceProxy;
 
     uint256 pondPerMpond = 1000000;
-    uint256 lockTime = 1 days;
-
+    uint256 lockTime = 180 days;
+    uint256 mpondToPondConversionPercent = 10;
     struct Claim {
         bytes32 claimId;
         uint256 amount;
@@ -37,12 +37,14 @@ contract Bridge {
         governanceProxy = governanceProxy;
     }
 
-    function changeConversion(uint256 _newConversion) external returns (bool) {
+    function changeConversionThresholdPercent(
+        uint256 _newConversionThresholdPercent
+    ) external returns (bool) {
         require(
             msg.sender == governanceProxy || msg.sender == owner,
             "changeConversion: should be called by owner or governanceProxy"
         );
-        pondPerMpond = _newConversion;
+        mpondToPondConversionPercent = _newConversionThresholdPercent;
         return true;
     }
 
@@ -94,9 +96,19 @@ contract Bridge {
     }
 
     function getPond(uint256 _pond) public returns (bytes32, uint256) {
+        require(_pond != 0, "getPond: should be more than 0");
+        uint256 mpondToDeduct = _pond.div(pondPerMpond);
         require(
-            _pond >= pondPerMpond,
-            "getPond: can only claim pond more than threshold"
+            mpondToDeduct != 0,
+            "getPond: mpond to be received should be more than 0"
+        );
+        uint256 conversionThreshold = mpond
+            .balanceOf(msg.sender)
+            .mul(mpondToPondConversionPercent)
+            .div(100);
+        require(
+            mpondToDeduct <= conversionThreshold,
+            "getPond: cannot convert more than ${mpondToPondConversionPercent} mpond tokens to pond"
         );
         uint256 count = claimCount[msg.sender];
         bytes32 id = keccak256(abi.encodePacked(msg.sender, count + 1, _pond));

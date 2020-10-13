@@ -12,7 +12,7 @@ var governanceAddress;
 var compAddress;
 var timelockAddress;
 
-contract.skip("Governance", function (accounts, network) {
+contract("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   console.log(network);
   const tempAddress = accounts[9];
@@ -51,11 +51,13 @@ contract.skip("Governance", function (accounts, network) {
         return;
       });
   });
+
   it("check timelocks", function () {
     return timelockInstance.delay().then(function (delay) {
       console.log("timelock delay", delay);
     });
   });
+  
   it("check balances of COMP token and transfer COMP to other accounts", function () {
     return compInstance
       .balanceOf(accounts[4])

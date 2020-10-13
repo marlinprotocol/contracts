@@ -126,9 +126,9 @@ contract("Bridge", function (accounts) {
   it("receive pond for mpond (i.e get pond)", function () {
     let testingAccount = accounts[8];
     return comp
-      .transfer(testingAccount, new web3Utils.BN("1"))
+      .transfer(testingAccount, new web3Utils.BN("100"))
       .then(function () {
-        return comp.approve(bridge.address, new web3Utils.BN("1"), {
+        return comp.approve(bridge.address, new web3Utils.BN("100"), {
           from: testingAccount,
         });
       })
@@ -139,7 +139,7 @@ contract("Bridge", function (accounts) {
       })
       .then(function (transaction) {
         // console.log(JSON.stringify(transaction, null, 4));
-        return increaseTime(86400);
+        return increaseTime(180*86400);
       })
       .then(function () {
         return addBlocks(1, accounts);
