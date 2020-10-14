@@ -49,6 +49,11 @@ contract Comp {
     /// @notice A record of states for signing / validating signatures
     mapping(address => uint256) public nonces;
 
+    /// customized params
+    address public admin;
+    mapping(address => bool) public isWhiteListed;
+    bool public enableAllTranfers = true;
+
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(
         address indexed delegator,
@@ -80,6 +85,28 @@ contract Comp {
     constructor(address account) public {
         balances[account] = uint96(totalSupply);
         emit Transfer(address(0), account, totalSupply);
+    }
+
+    function addWhiteListAddress(address _address) external returns (bool) {
+        require(msg.sender == admin, "Only admin can whitelist");
+        isWhiteListed[_address] = true;
+        return true;
+    }
+
+    function enableAllTransfers() external returns (bool) {
+        require(msg.sender == admin, "Only enable can enable all transfers");
+        enableAllTranfers = true;
+        return true;
+    }
+
+    function isWhiteListedTransfer(address _address1, address _address2)
+        public
+        view
+        returns (bool)
+    {
+        return
+            (isWhiteListed[_address1] || isWhiteListed[_address2]) ||
+            enableAllTranfers;
     }
 
     /**
@@ -137,6 +164,10 @@ contract Comp {
      * @return Whether or not the transfer succeeded
      */
     function transfer(address dst, uint256 rawAmount) external returns (bool) {
+        require(
+            isWhiteListedTransfer(msg.sender, dst),
+            "Atleast of the address (msg.sender or dst) should be whitelisted"
+        );
         uint96 amount = safe96(
             rawAmount,
             "Comp::transfer: amount exceeds 96 bits"
@@ -157,6 +188,10 @@ contract Comp {
         address dst,
         uint256 rawAmount
     ) external returns (bool) {
+        require(
+            isWhiteListedTransfer(msg.sender, dst),
+            "Atleast of the address (src or dst) should be whitelisted"
+        );
         address spender = msg.sender;
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(

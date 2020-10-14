@@ -11,20 +11,27 @@ contract Bridge {
     Comp public mpond;
     TokenLogic public pond;
     address owner;
-    address governanceProxy;
+    // address governanceProxy;
 
     uint256 pondPerMpond = 1000000;
-    uint256 lockTime = 180 days;
-    uint256 mpondToPondConversionPercent = 10;
-    struct Claim {
-        bytes32 claimId;
-        uint256 amount;
-        bool isClaimed;
-        uint256 time;
-    }
+    uint256 epochLength = 1 days;
+    uint256 startEpoch = 0;
+    uint256 startTime;
 
-    mapping(address => mapping(uint256 => Claim)) claims;
-    mapping(address => uint256) claimCount;
+    uint256 lockTime = 180 days;
+
+    uint256 liquidityBp = 20;
+    uint256 liquidityDecimals = 4; // 0.0002 (i.e) 0.2%
+    uint256 liquidityEpochLength = 10 days; // liquidty will increase arithmatically after locktime
+    uint256 liquidityStartTime;
+    uint256 liquidityStartEpoch = 1; //after locktime liquidity counter start from 1
+
+    struct Requests {
+        uint256 amount;
+        uint256 releaseEpoch;
+    }
+    mapping(address => mapping(uint256 => Requests)) requests; //address->epoch->Request(amount, lockTime)
+    mapping(address => mapping(uint256 => uint256)) claimedAmounts; //address->epoch->amount
 
     constructor(
         address _mpond,
@@ -34,27 +41,114 @@ contract Bridge {
         mpond = Comp(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
-        governanceProxy = governanceProxy;
+        // governanceProxy = governanceProxy;
+        startTime = block.timestamp;
+        liquidityStartTime = block.timestamp;
     }
 
-    function changeConversionThresholdPercent(
-        uint256 _newConversionThresholdPercent
-    ) external returns (bool) {
-        require(
-            msg.sender == governanceProxy || msg.sender == owner,
-            "changeConversion: should be called by owner or governanceProxy"
-        );
-        mpondToPondConversionPercent = _newConversionThresholdPercent;
-        return true;
+    function getCurrentEpoch() internal view returns (uint256) {
+        return (block.timestamp - startTime).div(epochLength) + startEpoch;
     }
 
-    function changeLockTime(uint256 _newLockTime) external returns (bool) {
+    function lockTimeEpoch(uint256 _time) internal view returns (uint256) {
+        return _time.div(epochLength);
+    }
+
+    function getLiquidityEpoch() public view returns (uint256) {
+        if (block.timestamp < liquidityStartTime + 180 days) {
+            return 0;
+        }
+        return
+            (block.timestamp - liquidityStartTime - 180 days).div(
+                liquidityEpochLength
+            ) + liquidityStartEpoch;
+    }
+
+    function effectiveLiquidity() public view returns (uint256) {
+        uint256 effective = getLiquidityEpoch().mul(liquidityBp);
+        if (effective > 10000) {
+            return 10000;
+        } else {
+            return effective;
+        }
+    }
+
+    function getConvertableAmount(address _address, uint256 _epoch)
+        public
+        view
+        returns (uint256)
+    {
+        Requests memory _req = requests[_address][_epoch];
+        uint256 _claimedAmount = claimedAmounts[_address][_epoch];
+        if (
+            _claimedAmount >= _req.amount.mul(effectiveLiquidity()).div(10000)
+        ) {
+            return 0;
+        } else {
+            return
+                (_req.amount.mul(effectiveLiquidity()).div(10000)).sub(
+                    _claimedAmount
+                );
+        }
+    }
+
+    function getClaimedAmount(address _address, uint256 _epoch)
+        public
+        view
+        returns (uint256)
+    {
+        return claimedAmounts[_address][_epoch];
+    }
+
+    function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
+        require(_amount > 0, "Should be non zero amount");
+        uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
+        uint256 totalUnlockableAmount = _claimedAmount + _amount;
+        Requests memory _req = requests[msg.sender][_epoch];
         require(
-            msg.sender == governanceProxy || msg.sender == owner,
-            "changeLockTime: should be called by owner or governanceProxy"
+            totalUnlockableAmount <=
+                _req.amount.mul(effectiveLiquidity()).div(10000),
+            "total unlock amount should be less than requests_amount*effective_liquidity"
         );
-        lockTime = _newLockTime;
-        return true;
+        require(
+            getCurrentEpoch() > _req.releaseEpoch,
+            "Funds can only be released after requests exceed locktime"
+        );
+        claimedAmounts[msg.sender][_epoch] = totalUnlockableAmount;
+        mpond.transferFrom(msg.sender, address(this), _amount);
+        pond.transfer(msg.sender, _amount.mul(pondPerMpond));
+        return _amount.mul(pondPerMpond);
+    }
+
+    function placeRequest(uint256 amount) external returns (uint256, uint256) {
+        uint256 epoch = getCurrentEpoch();
+        require(amount != 0, "Request should be placed with non zero amount");
+        require(
+            requests[msg.sender][epoch].amount == 0,
+            "Only one request per epoch is acceptable"
+        );
+        require(
+            mpond.balanceOf(msg.sender) > 0,
+            "mPond balance should be greated than 0 for placing requests"
+        );
+        require(
+            amount <= mpond.balanceOf(msg.sender),
+            "request should be placed with amount less than or equal to balance"
+        );
+        Requests memory _req = Requests(
+            amount,
+            epoch + lockTimeEpoch(lockTime)
+        );
+        requests[msg.sender][epoch] = _req;
+        return (epoch, epoch + lockTimeEpoch(lockTime));
+    }
+
+    function viewRequest(address _address, uint256 _epoch)
+        public
+        view
+        returns (Requests memory)
+    {
+        return requests[_address][_epoch];
     }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
@@ -93,61 +187,5 @@ contract Bridge {
         pond.transferFrom(msg.sender, address(this), pondToDeduct);
         mpond.transfer(msg.sender, _mpond);
         return pondToDeduct;
-    }
-
-    function getPond(uint256 _pond) public returns (bytes32, uint256) {
-        require(_pond != 0, "getPond: should be more than 0");
-        uint256 mpondToDeduct = _pond.div(pondPerMpond);
-        require(
-            mpondToDeduct != 0,
-            "getPond: mpond to be received should be more than 0"
-        );
-        uint256 conversionThreshold = mpond
-            .balanceOf(msg.sender)
-            .mul(mpondToPondConversionPercent)
-            .div(100);
-        require(
-            mpondToDeduct <= conversionThreshold,
-            "getPond: cannot convert more than ${mpondToPondConversionPercent} mpond tokens to pond"
-        );
-        uint256 count = claimCount[msg.sender];
-        bytes32 id = keccak256(abi.encodePacked(msg.sender, count + 1, _pond));
-        uint256 mpondToSend = _pond.div(pondPerMpond);
-        mpond.transferFrom(msg.sender, address(this), mpondToSend);
-        Claim memory _claim = Claim(id, _pond, false, now);
-        claims[msg.sender][count + 1] = _claim;
-        // claims[msg.sender][count + 1].claimId = id;
-        // claims[msg.sender][count + 1].amount = _pond;
-        // claims[msg.sender][count + 1].time = block.timestamp;
-        claimCount[msg.sender] = count + 1;
-        return (id, count + 1);
-    }
-
-    function getPondWithClaimNumber(uint256 _claimNumber)
-        public
-        returns (bool)
-    {
-        Claim memory _claim = claims[msg.sender][_claimNumber];
-        require(
-            now >= _claim.time + lockTime,
-            "getPond: can be only after locktime is complete"
-        );
-        require(
-            _claim.isClaimed != true,
-            "getPond: claim shoudn't be already claimed"
-        );
-        require(_claim.amount != 0, "getMpond: claim amount should not be 0");
-        uint256 pondToSend = _claim.amount;
-        pond.transfer(msg.sender, pondToSend);
-        claims[msg.sender][_claimNumber].isClaimed = true;
-        return true;
-    }
-
-    function getClaim(address _address, uint256 _claimNumber)
-        public
-        view
-        returns (Claim memory)
-    {
-        return claims[_address][_claimNumber];
     }
 }

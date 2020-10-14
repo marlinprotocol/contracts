@@ -4,6 +4,7 @@ import "./SafeMath.sol";
 import "../governance/Comp.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
+
 contract StakeDrop {
     using SafeMath for uint256;
     using BytesLib for bytes;
@@ -89,7 +90,11 @@ contract StakeDrop {
         return true;
     }
 
-    function getWithdrawnBalance(address _address) public view returns (uint256) {
+    function getWithdrawnBalance(address _address)
+        public
+        view
+        returns (uint256)
+    {
         return withdrawnBalances[_address];
     }
 

@@ -73,13 +73,13 @@ contract("Bridge", function (accounts) {
   it("bridge add liquidity", function () {
     var admin = accounts[0];
     return comp
-      .approve(bridge.address, new web3Utils.BN("10"))
+      .approve(bridge.address, new web3Utils.BN("1000"))
       .then(function () {
         token.approve(bridge.address, new web3Utils.BN("10000000"));
       })
       .then(function () {
         return bridge.addLiquidity(
-          new web3Utils.BN("10"),
+          new web3Utils.BN("1000"),
           new web3Utils.BN("10000000")
         );
       })
@@ -99,7 +99,7 @@ contract("Bridge", function (accounts) {
         );
       });
   });
-  it("receive mpond for pond (i.e get mpond)", function () {
+  it("pond to mPond conversion (i.e get mpond)", function () {
     let testingAccount = accounts[9];
     return token
       .mint(testingAccount, new web3Utils.BN("1000000"))
@@ -123,7 +123,7 @@ contract("Bridge", function (accounts) {
       });
   });
 
-  it("receive pond for mpond (i.e get pond)", function () {
+  it.skip("mPond to pond conversion (i.e get pond) (old one)", function () {
     let testingAccount = accounts[8];
     return comp
       .transfer(testingAccount, new web3Utils.BN("100"))
@@ -139,7 +139,7 @@ contract("Bridge", function (accounts) {
       })
       .then(function (transaction) {
         // console.log(JSON.stringify(transaction, null, 4));
-        return increaseTime(180*86400);
+        return increaseTime(180 * 86400);
       })
       .then(function () {
         return addBlocks(1, accounts);
@@ -163,6 +163,82 @@ contract("Bridge", function (accounts) {
         assert.equal(balance, 1000000, "1000000 pond should be released");
         return;
       });
+  });
+
+  it("Check mPond to conversion and locks", function () {
+    let testingAccount = accounts[8];
+    return comp
+      .transfer(testingAccount, new web3Utils.BN("1000"))
+      .then(function () {
+        return comp.approve(bridge.address, new web3Utils.BN("1000"), {
+          from: testingAccount,
+        });
+      })
+      .then(function () {
+        return increaseTime(0.5 * 86400);
+      })
+      .then(function () {
+        return addBlocks(2, accounts);
+      })
+      .then(function (epoch) {
+        return bridge.placeRequest(500, {from: testingAccount});
+      })
+      .then(function () {
+        // above will create request on 0th epoch.
+        return bridge.viewRequest(testingAccount, 0);
+      })
+      .then(function (request) {
+        console.log({request});
+        return bridge.effectiveLiquidity();
+      })
+      .then(function (liquidityBp) {
+        console.log(`effective liquidity at ${liquidityBp} at start`);
+        return increaseTime(191.5 * 86400);
+      })
+      .then(function () {
+        return addBlocks(2, accounts);
+      })
+      .then(function () {
+        return bridge.getConvertableAmount(testingAccount, 0);
+      })
+      .then(function (convertableAmount) {
+        console.log({convertableAmount});
+        return;
+      })
+      .then(function () {
+        return bridge.effectiveLiquidity();
+      })
+      .then(function (liquidityBp) {
+        console.log(`effective liquidity at ${liquidityBp} at end`);
+        return bridge.convert(0, 2, {from: testingAccount});
+      })
+      .then(function () {
+        return token.balanceOf(testingAccount);
+      })
+      .then(function (balance) {
+        console.log(`Balance obtained via mPond conversion ${balance}`);
+        assert(balance > 0, true, "Balance should be non-zero");
+        return bridge.getClaimedAmount(testingAccount, 0);
+      })
+      .then(function (claimedAmount) {
+        console.log({claimedAmount});
+        return bridge.getConvertableAmount(testingAccount, 0);
+      })
+      .then(function (convertableAmount) {
+        console.log({convertableAmount});
+        //check convertable amount afet 500 days
+        return increaseTime(500 * 86400);
+      })
+      .then(function(){
+        return addBlocks(2, accounts);
+      })
+      .then(function(){
+        return bridge.getConvertableAmount(testingAccount, 0);
+      })
+      .then(function(convertableAmount){
+        console.log({convertableAmount});
+        return;
+      })
   });
 });
 
