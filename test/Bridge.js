@@ -30,7 +30,8 @@ contract("Bridge", function (accounts) {
       .then(function (instance) {
         comp = instance;
         let admin = accounts[0];
-        return Bridge.new(comp.address, token.address, admin);
+        let governanceProxy = accounts[0];
+        return Bridge.new(comp.address, token.address, admin, governanceProxy);
       })
       .then(function (instance) {
         bridge = instance;
@@ -229,16 +230,16 @@ contract("Bridge", function (accounts) {
         //check convertable amount afet 500 days
         return increaseTime(500 * 86400);
       })
-      .then(function(){
+      .then(function () {
         return addBlocks(2, accounts);
       })
-      .then(function(){
+      .then(function () {
         return bridge.getConvertableAmount(testingAccount, 0);
       })
-      .then(function(convertableAmount){
+      .then(function (convertableAmount) {
         console.log({convertableAmount});
         return;
-      })
+      });
   });
 });
 

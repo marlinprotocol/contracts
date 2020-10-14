@@ -7,6 +7,7 @@ module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
     let compAdmin = accounts[1];
     let admin = accounts[0];
+    let governanceProxy = accounts[0];
     await deployer
       .deploy(Comp, compAdmin)
       .then(function () {
@@ -16,7 +17,13 @@ module.exports = async function (deployer, network, accounts) {
         return deployer.deploy(TokenProxy, TokenLogic.address);
       })
       .then(function () {
-        return deployer.deploy(Bridge, Comp.address, TokenProxy.address, admin);
+        return deployer.deploy(
+          Bridge,
+          Comp.address,
+          TokenProxy.address,
+          admin,
+          governanceProxy
+        );
       })
       .then(function () {
         console.log("***********************************************");

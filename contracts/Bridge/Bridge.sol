@@ -11,7 +11,7 @@ contract Bridge {
     Comp public mpond;
     TokenLogic public pond;
     address owner;
-    // address governanceProxy;
+    address governanceProxy;
 
     uint256 pondPerMpond = 1000000;
     uint256 epochLength = 1 days;
@@ -36,14 +36,24 @@ contract Bridge {
     constructor(
         address _mpond,
         address _pond,
-        address _owner
+        address _owner,
+        address _governanceProxy
     ) public {
         mpond = Comp(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
-        // governanceProxy = governanceProxy;
+        governanceProxy = _governanceProxy;
         startTime = block.timestamp;
         liquidityStartTime = block.timestamp;
+    }
+
+    function changeLiquidityBp(uint256 _newLbp) external returns (bool) {
+        require(
+            msg.sender == owner || msg.sender == governanceProxy,
+            "Liquidity can be only changed by governance or owner"
+        );
+        liquidityBp = _newLbp;
+        return true;
     }
 
     function getCurrentEpoch() internal view returns (uint256) {
