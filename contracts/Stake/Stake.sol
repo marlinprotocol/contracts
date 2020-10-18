@@ -104,6 +104,13 @@ contract StakeManager {
         stakingData[_staker][_role].amount = stakingData[_staker][_role]
             .amount
             .sub(_amount);
+        if(_token == TokenType.MPOND) {
+            // send a request to undelegate governacne rights for the amount to previous delegator
+            Comp(tokenAddresses[uint256(_tokenType)]).unDelegate(
+                senderStake.delegator,
+                _amount
+            );
+        }
         require(
             ERC20(tokenAddresses[uint256[_tokenType]]).transfer(
                 _staker,
