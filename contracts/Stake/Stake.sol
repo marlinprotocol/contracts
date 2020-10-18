@@ -137,4 +137,9 @@ contract StakeManager {
     ) public view returns (uint256) {
         return stakingData[_user][_role][uint256(_tokenType)].delegatedStake;
     }
+
+    modifier onlyRoleStakingContracts {
+        // prateek to fill
+        _;
+    }
 }

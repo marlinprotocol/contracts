@@ -1,20 +1,21 @@
 pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract Comp {
+contract CompLogic is Initializable {
     /// @notice EIP-20 token name for this token
-    string public constant name = "Marlin Governance Token";
+    string public name;
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "mPOND";
+    string public symbol;
 
     /// @notice EIP-20 token decimals for this token
-    uint8 public constant decimals = 18;
+    uint8 public decimals;
 
     /// @notice Total number of tokens in circulation
-    uint256 public constant totalSupply = 10000e18; // 10k mPond
-    uint256 public constant bridgeSupply = 7000e18; // 3k mPond
+    uint256 public totalSupply; // 10k mPond
+    uint256 public bridgeSupply; // 3k mPond
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 
@@ -37,26 +38,21 @@ contract Comp {
     mapping(address => uint32) public numCheckpoints;
 
     /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
-    );
+    bytes32 public DOMAIN_TYPEHASH;
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256(
-        "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-    );
+    bytes32 public DELEGATION_TYPEHASH;
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant UNDELEGATION_TYPEHASH = keccak256(
-        "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-    );
+    bytes32 public UNDELEGATION_TYPEHASH;
+
     /// @notice A record of states for signing / validating signatures
     mapping(address => uint256) public nonces;
 
     /// customized params
     address public admin;
     mapping(address => bool) public isWhiteListed;
-    bool public enableAllTranfers = true;
+    bool public enableAllTranfers;
 
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(
@@ -83,10 +79,11 @@ contract Comp {
     );
 
     /**
-     * @notice Construct a new Comp token
+     * @notice Initializer a new Comp token
      * @param account The initial account to grant all the tokens
      */
-    constructor(address account, address bridge) public {
+    function initialize(address account, address bridge) public initializer {
+        createConstants();
         require(
             account != bridge,
             "Bridge and accoutn should not be the same address"
@@ -105,6 +102,24 @@ contract Comp {
         delegates[account][address(0)] = remainingSupply;
         isWhiteListed[account] = true;
         emit Transfer(address(0), account, uint256(remainingSupply));
+    }
+
+    function createConstants() internal {
+        name = "Marlin Governance Token";
+        symbol = "mPOND";
+        decimals = 18;
+        totalSupply = 10000e18;
+        bridgeSupply = 7000e18;
+        DOMAIN_TYPEHASH = keccak256(
+            "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
+        );
+        DELEGATION_TYPEHASH = keccak256(
+            "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+        );
+        UNDELEGATION_TYPEHASH = keccak256(
+            "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+        );
+        enableAllTranfers = true;
     }
 
     function addWhiteListAddress(address _address) external returns (bool) {

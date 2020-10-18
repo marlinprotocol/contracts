@@ -1,7 +1,10 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const Comp = artifacts.require("Comp.sol");
-const Bridge = artifacts.require("Bridge.sol");
+const CompProxy = artifacts.require("CompProxy.sol");
+const CompLogic = artifacts.require("CompLogic.sol");
+
+const BridgeLogic = artifacts.require("BridgeLogic.sol");
+const BridgeProxy = artifacts.require("BridgeProxy.sol");
 
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
@@ -9,7 +12,10 @@ module.exports = async function (deployer, network, accounts) {
     let admin = accounts[0];
     let governanceProxy = accounts[0];
     await deployer
-      .deploy(Comp, compAdmin)
+      .deploy(CompLogic)
+      .then(function () {
+        return deployer.deploy(CompProxy, CompLogic.address);
+      })
       .then(function () {
         return deployer.deploy(TokenLogic);
       })
@@ -17,22 +23,19 @@ module.exports = async function (deployer, network, accounts) {
         return deployer.deploy(TokenProxy, TokenLogic.address);
       })
       .then(function () {
-        return deployer.deploy(
-          Bridge,
-          Comp.address,
-          TokenProxy.address,
-          admin,
-          governanceProxy
-        );
+        return deployer.deploy(BridgeLogic);
       })
       .then(function () {
-        console.log("***********************************************");
-        console.log(TokenLogic.address, "TokenLogic.address");
-        console.log(TokenProxy.address, "TokenProxy.address");
-        console.log(Comp.address, "Comp.address");
-        console.log(Bridge.address, "Bridge.address");
-        console.log(admin, "Bridge.admin");
-        console.log("***********************************************");
+        return deployer.deploy(BridgeProxy, BridgeLogic.address);
       });
+    // .then(function () {
+    //   return deployer.deploy(
+    //     Bridge,
+    //     Comp.address,
+    //     TokenProxy.address,
+    //     admin,
+    //     governanceProxy
+    //   );
+    // })
   }
 };
