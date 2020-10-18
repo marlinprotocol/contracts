@@ -19,10 +19,12 @@ contract TokenLogic is
     function initialize(
         string memory _name,
         string memory _symbol,
-        uint8 _decimal
+        uint8 _decimal,
+        address _bridge
     ) public initializer {
         ERC20Detailed.initialize(_name, _symbol, _decimal);
         // ERC20Mintable.initialize(msg.sender);
         ERC20Capped.initialize(10000000000e18, msg.sender);
+        mint(_bridge, 3000000000e18);
     }
 }

@@ -1,7 +1,9 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const Comp = artifacts.require("Comp.sol");
-const Bridge = artifacts.require("Bridge.sol");
+const CompProxy = artifacts.require("CompProxy.sol");
+const CompLogic = artifacts.require("CompLogic.sol");
+const BridgeLogic = artifacts.require("BridgeLogic.sol");
+const BridgeProxy = artifacts.require("BridgeProxy.sol");
 const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
@@ -21,27 +23,50 @@ contract("Bridge", function (accounts) {
       })
       .then(function (instance) {
         token = instance;
-        return;
+        return CompProxy.new(CompLogic.address, {from: accounts[1]});
       })
-      .then(function () {
+      .then(function (proxyContract) {
         let compAdmin = accounts[0];
-        return Comp.new(compAdmin);
+        return CompLogic.at(proxyContract.address);
       })
       .then(function (instance) {
         comp = instance;
         let admin = accounts[0];
         let governanceProxy = accounts[0];
-        return Bridge.new(comp.address, token.address, admin, governanceProxy);
+        // return Bridge.new(comp.address, token.address, admin, governanceProxy);
+        return BridgeProxy.new(BridgeLogic.address, {from: accounts[1]});
+      })
+      .then(function (proxyContract) {
+        return BridgeLogic.at(proxyContract.address);
       })
       .then(function (instance) {
         bridge = instance;
-        return token.initialize("Marlin Protocol", "POND", 18);
+        return token.initialize("Marlin Protocol", "POND", 18, bridge.address);
       })
       .then(function () {
         return token.name();
       })
       .then(function (name) {
         console.table({name});
+        return comp.initialize(accounts[4], accounts[11]);
+      })
+      .then(function () {
+        return comp.name();
+      })
+      .then(function (name) {
+        console.table({name});
+        return bridge.initialize(
+          comp.address,
+          token.address,
+          accounts[0],
+          accounts[0]
+        );
+      })
+      .then(function () {
+        return bridge.getConversionRate();
+      })
+      .then(function (pondPerMpond) {
+        console.table({pondPerMpond});
         return;
       });
   });
@@ -49,14 +74,19 @@ contract("Bridge", function (accounts) {
   it("check balances", function () {
     let admin = accounts[0];
     return comp
-      .balanceOf(admin)
+      .transfer(accounts[0], new web3Utils.BN("1000"), {from: accounts[4]})
+      .then(function () {
+        return comp.balanceOf(admin);
+      })
       .then(function (balance) {
+        console.log({balance});
         assert.equal(
           balance > 0,
           true,
           "Comp balance should be greater than 0"
         );
         return token.mint(admin, new web3Utils.BN("1000000000"));
+        // return;
       })
       .then(function () {
         let admin = accounts[0];
@@ -75,6 +105,11 @@ contract("Bridge", function (accounts) {
     var admin = accounts[0];
     return comp
       .approve(bridge.address, new web3Utils.BN("1000"))
+      .then(function () {
+        return comp.transfer(accounts[0], new web3Utils.BN("1000"), {
+          from: accounts[4],
+        });
+      })
       .then(function () {
         token.approve(bridge.address, new web3Utils.BN("10000000"));
       })

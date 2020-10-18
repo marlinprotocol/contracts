@@ -1,6 +1,7 @@
 const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
 const Timelock = artifacts.require("Timelock.sol");
-const Comp = artifacts.require("Comp.sol");
+const CompProxy = artifacts.require("CompProxy.sol");
+const CompLogic = artifacts.require("CompLogic.sol");
 const web3Utils = require("web3-utils");
 
 var govInstance;
@@ -12,7 +13,7 @@ var governanceAddress;
 var compAddress;
 var timelockAddress;
 
-contract.skip("Governance", function (accounts, network) {
+contract("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   console.log(network);
   const tempAddress = accounts[9];
@@ -31,7 +32,7 @@ contract.skip("Governance", function (accounts, network) {
       })
       .then(function (address) {
         compAddress = address;
-        return Comp.at(compAddress);
+        return CompLogic.at(compAddress);
       })
       .then(function (instance) {
         compInstance = instance;
@@ -43,7 +44,7 @@ contract.skip("Governance", function (accounts, network) {
       })
       .then(function (instance) {
         timelockInstance = instance;
-        return;
+        return compInstance.initialize(accounts[4], accounts[11]);
       })
       .then(function () {
         let valuesToCheck = {governanceAddress, compAddress, timelockAddress};
@@ -85,15 +86,21 @@ contract.skip("Governance", function (accounts, network) {
 
   it("other users who have balances should also be able to delegate", function () {
     return compInstance
-      .delegate(accounts[6], {from: accounts[6]})
+      .delegate(accounts[6], new web3Utils.BN("3e23"), {from: accounts[6]})
       .then(function () {
-        return compInstance.delegate(accounts[7], {from: accounts[7]});
+        return compInstance.delegate(accounts[7], new web3Utils.BN("3e23"), {
+          from: accounts[7],
+        });
       })
       .then(function () {
-        return compInstance.delegate(accounts[8], {from: accounts[8]});
+        return compInstance.delegate(accounts[8], new web3Utils.BN("3e23"), {
+          from: accounts[8],
+        });
       })
       .then(function () {
-        return compInstance.delegate(accounts[9], {from: accounts[9]});
+        return compInstance.delegate(accounts[9], new web3Utils.BN("3e23"), {
+          from: accounts[9],
+        });
       })
       .then(function () {
         return addBlocks(2, accounts);
@@ -102,12 +109,14 @@ contract.skip("Governance", function (accounts, network) {
 
   it("check current votes", function () {
     return compInstance
-      .delegate(accounts[4], {from: accounts[4]})
+      .delegate(accounts[4], new web3Utils.BN("4000000000000000000"), {
+        from: accounts[4],
+      })
       .then(function () {
         return compInstance
           .getCurrentVotes(accounts[4])
           .then(function (votes) {
-            console.log(votes);
+            console.log({votes});
             // assert latter
 
             // this transactions is only to increase the few block

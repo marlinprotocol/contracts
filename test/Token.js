@@ -3,9 +3,11 @@ var TokenLogic = artifacts.require("TokenLogic.sol");
 
 var tokenProxy;
 var tokenLogic;
+var web3Utils = require("web3-utils");
 
-contract.skip("Marlin Token", function (accounts) {
+contract("Marlin Token", function (accounts) {
   var tokenInstance;
+  let totalSupplyBeforeMinting;
 
   it("deploy and initialise the contracts", function () {
     // proxy admin is a different account
@@ -20,11 +22,12 @@ contract.skip("Marlin Token", function (accounts) {
   });
 
   it("initializes with token", function () {
+    let tempBridgeAddress = accounts[5];
     return TokenLogic.at(TokenProxy.address)
       .then(function (instance) {
         tokenInstance = instance;
         return tokenInstance
-          .initialize("Marlin Protocol", "LIN", 18)
+          .initialize("Marlin Protocol", "LIN", 18, tempBridgeAddress)
           .then(function () {
             return tokenInstance.name();
           });
@@ -82,6 +85,10 @@ contract.skip("Marlin Token", function (accounts) {
     return TokenLogic.at(TokenProxy.address)
       .then(function (instance) {
         tokenInstance = instance;
+        return tokenInstance.totalSupply();
+      })
+      .then(function (data) {
+        totalSupplyBeforeMinting = data;
         return tokenInstance.mint(accounts[0], 1000);
       })
       .then(function (minted) {
@@ -92,8 +99,12 @@ contract.skip("Marlin Token", function (accounts) {
         );
         return tokenInstance.totalSupply();
       })
-      .then(function (total) {
-        assert.equal(total, 1000, "wrong Total supply after minting in owner");
+      .then(function (totalSupplyAfterMinting) {
+        assert.equal(
+          totalSupplyAfterMinting.sub(totalSupplyBeforeMinting),
+          1000,
+          "wrong Total supply after minting in owner"
+        );
         return tokenInstance.balanceOf(accounts[0]);
       })
       .then(function (balance) {
@@ -109,7 +120,12 @@ contract.skip("Marlin Token", function (accounts) {
         return tokenInstance.totalSupply();
       })
       .then(function (total) {
-        assert.equal(total, 1100, "Wrong Total supply after minting in other");
+        // console.log(total)
+        assert.equal(
+          total.toString(),
+          totalSupplyBeforeMinting.add(new web3Utils.BN(0x44c)).toString(),
+          "Wrong Total supply after minting in other"
+        );
         return tokenInstance.balanceOf(accounts[2]);
       })
       .then(function (balance) {
@@ -131,8 +147,8 @@ contract.skip("Marlin Token", function (accounts) {
       })
       .then(function (total) {
         assert.equal(
-          total,
-          1050,
+          total.toString(),
+          totalSupplyBeforeMinting.add(new web3Utils.BN(1050)).toString(),
           "Wrong Total supply after burning from owner"
         );
       });
@@ -195,8 +211,8 @@ contract.skip("Marlin Token", function (accounts) {
       })
       .then(function (total) {
         assert.equal(
-          total,
-          1000,
+          total.toString(),
+          totalSupplyBeforeMinting.add(new web3Utils.BN(1000)).toString(),
           "Wrong Total supply after burning from owner by other"
         );
       });
