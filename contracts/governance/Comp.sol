@@ -13,8 +13,8 @@ contract Comp {
     uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint256 public constant totalSupply = 1000000e18; // 1 million mPond
-
+    uint256 public constant totalSupply = 10000e18; // 10k mPond
+    uint256 public constant bridgeSupply = 7000e18; // 3k mPond
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 
@@ -86,10 +86,17 @@ contract Comp {
      * @notice Construct a new Comp token
      * @param account The initial account to grant all the tokens
      */
-    constructor(address account) public {
-        balances[account] = uint96(totalSupply);
-        delegates[account][address(0)] = uint96(totalSupply);
-        emit Transfer(address(0), account, totalSupply);
+    constructor(address account, address bridge) public {
+        balances[bridge] = uint96(bridgeSupply);
+        delegates[bridge][address(0)] = uint96(bridgeSupply);
+        isWhiteListed[bridge] = true;
+        emit Transfer(address(0), bridge, bridgeSupply);
+        
+        uint96 remainingSupply = sub96(uint96(totalSupply), uint96(bridgeSupply), "Comp: Subtraction overflow in the constructor");
+        balances[account] = remainingSupply;
+        delegates[account][address(0)] = remainingSupply;
+        isWhiteListed[account] = true;
+        emit Transfer(address(0), account, uint256(remainingSupply));
     }
 
     function addWhiteListAddress(address _address) external returns (bool) {
