@@ -56,7 +56,7 @@ contract BridgeLogic is Initializable {
         lockTime = 180 days;
         liquidityBp = 20;
         liquidityDecimals = 4; // 0.0002 (i.e) 0.2%
-        liquidityEpochLength = 10 days; // liquidty will increase arithmatically after locktime
+        liquidityEpochLength = 180 days; // liquidty will increase arithmatically after locktime
         liquidityStartEpoch = 1; //after locktime liquidity counter start from 1
     }
 
@@ -138,7 +138,7 @@ contract BridgeLogic is Initializable {
             "total unlock amount should be less than requests_amount*effective_liquidity"
         );
         require(
-            getCurrentEpoch() > _req.releaseEpoch,
+            getCurrentEpoch() >= _req.releaseEpoch,
             "Funds can only be released after requests exceed locktime"
         );
         claimedAmounts[msg.sender][_epoch] = totalUnlockableAmount;
