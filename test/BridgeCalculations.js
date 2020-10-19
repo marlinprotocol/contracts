@@ -8,7 +8,7 @@ const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
-contract("BridgeCalculations", function (accounts) {
+contract.only("BridgeCalculations", function (accounts) {
   var token;
   var comp;
   var bridge;
@@ -279,14 +279,14 @@ contract("BridgeCalculations", function (accounts) {
       });
   });
 
-  it("Day 210: convert 10 mPond of epoch 0 at same 10% liquidity: should fail", function () {
+  it("Day 210: convert 10 mPond locked on Day 30 at same 10% liquidity: should fail", function () {
     return increaseTime(30 * 86400)
       .then(function () {
         return addBlocks(2, accounts);
       })
       .then(function () {
         return bridge
-          .convert(new web3Utils.BN("0"), new web3Utils.BN("10"))
+          .convert(new web3Utils.BN("30"), new web3Utils.BN("10"))
           .then(function () {
             // if needed something
             throw new Error("This should fail");
@@ -300,11 +300,11 @@ contract("BridgeCalculations", function (accounts) {
       });
   });
 
-  it("Day 210: convert 10 mpond after increase the liquidity param to 20%", function () {
+  it("Day 210: convert 10 mpond locked on Day 30, after increase the liquidity param to 20%", function () {
     return bridge
       .changeLiquidityBp(new web3Utils.BN("2000"))
       .then(function () {
-        return bridge.convert(new web3Utils.BN("0"), new web3Utils.BN("10"));
+        return bridge.convert(new web3Utils.BN("30"), new web3Utils.BN("10"));
       })
       .then(function () {
         return comp.balanceOf(accounts[0]);
@@ -329,20 +329,21 @@ contract("BridgeCalculations", function (accounts) {
       });
   });
 
-  it("Day 210: convert 83 mpond", function () {
+  it("Day 210: convert 93 mpond for locked on Day 0", function () {
     return bridge
-      .convert(new web3Utils.BN("0"), new web3Utils.BN("83"))
+      .convert(new web3Utils.BN("0"), new web3Utils.BN("93"))
       .then(function () {
         return comp.balanceOf(accounts[0]);
       })
       .then(function (balance) {
-        assert.equal(balance, 820, "balance should 810");
+        assert.equal(balance, 810, "balance should 810");
         return;
       });
     // return bridge.getConvertableAmount(accounts[0], new web3Utils.BN("0")).then(function(data){
     //     console.log(data);
     // })
   });
+
   it("Day 213: effective liquidity should be 20%", function () {
     return increaseTime(3 * 86400)
       .then(function () {
@@ -403,9 +404,9 @@ contract("BridgeCalculations", function (accounts) {
       });
   });
 
-  it("Check pond balance: A total of 180 mPond were converted in 390 days, the account should have 180*1000000 pond balance in the account", function () {
+  it("Check pond balance: A total of 190 mPond were converted in 390 days, the account should have 190*1000000 pond balance in the account", function () {
     return token.balanceOf(accounts[0]).then(function (balance) {
-      assert.equal(balance, 180000000, "18e5 pond should be available");
+      assert.equal(balance, 190000000, "19e5 pond should be available");
     });
   });
 });
