@@ -75,6 +75,10 @@ contract Distribution {
         bytes32 _stakingAddress
     ) public returns (bool) {
         require(
+            _endEpoch > _startEpoch,
+            "End epoch should be greater than start epoch"
+        );
+        require(
             addressRegistry.getAddress(_stakingAddress) == msg.sender,
             "Should be valid address"
         );

@@ -47,7 +47,7 @@ contract StakeRegistry is StandardOracle {
     function addStake(
         uint8 _epoch,
         bytes32 _stakingAddress,
-        bytes32 validatorAddress,
+        bytes32 _validatorAddress,
         uint256 _amount
     ) public onlySource returns (bool) {
         require(
@@ -61,7 +61,12 @@ contract StakeRegistry is StandardOracle {
             registry[_epoch].totalStake = registry[_epoch].totalStake.add(
                 _amount
             );
-            emit StakeAdded(_epoch, _stakingAddress, validatorAddress, _amount);
+            emit StakeAdded(
+                _epoch,
+                _stakingAddress,
+                _validatorAddress,
+                _amount
+            );
         } else {
             emit StakeSkipped(
                 _epoch,
