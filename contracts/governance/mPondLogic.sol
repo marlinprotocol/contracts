@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract CompLogic is Initializable {
+contract mPondLogic is Initializable {
     /// @notice EIP-20 token name for this token
     string public name;
 
@@ -52,7 +52,7 @@ contract CompLogic is Initializable {
     /// customized params
     address public admin;
     mapping(address => bool) public isWhiteListed;
-    bool public enableAllTranfers = true;
+    bool public enableAllTranfers;
 
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(
@@ -119,6 +119,7 @@ contract CompLogic is Initializable {
         UNDELEGATION_TYPEHASH = keccak256(
             "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
         );
+        enableAllTranfers = true;
     }
 
     function addWhiteListAddress(address _address) external returns (bool) {

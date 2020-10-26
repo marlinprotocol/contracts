@@ -3,7 +3,7 @@ pragma solidity >=0.4.21 <0.7.0;
 import "./AddressRegistry.sol";
 import "./StakeRegistry.sol";
 import "./ValidatorRegistry.sol";
-import "./CompLogic.sol";
+import "../governance/mPondLogic.sol";
 
 
 contract Distribution {
@@ -12,7 +12,7 @@ contract Distribution {
     ValidatorRegistry validatorRegistry;
     StakeRegistry stakeRegistry;
     AddressRegistry addressRegistry;
-    CompLogic mpond;
+    mPondLogic mpond;
     uint256 pondRewardPerEpoch = 1e18; //assuming 1 mPond per epoch
 
     mapping(uint8 => mapping(bytes32 => uint256)) withdrawnBalance;
@@ -35,7 +35,7 @@ contract Distribution {
         validatorRegistry = ValidatorRegistry(_validatorRegistry);
         stakeRegistry = StakeRegistry(_stakeRegistry);
         addressRegistry = AddressRegistry(_addressRegistry);
-        mpond = CompLogic(_tokenAddress);
+        mpond = mPondLogic(_tokenAddress);
     }
 
     function addTokens(uint256 _amount) public returns (bool) {

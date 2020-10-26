@@ -1,7 +1,7 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const CompProxy = artifacts.require("CompProxy.sol");
-const CompLogic = artifacts.require("CompLogic.sol");
+const mPondProxy = artifacts.require("mPondProxy.sol");
+const mPondLogic = artifacts.require("mPondLogic.sol");
 const BridgeLogic = artifacts.require("BridgeLogic.sol");
 const BridgeProxy = artifacts.require("BridgeProxy.sol");
 const web3Utils = require("web3-utils");
@@ -10,7 +10,7 @@ const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
 contract("BridgeCalculations", function (accounts) {
   var token;
-  var comp;
+  var mPond;
   var bridge;
 
   it("deploy contracts and instantiate", function () {
@@ -23,17 +23,17 @@ contract("BridgeCalculations", function (accounts) {
       })
       .then(function (instance) {
         token = instance;
-        return CompProxy.new(CompLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
       })
       .then(function (proxyContract) {
-        let compAdmin = accounts[0];
-        return CompLogic.at(proxyContract.address);
+        let mPondAdmin = accounts[0];
+        return mPondLogic.at(proxyContract.address);
       })
       .then(function (instance) {
-        comp = instance;
+        mPond = instance;
         let admin = accounts[0];
         let governanceProxy = accounts[0];
-        // return Bridge.new(comp.address, token.address, admin, governanceProxy);
+        // return Bridge.new(mPond.address, token.address, admin, governanceProxy);
         return BridgeProxy.new(BridgeLogic.address, {from: accounts[1]});
       })
       .then(function (proxyContract) {
@@ -48,15 +48,15 @@ contract("BridgeCalculations", function (accounts) {
       })
       .then(function (name) {
         console.table({name});
-        return comp.initialize(accounts[4], accounts[11]);
+        return mPond.initialize(accounts[4], accounts[11]);
       })
       .then(function () {
-        return comp.name();
+        return mPond.name();
       })
       .then(function (name) {
         console.table({name});
         return bridge.initialize(
-          comp.address,
+          mPond.address,
           token.address,
           accounts[0],
           accounts[0]
@@ -73,17 +73,17 @@ contract("BridgeCalculations", function (accounts) {
 
   it("check balances", function () {
     let admin = accounts[0];
-    return comp
+    return mPond
       .transfer(accounts[0], new web3Utils.BN("1000"), {from: accounts[4]})
       .then(function () {
-        return comp.balanceOf(admin);
+        return mPond.balanceOf(admin);
       })
       .then(function (balance) {
         console.log({balance});
         assert.equal(
           balance > 0,
           true,
-          "Comp balance should be greater than 0"
+          "mPond balance should be greater than 0"
         );
         // return token.mint(admin, new web3Utils.BN("1000000000"));
         // return;
@@ -108,7 +108,7 @@ contract("BridgeCalculations", function (accounts) {
           true,
           "Bridge balance should be not be zero for swaps"
         );
-        return comp.approve(bridge.address, new web3Utils.BN("1000"));
+        return mPond.approve(bridge.address, new web3Utils.BN("1000"));
       });
   });
 
@@ -221,11 +221,12 @@ contract("BridgeCalculations", function (accounts) {
         );
       });
   });
+
   it("Day 180: convert 85 mPond to pond of epoch 0", function () {
     return bridge
       .convert(new web3Utils.BN("0"), new web3Utils.BN("85"))
       .then(function () {
-        return comp.balanceOf(accounts[0]);
+        return mPond.balanceOf(accounts[0]);
       })
       .then(function (balance) {
         assert.equal(balance, 915, "915 mPond should be left");
@@ -271,7 +272,7 @@ contract("BridgeCalculations", function (accounts) {
     return bridge
       .convert(new web3Utils.BN("0"), new web3Utils.BN("2"))
       .then(function () {
-        return comp.balanceOf(accounts[0]);
+        return mPond.balanceOf(accounts[0]);
       })
       .then(function (balance) {
         assert.equal(balance, 913, "913 mPond should be left");
@@ -307,7 +308,7 @@ contract("BridgeCalculations", function (accounts) {
         return bridge.convert(new web3Utils.BN("0"), new web3Utils.BN("10"));
       })
       .then(function () {
-        return comp.balanceOf(accounts[0]);
+        return mPond.balanceOf(accounts[0]);
       })
       .then(function (balance) {
         assert.equal(balance, 903, "Token balance should now be 903");
@@ -333,7 +334,7 @@ contract("BridgeCalculations", function (accounts) {
     return bridge
       .convert(new web3Utils.BN("0"), new web3Utils.BN("83"))
       .then(function () {
-        return comp.balanceOf(accounts[0]);
+        return mPond.balanceOf(accounts[0]);
       })
       .then(function (balance) {
         assert.equal(balance, 820, "balance should 810");

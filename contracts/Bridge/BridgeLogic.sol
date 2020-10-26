@@ -3,13 +3,13 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Token/TokenLogic.sol";
-import "../governance/CompLogic.sol";
+import "../governance/mPondLogic.sol";
 
 
 contract BridgeLogic is Initializable {
     using SafeMath for uint256;
 
-    CompLogic public mpond;
+    mPondLogic public mpond;
     TokenLogic public pond;
     address owner;
     address governanceProxy;
@@ -41,7 +41,7 @@ contract BridgeLogic is Initializable {
         address _governanceProxy
     ) public initializer {
         createConstants();
-        mpond = CompLogic(_mpond);
+        mpond = mPondLogic(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
         governanceProxy = _governanceProxy;

@@ -2,13 +2,13 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
-import "../governance/Comp.sol";
+import "../governance/mPond.sol";
 
 
 contract Bridge {
     using SafeMath for uint256;
 
-    Comp public mpond;
+    mPond public mpond;
     TokenLogic public pond;
     address owner;
     address governanceProxy;
@@ -39,7 +39,7 @@ contract Bridge {
         address _owner,
         address _governanceProxy
     ) public {
-        mpond = Comp(_mpond);
+        mpond = mPond(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
         governanceProxy = _governanceProxy;

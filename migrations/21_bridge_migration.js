@@ -1,20 +1,20 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const CompProxy = artifacts.require("CompProxy.sol");
-const CompLogic = artifacts.require("CompLogic.sol");
+const mPondProxy = artifacts.require("mPondProxy.sol");
+const mPondLogic = artifacts.require("mPondLogic.sol");
 
 const BridgeLogic = artifacts.require("BridgeLogic.sol");
 const BridgeProxy = artifacts.require("BridgeProxy.sol");
 
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
-    let compAdmin = accounts[1];
+    let mPondAdmin = accounts[1];
     let admin = accounts[0];
     let governanceProxy = accounts[0];
     await deployer
-      .deploy(CompLogic)
+      .deploy(mPondLogic)
       .then(function () {
-        return deployer.deploy(CompProxy, CompLogic.address);
+        return deployer.deploy(mPondProxy, mPondLogic.address);
       })
       .then(function () {
         return deployer.deploy(TokenLogic);

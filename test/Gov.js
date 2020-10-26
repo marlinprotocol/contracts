@@ -1,16 +1,16 @@
 const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
 const Timelock = artifacts.require("Timelock.sol");
-const CompProxy = artifacts.require("CompProxy.sol");
-const CompLogic = artifacts.require("CompLogic.sol");
+const mPondProxy = artifacts.require("mPondProxy.sol");
+const mPondLogic = artifacts.require("mPondLogic.sol");
 const web3Utils = require("web3-utils");
 
 var govInstance;
-var compInstance;
+var mPondInstance;
 var timelockInstance;
 var proposalId;
 
 var governanceAddress;
-var compAddress;
+var mPondAddress;
 var timelockAddress;
 
 contract("Governance", function (accounts, network) {
@@ -28,14 +28,14 @@ contract("Governance", function (accounts, network) {
       .then(function (instance) {
         govInstance = instance;
         governanceAddress = instance.address;
-        return govInstance.comp();
+        return govInstance.mPond();
       })
       .then(function (address) {
-        compAddress = address;
-        return CompLogic.at(compAddress);
+        mPondAddress = address;
+        return mPondLogic.at(mPondAddress);
       })
       .then(function (instance) {
-        compInstance = instance;
+        mPondInstance = instance;
         return govInstance.timelock();
       })
       .then(function (address) {
@@ -44,10 +44,10 @@ contract("Governance", function (accounts, network) {
       })
       .then(function (instance) {
         timelockInstance = instance;
-        return compInstance.initialize(accounts[4], accounts[11]);
+        return mPondInstance.initialize(accounts[4], accounts[11]);
       })
       .then(function () {
-        let valuesToCheck = {governanceAddress, compAddress, timelockAddress};
+        let valuesToCheck = {governanceAddress, mPondAddress, timelockAddress};
         console.log(valuesToCheck);
         return;
       });
@@ -59,46 +59,46 @@ contract("Governance", function (accounts, network) {
     });
   });
 
-  it("check balances of COMP token and transfer COMP to other accounts", function () {
-    return compInstance
+  it("check balances of mPond token and transfer mPond to other accounts", function () {
+    return mPondInstance
       .balanceOf(accounts[4])
       .then(function () {
-        return compInstance.transfer(accounts[6], new web3Utils.BN("3e23"), {
+        return mPondInstance.transfer(accounts[6], new web3Utils.BN("3e23"), {
           from: accounts[4],
         });
       })
       .then(function () {
-        return compInstance.transfer(accounts[7], new web3Utils.BN("3e23"), {
+        return mPondInstance.transfer(accounts[7], new web3Utils.BN("3e23"), {
           from: accounts[4],
         });
       })
       .then(function () {
-        return compInstance.transfer(accounts[8], new web3Utils.BN("3e23"), {
+        return mPondInstance.transfer(accounts[8], new web3Utils.BN("3e23"), {
           from: accounts[4],
         });
       })
       .then(function () {
-        return compInstance.transfer(accounts[9], new web3Utils.BN("3e23"), {
+        return mPondInstance.transfer(accounts[9], new web3Utils.BN("3e23"), {
           from: accounts[4],
         });
       });
   });
 
   it("other users who have balances should also be able to delegate", function () {
-    return compInstance
+    return mPondInstance
       .delegate(accounts[6], new web3Utils.BN("3e23"), {from: accounts[6]})
       .then(function () {
-        return compInstance.delegate(accounts[7], new web3Utils.BN("3e23"), {
+        return mPondInstance.delegate(accounts[7], new web3Utils.BN("3e23"), {
           from: accounts[7],
         });
       })
       .then(function () {
-        return compInstance.delegate(accounts[8], new web3Utils.BN("3e23"), {
+        return mPondInstance.delegate(accounts[8], new web3Utils.BN("3e23"), {
           from: accounts[8],
         });
       })
       .then(function () {
-        return compInstance.delegate(accounts[9], new web3Utils.BN("3e23"), {
+        return mPondInstance.delegate(accounts[9], new web3Utils.BN("3e23"), {
           from: accounts[9],
         });
       })
@@ -108,12 +108,12 @@ contract("Governance", function (accounts, network) {
   });
 
   it("check current votes", function () {
-    return compInstance
+    return mPondInstance
       .delegate(accounts[4], new web3Utils.BN("4000000000000000000"), {
         from: accounts[4],
       })
       .then(function () {
-        return compInstance
+        return mPondInstance
           .getCurrentVotes(accounts[4])
           .then(function (votes) {
             console.log({votes});
@@ -124,7 +124,7 @@ contract("Governance", function (accounts, network) {
           })
           .then(async function () {
             let block = await web3.eth.getBlock("latest");
-            return compInstance.getPriorVotes(accounts[4], block.number - 1);
+            return mPondInstance.getPriorVotes(accounts[4], block.number - 1);
           })
           .then(function (priorVotes) {
             console.log(priorVotes);

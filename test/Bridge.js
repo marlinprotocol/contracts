@@ -1,16 +1,16 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const CompProxy = artifacts.require("CompProxy.sol");
-const CompLogic = artifacts.require("CompLogic.sol");
+const mPondProxy = artifacts.require("mPondProxy.sol");
+const mPondLogic = artifacts.require("mPondLogic.sol");
 const BridgeLogic = artifacts.require("BridgeLogic.sol");
 const BridgeProxy = artifacts.require("BridgeProxy.sol");
 const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
-contract("Bridge", function (accounts) {
+contract.skip("Bridge", function (accounts) {
   var token;
-  var comp;
+  var mPond;
   var bridge;
 
   it("deploy contracts and instantiate", function () {
@@ -23,17 +23,17 @@ contract("Bridge", function (accounts) {
       })
       .then(function (instance) {
         token = instance;
-        return CompProxy.new(CompLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
       })
       .then(function (proxyContract) {
-        let compAdmin = accounts[0];
-        return CompLogic.at(proxyContract.address);
+        let mPondAdmin = accounts[0];
+        return mPondLogic.at(proxyContract.address);
       })
       .then(function (instance) {
-        comp = instance;
+        mPond = instance;
         let admin = accounts[0];
         let governanceProxy = accounts[0];
-        // return Bridge.new(comp.address, token.address, admin, governanceProxy);
+        // return Bridge.new(mPond.address, token.address, admin, governanceProxy);
         return BridgeProxy.new(BridgeLogic.address, {from: accounts[1]});
       })
       .then(function (proxyContract) {
@@ -48,15 +48,15 @@ contract("Bridge", function (accounts) {
       })
       .then(function (name) {
         console.table({name});
-        return comp.initialize(accounts[4], accounts[11]);
+        return mPond.initialize(accounts[4], accounts[11]);
       })
       .then(function () {
-        return comp.name();
+        return mPond.name();
       })
       .then(function (name) {
         console.table({name});
         return bridge.initialize(
-          comp.address,
+          mPond.address,
           token.address,
           accounts[0],
           accounts[0]
@@ -73,17 +73,17 @@ contract("Bridge", function (accounts) {
 
   it("check balances", function () {
     let admin = accounts[0];
-    return comp
+    return mPond
       .transfer(accounts[0], new web3Utils.BN("1000"), {from: accounts[4]})
       .then(function () {
-        return comp.balanceOf(admin);
+        return mPond.balanceOf(admin);
       })
       .then(function (balance) {
         console.log({balance});
         assert.equal(
           balance > 0,
           true,
-          "Comp balance should be greater than 0"
+          "mPond balance should be greater than 0"
         );
         return token.mint(admin, new web3Utils.BN("1000000000"));
         // return;
@@ -103,10 +103,10 @@ contract("Bridge", function (accounts) {
 
   it("bridge add liquidity", function () {
     var admin = accounts[0];
-    return comp
+    return mPond
       .approve(bridge.address, new web3Utils.BN("1000"))
       .then(function () {
-        return comp.transfer(accounts[0], new web3Utils.BN("1000"), {
+        return mPond.transfer(accounts[0], new web3Utils.BN("1000"), {
           from: accounts[4],
         });
       })
@@ -148,7 +148,7 @@ contract("Bridge", function (accounts) {
         return bridge.getMpond(new web3Utils.BN("1"), {from: testingAccount});
       })
       .then(function () {
-        return comp.balanceOf(testingAccount);
+        return mPond.balanceOf(testingAccount);
       })
       .then(function (balance) {
         assert(
@@ -161,10 +161,10 @@ contract("Bridge", function (accounts) {
 
   it.skip("mPond to pond conversion (i.e get pond) (old one)", function () {
     let testingAccount = accounts[8];
-    return comp
+    return mPond
       .transfer(testingAccount, new web3Utils.BN("100"))
       .then(function () {
-        return comp.approve(bridge.address, new web3Utils.BN("100"), {
+        return mPond.approve(bridge.address, new web3Utils.BN("100"), {
           from: testingAccount,
         });
       })
@@ -203,10 +203,10 @@ contract("Bridge", function (accounts) {
 
   it("Check mPond to conversion and locks", function () {
     let testingAccount = accounts[8];
-    return comp
+    return mPond
       .transfer(testingAccount, new web3Utils.BN("1000"))
       .then(function () {
-        return comp.approve(bridge.address, new web3Utils.BN("1000"), {
+        return mPond.approve(bridge.address, new web3Utils.BN("1000"), {
           from: testingAccount,
         });
       })
