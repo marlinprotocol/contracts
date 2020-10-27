@@ -11,16 +11,16 @@ contract ClusterStakeManager {
         uint status;
     }
     // TODO: Probably relayer stake is not necessary at all
-    struct RelayerStake {
-        uint pond;
-        uint mpond;
-        uint effectiveStake; // in pond
-        uint pendingPondDelegation;
-        uint pendingMpondDelegation;
-        uint pendingPondUndelegation;
-        uint pendingMpondUndelegation;
-        uint updatedEpoch;
-    }
+    // struct RelayerStake {
+    //     uint pond;
+    //     uint mpond;
+    //     uint effectiveStake; // in pond
+    //     uint pendingPondDelegation;
+    //     uint pendingMpondDelegation;
+    //     uint pendingPondUndelegation;
+    //     uint pendingMpondUndelegation;
+    //     uint updatedEpoch;
+    // }
 
     struct ClusterStake {
         uint pond;
@@ -35,7 +35,7 @@ contract ClusterStakeManager {
     // relayer to cluster
     mapping(address => address) public relayerClusterMapping;
     // relayer to stakeData
-    mapping(address => RelayerStake) delegatedStake;
+    // mapping(address => RelayerStake) delegatedStake;
     // cluster to stakeData
     mapping(address => ClusterStake) clusterStake;
     
@@ -56,9 +56,9 @@ contract ClusterStakeManager {
         uint[2] memory relayerStake = stake.getDelegatedStake(1, msg.sender);
         ClusterStake memory cluster = clusterStake[_cluster];
         uint currentEpoch = pot.getEpoch(block.number);
-        RelayerStake memory relayer = RelayerStake(0, 0, 0, relayerStake[0], relayerStake[1], 0, 0, currentEpoch);
-        (relayer, cluster) = _updateStakes(currentEpoch, relayer, cluster);
-        delegatedStake[msg.sender] = relayerStake;
+        // RelayerStake memory relayer = RelayerStake(0, 0, 0, relayerStake[0], relayerStake[1], 0, 0, currentEpoch);
+        cluster = _updateStakes(currentEpoch, relayer, cluster);
+        // delegatedStake[msg.sender] = relayerStake;
         clusterStake.pendingPondDelegation += relayerStake[0];
         clusterStake.pendingMpondDelegation += relayerStake[1];
         relayerClusterMapping[msg.sender] = relayerCluster;
@@ -68,10 +68,10 @@ contract ClusterStakeManager {
         address relayerCluster = relayerClusterMapping[msg.sender];
         require(relayerCluster != address(0), "Relayer is not part of any cluster");
         require(Cluster(relayerClusterMapping[msg.sender]).exit(msg.sender), "Relayer exit rejected by Cluster");
-        RelayerStake memory relayer = delegatedStake[msg.sender];
+        RelayerStake memory relayer = stake.getDelegatedStake(1,  msg.sender);
         ClusterStake memory cluster = clusterStake[relayerCluster];
         uint currentEpoch = pot.getEpoch(block.number);
-        (relayer, cluster) = _updateStakes(currentEpoch, relayer, cluster);
+        cluster = _updateStakes(currentEpoch, cluster);
         // assuming no slashing
         cluster.pendingPondUndelegation -= relayer.pond;
         cluster.pendingMpondUndelegation -= relayer.mpond;
@@ -83,18 +83,18 @@ contract ClusterStakeManager {
         address delegateeCluster = relayerClusterMapping[_delegatee];
         if(delegateeCluster != address(0)) {
             uint currentEpoch = pot.getEpoch(block.number);
-            RelayerStake memory relayer = delegatedStake[_delegatee];
+            // RelayerStake memory relayer = delegatedStake[_delegatee];
             ClusterStake memory cluster = clusterStake[delegateeCluster];
-            (relayer, cluster) = _updateStakes(currentEpoch, relayer, cluster);
+            cluster = _updateStakes(currentEpoch, relayer, cluster);
             if(_tokenType == 0) {
-                relayer.pendingPondDelegation += _amount;
+                // relayer.pendingPondDelegation += _amount;
                 cluster.pendingPondDelegation += _amount;
 
             } else if (_tokenType == 1) {
-                relayer.pendingMpondDelegation += _amount;
+                // relayer.pendingMpondDelegation += _amount;
                 cluster.pendingMpondDelegation += _amount;
             }
-            delegatedStake[_delegatee] = relayer;
+            // delegatedStake[_delegatee] = relayer;
             clusterStake[delegateeCluster] = cluster;
         }
     }
@@ -103,18 +103,18 @@ contract ClusterStakeManager {
         address undelegateeCluster = relayerClusterMapping[_undelegatee];
         if(undelegateeCluster != address(0)) {
             uint currentEpoch = pot.getEpoch(block.number);
-            RelayerStake memory relayer = delegatedStake[_undelegatee];
+            // RelayerStake memory relayer = delegatedStake[_undelegatee];
             ClusterStake memory cluster = clusterStake[undelegateeCluster];
-            (relayer, cluster) = _updateStakes(currentEpoch, relayer, cluster);
+            cluster = _updateStakes(currentEpoch, relayer, cluster);
             if(_tokenType == 0) {
-                relayer.pendingPondUndelegation += _amount;
+                // relayer.pendingPondUndelegation += _amount;
                 cluster.pendingPondUndelegation += _amount;
 
             } else if (_tokenType == 1) {
-                relayer.pendingMpondUndelegation += _amount;
+                // relayer.pendingMpondUndelegation += _amount;
                 cluster.pendingMpondUndelegation += _amount;
             }
-            delegatedStake[_undelegatee] = relayer;
+            // delegatedStake[_undelegatee] = relayer;
             clusterStake[undelegateeCluster] = cluster;
         }
     }
@@ -132,12 +132,13 @@ contract ClusterStakeManager {
     }
 
     function _updateStakes(uint _currentEpoch, 
-        RelayerStake memory _relayer, 
+        // RelayerStake memory _relayer, 
         ClusterStake memory _cluster) 
         internal 
         pure 
-        returns(RelayerStake memory,
-        ClusterStake memory) {
+        returns(
+            // RelayerStake memory,
+            ClusterStake memory) {
         if(_currentEpoch > _cluster.updatedEpoch) {
             // update cluster stakes as epoch changed and nnew stakes are applicable
             _cluster.pond += _cluster.pendingPondDelegation - _cluster.pendingPondUndelegation;
@@ -149,16 +150,16 @@ contract ClusterStakeManager {
             _cluster.pendingMpondDelegation = 0;
             _cluster.pendingMpondUndelegation = 0;
             // update relayer stakes
-            _relayer.pond += _relayer.pendingPondDelegation - _relayer.pendingPondUndelegation;
-            _relayer.mpond += _relayer.pendingMpondDelegation - _relayer.pendingMpondUndelegation;
-            _relayer.effectiveStake = _relayer.pond + _relayer.mpond * 10**6;
-            _relayer.updatedEpoch = _currentEpoch;
-            _relayer.pendingPondDelegation = 0;
-            _relayer.pendingPondUndelegation = 0;
-            _relayer.pendingMpondDelegation = 0;
-            _relayer.pendingMpondUndelegation = 0;
+            // _relayer.pond += _relayer.pendingPondDelegation - _relayer.pendingPondUndelegation;
+            // _relayer.mpond += _relayer.pendingMpondDelegation - _relayer.pendingMpondUndelegation;
+            // _relayer.effectiveStake = _relayer.pond + _relayer.mpond * 10**6;
+            // _relayer.updatedEpoch = _currentEpoch;
+            // _relayer.pendingPondDelegation = 0;
+            // _relayer.pendingPondUndelegation = 0;
+            // _relayer.pendingMpondDelegation = 0;
+            // _relayer.pendingMpondUndelegation = 0;
         }
-        return (_relayer, _cluster);
+        return (_cluster);
     }
 
     // TODO: Handle redelegation of stake. Stake contract should send out something when delegation of stake is done for
