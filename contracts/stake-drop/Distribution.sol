@@ -13,14 +13,14 @@ contract Distribution {
     StakeRegistry stakeRegistry;
     AddressRegistry addressRegistry;
     mPondLogic mpond;
-    uint256 pondRewardPerEpoch = 1e18; //assuming 1 mPond per epoch
 
-    mapping(uint8 => mapping(bytes32 => uint256)) withdrawnBalance;
-    event ClaimMpond(address indexed, uint8 indexed, bytes32, uint256);
+    mapping(bytes32 => uint256) claimedBalances;
+    mapping(uint256 => mapping(bytes32 => uint256)) withdrawnBalance;
+    event ClaimMpond(address indexed, uint256 indexed, bytes32, uint256);
     event ClaimBulkMpond(
         address indexed,
-        uint8 indexed,
-        uint8 indexed,
+        uint256 indexed,
+        uint256 indexed,
         bytes32,
         uint256
     );
@@ -49,88 +49,26 @@ contract Distribution {
         return true;
     }
 
-    function claimReward(uint8 _epoch, bytes32 _stakingAddress)
-        public
-        returns (bool)
-    {
-        require(
-            addressRegistry.getAddress(_stakingAddress) == msg.sender,
-            "Should be valid address"
+    function getUnclaimedAmount() public view returns (uint256) {
+        bytes32 stakingAddressHash = addressRegistry.getStakingAddress(
+            msg.sender
         );
-        uint256 balanceToWithdraw = getReward(_epoch, _stakingAddress);
-        uint256 claimedBalance = withdrawnBalance[_epoch][_stakingAddress];
-        require(
-            claimedBalance == 0,
-            "User should not have claimed balance for this epoch already"
+        uint256 reward = stakeRegistry.getReward(stakingAddressHash);
+        uint256 balanceToTransfer = reward.sub(
+            claimedBalances[stakingAddressHash]
         );
-        withdrawnBalance[_epoch][_stakingAddress] = balanceToWithdraw;
-        mpond.transfer(msg.sender, balanceToWithdraw);
-        emit ClaimMpond(msg.sender, _epoch, _stakingAddress, balanceToWithdraw);
-        return true;
+        return balanceToTransfer;
     }
 
-    function claimRewardAccrossEpoch(
-        uint8 _startEpoch,
-        uint8 _endEpoch,
-        bytes32 _stakingAddress
-    ) public returns (bool) {
-        require(
-            _endEpoch > _startEpoch,
-            "End epoch should be greater than start epoch"
+    function claimAmount() public returns (bool) {
+        uint256 balanceToTransfer = getUnclaimedAmount();
+        require(balanceToTransfer != 0, "Withdrawl balance should be non-zero");
+        bytes32 stakingAddressHash = addressRegistry.getStakingAddress(
+            msg.sender
         );
-        require(
-            addressRegistry.getAddress(_stakingAddress) == msg.sender,
-            "Should be valid address"
-        );
-        uint256 totalWithdrawBalance;
-        for (uint8 index = _startEpoch; index <= _endEpoch; index++) {
-            uint256 balanceToWithdraw = getReward(index, _stakingAddress);
-            uint256 claimedBalance = withdrawnBalance[index][_stakingAddress];
-            require(
-                claimedBalance == 0,
-                "User should not have claimed balance for this epoch already"
-            );
-            withdrawnBalance[index][_stakingAddress] = balanceToWithdraw;
-            totalWithdrawBalance = totalWithdrawBalance.add(balanceToWithdraw);
-        }
-        mpond.transfer(msg.sender, totalWithdrawBalance);
-        emit ClaimBulkMpond(
-            msg.sender,
-            _startEpoch,
-            _endEpoch,
-            _stakingAddress,
-            totalWithdrawBalance
-        );
+        claimedBalances[stakingAddressHash] = claimedBalances[stakingAddressHash]
+            .add(balanceToTransfer);
+        mpond.transfer(msg.sender, balanceToTransfer);
         return true;
-    }
-
-    function getReward(uint8 _epoch, bytes32 _stakingAddress)
-        public
-        view
-        returns (uint256)
-    {
-        require(_epoch > 1, "Epoch should be greater than 1");
-        require(
-            validatorRegistry.isFrozen(_epoch),
-            "Epoch should not be frozen"
-        );
-        uint256 amount;
-        (uint256 stakingValue, uint256 totalStake) = stakeRegistry
-            .getStakeDetails(_epoch, _stakingAddress);
-        if (_epoch == addressRegistry.getStartEpoch(_stakingAddress)) {
-            // get partial reward
-            uint256 startTime = validatorRegistry.getEpochEndTime(_epoch);
-            uint256 endTime = validatorRegistry.getEpochEndTime(_epoch + 1);
-            uint256 weightTime = addressRegistry.getTimestamp(_stakingAddress);
-            amount = (weightTime.sub(startTime))
-                .mul(pondRewardPerEpoch)
-                .mul(stakingValue)
-                .div(totalStake)
-                .div(endTime.sub(startTime));
-        } else {
-            // get full reward
-            amount = pondRewardPerEpoch.mul(stakingValue).div(totalStake);
-        }
-        return amount;
     }
 }

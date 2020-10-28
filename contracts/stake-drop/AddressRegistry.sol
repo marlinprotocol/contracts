@@ -11,12 +11,6 @@ contract AddressRegistry is StandardOracle {
     struct AddressPair {
         bytes32 stakingAddressHash;
         address ethereumAddress;
-        uint8 epoch;
-    }
-    struct Address {
-        address ethereumAddress;
-        uint8 epoch;
-        uint256 timeStamp;
     }
 
     struct Signature {
@@ -26,38 +20,83 @@ contract AddressRegistry is StandardOracle {
         bytes32 s;
     }
 
-    mapping(bytes32 => Address) addressList;
+    mapping(bytes32 => address) addressList;
+    mapping(address => bytes32) reverseMap;
 
-    event AddressRegistered(bytes32 indexed, address indexed, uint8 indexed);
+    event AddressRegistered(bytes32 indexed, address indexed);
+    event AddressUnregistered(bytes32 indexed, address indexed);
 
-    function getAddress(bytes32 _stakingAddress) public view returns (address) {
-        return addressList[_stakingAddress].ethereumAddress;
+    constructor(address _offlineSigner) public StandardOracle() {
+        offlineSigner = _offlineSigner;
     }
 
-    function getStartEpoch(bytes32 _stakingAddress)
+    function getAddress(bytes32 _stakingAddressHash)
         public
         view
-        returns (uint8)
+        returns (address)
     {
-        return addressList[_stakingAddress].epoch;
+        return addressList[_stakingAddressHash];
     }
 
-    function getTimestamp(bytes32 _stakingAddress)
-        public
-        view
-        returns (uint256)
-    {
-        return addressList[_stakingAddress].timeStamp;
+    function getStakingAddress(address _address) public view returns (bytes32) {
+        return reverseMap[_address];
     }
 
-    function addAddress(
-        bytes32 _stakingAddress,
-        address _ethereumAddress,
-        uint8 _epoch
+    function addAddressBulk(
+        bytes32[] memory _stakingAddressHashes,
+        address[] memory ethereumAddresses
     ) public onlySource returns (bool) {
-        Address memory a = Address(_ethereumAddress, _epoch, block.timestamp);
-        addressList[_stakingAddress] = a;
-        emit AddressRegistered(_stakingAddress, _ethereumAddress, _epoch);
+        require(
+            _stakingAddressHashes.length != 0,
+            "Array length should be non-zero"
+        );
+        require(
+            _stakingAddressHashes.length == ethereumAddresses.length,
+            "Arity mismatch"
+        );
+        for (uint256 index = 0; index < _stakingAddressHashes.length; index++) {
+            addAddress(_stakingAddressHashes[index], ethereumAddresses[index]);
+        }
+        return true;
+    }
+
+    function removeAddress(bytes32 _stakingAddressHash)
+        public
+        onlySource
+        returns (bool)
+    {
+        require(
+            _stakingAddressHash != bytes32(0),
+            "Should be a non-zero staking address hash"
+        );
+        address ethereumAddress = addressList[_stakingAddressHash];
+        delete addressList[_stakingAddressHash];
+        delete reverseMap[ethereumAddress];
+        return true;
+    }
+
+    function addAddress(bytes32 _stakingAddressHash, address _ethereumAddress)
+        public
+        onlySource
+        returns (bool)
+    {
+        require(
+            _stakingAddressHash != bytes32(0),
+            "Should be a non-zero staking address hash"
+        );
+        require(_ethereumAddress != address(0), "Should be a non-zero address");
+        require(
+            reverseMap[_ethereumAddress] == bytes32(0),
+            "Cannot change existing address"
+        );
+        require(
+            addressList[_stakingAddressHash] == address(0),
+            "Cannot change existing address"
+        );
+
+        addressList[_stakingAddressHash] = _ethereumAddress;
+        reverseMap[_ethereumAddress] = _stakingAddressHash;
+        emit AddressRegistered(_stakingAddressHash, _ethereumAddress);
         return true;
     }
 
@@ -69,17 +108,25 @@ contract AddressRegistry is StandardOracle {
             _recovered == offlineSigner,
             "msg should be generated from signer"
         );
-        Address memory _a = Address(
-            a.ethereumAddress,
-            a.epoch,
-            block.timestamp
+        require(
+            a.stakingAddressHash != bytes32(0),
+            "Should be a non-zero staking address hash"
         );
-        addressList[a.stakingAddressHash] = _a;
-        emit AddressRegistered(
-            a.stakingAddressHash,
-            a.ethereumAddress,
-            a.epoch
+        require(
+            a.ethereumAddress != address(0),
+            "Should be a non-zero address"
         );
+        require(
+            reverseMap[a.ethereumAddress] == bytes32(0),
+            "Cannot change existing address"
+        );
+        require(
+            addressList[a.stakingAddressHash] == address(0),
+            "Cannot change existing address"
+        );
+        addressList[a.stakingAddressHash] = a.ethereumAddress;
+        reverseMap[a.ethereumAddress] = a.stakingAddressHash;
+        emit AddressRegistered(a.stakingAddressHash, a.ethereumAddress);
         return true;
     }
 
@@ -90,12 +137,7 @@ contract AddressRegistry is StandardOracle {
     {
         bytes32 stakingAddressHash = _bytes.toBytes32(0);
         address mappedAddress = _bytes.toAddress(32);
-        uint8 epoch = _bytes.toUint8(32);
-        AddressPair memory a = AddressPair(
-            stakingAddressHash,
-            mappedAddress,
-            epoch
-        );
+        AddressPair memory a = AddressPair(stakingAddressHash, mappedAddress);
         return a;
     }
 
@@ -106,11 +148,11 @@ contract AddressRegistry is StandardOracle {
     {
         //Image prefix to be decided by the team
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 messageHash = keccak256(abi.encodePacked(_data.slice(0, 54)));
+        bytes32 messageHash = keccak256(abi.encodePacked(_data.slice(0, 52)));
         bytes32 _hash1 = keccak256(abi.encodePacked(prefix, messageHash));
-        uint8 _v1 = _data.slice(54, 1).toUint8(0);
-        bytes32 _r1 = _data.slice(55, 32).toBytes32(0);
-        bytes32 _s1 = _data.slice(87, 32).toBytes32(0);
+        uint8 _v1 = _data.slice(52, 1).toUint8(0);
+        bytes32 _r1 = _data.slice(53, 32).toBytes32(0);
+        bytes32 _s1 = _data.slice(85, 32).toBytes32(0);
         Signature memory sig = Signature(_hash1, _v1, _r1, _s1);
         return sig;
     }

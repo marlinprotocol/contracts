@@ -7,71 +7,106 @@ import "./ValidatorRegistry.sol";
 
 contract StakeRegistry is StandardOracle {
     using SafeMath for uint256;
-    struct Epoch {
-        mapping(bytes32 => uint256) stakes;
-        uint256 totalStake;
-    }
-    // mapping(uint8 => mapping(bytes32 => uint256)) stakes;
-    // mapping(uint8 => uint256) totalStake;
-    mapping(uint8 => Epoch) registry;
+
+    mapping(uint256 => uint256) totalStake;
+    mapping(bytes32 => uint256) rewardPerAddress;
     ValidatorRegistry validatorRegistry;
 
-    constructor(address _validatorRegistry) public StandardOracle() {
+    address governanceProxy;
+    uint256 rewardPerEpoch = 1e18; // 1 mPond per epoch
+
+    constructor(address _validatorRegistry, address _governanceProxy)
+        public
+        StandardOracle()
+    {
         validatorRegistry = ValidatorRegistry(_validatorRegistry);
+        governanceProxy = _governanceProxy;
     }
 
-    event StakeAdded(uint8 indexed, bytes32 indexed, bytes32 indexed, uint256);
-    event StakeSkipped(
-        uint8 indexed,
+    event StakeAdded(
+        uint256 indexed,
         bytes32 indexed,
         bytes32 indexed,
         uint256
     );
-    event StakeChanged(
-        uint8 indexed,
-        bytes32 indexed,
+    event StakeSkipped(
         uint256 indexed,
+        bytes32 indexed,
+        bytes32 indexed,
         uint256
     );
 
-    function getStakeDetails(uint8 _epoch, bytes32 _stakingAddress)
+    function getReward(bytes32 _stakingAddressHash)
         public
         view
-        returns (uint256, uint256)
+        returns (uint256)
     {
-        Epoch memory e = registry[_epoch];
-        uint256 currentStake = registry[_epoch].stakes[_stakingAddress];
-        return (currentStake, e.totalStake);
+        return rewardPerAddress[_stakingAddressHash];
+    }
+
+    function addTotalStakeForEpoch(uint256 _epoch, uint256 _amount)
+        public
+        onlySource
+        returns (bool)
+    {
+        require(_epoch != 0, "Epoch should not be equal to zero");
+        require(_amount != 0, "Total Stake in the era should be non-zero");
+        require(
+            validatorRegistry.isFrozen(_epoch),
+            "Add TotalStake data only after validator list is frozen"
+        );
+        totalStake[_epoch] = _amount;
+        return true;
+    }
+
+    function changeRewardPerEpoch(uint256 _newRewardPerEpoch)
+        public
+        onlyGovernance
+        returns (bool)
+    {
+        rewardPerEpoch = _newRewardPerEpoch;
+        return true;
     }
 
     function addStake(
-        uint8 _epoch,
-        bytes32 _stakingAddress,
-        bytes32 _validatorAddress,
+        uint256 _epoch,
+        bytes32 _stakingAddressHash,
+        bytes32 _validatorAddressHash,
         uint256 _amount
     ) public onlySource returns (bool) {
+        require(_amount != 0, "Amount should be non-zero");
+        require(_epoch > 0, "Epoch should be greater than zero");
         require(
-            registry[_epoch].stakes[_stakingAddress] == 0,
-            "Existing stake should be 0"
+            _stakingAddressHash != bytes32(0),
+            "Staking Address Hash should be non-zero"
         );
-        if (validatorRegistry.isValidator(_epoch, _validatorAddress)) {
-            registry[_epoch].stakes[_stakingAddress] = registry[_epoch]
-                .stakes[_stakingAddress]
-                .add(_amount);
-            registry[_epoch].totalStake = registry[_epoch].totalStake.add(
-                _amount
-            );
+        require(
+            _validatorAddressHash != bytes32(0),
+            "Validator Address Hash should be non-zero"
+        );
+        require(
+            validatorRegistry.isFrozen(_epoch),
+            "Add Stake data only after validator list is frozen"
+        );
+        require(
+            totalStake[_epoch] != 0,
+            "Stake shoud be added only after totalStake is updated"
+        );
+        if (validatorRegistry.isValidator(_epoch, _validatorAddressHash)) {
+            // rewardPerStake = rewardPerEpoch * amount / totalStake
+            rewardPerAddress[_stakingAddressHash] = rewardPerAddress[_stakingAddressHash]
+                .add(rewardPerEpoch.mul(_amount).div(totalStake[_epoch]));
             emit StakeAdded(
                 _epoch,
-                _stakingAddress,
-                _validatorAddress,
+                _stakingAddressHash,
+                _validatorAddressHash,
                 _amount
             );
         } else {
             emit StakeSkipped(
                 _epoch,
-                _stakingAddress,
-                _validatorAddress,
+                _stakingAddressHash,
+                _validatorAddressHash,
                 _amount
             );
         }
@@ -79,7 +114,7 @@ contract StakeRegistry is StandardOracle {
     }
 
     function addStakeBulk(
-        uint8 _epoch,
+        uint256 _epoch,
         bytes32[] memory _stakingAddresses,
         bytes32[] memory _validatorAddresses,
         uint256[] memory _amounts
@@ -96,44 +131,13 @@ contract StakeRegistry is StandardOracle {
                 _validatorAddresses[index],
                 _amounts[index]
             );
-            require(!result, "Failed bulk adding stake");
+            require(result, "Failed bulk adding stake");
         }
         return true;
     }
 
-    function addExtraStake(
-        uint8 _epoch,
-        bytes32 _stakingAddress,
-        uint256 _amount
-    ) public onlySource returns (bool) {
-        registry[_epoch].stakes[_stakingAddress] = registry[_epoch]
-            .stakes[_stakingAddress]
-            .add(_amount);
-        registry[_epoch].totalStake = registry[_epoch].totalStake.add(_amount);
-        emit StakeChanged(
-            _epoch,
-            _stakingAddress,
-            registry[_epoch].stakes[_stakingAddress],
-            registry[_epoch].totalStake
-        );
-        return true;
-    }
-
-    function removeExistingStake(
-        uint8 _epoch,
-        bytes32 _stakingAddress,
-        uint256 _amount
-    ) public onlySource returns (bool) {
-        registry[_epoch].stakes[_stakingAddress] = registry[_epoch]
-            .stakes[_stakingAddress]
-            .sub(_amount);
-        registry[_epoch].totalStake = registry[_epoch].totalStake.sub(_amount);
-        emit StakeChanged(
-            _epoch,
-            _stakingAddress,
-            registry[_epoch].stakes[_stakingAddress],
-            registry[_epoch].totalStake
-        );
-        return true;
+    modifier onlyGovernance() {
+        require(msg.sender == governanceProxy, "Only Governance can change");
+        _;
     }
 }

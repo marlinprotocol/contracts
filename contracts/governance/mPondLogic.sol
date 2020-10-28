@@ -119,7 +119,8 @@ contract mPondLogic is Initializable {
         UNDELEGATION_TYPEHASH = keccak256(
             "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
         );
-        enableAllTranfers = true;
+        admin = msg.sender;
+        enableAllTranfers = true; //This is only for testing, will be false
     }
 
     function addWhiteListAddress(address _address) external returns (bool) {
