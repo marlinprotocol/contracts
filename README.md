@@ -60,7 +60,6 @@ Governance comprises of three contracts
 Token contract for the Governance. [doc](#mpond-tokens)
 
 ## Governor Alpha
-<<<<<<< HEAD
 * A proposal can be using 1 mPond ( i.e 1 equivalent Votes) using method `function propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)` where 
     * `targets` refer the target contracts that need to be updated
     * `values`, `signature`, `calldata` correspond to functions being called
@@ -70,17 +69,6 @@ Token contract for the Governance. [doc](#mpond-tokens)
     * `support` is the boolean parameter where `support=true` indicates that the address has voted **for** the proposal.
 * A **Succeeded** Proposal can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function `queue(uint256 proposalId)` where `proposalId` is the id of the existing proposal
 * A **Queued Proposal** can be executed using `execute(uint256 proposalId)` where `proposalId` is the id of the existing proposal
-=======
-* A proposal can be introduced using 1 mPond ( i.e 1 equivalent Votes) by calling method ***function** propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)* where 
-    * **targets** refer the target contracts that need to be updated
-    * **values**, **signature**, **calldata** correspond to functions being called
-    * **description** is an optional field that can be used to define the proposal
-* Proposal when created is in **pending** state by default. The proposal goes to active state after 2 days (or fields defined in the contract).
-* When in **Active** state, the proposal can be voted using method ***castVote**(uint256 proposalId, bool support)*
-* A proposal that has gathered 4 mPond ( i.e 4 equivalent is passed) changes its state to **Success**.
-* A **Succeeded Proposal** can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function ***queue**(uint256 proposalId)*
-* A **Queued Proposal** can be executed using ***execute**(uint256 proposalId)*
->>>>>>> 64543211af9ee5ea4111738b6f8a1db0e2e8bce1
 
 ## Timelock
 Timelock contract is used for locking the Proposal in various stage of its cycle. It is used internally within GovernorAlpha.
