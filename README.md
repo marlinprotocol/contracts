@@ -19,6 +19,7 @@ mPond tokens are Marlin Governance Tokens. They can used to create and vote prop
 
 ## Specs
 1. Total Number of mPond tokens are 10000.
+<<<<<<< HEAD
 2. 7000 mPond tokens will be available via bridge.
 3. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
 4. You can delegate your mPond tokens to others. mPond tokens delegated to other users will be locked.
@@ -26,6 +27,14 @@ mPond tokens are Marlin Governance Tokens. They can used to create and vote prop
 6. mPond can be converted to Pond via bridge.
 7. When transfers are enabled, users will have to unlock/undelegate the tokens before sending.
 8. Till all transfers are enabled only transfers between whitelisted addresses is possible.
+=======
+2. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
+3. mPond tokens delegated to other users will be locked.
+4. mPond transfers will be locked, except for selected addresses (like bridge, stakedrop contracts)
+5. mPond can be converted to Pond via bridge.
+6. Users will have to unlock the tokens before sending.
+7. Till all transfers are enabled only transfers between whitelisted addresses is possible.
+>>>>>>> 64543211af9ee5ea4111738b6f8a1db0e2e8bce1
 
 ## Contract
 The features in the contracts are described as follows
@@ -61,6 +70,7 @@ Governance comprises of three contracts
 Token contract for the Governance. [doc](#mpond-tokens)
 
 ## Governor Alpha
+<<<<<<< HEAD
 * A proposal can be using 1 mPond ( i.e 1 equivalent Votes) using method `function propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)` where 
     * `targets` refer the target contracts that need to be updated
     * `values`, `signature`, `calldata` correspond to functions being called
@@ -70,6 +80,17 @@ Token contract for the Governance. [doc](#mpond-tokens)
     * `support` is the boolean parameter where `support=true` indicates that the address has voted **for** the proposal.
 * A **Succeeded** Proposal can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function `queue(uint256 proposalId)` where `proposalId` is the id of the existing proposal
 * A **Queued Proposal** can be executed using `execute(uint256 proposalId)` where `proposalId` is the id of the existing proposal
+=======
+* A proposal can be introduced using 1 mPond ( i.e 1 equivalent Votes) by calling method ***function** propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)* where 
+    * **targets** refer the target contracts that need to be updated
+    * **values**, **signature**, **calldata** correspond to functions being called
+    * **description** is an optional field that can be used to define the proposal
+* Proposal when created is in **pending** state by default. The proposal goes to active state after 2 days (or fields defined in the contract).
+* When in **Active** state, the proposal can be voted using method ***castVote**(uint256 proposalId, bool support)*
+* A proposal that has gathered 4 mPond ( i.e 4 equivalent is passed) changes its state to **Success**.
+* A **Succeeded Proposal** can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function ***queue**(uint256 proposalId)*
+* A **Queued Proposal** can be executed using ***execute**(uint256 proposalId)*
+>>>>>>> 64543211af9ee5ea4111738b6f8a1db0e2e8bce1
 
 ## Timelock
 Timelock contract is used for locking the Proposal in various stage of its cycle. It is used internally within GovernorAlpha.
@@ -188,11 +209,11 @@ Pond token is a simple ERC20 token which is transferable and can be used in stak
 A bridge contract is used to convert mPond to Pond and vice versa. 
 ## Pond to mPond conversion
 
-Pond can be converted to mPond by sending 1 million Pond tokens to the bridge and an equivalent amount of mPond is received to the same address while burning the pond tokens.
+Pond can be converted to mPond by sending Pond tokens to the bridge and an equivalent amount of mPond is received to the same address while burning the pond tokens.
 
 ## mPond to Pond conversion
 
-Anyone at any time can lock 1 MPOND and receive 1 million POND, however the bridge enforces a lockup when converting from MPOND to POND to ensure serious participation in important staking and governance functions.
+Anyone at any time can lock MPOND and receive equivalent POND, however the bridge enforces a lockup when converting from MPOND to POND to ensure serious participation in important staking and governance functions.
 
 mPond can be converted to Pond by requesting transfer on the bridge. After transfer request, there is a wait time of X blocks (aroud 6 months as of now) for the request to be accepted and mPond to be converted to Pond. During the wait time, the mPond cannot be used for staking but can be used for governance.
 
