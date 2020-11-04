@@ -15,15 +15,6 @@ contract Distribution {
     mPondLogic mpond;
 
     mapping(bytes32 => uint256) claimedBalances;
-    mapping(uint256 => mapping(bytes32 => uint256)) withdrawnBalance;
-    event ClaimMpond(address indexed, uint256 indexed, bytes32, uint256);
-    event ClaimBulkMpond(
-        address indexed,
-        uint256 indexed,
-        uint256 indexed,
-        bytes32,
-        uint256
-    );
 
     constructor(
         address _validatorRegistry,

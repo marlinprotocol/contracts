@@ -21,22 +21,37 @@ mPond tokens are Marlin Governance Tokens. They can used to create and vote prop
 1. Total Number of mPond tokens are 10000.
 2. 7000 mPond tokens will be available via bridge.
 3. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
-4. mPond tokens delegated to other users will be locked.
+4. You can delegate your mPond tokens to others. mPond tokens delegated to other users will be locked.
 5. mPond transfers will be locked, excepted for selected addresses (like bridge, stakedrop contracts)
 6. mPond can be converted to Pond via bridge.
-7. Users will have to unlock the tokens before sending.
-8. Till all transfered are enabled only transfers between whitelisted addresses is possible.
+7. When transfers are enabled, users will have to unlock/undelegate the tokens before sending.
+8. Till all transfers are enabled only transfers between whitelisted addresses is possible.
 
 ## Contract
-* ***addWhiteListAddress**(address address)* adds address to whitelist. Can be invoked by admin
-* ***enableAllTransfers**()* enables all transfers for mPond token. Can be only invoked by admin
-* **balanceOf**, **transfer**, **approve**, **transferFrom** functions, have same signatures as that of standard ERC20 Token contract
-* Can delegate tokens to any address using ***delegate**(address delegatee, uint96 amount)*
-* To undelegate the tokens from any address use ***undelegate**(address delegatee, uint96 amount)*
-* ***getCurrentVotes**(address account)* returns the current votes that have been delegated the address in function parameter.
-* ***getPriorVotes**(address account, uint256 blockNumber)* returns the votes the delegated to the address at particular block number.
+The features in the contracts are described as follows
+* `addWhiteListAddress**(address _address)` adds a new address, that is whitelisted for transfers and can be only invoked by admin.
+* `enableAllTransfers()` enables all transfers for mPond token. Can be only invoked by admin
+* `balanceOf`, `transfer`, `approve`, `transferFrom` functions, have same signatures as that of standard ERC20 Token contract
+* Can delegate tokens to any address using `delegate(address delegatee, uint96 amount)` where `address` is the address of the delegatee and `amount` is number of token to be delegated.
+* To undelegate the tokens from any address use `undelegate(address delegatee, uint96 amount)`
+* `getCurrentVotes(address account)` returns the current votes that have been delegated to the `account`.
+* `getPriorVotes(address account, uint256 blockNumber)` returns the votes the delegated to the `account` at a given `blockNumber`.
 
 # Governance
+
+## Specs
+1. The governance contracts will be able to create any number of proposals.
+2. Any users who has 1 or more delegated mPond should be able to successfully create proposal
+3. A address can only have **1 Active proposal** at a time.
+4. A proposal when created, should be in pending state by default, post 2 days will be in **Active** state.
+5. Any address with any mPond self/delegated balance can cast vote on any proposal. Depending upon the transfers, the number of votes are different for different proposals. Only votes past creation of proposal will be considered for voting.
+6. Voting will happen for 3 days.
+7. Successful voting changes the state of proposal from **Active** to **Succeeded** . i.e if the proposal has gathered 4 mPond votes in 3 days. The state changes to *Succeeded*
+8. If the proposal fails to gather sufficient votes, the state changes to **Defeated**
+9. **Succeeded** will can be changed to **Queued** state by a contract call.
+10. **Queued** proposal will be locked for 2 days. Within this time, the contract admin have right to **Reject** the proposal. If **Unrejected** it can **Executed**
+
+
 Governance comprises of three contracts
 * GovernorAlpha
 * mPond token contract
@@ -46,70 +61,121 @@ Governance comprises of three contracts
 Token contract for the Governance. [doc](#mpond-tokens)
 
 ## Governor Alpha
-* A proposal can be using 1 mPond ( i.e 1 equivalent Votes) using method ***function** propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)* where 
-    * **targets** refer the target contracts that need to be updated
-    * **values**, **signature**, **calldata** correspond to functions being called
-    * **description** is an optional field that can be used to define the proposal
-* Proposal when created is in **pending** state by default. The proposal goes to active state after 2 days (or fields defined in the contract).
-* When in **Active** state, the proposal can be voted using method ***castVote**(uint256 proposalId, bool support)*
-* A proposal that has gather 4 mPond ( i.e 4 equivalent is passed) changes its state to **Success**.
-* A **Succeeded Proposal** can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function ***queue**(uint256 proposalId)*
-* A **Queued Proposal** can be executed using ***execute**(uint256 proposalId)*
+* A proposal can be using 1 mPond ( i.e 1 equivalent Votes) using method `function propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)` where 
+    * `targets` refer the target contracts that need to be updated
+    * `values`, `signature`, `calldata` correspond to functions being called
+    * `description` is an optional field that can be used to define the proposal
+* When in **Active** state, the proposal can be voted using method `castVote(uint256 proposalId, bool support)` where
+    * `proposalId` is the id of the existing proposal
+    * `support` is the boolean parameter where `support=true` indicates that the address has voted **for** the proposal.
+* A **Succeeded** Proposal can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function `queue(uint256 proposalId)` where `proposalId` is the id of the existing proposal
+* A **Queued Proposal** can be executed using `execute(uint256 proposalId)` where `proposalId` is the id of the existing proposal
 
 ## Timelock
-Timelock contract is used for locking the Proposal in various stage of its cycle. It is used internally within GovernorAlpha
+Timelock contract is used for locking the Proposal in various stage of its cycle. It is used internally within GovernorAlpha.
 
 # Stake Drop Contracts
 
-The stake-drop happens via set of 3 oracles and a distribution contract. 
-#### The oracles part of stake-drop are
+The stake-drop happens via set of 3 oracles and a distribution contract. The purpose of the whole set of contracts is to distribute the mPond token to all registered-delegators who have been staking with the whitelisted validators.
+
+### The oracles part of stake-drop are
 * AddressRegistry.sol
 * ValidatorRegistry.sol
 * StakeRegistry.sol
 
-#### The distribution contract is 
+### The distribution contract is 
 * Distribution.sol
 
 ## Oracles
-All the oracles are derived from a contract **StandardOracle.sol**. This act as a address based access registry for the child contracts.
+All the oracles are derived from a contract **StandardOracle.sol**. This act as a address based access registry for all the child contracts.
 
 ### StandardOracle
-* Contains the mapping of addresses that have to access to pump the data to the contract. Mapping is defined as ***mapping(address => bool) sources;***
-* Only an existing source can add a new source using method ***addSource**(address _newSource)*
-* A source can renounce itself using method ***renounceSource**()*
+* Contains the mapping of addresses that have to access to pump the data to the contract. Mapping is defined as `mapping(address => bool) sources`
+* The address that deploys the contract is a `source` by default
+* Only an existing source can add a new source using method `addSource(address _newSource)` where `_newSource` is the address of the new source
+* A source can renounce itself using method `renounceSource()`
 
 ### Validator Registry
 ValidatorRegistry is derived from StandardOracle
-* Contains the mapping of whitelisted validators for every era in     ***mapping(uint256 => mapping(bytes32 => bool)) validators;***
-* Validator Address's hash is used to map.
-* Validators can be adding using ***addValidator**(uint256 epoch, bytes32 validatorAddress)* or ***addValidatorsBulk**(uint256 epoch, bytes32[] memory validators)*
-* After adding validators, the list has to be frozen with ***freezeEpoch**(uint256 epoch)*
-* After successful adding, event ***AddValidator**(uint256 indexed, bytes32 indexed)* is emited
+#### Specs and contract
+* Contains the mapping of whitelisted validators for every era in     `mapping(uint256 => mapping(bytes32 => bool)) validators` i.e.
+```
+isValidator = validators[era][validatorAddressHash]
+//isValidator will be true if the particular address hash is validator in that era
+```
+* Validator Address's hash is used in the mapping, not the address itself. The hash can be computed using 
+```
+validatorAddressHash = web3.utils.keccak256(stakingAddress)
+```
+
+* Validators can be adding using `addValidator(uint256 epoch, bytes32 validatorAddressHash)` where 
+    * `epoch` is the epoch/era number of the staking chain
+    * `validatorAddressHash` is the hash of the validator's address
+* Validator's can also be added in bulk using `addValidatorsBulk(uint256 epoch, bytes32[] memory validators)` where 
+    * `epoch` is the epoch/era number of the staking chain
+    * `validators` array is the list of validators in the array.
+    * Note: *`addValidatorsBulk` will revert if even one of the validatorHash in the array is repeated*
+* After adding validators, the list has to be frozen. This is prevent any further adding of validators accidentally. This is done via `freezeEpoch(uint256 epoch)` where
+    * `epoch` is the epoch/era number of the staking chain
+* Whenever a validator is successfully added `AddValidator**(uint256 indexed, bytes32 indexed)` event is emitted where
+    * `uint256`, the first indexed param of event, is `epoch` number of the staking chain
+    * `bytes32`, the second indexed param of event, is the `keccak256` hash of the validator address.
 
 ### Address Registry
 AddressRegistry is derived from StandardOracle
-* Contains mapping of delegator's address hash and equivalent ethereum address. ***mapping(bytes32 => address) addressList;***
-* Also contains ethereum address and it's equivalent delegator's address hash ***mapping(address => bytes32) reverseMap;***
-* Address can added via oracle source using ***addAddress**(bytes32 stakingAddressHash, address ethereumAddress)* or ***addAddressBulk**(bytes32[] memory stakingAddressHashes, address[] memory ethereumAddresses)*
-* After successfull adding, event ***AddressRegistered**(bytes32 indexed, address indexed);* is emited
-* Address can be removed using ***removeAddress**(bytes32 stakingAddressHash)*
-* Addresses can be registered/un-registered via offline signer (ecrecover)
+
+#### Specs and contract
+* Contains mapping of delegator's address hash and equivalent ethereum address. `mapping(bytes32 => address) addressList`, 
+    * where `bytes32` is the `keccak256` hash of the delegator's `address`
+* Also contains ethereum address and it's equivalent delegator's address hash `mapping(address => bytes32) reverseMap`, 
+    * where `bytes32` is the `keccak256` hash of the delegator's `address`
+* Address can added via one of the `source` address of the oracle using `addAddress(bytes32 stakingAddressHash, address ethereumAddress)` 
+    * where `stakingAddressHash` is the `keccak256` hash of the delegator's `ethereumAddress`
+* After successfull adding, event `AddressRegistered(bytes32 indexed, address indexed)` is emited where
+    * `bytes32`, first param of the event, is the hash of the delegator's `stakingAddress`
+    * `address`. second param of the event, is the eth/reward address of the delegator
+* Address can be removed using `removeAddress**(bytes32 stakingAddressHash)` 
+    * where `stakingAddressHash` is the `keccak256` is the hash of the delegator staking `address`
 
 ### Stake Registry
 StakeRegistry is derived from StandardOracle
+
+#### Specs and contract
 * Stakes can be added only after validators list have been frozen the ValidatorRegistry contract
-* Stakes can be added only after total stakes in the era have been updates. Method ***addTotalStakeForEpoch**(uint256 epoch, uint256 amount)*
-* Stakes can be added using method ***addStake**(uint256 epoch, bytes32 stakingAddressHash, bytes32 validatorAddressHash, uint256 amount)* or ***addStakeBulk**(uint256 epoch, bytes32[] memory stakingAddresses, bytes32[] memory validatorAddresses, uint256[] memory amounts)*
-* **rewardPerEpoch** is the total reward that is distributed to all delegators. This can only be changed by governance. 
-* Only stakes which are delegated to whitelisted validators are rewarded.
-* If stake is added, **StakeAdded** event is emitted else **StakeSkipped** event is emitted
-* **mapping(bytes32 => uint256) rewardPerAddress;** stores the reward that has to dispensed to every user
+* Stakes can be added only after total stakes in the era have been updates. Method `addTotalStakeForEpoch(uint256 epoch, uint256 amount)`
+    * where `epoch` is the epoch/era number of the respective chain
+    * `amount` is the total stake put in that era
+* Stakes can be added using method `addStake(uint256 epoch, bytes32 stakingAddressHash, bytes32 validatorAddressHash, uint256 amount)` 
+    * where `epoch` is the epoch/era number of the respective chain
+    * where `stakingAddressHash` is the `keccak256` hash of the delegator's address
+    * `validatorAddressHash` is the `keccak256` hash of validator's address
+    * `amount` is the delegator's stake
+* Stakes can be added in bulk using `addStakeBulk(uint256 epoch, bytes32[] memory stakingAddresses, bytes32[] memory validatorAddresses, uint256[] memory amounts)`
+    * where `epoch` is the epoch/era number of the respective chain
+    * where `stakingAddresses` is the array of `keccak256` hashes of stakingAddresses of delegators
+    * where `validatorAddresses` is the array of `keccak256` hashes of validators, matched against the arity of the `stakingAddresses` 
+    * where `amounts` is the array of delegator's stake 
+    * Note: *Only stakes which are delegated to whitelisted validators are rewarded*.
+* On successful adding of stake `StakeAdded(uint256, bytes32, bytes32, uint256)` event is emitted where
+    * `uint256`, first parameter of the event, is epoch/era number corresponding to the staking chain
+    * `bytes32`, the second parameter of the event, is the delegator staking address `keccak256` hash
+    * `bytes32`, thrid paramter of the event, is the validator's address hash corresponding w,r,t arity match.
+    * `uint256`, the fourth paramter of the event, is the delegators stake in that era/epoch
+* If the validatorAddress is not whitelisted, adding the stake is skipped. Event `StakeSkipped(uint256, bytes32, bytes32, uint256)` event is emitted. The event is similar to `StakeAdded`
+* `rewardPerEpoch` is the total reward that is distributed to all delegators. This can only be changed by governance. 
+* `mapping(bytes32 => uint256) rewardPerAddress` stores the reward that has to dispensed to every user where
+    * `bytes32` refers to the `keccak256` hash of the delegators staking address
+    * `uint256` is the reward earned that corresponding address hash
 
 ### Distribution
 The contract depends on the above three oracles.
-* The already dispensed tokens are stored in the contract and only remaining balance is dispensed. 
-* *getUnclaimedAmount()* returns the available balance that can be dispensed.
-* *claimAmount()* transfers the tokens.
+
+#### Specs and contract
+* `mapping(bytes32 => uint256) claimedBalances` contains the balances withdrawn the delegator's address hash, where
+    * `bytes32` refers to the delegator's address hash
+    * `uint256` refers to the claimed/withdrawn balance
+* `getUnclaimedAmount()` returns the available balance that can be dispensed. The function fetches the address hash from `AddressRegistry.sol` contract, where bidirectional map of `address hash` and `reward address` are stored
+* `claimAmount()` transfers the reward tokens to the user.
 
 # Bridge
 
