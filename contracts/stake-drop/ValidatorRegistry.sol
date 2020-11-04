@@ -1,23 +1,20 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 
 import "./StandardOracle.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 
 
 contract ValidatorRegistry is StandardOracle {
-    mapping(uint256 => mapping(bytes32 => bool)) validators;
-    mapping(uint256 => bool) freezeValidators;
-    mapping(uint256 => uint256) freezeTime;
+    mapping(uint256 => mapping(bytes32 => bool)) public validators;
+    mapping(uint256 => bool) public freezeValidators;
+    mapping(uint256 => uint256) public freezeTime;
 
     event AddValidator(uint256 indexed, bytes32 indexed);
     event RemoveValidator(uint256 indexed, bytes32 indexed);
     event FreezeValidatorEpoch(uint256 indexed);
 
     function isFrozen(uint256 _epoch) public view returns (bool) {
-        if (freezeTime[_epoch] == 0) {
-            return false;
-        }
-        return true;
+        return (freezeTime[_epoch] != 0);
     }
 
     function isValidator(uint256 _epoch, bytes32 _address)
@@ -39,6 +36,10 @@ contract ValidatorRegistry is StandardOracle {
         isEpochNotFrozen(_epoch)
         returns (bool)
     {
+        require(
+            _validatorAddress != bytes32(0),
+            "Should be non-zero address hash"
+        );
         if (validators[_epoch][_validatorAddress]) {
             return false;
         }
@@ -65,6 +66,10 @@ contract ValidatorRegistry is StandardOracle {
         isEpochNotFrozen(_epoch)
         returns (bool)
     {
+        require(
+            _validatorAddress != bytes32(0),
+            "Should be non-zero address hash"
+        );
         validators[_epoch][_validatorAddress] = false;
         emit RemoveValidator(_epoch, _validatorAddress);
         return true;
@@ -83,6 +88,7 @@ contract ValidatorRegistry is StandardOracle {
     }
 
     modifier isEpochNotFrozen(uint256 _epoch) {
+        require(_epoch != 0, "Epoch should be non-zero");
         require(
             freezeValidators[_epoch] == false,
             "Epoch should not be frozen for adding validators"

@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 
 import "./AddressRegistry.sol";
 import "./StakeRegistry.sol";
@@ -8,13 +8,13 @@ import "../governance/mPondLogic.sol";
 
 contract Distribution {
     using SafeMath for uint256;
-    address admin;
-    ValidatorRegistry validatorRegistry;
-    StakeRegistry stakeRegistry;
-    AddressRegistry addressRegistry;
-    mPondLogic mpond;
+    address public admin;
+    ValidatorRegistry public validatorRegistry;
+    StakeRegistry public stakeRegistry;
+    AddressRegistry public addressRegistry;
+    mPondLogic public mpond;
 
-    mapping(bytes32 => uint256) claimedBalances;
+    mapping(bytes32 => uint256) public claimedBalances;
 
     constructor(
         address _validatorRegistry,

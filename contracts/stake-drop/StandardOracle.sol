@@ -1,8 +1,8 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 
 
 contract StandardOracle {
-    mapping(address => bool) sources;
+    mapping(address => bool) public sources;
 
     constructor() public {
         sources[msg.sender] = true;
@@ -28,7 +28,7 @@ contract StandardOracle {
         assembly {
             size := extcodesize(addr)
         }
-        return size > 0;
+        return size != 0;
     }
 
     modifier onlySource() {

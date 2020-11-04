@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 
 import "./StandardOracle.sol";
 import "./SafeMath.sol";
@@ -8,12 +8,12 @@ import "./ValidatorRegistry.sol";
 contract StakeRegistry is StandardOracle {
     using SafeMath for uint256;
 
-    mapping(uint256 => uint256) totalStake;
-    mapping(bytes32 => uint256) rewardPerAddress;
-    ValidatorRegistry validatorRegistry;
+    mapping(uint256 => uint256) public totalStake;
+    mapping(bytes32 => uint256) public rewardPerAddress;
+    ValidatorRegistry public validatorRegistry;
 
-    address governanceProxy;
-    uint256 rewardPerEpoch = 1e18; // 1 mPond per epoch
+    address public governanceProxy;
+    uint256 public rewardPerEpoch = 1e18; // 1 mPond per epoch
 
     constructor(address _validatorRegistry, address _governanceProxy)
         public
@@ -75,7 +75,7 @@ contract StakeRegistry is StandardOracle {
         uint256 _amount
     ) public onlySource returns (bool) {
         require(_amount != 0, "Amount should be non-zero");
-        require(_epoch > 0, "Epoch should be greater than zero");
+        require(_epoch != 0, "Epoch should be greater than zero");
         require(
             _stakingAddressHash != bytes32(0),
             "Staking Address Hash should be non-zero"

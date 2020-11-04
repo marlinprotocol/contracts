@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 
 import "./StandardOracle.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
@@ -7,7 +7,7 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 contract AddressRegistry is StandardOracle {
     using BytesLib for bytes;
 
-    address offlineSigner;
+    address public offlineSigner;
     struct AddressPair {
         bytes32 stakingAddressHash;
         address ethereumAddress;
@@ -20,8 +20,8 @@ contract AddressRegistry is StandardOracle {
         bytes32 s;
     }
 
-    mapping(bytes32 => address) addressList;
-    mapping(address => bytes32) reverseMap;
+    mapping(bytes32 => address) public addressList;
+    mapping(address => bytes32) public reverseMap;
 
     event AddressRegistered(bytes32 indexed, address indexed);
     event AddressUnregistered(bytes32 indexed, address indexed);
@@ -55,7 +55,13 @@ contract AddressRegistry is StandardOracle {
             "Arity mismatch"
         );
         for (uint256 index = 0; index < _stakingAddressHashes.length; index++) {
-            addAddress(_stakingAddressHashes[index], ethereumAddresses[index]);
+            require(
+                addAddress(
+                    _stakingAddressHashes[index],
+                    ethereumAddresses[index]
+                ),
+                "Failed adding address"
+            );
         }
         return true;
     }

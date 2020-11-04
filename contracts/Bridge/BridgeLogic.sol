@@ -1,9 +1,10 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Token/TokenLogic.sol";
 import "../governance/mPondLogic.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
 
 contract BridgeLogic is Initializable {
@@ -11,28 +12,29 @@ contract BridgeLogic is Initializable {
 
     mPondLogic public mpond;
     TokenLogic public pond;
-    address owner;
-    address governanceProxy;
+    address public owner;
+    address public governanceProxy;
 
-    uint256 pondPerMpond;
-    uint256 epochLength;
-    uint256 startEpoch;
-    uint256 startTime;
+    uint256 public pondPerMpond;
+    uint256 public epochLength;
+    uint256 public startEpoch;
+    uint256 public startTime;
 
-    uint256 lockTime;
+    uint256 public lockTime;
 
-    uint256 liquidityBp;
-    uint256 liquidityDecimals;
-    uint256 liquidityEpochLength;
-    uint256 liquidityStartTime;
-    uint256 liquidityStartEpoch;
+    uint256 public liquidityBp;
+    uint256 public liquidityDecimals;
+    uint256 public liquidityEpochLength;
+    uint256 public liquidityStartTime;
+    uint256 public liquidityStartEpoch;
 
     struct Requests {
         uint256 amount;
         uint256 releaseEpoch;
     }
-    mapping(address => mapping(uint256 => Requests)) requests; //address->epoch->Request(amount, lockTime)
-    mapping(address => mapping(uint256 => uint256)) claimedAmounts; //address->epoch->amount
+
+    mapping(address => mapping(uint256 => Requests)) public requests; //address->epoch->Request(amount, lockTime)
+    mapping(address => mapping(uint256 => uint256)) public claimedAmounts; //address->epoch->amount
 
     function initialize(
         address _mpond,
@@ -52,7 +54,7 @@ contract BridgeLogic is Initializable {
     function createConstants() internal {
         pondPerMpond = 1000000;
         epochLength = 1 days;
-        startEpoch = 0;
+        // startEpoch = 0;
         lockTime = 180 days;
         liquidityBp = 20;
         liquidityDecimals = 4; // 0.0002 (i.e) 0.2%
@@ -74,12 +76,13 @@ contract BridgeLogic is Initializable {
     }
 
     function getCurrentEpoch() internal view returns (uint256) {
-        return (block.timestamp - startTime).div(epochLength) + startEpoch;
+        // return (block.timestamp - startTime).div(epochLength) + startEpoch;
+        return (block.timestamp - startTime).div(epochLength);
     }
 
-    function lockTimeEpoch(uint256 _time) internal view returns (uint256) {
-        return _time.div(epochLength);
-    }
+    // function lockTimeEpoch(uint256 _time) internal view returns (uint256) {
+    //     return _time.div(epochLength);
+    // }
 
     function getLiquidityEpoch() public view returns (uint256) {
         if (block.timestamp < liquidityStartTime + 180 days) {
@@ -105,18 +108,18 @@ contract BridgeLogic is Initializable {
         view
         returns (uint256)
     {
-        Requests memory _req = requests[_address][_epoch];
+        // Requests memory _req = requests[_address][_epoch];
+        Requests storage _req = requests[_address][_epoch];
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
         if (
             _claimedAmount >= _req.amount.mul(effectiveLiquidity()).div(10000)
         ) {
             return 0;
-        } else {
-            return
-                (_req.amount.mul(effectiveLiquidity()).div(10000)).sub(
-                    _claimedAmount
-                );
         }
+        return
+            (_req.amount.mul(effectiveLiquidity()).div(10000)).sub(
+                _claimedAmount
+            );
     }
 
     function getClaimedAmount(address _address, uint256 _epoch)
@@ -128,22 +131,24 @@ contract BridgeLogic is Initializable {
     }
 
     function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
-        require(_amount > 0, "Should be non zero amount");
+        require(_amount != 0, "Should be non zero amount");
         uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
-        uint256 totalUnlockableAmount = _claimedAmount + _amount;
+        uint256 totalUnlockableAmount = _claimedAmount.add(_amount);
         Requests memory _req = requests[msg.sender][_epoch];
         require(
             totalUnlockableAmount <=
                 _req.amount.mul(effectiveLiquidity()).div(10000),
-            "total unlock amount should be less than requests_amount*effective_liquidity"
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
         );
         require(
             getCurrentEpoch() >= _req.releaseEpoch,
             "Funds can only be released after requests exceed locktime"
         );
         claimedAmounts[msg.sender][_epoch] = totalUnlockableAmount;
+
         mpond.transferFrom(msg.sender, address(this), _amount);
-        pond.transfer(msg.sender, _amount.mul(pondPerMpond));
+        // pond.tranfer(msg.sender, _amount.mul(pondPerMpond));
+        SafeERC20.safeTransfer(pond, msg.sender, _amount.mul(pondPerMpond));
         return _amount.mul(pondPerMpond);
     }
 
@@ -151,23 +156,19 @@ contract BridgeLogic is Initializable {
         uint256 epoch = getCurrentEpoch();
         require(amount != 0, "Request should be placed with non zero amount");
         require(
+            amount > 0 && amount <= mpond.balanceOf(msg.sender),
+            "Request should be placed with amount greater than 0 and less than the balance of the user"
+        );
+        require(
             requests[msg.sender][epoch].amount == 0,
             "Only one request per epoch is acceptable"
         );
-        require(
-            mpond.balanceOf(msg.sender) > 0,
-            "mPond balance should be greated than 0 for placing requests"
-        );
-        require(
-            amount <= mpond.balanceOf(msg.sender),
-            "request should be placed with amount less than or equal to balance"
-        );
         Requests memory _req = Requests(
             amount,
-            epoch + lockTimeEpoch(lockTime)
+            epoch.add(lockTime.div(epochLength))
         );
         requests[msg.sender][epoch] = _req;
-        return (epoch, epoch + lockTimeEpoch(lockTime));
+        return (epoch, _req.releaseEpoch);
     }
 
     function viewRequest(address _address, uint256 _epoch)
@@ -180,14 +181,12 @@ contract BridgeLogic is Initializable {
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
         external
+        onlyOwner("addLiquidity: only owner can call this function")
         returns (bool)
     {
-        require(
-            msg.sender == owner,
-            "addLiquidity: only owner can call this function"
-        );
         mpond.transferFrom(msg.sender, address(this), _mpond);
-        pond.transferFrom(msg.sender, address(this), _pond);
+        // pond.transferFrom(msg.sender, address(this), _pond);
+        SafeERC20.safeTransferFrom(pond, msg.sender, address(this), _pond);
         return true;
     }
 
@@ -195,13 +194,14 @@ contract BridgeLogic is Initializable {
         uint256 _mpond,
         uint256 _pond,
         address _withdrawAddress
-    ) external returns (bool) {
-        require(
-            msg.sender == owner,
-            "removeLiquidity: only owner can call this function"
-        );
+    )
+        external
+        onlyOwner("removeLiquidity: only owner can call this function")
+        returns (bool)
+    {
         mpond.transfer(_withdrawAddress, _mpond);
-        pond.transfer(_withdrawAddress, _pond);
+        // pond.transfer(_withdrawAddress, _pond);
+        SafeERC20.safeTransfer(pond, _withdrawAddress, _pond);
         return true;
     }
 
@@ -211,8 +211,19 @@ contract BridgeLogic is Initializable {
 
     function getMpond(uint256 _mpond) public returns (uint256) {
         uint256 pondToDeduct = mpond.balanceOf(msg.sender).mul(pondPerMpond);
-        pond.transferFrom(msg.sender, address(this), pondToDeduct);
+        // pond.transferFrom(msg.sender, address(this), pondToDeduct);
+        SafeERC20.safeTransferFrom(
+            pond,
+            msg.sender,
+            address(this),
+            pondToDeduct
+        );
         mpond.transfer(msg.sender, _mpond);
         return pondToDeduct;
+    }
+
+    modifier onlyOwner(string memory _error) {
+        require(msg.sender == owner, _error);
+        _;
     }
 }
