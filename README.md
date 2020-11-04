@@ -19,22 +19,12 @@ mPond tokens are Marlin Governance Tokens. They can used to create and vote prop
 
 ## Specs
 1. Total Number of mPond tokens are 10000.
-<<<<<<< HEAD
-2. 7000 mPond tokens will be available via bridge.
-3. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
-4. You can delegate your mPond tokens to others. mPond tokens delegated to other users will be locked.
-5. mPond transfers will be locked, excepted for selected addresses (like bridge, stakedrop contracts)
-6. mPond can be converted to Pond via bridge.
-7. When transfers are enabled, users will have to unlock/undelegate the tokens before sending.
-8. Till all transfers are enabled only transfers between whitelisted addresses is possible.
-=======
 2. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
 3. mPond tokens delegated to other users will be locked.
 4. mPond transfers will be locked, except for selected addresses (like bridge, stakedrop contracts)
 5. mPond can be converted to Pond via bridge.
 6. Users will have to unlock the tokens before sending.
 7. Till all transfers are enabled only transfers between whitelisted addresses is possible.
->>>>>>> 64543211af9ee5ea4111738b6f8a1db0e2e8bce1
 
 ## Contract
 The features in the contracts are described as follows
