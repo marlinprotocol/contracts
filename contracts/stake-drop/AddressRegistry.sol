@@ -30,18 +30,6 @@ contract AddressRegistry is StandardOracle {
         offlineSigner = _offlineSigner;
     }
 
-    // function getAddress(bytes32 _stakingAddressHash)
-    //     public
-    //     view
-    //     returns (address)
-    // {
-    //     return addressList[_stakingAddressHash];
-    // }
-
-    // function getStakingAddress(address _address) public view returns (bytes32) {
-    //     return reverseMap[_address];
-    // }
-
     function addAddressBulk(
         bytes32[] memory _stakingAddressHashes,
         address[] memory ethereumAddresses

@@ -36,14 +36,6 @@ contract StakeRegistry is StandardOracle {
         uint256
     );
 
-    // function getReward(bytes32 _stakingAddressHash)
-    //     public
-    //     view
-    //     returns (uint256)
-    // {
-    //     return rewardPerAddress[_stakingAddressHash];
-    // }
-
     function addTotalStakeForEpoch(uint256 _epoch, uint256 _amount)
         public
         onlySource
