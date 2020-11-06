@@ -44,34 +44,34 @@ Notable functions of the contract are described below:
 
 ## Specs
 1. The governance contracts will be able to create any number of proposals.
-2. Any users who has 1 or more delegated mPond should be able to successfully create proposal
-3. A address can only have **1 Active proposal** at a time.
-4. A proposal when created, should be in pending state by default, post 2 days will be in **Active** state.
-5. Any address with any mPond self/delegated balance can cast vote on any proposal. Depending upon the transfers, the number of votes are different for different proposals. Only votes past creation of proposal will be considered for voting.
-6. Voting will happen for 3 days.
-7. Successful voting changes the state of proposal from **Active** to **Succeeded** . i.e if the proposal has gathered 4 mPond votes in 3 days. The state changes to *Succeeded*
+2. Any users who has 1 or more delegated MPOND should be able to successfully create a proposal.
+3. An address can only have **1 Active proposal** at a time.
+4. A proposal when created is in a Pending state by default. After 2 days it changes to an **Active** state.
+5. Any address with MPOND, owned or delegated, can cast vote on any proposal. The number of votes an address is eligible for depends on its MPOND balance at the time of creation of the proposal.
+6. The voting period is open for 3 days.
+7. If the proposal has gathered atleast 8000 MPOND votes in 3 days, the state changes from **Active** to **Succeeded**.
 8. If the proposal fails to gather sufficient votes, the state changes to **Defeated**
-9. **Succeeded** will can be changed to **Queued** state by a contract call.
-10. **Queued** proposal will be locked for 2 days. Within this time, the contract admin have right to **Reject** the proposal. If **Unrejected** it can **Executed**
+9. **Succeeded** can be changed to **Queued** state by a contract call.
+10. A **Queued** proposal will be locked for 2 days. Within this time, the admin has right to **Reject** the proposal. If **Unrejected**, the proposal is **Executed**.
 
 Governance comprises of three contracts
-* GovernorAlpha
 * MPOND token contract
+* GovernorAlpha
 * Timelock
 
 ## MPOND token
-Token contract for the Governance. [doc](#mpond-tokens)
+Token contract as described above.
 
 ## Governor Alpha
-* A proposal can be using 1 mPond ( i.e 1 equivalent Votes) using method `function propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)` where 
-    * `targets` refer the target contracts that need to be updated
+* A proposal can be made by holding 1 MPOND (which is also equivalent to vote) using the method `function propose(address[] memory targets, uint256[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description)` where 
+    * `targets` refer to the target contracts that need to be updated
     * `values`, `signature`, `calldata` correspond to functions being called
     * `description` is an optional field that can be used to define the proposal
-* When in **Active** state, the proposal can be voted using method `castVote(uint256 proposalId, bool support)` where
-    * `proposalId` is the id of the existing proposal
-    * `support` is the boolean parameter where `support=true` indicates that the address has voted **for** the proposal.
-* A **Succeeded** Proposal can be passed to **Queued** state. When in **Queued** state it can be rejected by admin within 3 days. To queue a proposal call function `queue(uint256 proposalId)` where `proposalId` is the id of the existing proposal
-* A **Queued Proposal** can be executed using `execute(uint256 proposalId)` where `proposalId` is the id of the existing proposal
+* When in **Active** state, a proposal can be voted on using method `castVote(uint256 proposalId, bool support)` where
+    * `proposalId` is the id of the proposal
+    * `support` is the boolean parameter where `support=true` indicates that the address has voted **for** the proposal
+* A **Succeeded** Proposal can be passed to **Queued** state. When in **Queued** state it can be rejected by the admin within 3 days. To queue a proposal, call function `queue(uint256 proposalId)` where `proposalId` is the id of the proposal.
+* A **Queued Proposal** can be executed using `execute(uint256 proposalId)` where `proposalId` is the id of the existing proposal.
 
 ## Timelock
 Timelock contract is used for locking the Proposal in various stage of its cycle. It is used internally within GovernorAlpha.
@@ -181,34 +181,58 @@ The contract depends on the above three oracles.
 
 # Bridge
 
-Marlin protocol has Pond and mPond tokens as part of the token economics. 
+Marlin uses POND and MPOND tokens as part its token economy. 
 
-Pond token is a simple ERC20 token which is transferable and can be used in staking. Rewards for work done is received as Pond Tokens.
+POND is a simple ERC20 token which is transferable and can be delegated to Marlin nodes. Network rewards for work done by validators is received in POND.
 
-1 mPond token is equivalent to 1 million Pond tokens. mPond tokens are non transferable between users. They are used in governance and when staked mPond users get higher rewards compared to equivalent amount of Pond staked.
+MPOND are non-transferable between users. They are used in governance and are also required to run nodes.
 
-A bridge contract is used to convert mPond to Pond and vice versa. 
-## Pond to mPond conversion
+A bridge contract is used to convert between MPOND and POND. 1 MPOND can exchanged for 1 million POND tokens and vice-versa via the bridge.  
 
-Pond can be converted to mPond by sending Pond tokens to the bridge and an equivalent amount of mPond is received to the same address while burning the pond tokens.
+## POND to MPOND
 
-## mPond to Pond conversion
+POND can be converted to MPOND by sending POND to the bridge and an equivalent number of MPOND (#POND/1m) is received on the same address while burning the POND tokens sent.
 
-Anyone at any time can lock MPOND and receive equivalent POND, however the bridge enforces a lockup when converting from MPOND to POND to ensure serious participation in important staking and governance functions.
+## MPOND to POND
 
-mPond can be converted to Pond by requesting transfer on the bridge. After transfer request, there is a wait time of X blocks (aroud 6 months as of now) for the request to be accepted and mPond to be converted to Pond. During the wait time, the mPond cannot be used for staking but can be used for governance.
+The bridge also allows conversion of MPOND to an equivalent number of POND (#POND X 1m). However, the conversion is a bit nuanced and not instantaneous as above. The mechanism is described below.
 
-Only a portion of the mPond that is requested for transfer can be converted to Pond. This parameter is controlled by governance. This parameter known as "liquidity param($L$)" makes sure that there are always enough mPond to ensure that the security of the governance is not compromised. After every X blocks, a portion of mPond equivalent to $L$% of mPond requested for transfer is released. So if X and $L$ doesn't change, then user can transfer all the requested mPond to Pond in $\lceil{\frac{100}{L}}\rceil*X$ blocks.
+A request can be made on the bridge to convert a certain number of MPOND (say P). After transfer request is made, there is a wait time of W blocks (set at approximately 6 months initially) before a conversion can be attempted. During the wait time, MPOND can still be used towards staking and governance. After the wait time, a fraction L of P MPOND can be sent to the bridge for conversion.
 
-A series of scenarios and the results of calls to requesting transfer and calls to convert is detailed [here](https://docs.google.com/spreadsheets/d/1AanmwfO9a7Dozo_ZA-Dec310d3kSJhYB-EslAnTIdyY/edit?usp=sharing).
+Parameter W and L are both controlled by governance. These parameters make sure that there are always enough MPOND locked to ensure that the security of the network and its governance is not compromised. After every W blocks, $L$ of P MPOND requested initially can be sent to the bridge for conversion. That is, if W and $L$ remain constant, the user can convert all the requested MPOND to POND in $\lceil{\frac{100}{L}}\rceil*W$ blocks.
+
+A series of scenarios and expected results of calls made to the Bridge are illustrated in the table below.
+
+| Timespan | MPOND balance | Call Maxima | Result | Maxima mapping   | Maxima used mapping | Liquidity | Effective Liq. (calculated) | Call convert | Result |
+|----------|---------------|-------------|--------|------------------|---------------------|-----------|-----------------------------|--------------|--------|
+| Day -1   |          1000 |             |        | {-1:0}           |                     |        0% |                             |              |        |
+| Day 0    |          1000 |        1100 | reject | {-1:0}           |                     |        0% |                             |              |        |
+| Day 0    |          1000 |         900 | accept | {0: 900}         | {0:0}               |        0% |                             |              |        |
+| Day 30   |          1000 |          50 | accept | {0: 900, 30: 50} | {0:0, 30:0}         |        0% |                             |              |        |
+| Day 31   |          1000 |         100 | reject | {0: 900, 30: 50} |                     |           |                             |              |        |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |        0% |                             | 950, 0       | reject |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |       10% |                             |              |        |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |       10% |                             | 85, 0        | accept |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |        5% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 2, 0         | accept |
+| Day 180  |           913 |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       10% |                             |              |        |
+| Day 210  |               |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       10% |                             |       10, 30 | reject |
+| Day 210  |               |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       20% |                             |       10, 30 | accept |
+| Day 211  |               |             |        | {0: 900, 30: 50} | {0:87, 30:10}       |       20% |                             | 100, 0       | reject |
+| Day 212  |               |             |        | {0: 900, 30: 50} | {0:87, 30:10}       |       20% |                         20% | 93, 0        | accept |
+| Day 213  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       20% |                         20% |              |        |
+| Day 360  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       20% |                         40% |              |        |
+| Day 390  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       15% |                         30% |              |        |
 
 ## Bridge contract requirements
 
-* Pond can be instantly converted into mPond(minted)(1MPOND = 10^6 POND)
-* To convert mPond to Pond, there is a delay of atleast X blocks
-* At any point, $min(100, liquidityRatio*floor[(time since request)/X])$ % of the total requested amount including all previous conversions for the request can be transferred to Pond.
-* If POND/mPOND are staked, then they can’t be converted to each other.
-* During wait period, MPOND can be used for governance
-* User can partially/fully cancel conversion requests from MPOND to POND at any time, even after wait time is over as long as conversion is not completed.
-* Current conversion requests and their details should be efficiently retrievable
-* Bridge contract should be upgradable
+* POND can be instantly converted into MPOND with 1MPOND yielded against 10^6 POND.
+* To convert MPOND to POND, there is a delay of atleast W blocks.
+* At any point, $min(100, liquidityRatio*floor[(time since request)/W])$ % of the total requested amount including all previous conversions for the request can be transferred to POND.
+* If POND/MPOND are staked/delegated, then they can’t be transferred to the bridge.
+* During wait period, MPOND can be used for governance and staking.
+* User can partially/fully cancel conversion requests from MPOND to POND at any time, even after wait time is over as long as the conversion is not completed.
+* Current conversion requests and their details should be efficiently retrievable.
+* Bridge contract should be upgradable.
