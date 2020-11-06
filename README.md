@@ -181,34 +181,35 @@ The contract depends on the above three oracles.
 
 # Bridge
 
-Marlin protocol has Pond and mPond tokens as part of the token economics. 
+Marlin uses POND and MPOND tokens as part its token economy. 
 
-Pond token is a simple ERC20 token which is transferable and can be used in staking. Rewards for work done is received as Pond Tokens.
+POND is a simple ERC20 token which is transferable and can be delegated to Marlin nodes. Network rewards for work done by validators is received in POND.
 
-1 mPond token is equivalent to 1 million Pond tokens. mPond tokens are non transferable between users. They are used in governance and when staked mPond users get higher rewards compared to equivalent amount of Pond staked.
+MPOND are non-transferable between users. They are used in governance and are also required to run nodes.
 
-A bridge contract is used to convert mPond to Pond and vice versa. 
-## Pond to mPond conversion
+A bridge contract is used to convert between MPOND and POND. 1 MPOND can exchanged for 1 million POND tokens and vice-versa via the bridge.  
 
-Pond can be converted to mPond by sending Pond tokens to the bridge and an equivalent amount of mPond is received to the same address while burning the pond tokens.
+## POND to MPOND
 
-## mPond to Pond conversion
+POND can be converted to MPOND by sending POND to the bridge and an equivalent number of MPOND (#POND/1m) is received on the same address while burning the POND tokens sent.
 
-Anyone at any time can lock MPOND and receive equivalent POND, however the bridge enforces a lockup when converting from MPOND to POND to ensure serious participation in important staking and governance functions.
+## MPOND to POND
 
-mPond can be converted to Pond by requesting transfer on the bridge. After transfer request, there is a wait time of X blocks (aroud 6 months as of now) for the request to be accepted and mPond to be converted to Pond. During the wait time, the mPond cannot be used for staking but can be used for governance.
+The bridge also allows conversion of MPOND to an equivalent number of POND (#POND X 1m). However, the conversion is a bit nuanced and not instantaneous as above. The mechanism is described below.
 
-Only a portion of the mPond that is requested for transfer can be converted to Pond. This parameter is controlled by governance. This parameter known as "liquidity param($L$)" makes sure that there are always enough mPond to ensure that the security of the governance is not compromised. After every X blocks, a portion of mPond equivalent to $L$% of mPond requested for transfer is released. So if X and $L$ doesn't change, then user can transfer all the requested mPond to Pond in $\lceil{\frac{100}{L}}\rceil*X$ blocks.
+A request can be made on the bridge to convert a certain number of MPOND (say P). After transfer request is made, there is a wait time of W blocks (set at approximately 6 months initially) before a conversion can be attempted. During the wait time, MPOND can still be used towards staking and governance. After the wait time, a fraction L of P MPOND can be sent to the bridge for conversion.
 
-A series of scenarios and the results of calls to requesting transfer and calls to convert is detailed [here](https://docs.google.com/spreadsheets/d/1AanmwfO9a7Dozo_ZA-Dec310d3kSJhYB-EslAnTIdyY/edit?usp=sharing).
+Parameter W and L are both controlled by governance. These parameters make sure that there are always enough MPOND locked to ensure that the security of the network and its governance is not compromised. After every W blocks, $L$ of P MPOND requested initially can be sent to the bridge for conversion. That is, if W and $L$ remain constant, the user can convert all the requested MPOND to POND in $\lceil{\frac{100}{L}}\rceil*W$ blocks.
+
+A series of scenarios and expected results of calls made to the Bridge are described [here](https://docs.google.com/spreadsheets/d/1AanmwfO9a7Dozo_ZA-Dec310d3kSJhYB-EslAnTIdyY/edit?usp=sharing).
 
 ## Bridge contract requirements
 
-* Pond can be instantly converted into mPond(minted)(1MPOND = 10^6 POND)
-* To convert mPond to Pond, there is a delay of atleast X blocks
-* At any point, $min(100, liquidityRatio*floor[(time since request)/X])$ % of the total requested amount including all previous conversions for the request can be transferred to Pond.
-* If POND/mPOND are staked, then they can’t be converted to each other.
-* During wait period, MPOND can be used for governance
-* User can partially/fully cancel conversion requests from MPOND to POND at any time, even after wait time is over as long as conversion is not completed.
-* Current conversion requests and their details should be efficiently retrievable
-* Bridge contract should be upgradable
+* POND can be instantly converted into MPOND with 1MPOND yielded against 10^6 POND.
+* To convert MPOND to POND, there is a delay of atleast W blocks.
+* At any point, $min(100, liquidityRatio*floor[(time since request)/W])$ % of the total requested amount including all previous conversions for the request can be transferred to POND.
+* If POND/MPOND are staked/delegated, then they can’t be transferred to the bridge.
+* During wait period, MPOND can be used for governance and staking.
+* User can partially/fully cancel conversion requests from MPOND to POND at any time, even after wait time is over as long as the conversion is not completed.
+* Current conversion requests and their details should be efficiently retrievable.
+* Bridge contract should be upgradable.
