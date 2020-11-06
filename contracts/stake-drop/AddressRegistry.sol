@@ -33,7 +33,7 @@ contract AddressRegistry is StandardOracle {
     function addAddressBulk(
         bytes32[] memory _stakingAddressHashes,
         address[] memory ethereumAddresses
-    ) public onlySource returns (bool) {
+    ) public onlySource {
         require(
             _stakingAddressHashes.length != 0,
             "Array length should be non-zero"
@@ -43,22 +43,11 @@ contract AddressRegistry is StandardOracle {
             "Arity mismatch"
         );
         for (uint256 index = 0; index < _stakingAddressHashes.length; index++) {
-            require(
-                addAddress(
-                    _stakingAddressHashes[index],
-                    ethereumAddresses[index]
-                ),
-                "Failed adding address"
-            );
+            addAddress(_stakingAddressHashes[index], ethereumAddresses[index]);
         }
-        return true;
     }
 
-    function removeAddress(bytes32 _stakingAddressHash)
-        public
-        onlySource
-        returns (bool)
-    {
+    function removeAddress(bytes32 _stakingAddressHash) public onlySource {
         require(
             _stakingAddressHash != bytes32(0),
             "Should be a non-zero staking address hash"
@@ -66,13 +55,11 @@ contract AddressRegistry is StandardOracle {
         address ethereumAddress = addressList[_stakingAddressHash];
         delete addressList[_stakingAddressHash];
         delete reverseMap[ethereumAddress];
-        return true;
     }
 
     function addAddress(bytes32 _stakingAddressHash, address _ethereumAddress)
         public
         onlySource
-        returns (bool)
     {
         require(
             _stakingAddressHash != bytes32(0),
@@ -91,10 +78,9 @@ contract AddressRegistry is StandardOracle {
         addressList[_stakingAddressHash] = _ethereumAddress;
         reverseMap[_ethereumAddress] = _stakingAddressHash;
         emit AddressRegistered(_stakingAddressHash, _ethereumAddress);
-        return true;
     }
 
-    function registerAddress(bytes calldata _data) external returns (bool) {
+    function registerAddress(bytes calldata _data) external {
         AddressPair memory a = extractBytes(_data);
         Signature memory sig = getSignature(_data);
         address _recovered = ecrecover(sig.hash, sig.v, sig.r, sig.s);
@@ -121,7 +107,6 @@ contract AddressRegistry is StandardOracle {
         addressList[a.stakingAddressHash] = a.ethereumAddress;
         reverseMap[a.ethereumAddress] = a.stakingAddressHash;
         emit AddressRegistered(a.stakingAddressHash, a.ethereumAddress);
-        return true;
     }
 
     function extractBytes(bytes memory _bytes)

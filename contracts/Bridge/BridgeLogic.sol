@@ -10,23 +10,21 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20
 contract BridgeLogic is Initializable {
     using SafeMath for uint256;
 
+    uint256 public constant pondPerMpond = 1000000;
+    uint256 public constant epochLength = 1 days;
+    uint256 public constant lockTimeEpochs = 180;
+    uint256 public constant liquidityDecimals = 4;
+    uint256 public constant liquidityEpochLength = 180 days;
+    uint256 public constant liquidityStartEpoch = 1;
+
+    uint256 public liquidityBp;
+
     mPondLogic public mpond;
     TokenLogic public pond;
     address public owner;
     address public governanceProxy;
-
-    uint256 public pondPerMpond;
-    uint256 public epochLength;
-    uint256 public startEpoch;
     uint256 public startTime;
-
-    uint256 public lockTime;
-
-    uint256 public liquidityBp;
-    uint256 public liquidityDecimals;
-    uint256 public liquidityEpochLength;
     uint256 public liquidityStartTime;
-    uint256 public liquidityStartEpoch;
 
     struct Requests {
         uint256 amount;
@@ -42,47 +40,26 @@ contract BridgeLogic is Initializable {
         address _owner,
         address _governanceProxy
     ) public initializer {
-        createConstants();
         mpond = mPondLogic(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
         governanceProxy = _governanceProxy;
         startTime = block.timestamp;
         liquidityStartTime = block.timestamp;
-    }
-
-    function createConstants() internal {
-        pondPerMpond = 1000000;
-        epochLength = 1 days;
-        // startEpoch = 0;
-        lockTime = 180 days;
         liquidityBp = 20;
-        liquidityDecimals = 4; // 0.0002 (i.e) 0.2%
-        liquidityEpochLength = 180 days; // liquidty will increase arithmatically after locktime
-        liquidityStartEpoch = 1; //after locktime liquidity counter start from 1
     }
 
-    // function getConversionRate() public view returns (uint256) {
-    //     return pondPerMpond;
-    // }
-
-    function changeLiquidityBp(uint256 _newLbp) external returns (bool) {
+    function changeLiquidityBp(uint256 _newLbp) external {
         require(
             msg.sender == owner || msg.sender == governanceProxy,
             "Liquidity can be only changed by governance or owner"
         );
         liquidityBp = _newLbp;
-        return true;
     }
 
     function getCurrentEpoch() internal view returns (uint256) {
-        // return (block.timestamp - startTime).div(epochLength) + startEpoch;
         return (block.timestamp - startTime).div(epochLength);
     }
-
-    // function lockTimeEpoch(uint256 _time) internal view returns (uint256) {
-    //     return _time.div(epochLength);
-    // }
 
     function getLiquidityEpoch() public view returns (uint256) {
         if (block.timestamp < liquidityStartTime + 180 days) {
@@ -98,9 +75,8 @@ contract BridgeLogic is Initializable {
         uint256 effective = getLiquidityEpoch().mul(liquidityBp);
         if (effective > 10000) {
             return 10000;
-        } else {
-            return effective;
         }
+        return effective;
     }
 
     function getConvertableAmount(address _address, uint256 _epoch)
@@ -109,7 +85,6 @@ contract BridgeLogic is Initializable {
         returns (uint256)
     {
         uint256 _reqAmount = requests[_address][_epoch].amount;
-        // Requests storage _req = requests[_address][_epoch];
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
         if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity()).div(10000)) {
             return 0;
@@ -119,14 +94,6 @@ contract BridgeLogic is Initializable {
                 _claimedAmount
             );
     }
-
-    // function getClaimedAmount(address _address, uint256 _epoch)
-    //     public
-    //     view
-    //     returns (uint256)
-    // {
-    //     return claimedAmounts[_address][_epoch];
-    // }
 
     function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
         require(_amount != 0, "Should be non zero amount");
@@ -153,28 +120,17 @@ contract BridgeLogic is Initializable {
     function placeRequest(uint256 amount) external returns (uint256, uint256) {
         uint256 epoch = getCurrentEpoch();
         require(
-            amount > 0 && amount <= mpond.balanceOf(msg.sender),
+            amount != 0 && amount <= mpond.balanceOf(msg.sender),
             "Request should be placed with amount greater than 0 and less than the balance of the user"
         );
         require(
             requests[msg.sender][epoch].amount == 0,
             "Only one request per epoch is acceptable"
         );
-        Requests memory _req = Requests(
-            amount,
-            epoch.add(lockTime.div(epochLength))
-        );
+        Requests memory _req = Requests(amount, epoch.add(lockTimeEpochs));
         requests[msg.sender][epoch] = _req;
         return (epoch, _req.releaseEpoch);
     }
-
-    // function viewRequest(address _address, uint256 _epoch)
-    //     public
-    //     view
-    //     returns (Requests memory)
-    // {
-    //     return requests[_address][_epoch];
-    // }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
         external

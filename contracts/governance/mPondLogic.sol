@@ -49,9 +49,6 @@ contract mPondLogic is Initializable {
     /// @notice A record of states for signing / validating signatures
     mapping(address => uint256) public nonces;
 
-    /// @notice A record of states for signing / validating signatures
-    mapping(address => uint256) public unDelegateNonces;
-
     /// customized params
     address public admin;
     mapping(address => bool) public isWhiteListed;
@@ -348,7 +345,7 @@ contract mPondLogic is Initializable {
             "mPond::undelegateBySig: invalid signature"
         );
         require(
-            nonce == unDelegateNonces[signatory]++,
+            nonce == nonces[signatory]++,
             "mPond::undelegateBySig: invalid nonce"
         );
         require(now <= expiry, "mPond::undelegateBySig: signature expired");

@@ -17,37 +17,32 @@ contract ValidatorRegistry is StandardOracle {
         public
         onlySource
         isEpochNotFrozen(_epoch)
-        returns (bool)
     {
         require(
             _validatorAddress != bytes32(0),
             "Should be non-zero address hash"
         );
-        if (validators[_epoch][_validatorAddress]) {
-            return false;
-        }
+        require(
+            !validators[_epoch][_validatorAddress],
+            "Cannot add validator in that epoch, if it is already added in the registry"
+        );
         validators[_epoch][_validatorAddress] = true;
         emit AddValidator(_epoch, _validatorAddress);
-        return true;
     }
 
     function addValidatorsBulk(uint256 _epoch, bytes32[] memory _validators)
         public
         onlySource
-        returns (bool)
     {
         for (uint256 index = 0; index < _validators.length; index++) {
-            bool result = addValidator(_epoch, _validators[index]);
-            require(result, "Failed adding bulk validators");
+            addValidator(_epoch, _validators[index]);
         }
-        return true;
     }
 
     function removeValidator(uint256 _epoch, bytes32 _validatorAddress)
         public
         onlySource
         isEpochNotFrozen(_epoch)
-        returns (bool)
     {
         require(
             _validatorAddress != bytes32(0),
@@ -55,19 +50,16 @@ contract ValidatorRegistry is StandardOracle {
         );
         validators[_epoch][_validatorAddress] = false;
         emit RemoveValidator(_epoch, _validatorAddress);
-        return true;
     }
 
     function freezeEpoch(uint256 _epoch)
         public
         onlySource
         isEpochNotFrozen(_epoch)
-        returns (bool)
     {
         freezeValidators[_epoch] = true;
         freezeTime[_epoch] = block.timestamp;
         emit FreezeValidatorEpoch(_epoch);
-        return true;
     }
 
     modifier isEpochNotFrozen(uint256 _epoch) {

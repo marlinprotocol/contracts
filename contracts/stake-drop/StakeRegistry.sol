@@ -29,12 +29,6 @@ contract StakeRegistry is StandardOracle {
         bytes32 indexed,
         uint256
     );
-    event StakeSkipped(
-        uint256 indexed,
-        bytes32 indexed,
-        bytes32 indexed,
-        uint256
-    );
 
     function addTotalStakeForEpoch(uint256 _epoch, uint256 _amount)
         public
@@ -65,7 +59,7 @@ contract StakeRegistry is StandardOracle {
         bytes32 _stakingAddressHash,
         bytes32 _validatorAddressHash,
         uint256 _amount
-    ) public onlySource returns (bool) {
+    ) public onlySource {
         require(_amount != 0, "Amount should be non-zero");
         require(_epoch != 0, "Epoch should be greater than zero");
         require(
@@ -84,25 +78,18 @@ contract StakeRegistry is StandardOracle {
             totalStake[_epoch] != 0,
             "Stake shoud be added only after totalStake is updated"
         );
-        if (validatorRegistry.validators(_epoch, _validatorAddressHash)) {
-            // rewardPerStake = rewardPerEpoch * amount / totalStake
-            rewardPerAddress[_stakingAddressHash] = rewardPerAddress[_stakingAddressHash]
-                .add(rewardPerEpoch.mul(_amount).div(totalStake[_epoch]));
-            emit StakeAdded(
-                _epoch,
-                _stakingAddressHash,
-                _validatorAddressHash,
-                _amount
-            );
-        } else {
-            emit StakeSkipped(
-                _epoch,
-                _stakingAddressHash,
-                _validatorAddressHash,
-                _amount
-            );
-        }
-        return true;
+        require(
+            validatorRegistry.validators(_epoch, _validatorAddressHash),
+            "Stake delegated to only whitelisted validator can be added"
+        );
+        rewardPerAddress[_stakingAddressHash] = rewardPerAddress[_stakingAddressHash]
+            .add(rewardPerEpoch.mul(_amount).div(totalStake[_epoch]));
+        emit StakeAdded(
+            _epoch,
+            _stakingAddressHash,
+            _validatorAddressHash,
+            _amount
+        );
     }
 
     function addStakeBulk(
@@ -110,22 +97,20 @@ contract StakeRegistry is StandardOracle {
         bytes32[] memory _stakingAddresses,
         bytes32[] memory _validatorAddresses,
         uint256[] memory _amounts
-    ) public onlySource returns (bool) {
+    ) public onlySource {
         require(_stakingAddresses.length == _amounts.length, "Arity mismatch");
         require(
             _stakingAddresses.length == _validatorAddresses.length,
             "Arity mismatch"
         );
         for (uint256 index = 0; index < _stakingAddresses.length; index++) {
-            bool result = addStake(
+            addStake(
                 _epoch,
                 _stakingAddresses[index],
                 _validatorAddresses[index],
                 _amounts[index]
             );
-            require(result, "Failed bulk adding stake");
         }
-        return true;
     }
 
     modifier onlyGovernance() {

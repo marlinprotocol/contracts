@@ -60,15 +60,21 @@ contract("Stake Drop testing", function (accounts) {
     let validator4 = web3Utils.keccak256("validator 4");
     // return validatorInstance.addValidator(1, validator1);
     return validatorInstance
-      .addValidatorsBulk(1, [validator1, validator2])
+      .addValidatorsBulk(1, [validator1, validator2, validator3, validator4])
       .then(function () {
-        return validatorInstance.addValidatorsBulk(2, [validator1, validator2]);
+        return validatorInstance.addValidatorsBulk(2, [
+          validator1,
+          validator2,
+          validator3,
+          validator4,
+        ]);
       })
       .then(function () {
         return validatorInstance.addValidatorsBulk(3, [
           validator1,
           validator2,
           validator3,
+          validator4,
         ]);
       })
       .then(function () {
@@ -163,7 +169,7 @@ contract("Stake Drop testing", function (accounts) {
         assert.equal(log2.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log3.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log4.event, "StakeAdded", "Event should StakeAdded");
-        assert.equal(log5.event, "StakeSkipped", "Event should StakeAdded");
+        assert.equal(log5.event, "StakeAdded", "Event should StakeAdded");
         return stakeInstance.rewardPerAddress(delegator1);
       })
       .then(function (reward) {
