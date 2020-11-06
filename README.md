@@ -201,7 +201,30 @@ A request can be made on the bridge to convert a certain number of MPOND (say P)
 
 Parameter W and L are both controlled by governance. These parameters make sure that there are always enough MPOND locked to ensure that the security of the network and its governance is not compromised. After every W blocks, $L$ of P MPOND requested initially can be sent to the bridge for conversion. That is, if W and $L$ remain constant, the user can convert all the requested MPOND to POND in $\lceil{\frac{100}{L}}\rceil*W$ blocks.
 
-A series of scenarios and expected results of calls made to the Bridge are described [here](https://docs.google.com/spreadsheets/d/1AanmwfO9a7Dozo_ZA-Dec310d3kSJhYB-EslAnTIdyY/edit?usp=sharing).
+A series of scenarios and expected results of calls made to the Bridge are illustrated in the table below.
+
+| Timespan | MPOND balance | Call Maxima | Result | Maxima mapping   | Maxima used mapping | Liquidity | Effective Liq. (calculated) | Call convert | Result |
+|----------|---------------|-------------|--------|------------------|---------------------|-----------|-----------------------------|--------------|--------|
+| Day -1   |          1000 |             |        | {-1:0}           |                     |        0% |                             |              |        |
+| Day 0    |          1000 |        1100 | reject | {-1:0}           |                     |        0% |                             |              |        |
+| Day 0    |          1000 |         900 | accept | {0: 900}         | {0:0}               |        0% |                             |              |        |
+| Day 30   |          1000 |          50 | accept | {0: 900, 30: 50} | {0:0, 30:0}         |        0% |                             |              |        |
+| Day 31   |          1000 |         100 | reject | {0: 900, 30: 50} |                     |           |                             |              |        |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |        0% |                             | 950, 0       | reject |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |       10% |                             |              |        |
+| Day 180  |          1000 |             |        | {0: 900, 30: 50} | {0:0, 30:0}         |       10% |                             | 85, 0        | accept |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |        5% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 10, 0        | reject |
+| Day 180  |           915 |             |        | {0: 900, 30: 50} | {0:85, 30:0}        |       10% |                             | 2, 0         | accept |
+| Day 180  |           913 |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       10% |                             |              |        |
+| Day 210  |               |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       10% |                             |       10, 30 | reject |
+| Day 210  |               |             |        | {0: 900, 30: 50} | {0:87, 30:0}        |       20% |                             |       10, 30 | accept |
+| Day 211  |               |             |        | {0: 900, 30: 50} | {0:87, 30:10}       |       20% |                             | 100, 0       | reject |
+| Day 212  |               |             |        | {0: 900, 30: 50} | {0:87, 30:10}       |       20% |                         20% | 93, 0        | accept |
+| Day 213  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       20% |                         20% |              |        |
+| Day 360  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       20% |                         40% |              |        |
+| Day 390  |               |             |        | {0: 900, 30: 50} | {0:180, 30:10}      |       15% |                         30% |              |        |
 
 ## Bridge contract requirements
 
