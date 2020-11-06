@@ -44,7 +44,7 @@ contract Distribution {
         bytes32 stakingAddressHash = addressRegistry.getStakingAddress(
             msg.sender
         );
-        uint256 reward = stakeRegistry.getReward(stakingAddressHash);
+        uint256 reward = stakeRegistry.rewardPerAddress(stakingAddressHash);
         uint256 balanceToTransfer = reward.sub(
             claimedBalances[stakingAddressHash]
         );

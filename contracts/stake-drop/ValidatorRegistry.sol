@@ -13,23 +13,6 @@ contract ValidatorRegistry is StandardOracle {
     event RemoveValidator(uint256 indexed, bytes32 indexed);
     event FreezeValidatorEpoch(uint256 indexed);
 
-    function isFrozen(uint256 _epoch) public view returns (bool) {
-        return (freezeTime[_epoch] != 0);
-    }
-
-    function isValidator(uint256 _epoch, bytes32 _address)
-        public
-        view
-        returns (bool)
-    {
-        return validators[_epoch][_address];
-    }
-
-    function getEpochEndTime(uint256 _epoch) public view returns (uint256) {
-        // require(_epoch > 0 , "Epoch should be greater than zero");
-        return freezeTime[_epoch];
-    }
-
     function addValidator(uint256 _epoch, bytes32 _validatorAddress)
         public
         onlySource

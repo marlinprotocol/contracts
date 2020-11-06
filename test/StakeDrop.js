@@ -164,7 +164,7 @@ contract("Stake Drop testing", function (accounts) {
         assert.equal(log3.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log4.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log5.event, "StakeSkipped", "Event should StakeAdded");
-        return stakeInstance.getReward(delegator1);
+        return stakeInstance.rewardPerAddress(delegator1);
       })
       .then(function (reward) {
         assert.equal(
@@ -183,7 +183,7 @@ contract("Stake Drop testing", function (accounts) {
         );
       })
       .then(function () {
-        return stakeInstance.getReward(delegator1);
+        return stakeInstance.rewardPerAddress(delegator1);
       })
       .then(function (reward) {
         assert.equal(

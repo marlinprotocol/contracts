@@ -36,13 +36,13 @@ contract StakeRegistry is StandardOracle {
         uint256
     );
 
-    function getReward(bytes32 _stakingAddressHash)
-        public
-        view
-        returns (uint256)
-    {
-        return rewardPerAddress[_stakingAddressHash];
-    }
+    // function getReward(bytes32 _stakingAddressHash)
+    //     public
+    //     view
+    //     returns (uint256)
+    // {
+    //     return rewardPerAddress[_stakingAddressHash];
+    // }
 
     function addTotalStakeForEpoch(uint256 _epoch, uint256 _amount)
         public
@@ -52,7 +52,7 @@ contract StakeRegistry is StandardOracle {
         require(_epoch != 0, "Epoch should not be equal to zero");
         require(_amount != 0, "Total Stake in the era should be non-zero");
         require(
-            validatorRegistry.isFrozen(_epoch),
+            validatorRegistry.freezeTime(_epoch) != 0,
             "Add TotalStake data only after validator list is frozen"
         );
         totalStake[_epoch] = _amount;
@@ -85,14 +85,14 @@ contract StakeRegistry is StandardOracle {
             "Validator Address Hash should be non-zero"
         );
         require(
-            validatorRegistry.isFrozen(_epoch),
+            validatorRegistry.freezeTime(_epoch) != 0,
             "Add Stake data only after validator list is frozen"
         );
         require(
             totalStake[_epoch] != 0,
             "Stake shoud be added only after totalStake is updated"
         );
-        if (validatorRegistry.isValidator(_epoch, _validatorAddressHash)) {
+        if (validatorRegistry.validators(_epoch, _validatorAddressHash)) {
             // rewardPerStake = rewardPerEpoch * amount / totalStake
             rewardPerAddress[_stakingAddressHash] = rewardPerAddress[_stakingAddressHash]
                 .add(rewardPerEpoch.mul(_amount).div(totalStake[_epoch]));

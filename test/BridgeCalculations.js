@@ -63,7 +63,7 @@ contract("BridgeCalculations", function (accounts) {
         );
       })
       .then(function () {
-        return bridge.getConversionRate();
+        return bridge.pondPerMpond();
       })
       .then(function (pondPerMpond) {
         console.table({pondPerMpond});

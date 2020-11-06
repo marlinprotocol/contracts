@@ -62,9 +62,9 @@ contract BridgeLogic is Initializable {
         liquidityStartEpoch = 1; //after locktime liquidity counter start from 1
     }
 
-    function getConversionRate() public view returns (uint256) {
-        return pondPerMpond;
-    }
+    // function getConversionRate() public view returns (uint256) {
+    //     return pondPerMpond;
+    // }
 
     function changeLiquidityBp(uint256 _newLbp) external returns (bool) {
         require(
@@ -108,27 +108,25 @@ contract BridgeLogic is Initializable {
         view
         returns (uint256)
     {
-        // Requests memory _req = requests[_address][_epoch];
-        Requests storage _req = requests[_address][_epoch];
+        uint256 _reqAmount = requests[_address][_epoch].amount;
+        // Requests storage _req = requests[_address][_epoch];
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
-        if (
-            _claimedAmount >= _req.amount.mul(effectiveLiquidity()).div(10000)
-        ) {
+        if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity()).div(10000)) {
             return 0;
         }
         return
-            (_req.amount.mul(effectiveLiquidity()).div(10000)).sub(
+            (_reqAmount.mul(effectiveLiquidity()).div(10000)).sub(
                 _claimedAmount
             );
     }
 
-    function getClaimedAmount(address _address, uint256 _epoch)
-        public
-        view
-        returns (uint256)
-    {
-        return claimedAmounts[_address][_epoch];
-    }
+    // function getClaimedAmount(address _address, uint256 _epoch)
+    //     public
+    //     view
+    //     returns (uint256)
+    // {
+    //     return claimedAmounts[_address][_epoch];
+    // }
 
     function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
         require(_amount != 0, "Should be non zero amount");
@@ -154,7 +152,6 @@ contract BridgeLogic is Initializable {
 
     function placeRequest(uint256 amount) external returns (uint256, uint256) {
         uint256 epoch = getCurrentEpoch();
-        require(amount != 0, "Request should be placed with non zero amount");
         require(
             amount > 0 && amount <= mpond.balanceOf(msg.sender),
             "Request should be placed with amount greater than 0 and less than the balance of the user"
@@ -171,13 +168,13 @@ contract BridgeLogic is Initializable {
         return (epoch, _req.releaseEpoch);
     }
 
-    function viewRequest(address _address, uint256 _epoch)
-        public
-        view
-        returns (Requests memory)
-    {
-        return requests[_address][_epoch];
-    }
+    // function viewRequest(address _address, uint256 _epoch)
+    //     public
+    //     view
+    //     returns (Requests memory)
+    // {
+    //     return requests[_address][_epoch];
+    // }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
         external

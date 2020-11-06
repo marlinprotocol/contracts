@@ -125,12 +125,12 @@ async function deploy() {
 async function init() {
   var tokenInstance = new web3.eth.Contract(
     mPondLogicCompiled.abi,
-    "0x3b312Ce51E2f0A43429269a69aBCE6bA0697516E" // kovan address
+    "0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682" // kovan address
   );
   let result = await tokenInstance.methods
     .initialize(
       "0xf55B1947e877e3Fa87ad13fA8169df82c544f1ef",
-      "0xe7e8fDD11763D15Ed0FEc41cA0643a2D79050195"
+      "0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1"
     )
     // externalAddress, distribution address
     .send({from: addresses[0], gas: 2000000, gasPrice: 1000000000});
@@ -140,10 +140,10 @@ async function init() {
 async function checkBalance() {
   var tokenInstance = new web3.eth.Contract(
     mPondLogicCompiled.abi,
-    "0xac6ca2e26Ecc6d22daFDd5B22a053942C71f1b45" // kovan address
+    "0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682" // kovan address
   );
   let result = await tokenInstance.methods
-    .balanceOf("0xdbC24f9b687C2D8C476887C20fa2506FE13C8Cb5")
+    .balanceOf("0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1")
     .call();
   return result;
 }
@@ -153,18 +153,18 @@ async function abi(){
 }
 
 // abi().then(print).catch(console.log)
-// checkBalance().then(console.log).catch(console.log);
-init().then(console.log).catch(console.log);
+checkBalance().then(console.log).catch(console.log);
+// init().then(console.log).catch(console.log);
 
 // deploy();
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-// Distribution address 0xe7e8fDD11763D15Ed0FEc41cA0643a2D79050195
-// ValidatorRegistry address 0x9F73337709661cC82A0074E2649c1Aac85876A24
-// StakeRegistry address 0xD6a6A8d4EC0ED0a50A46d1ac0eF3055031b813de
-// AddressRegistry address 0x6Bc46F905d4660d03ca3D462Eb65fC2b2D528A60
-// mPondLogic address 0xcd0c328282A5ceaa9b86E432cB5aCBB8F9405Fa3
-// mPondProxy address 0x3b312Ce51E2f0A43429269a69aBCE6bA0697516E
+// Distribution address 0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1
+// ValidatorRegistry address 0xEec0feDfFD07337d219B0CEf06E8dD39af880470
+// StakeRegistry address 0x512d1f7dCd6f57c61052a20d14677ba0806a13Da
+// AddressRegistry address 0xCB0A4AEA8EE5825C6bdb4e05F5124C7Ae03E7DdE
+// mPondLogic address 0x019151e837586ABdDed35b38ebf81e4945D3359C
+// mPondProxy address 0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function print(data){
