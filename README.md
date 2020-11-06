@@ -1,40 +1,44 @@
-# Contracts
+# Getting started
 
-Spin up the instance for running and testing the contracts. Make sure you have docker installed.
+This repo contains token as well as protocol related smart contracts used in Marlin. 
+
+1. Spin up an instance for running or testing the contracts. 
+2. Make sure you have docker installed and execute the following command:
 ```
 sh start.sh
 ```
-
-If you are not using docker, make sure you have **truffle**, **node** 10.x installed on your device.
-
-Once spinned up using any of the above, use the following commands to compile and test the contracts.
+3. If you are not using docker, make sure you have **truffle**, **node** 10.x installed on your device.
+4. Use the following commands to compile and test the contracts.
 ```
 truffle compile;
 truffle test;
 ```
 
-# MPond Tokens
+# POND token
 
-mPond tokens are Marlin Governance Tokens. They can used to create and vote proposals.
+POND is a standard ERC-20 token contract with a total supply of 10 billion.
+
+# MPOND token
+
+MPOND is Marlin's governance and staking token. It can used to create and vote on proposals. It is also required to run a Marlin node.
 
 ## Specs
-1. Total Number of mPond tokens are 10000.
-2. mPond tokens can be used to vote and create proposals, where 1 mPond tokens = 1 vote (votes are fungible as tokens).
-3. mPond tokens delegated to other users will be locked.
-4. mPond transfers will be locked, except for selected addresses (like bridge, stakedrop contracts)
-5. mPond can be converted to Pond via bridge.
-6. Users will have to unlock the tokens before sending.
-7. Till all transfers are enabled only transfers between whitelisted addresses is possible.
+1. Total supply of MPOND is 10,000.
+2. MPOND can be used to vote and create proposals, where 1 MPOND tokens = 1 vote (votes are fungible as tokens).
+3. MPOND tokens delegated to other users will be locked.
+4. Direct MPOND transfers will be locked except for whitelisted addresses (like the bridge and stakedrop contracts). Until universal transfers are enabled, only transfers to/from whitelisted addresses are possible.
+5. MPOND can be converted to POND via the bridge.
+6. If delegated, users will first have to undelegate the tokens before being able to make a transfer.
 
 ## Contract
-The features in the contracts are described as follows
-* `addWhiteListAddress**(address _address)` adds a new address, that is whitelisted for transfers and can be only invoked by admin.
-* `enableAllTransfers()` enables all transfers for mPond token. Can be only invoked by admin
+Notable functions of the contract are described below:
+* `addWhiteListAddress**(address _address)` adds a new address that is whitelisted for transfers and can only be invoked by admin.
+* `enableAllTransfers()` enables anyone to transfers MPOND and can be only invoked by admin.
 * `balanceOf`, `transfer`, `approve`, `transferFrom` functions, have same signatures as that of standard ERC20 Token contract
-* Can delegate tokens to any address using `delegate(address delegatee, uint96 amount)` where `address` is the address of the delegatee and `amount` is number of token to be delegated.
-* To undelegate the tokens from any address use `undelegate(address delegatee, uint96 amount)`
-* `getCurrentVotes(address account)` returns the current votes that have been delegated to the `account`.
-* `getPriorVotes(address account, uint256 blockNumber)` returns the votes the delegated to the `account` at a given `blockNumber`.
+* Can delegate tokens to any address using `delegate(address delegatee, uint96 amount)` where `delegatee` is the address of the delegatee and `amount` is number of token to be delegated.
+* To undelegate the tokens from any address use `undelegate(address delegatee, uint96 amount)`.
+* `getCurrentVotes(address account)` returns the current votes that have been delegated to `account`.
+* `getPriorVotes(address account, uint256 blockNumber)` returns the votes the delegated to `account` at a given `blockNumber`.
 
 # Governance
 
@@ -50,13 +54,12 @@ The features in the contracts are described as follows
 9. **Succeeded** will can be changed to **Queued** state by a contract call.
 10. **Queued** proposal will be locked for 2 days. Within this time, the contract admin have right to **Reject** the proposal. If **Unrejected** it can **Executed**
 
-
 Governance comprises of three contracts
 * GovernorAlpha
-* mPond token contract
+* MPOND token contract
 * Timelock
 
-## mPond Token Contracts
+## MPOND token
 Token contract for the Governance. [doc](#mpond-tokens)
 
 ## Governor Alpha
