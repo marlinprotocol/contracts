@@ -125,12 +125,12 @@ async function deploy() {
 async function init() {
   var tokenInstance = new web3.eth.Contract(
     mPondLogicCompiled.abi,
-    "0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682" // kovan address
+    "0x6777AD9f8d50D6d1500e623035b17A2daf6932D7" // kovan address
   );
   let result = await tokenInstance.methods
     .initialize(
       "0xf55B1947e877e3Fa87ad13fA8169df82c544f1ef",
-      "0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1"
+      "0xB46a01e8D723796686daea50619a61fcb4cB5ebA"
     )
     // externalAddress, distribution address
     .send({from: addresses[0], gas: 2000000, gasPrice: 1000000000});
@@ -140,10 +140,10 @@ async function init() {
 async function checkBalance() {
   var tokenInstance = new web3.eth.Contract(
     mPondLogicCompiled.abi,
-    "0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682" // kovan address
+    "0x6777AD9f8d50D6d1500e623035b17A2daf6932D7" // kovan address
   );
   let result = await tokenInstance.methods
-    .balanceOf("0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1")
+    .balanceOf("0xB46a01e8D723796686daea50619a61fcb4cB5ebA")
     .call();
   return result;
 }
@@ -159,12 +159,12 @@ checkBalance().then(console.log).catch(console.log);
 // deploy();
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-// Distribution address 0xdCbF36893f911182F22a678cDbb5f43D5Ba7e3c1
-// ValidatorRegistry address 0xEec0feDfFD07337d219B0CEf06E8dD39af880470
-// StakeRegistry address 0x512d1f7dCd6f57c61052a20d14677ba0806a13Da
-// AddressRegistry address 0xCB0A4AEA8EE5825C6bdb4e05F5124C7Ae03E7DdE
-// mPondLogic address 0x019151e837586ABdDed35b38ebf81e4945D3359C
-// mPondProxy address 0x30f7F459f8C89E45FBbf2C3b679c65b0ea8d4682
+// Distribution address 0xB46a01e8D723796686daea50619a61fcb4cB5ebA
+// ValidatorRegistry address 0x5AEb660972796a3bDd3C18373fD536FA32d987F8
+// StakeRegistry address 0x59F36dec32121B73150d65E11FE3D1c02B18A762
+// AddressRegistry address 0x22757E52b8Ea645D5D3D5005f0Fe9249E0BBdeA0
+// mPondLogic address 0x84330B1239F0F5611665d10A6D5e94C57B033A66
+// mPondProxy address 0x6777AD9f8d50D6d1500e623035b17A2daf6932D7
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function print(data){

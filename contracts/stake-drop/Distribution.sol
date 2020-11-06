@@ -41,7 +41,7 @@ contract Distribution {
     }
 
     function getUnclaimedAmount() public view returns (uint256) {
-        bytes32 stakingAddressHash = addressRegistry.getStakingAddress(
+        bytes32 stakingAddressHash = addressRegistry.reverseMap(
             msg.sender
         );
         uint256 reward = stakeRegistry.rewardPerAddress(stakingAddressHash);
@@ -54,7 +54,7 @@ contract Distribution {
     function claimAmount() public returns (bool) {
         uint256 balanceToTransfer = getUnclaimedAmount();
         require(balanceToTransfer != 0, "Withdrawl balance should be non-zero");
-        bytes32 stakingAddressHash = addressRegistry.getStakingAddress(
+        bytes32 stakingAddressHash = addressRegistry.reverseMap(
             msg.sender
         );
         claimedBalances[stakingAddressHash] = claimedBalances[stakingAddressHash]
