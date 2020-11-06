@@ -14,6 +14,10 @@ truffle compile;
 truffle test;
 ```
 
+# POND token
+
+POND is a standard ERC-20 token contract with a total supply of 10 billion.
+
 # MPOND token
 
 MPOND is Marlin's governance and staking token. It can used to create and vote on proposals. It is also required to run a Marlin node.
