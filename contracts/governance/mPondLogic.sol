@@ -211,7 +211,7 @@ contract mPondLogic is Initializable {
     function transfer(address dst, uint256 rawAmount) external returns (bool) {
         require(
             isWhiteListedTransfer(msg.sender, dst),
-            "Atleast of the address (msg.sender or dst) should be whitelisted"
+            "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         uint96 amount = safe96(
             rawAmount,
@@ -235,7 +235,7 @@ contract mPondLogic is Initializable {
     ) external returns (bool) {
         require(
             isWhiteListedTransfer(msg.sender, dst),
-            "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled"
+            "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         address spender = msg.sender;
         uint96 spenderAllowance = allowances[src][spender];
