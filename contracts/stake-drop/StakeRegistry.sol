@@ -33,7 +33,6 @@ contract StakeRegistry is StandardOracle {
     function addTotalStakeForEpoch(uint256 _epoch, uint256 _amount)
         public
         onlySource
-        returns (bool)
     {
         require(_epoch != 0, "Epoch should not be equal to zero");
         require(_amount != 0, "Total Stake in the era should be non-zero");
@@ -42,16 +41,13 @@ contract StakeRegistry is StandardOracle {
             "Add TotalStake data only after validator list is frozen"
         );
         totalStake[_epoch] = _amount;
-        return true;
     }
 
     function changeRewardPerEpoch(uint256 _newRewardPerEpoch)
         public
         onlyGovernance
-        returns (bool)
     {
         rewardPerEpoch = _newRewardPerEpoch;
-        return true;
     }
 
     function addStake(

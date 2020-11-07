@@ -58,7 +58,7 @@ contract BridgeLogic is Initializable {
     }
 
     function getCurrentEpoch() internal view returns (uint256) {
-        return (block.timestamp - startTime).div(epochLength);
+        return (block.timestamp - startTime) / (epochLength);
     }
 
     function getLiquidityEpoch() public view returns (uint256) {
@@ -66,9 +66,9 @@ contract BridgeLogic is Initializable {
             return 0;
         }
         return
-            (block.timestamp - liquidityStartTime - 180 days).div(
-                liquidityEpochLength
-            ) + liquidityStartEpoch;
+            (block.timestamp - liquidityStartTime - 180 days) /
+            (liquidityEpochLength) +
+            liquidityStartEpoch;
     }
 
     function effectiveLiquidity() public view returns (uint256) {
@@ -86,11 +86,11 @@ contract BridgeLogic is Initializable {
     {
         uint256 _reqAmount = requests[_address][_epoch].amount;
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
-        if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity()).div(10000)) {
+        if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity()) / (10000)) {
             return 0;
         }
         return
-            (_reqAmount.mul(effectiveLiquidity()).div(10000)).sub(
+            (_reqAmount.mul(effectiveLiquidity()) / (10000)).sub(
                 _claimedAmount
             );
     }
@@ -100,9 +100,11 @@ contract BridgeLogic is Initializable {
         uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
         uint256 totalUnlockableAmount = _claimedAmount.add(_amount);
         Requests memory _req = requests[msg.sender][_epoch];
+
+        // replace div with actual divide
         require(
             totalUnlockableAmount <=
-                _req.amount.mul(effectiveLiquidity()).div(10000),
+                _req.amount.mul(effectiveLiquidity()) / (10000),
             "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
         );
         require(
