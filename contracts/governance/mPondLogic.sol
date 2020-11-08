@@ -193,6 +193,52 @@ contract mPondLogic is Initializable {
         return true;
     }
 
+    function increaseAllowance(address spender, uint256 addedAmount)
+        external
+        returns (bool)
+    {
+        uint96 amount;
+        if (addedAmount == uint256(-1)) {
+            amount = uint96(-1);
+        } else {
+            amount = safe96(
+                addedAmount,
+                "mPond::approve: addedAmount exceeds 96 bits"
+            );
+        }
+
+        allowances[msg.sender][spender] = add96(
+            allowances[msg.sender][spender],
+            amount,
+            "mPond: increaseAllowance allowance value overflows"
+        );
+        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 addedAmount)
+        external
+        returns (bool)
+    {
+        uint96 amount;
+        if (addedAmount == uint256(-1)) {
+            amount = uint96(-1);
+        } else {
+            amount = safe96(
+                addedAmount,
+                "mPond::approve: addedAmount exceeds 96 bits"
+            );
+        }
+
+        allowances[msg.sender][spender] = sub96(
+            allowances[msg.sender][spender],
+            amount,
+            "mPond: decreaseAllowance allowance value underflows"
+        );
+        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
+        return true;
+    }
+
     /**
      * @notice Get the number of tokens held by the `account`
      * @param account The address of the account to get the balance of
