@@ -216,17 +216,17 @@ contract mPondLogic is Initializable {
         return true;
     }
 
-    function decreaseAllowance(address spender, uint256 addedAmount)
+    function decreaseAllowance(address spender, uint256 removedAmount)
         external
         returns (bool)
     {
         uint96 amount;
-        if (addedAmount == uint256(-1)) {
+        if (removedAmount == uint256(-1)) {
             amount = uint96(-1);
         } else {
             amount = safe96(
-                addedAmount,
-                "mPond::approve: addedAmount exceeds 96 bits"
+                removedAmount,
+                "mPond::approve: removedAmount exceeds 96 bits"
             );
         }
 
