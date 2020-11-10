@@ -86,7 +86,7 @@ contract mPondLogic is Initializable {
         createConstants();
         require(
             account != bridge,
-            "Bridge and accoutn should not be the same address"
+            "Bridge and account should not be the same address"
         );
         balances[bridge] = uint96(bridgeSupply);
         delegates[bridge][address(0)] = uint96(bridgeSupply);
