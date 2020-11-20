@@ -185,7 +185,7 @@ Marlin uses POND and MPOND tokens as part its token economy.
 
 POND is a simple ERC20 token which is transferable and can be delegated to Marlin nodes. Network rewards for work done by validators is received in POND.
 
-MPOND are non-transferable between users. They are used in governance and are also required to run nodes.
+MPOND is initially non-transferable between users. They are used in governance and are also required to run nodes.
 
 A bridge contract is used to convert between MPOND and POND. 1 MPOND can exchanged for 1 million POND tokens and vice-versa via the bridge.  
 
