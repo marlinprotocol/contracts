@@ -70,5 +70,7 @@ module.exports = {
   clusterMinStake,
   LINData,
   verifiedClaimAccountIndex,
-  reward1ClaimerIndex, reward2ClaimerIndex, reward3ClaimerIndex
+  reward1ClaimerIndex,
+  reward2ClaimerIndex,
+  reward3ClaimerIndex,
 };

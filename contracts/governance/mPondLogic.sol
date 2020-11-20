@@ -106,7 +106,7 @@ contract mPondLogic is Initializable {
 
     function createConstants() internal {
         name = "Marlin Governance Token";
-        symbol = "mPOND";
+        symbol = "MPOND";
         decimals = 18;
         totalSupply = 10000e18;
         bridgeSupply = 7000e18;
