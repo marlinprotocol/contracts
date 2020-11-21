@@ -5,7 +5,7 @@ var tokenProxy;
 var tokenLogic;
 var web3Utils = require("web3-utils");
 
-contract("Marlin Token", function (accounts) {
+contract.only("Marlin Token", function (accounts) {
   var tokenInstance;
   let totalSupplyBeforeMinting;
 
@@ -13,7 +13,7 @@ contract("Marlin Token", function (accounts) {
     // proxy admin is a different account
     return TokenLogic.new({from: accounts[1]})
       .then(function (logic) {
-        return TokenProxy.new(logic.address, {from: accounts[1]});
+        return TokenProxy.new(logic.address, accounts[1], {from: accounts[1]});
       })
       .then(function (instance) {
         tokenProxy = instance;
@@ -27,7 +27,7 @@ contract("Marlin Token", function (accounts) {
       .then(function (instance) {
         tokenInstance = instance;
         return tokenInstance
-          .initialize("Marlin Protocol", "LIN", 18, tempBridgeAddress)
+          .initialize("Marlin Protocol", "POND", 18, tempBridgeAddress)
           .then(function () {
             return tokenInstance.name();
           });
@@ -41,7 +41,7 @@ contract("Marlin Token", function (accounts) {
         return tokenInstance.symbol();
       })
       .then(function (symbol) {
-        assert.equal(symbol, "LIN", "Incorrect symbol");
+        assert.equal(symbol, "POND", "Incorrect symbol");
       });
   });
 

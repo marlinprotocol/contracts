@@ -6,7 +6,7 @@ module.exports = function (deployer, network, accounts) {
     deployer
       .deploy(TokenLogic)
       .then(function () {
-        return deployer.deploy(TokenProxy, TokenLogic.address);
+        return deployer.deploy(TokenProxy, TokenLogic.address, accounts[0]);
       })
       .then(function () {
         console.log("***********************************************");

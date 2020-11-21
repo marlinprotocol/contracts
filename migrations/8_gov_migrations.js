@@ -30,7 +30,7 @@ module.exports = async function (deployer, network, accounts) {
         return deployer.deploy(mPondLogic);
       })
       .then(function (mPondLogic) {
-        return deployer.deploy(mPondProxy, mPondLogic.address);
+        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[0]);
       })
       // .then(function () {
       //   return deployer.deploy(mPond, mPondAdmin, bridge);

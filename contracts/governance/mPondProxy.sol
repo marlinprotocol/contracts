@@ -13,7 +13,7 @@ contract mPondProxy {
         uint256(keccak256("eip1967.proxy.admin")) - 1
     );
 
-    constructor(address contractLogic) public {
+    constructor(address contractLogic, address proxyAdmin) public {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
@@ -21,7 +21,7 @@ contract mPondProxy {
         }
         // save the proxy admin
         slot = PROXY_ADMIN_SLOT;
-        address sender = msg.sender;
+        address sender = proxyAdmin;
         assembly {
             sstore(slot, sender)
         }

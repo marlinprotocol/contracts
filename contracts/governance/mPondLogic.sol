@@ -120,7 +120,7 @@ contract mPondLogic is Initializable {
             "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
         );
         admin = msg.sender;
-        enableAllTranfers = true; //This is only for testing, will be false
+        enableAllTranfers = false; //This is only for testing, will be false in prod
     }
 
     function addWhiteListAddress(address _address)

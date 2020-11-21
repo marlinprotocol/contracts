@@ -14,13 +14,13 @@ module.exports = async function (deployer, network, accounts) {
     await deployer
       .deploy(mPondLogic)
       .then(function () {
-        return deployer.deploy(mPondProxy, mPondLogic.address);
+        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[0]);
       })
       .then(function () {
         return deployer.deploy(TokenLogic);
       })
       .then(function () {
-        return deployer.deploy(TokenProxy, TokenLogic.address);
+        return deployer.deploy(TokenProxy, TokenLogic.address, accounts[0]);
       })
       .then(function () {
         return deployer.deploy(BridgeLogic);
