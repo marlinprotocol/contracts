@@ -2,7 +2,7 @@ pragma solidity >=0.4.21 <0.7.0;
 
 // import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "./Cluster.sol";
+import "./ClusterRegistry.sol";
 
 
 contract StakeManager {
@@ -25,7 +25,7 @@ contract StakeManager {
     enum TokenType {POND, MPOND}
     // TODO: Token addresses should be upgradable by governance ?
     mapping(uint256 => address) tokenAddresses;
-    Cluster clusters;
+    ClusterRegistry clusters;
 
     event StashCreated(address creator, bytes32 stashId, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
@@ -35,7 +35,7 @@ contract StakeManager {
     constructor(address _MPONDAddress, address _PONDAddress, address _clusterManagerAddress) public {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
-        clusters = Cluster(_clusterManagerAddress);
+        clusters = ClusterRegistry(_clusterManagerAddress);
     }
 
     function createStashAndDelegate(TokenType _tokenType, uint256 _amount, address _delegatedCluster) public {
@@ -73,7 +73,7 @@ contract StakeManager {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        clusters.delegate(msg.sender, _delegatedCluster, stash.amount);
+        clusters.delegate(msg.sender, _delegatedCluster, stash.amount, stash.tokenType);
         emit StashDelegated(_stashId, _delegatedCluster);
     }
 
@@ -96,7 +96,7 @@ contract StakeManager {
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        clusters.undelegate(msg.sender, stash.delegatedCluster, stash.amount);
+        clusters.undelegate(msg.sender, stash.delegatedCluster, stash.amount, stash.tokenType);
         emit StashUndelegated(_stashId, stash.delegatedCluster, undelegationBlock);
     }
 
@@ -120,7 +120,7 @@ contract StakeManager {
     }
 
     function lockTokens(TokenType _tokenType, uint256 _amount) internal {
-        
+
     }
 
     function unlockTokens(TokenType _tokenType, uint256 _amount) internal {
