@@ -159,7 +159,7 @@ contract mPondLogic is Initializable {
         if(_address1 == dropBridge) {
             return true;
         } else if(_address2 == dropBridge) {
-            return (isWhiteListed[_address1] || enableAllTransfers);
+            return (isWhiteListed[_address1] || enableAllTranfers);
         }
         return
             (isWhiteListed[_address1] || isWhiteListed[_address2]) ||
