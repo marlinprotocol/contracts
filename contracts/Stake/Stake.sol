@@ -120,7 +120,8 @@ contract StakeManager {
     }
 
     function lockTokens(TokenType _tokenType, uint256 _amount) internal {
-
+        // pull tokens from mpond/pond contract
+        // if mpond transfer the governance rights back
     }
 
     function unlockTokens(TokenType _tokenType, uint256 _amount) internal {
