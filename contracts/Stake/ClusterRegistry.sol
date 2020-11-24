@@ -20,9 +20,9 @@ contract ClusterRegistry {
         Stake totalDelegation;
         mapping(address => Stake) delegators;
         mapping(address => uint256) rewardDebt;
-        mapping(address => uint256) lastDelegatorRewardEpoch;
+        mapping(address => uint256) lastDelegatorRewardDistNonce;
         uint256 accRewardPerShare;
-        uint256 lastRewardEpoch;
+        uint256 lastRewardDistNonce;
         uint256 totalStakeAtLastReward;
         Status status;
     }
@@ -93,20 +93,22 @@ contract ClusterRegistry {
         return (clusters[_cluster].status == Status.ACTIVE);
     }
 
-    function updateRewards(address _cluster, uint256 _totalStakeAtReward, uint256 _reward) public onlyDistributor {
+    function updateRewards(address _cluster, uint256 _reward) public onlyDistributor {
         Cluster memory cluster = clusters[_cluster];
         uint256 currentEpoch = epochManager.getEpoch(block.number);
-        if(currentEpoch <= cluster.lastRewardEpoch) {
-            return;
-        }
-        if(_totalStakeAtReward == 0) {
-            cluster.lastRewardEpoch = currentEpoch;
+        // if(currentEpoch <= cluster.lastRewardEpoch) {
+        //     return;
+        // }
+        uint256 totalStakeAtReward = cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond));
+        if(totalStakeAtReward == 0) {
+            clusters[_cluster].lastRewardEpoch = currentEpoch;
             return;
         }
         uint256 commissionReward = _reward.mul(cluster.commission).div(100);
         transferRewards(cluster.rewardAddress, commissionReward);
-        cluster.accRewardPerShare = cluster.accRewardPerShare.add(_reward.sub(commissionReward).mul(10**30).div(_totalStakeAtReward));
+        cluster.accRewardPerShare = cluster.accRewardPerShare.add(_reward.sub(commissionReward).mul(10**30).div(totalStakeAtReward));
         cluster.lastRewardEpoch = currentEpoch;
+        clusters[_cluster] = cluster;
     }
 
     function delegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
