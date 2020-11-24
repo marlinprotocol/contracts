@@ -55,13 +55,14 @@ contract PerfOracle is Ownable {
         currentEpoch = _epoch;
     }
 
-    function claimReward(address _cluster) public {
+    function claimReward(address _cluster) public returns(uint256) {
         require(!feedInProgress);
         uint256 pendingRewards = clusters[_cluster].rewards;
         if(pendingRewards > 0) {
             // transferRewards(address(clusterRegistry), clusters[_cluster].rewards);
             delete clusters[_cluster].rewards;
         }
+        return pendingRewards;
         // if(currentEpoch <= cluster.lastDrawnEpoch) {
         //     return;
         // }

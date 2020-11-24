@@ -2,6 +2,7 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./EpochManager.sol";
+import "./PerfOracle.sol";
 
 contract ClusterRegistry {
 
@@ -23,7 +24,7 @@ contract ClusterRegistry {
         mapping(address => uint256) lastDelegatorRewardDistNonce;
         uint256 accRewardPerShare;
         uint256 lastRewardDistNonce;
-        uint256 totalStakeAtLastReward;
+        // uint256 totalStakeAtLastReward;
         Status status;
     }
     // clusteraddress to lastUpdatedEpoch to clusterData
@@ -35,6 +36,7 @@ contract ClusterRegistry {
     uint256 public undelegationWaitTime;
     address stakeAddress;
     EpochManager epochManager;
+    PerfOracle oracle;
     enum Status{NOT_REGISTERED, INACTIVE, ACTIVE}
 
     event ClusterRegistered(address cluster, uint256 commission, address rewardAddress);
@@ -93,69 +95,84 @@ contract ClusterRegistry {
         return (clusters[_cluster].status == Status.ACTIVE);
     }
 
-    function updateRewards(address _cluster, uint256 _reward) public onlyDistributor {
-        Cluster memory cluster = clusters[_cluster];
-        uint256 currentEpoch = epochManager.getEpoch(block.number);
-        // if(currentEpoch <= cluster.lastRewardEpoch) {
-        //     return;
-        // }
-        uint256 totalStakeAtReward = cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond));
-        if(totalStakeAtReward == 0) {
-            clusters[_cluster].lastRewardEpoch = currentEpoch;
+    function updateRewards(address _cluster) public 
+        // onlyDistributor 
+    {
+        uint256 reward = oracle.claimReward(_cluster);
+        if(reward == 0) {
             return;
         }
-        uint256 commissionReward = _reward.mul(cluster.commission).div(100);
-        transferRewards(cluster.rewardAddress, commissionReward);
-        cluster.accRewardPerShare = cluster.accRewardPerShare.add(_reward.sub(commissionReward).mul(10**30).div(totalStakeAtReward));
-        cluster.lastRewardEpoch = currentEpoch;
+        Cluster memory cluster = clusters[_cluster];
+        uint256 currentEpoch = epochManager.getEpoch(block.number);
+        uint256 totalStakeAtReward = cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond));
+        if(totalStakeAtReward == 0) {
+            clusters[_cluster].lastRewardDistNonce++;
+            return;
+        }
+        uint256 commissionReward = reward.mul(cluster.commission).div(100);
+        // transferRewards(cluster.rewardAddress, commissionReward);
+        cluster.accRewardPerShare = cluster.accRewardPerShare
+                                            .add(reward.sub(commissionReward).mul(10**30).div(totalStakeAtReward));
+        cluster.lastRewardDistNonce++;
         clusters[_cluster] = cluster;
+
     }
 
     function delegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
+        updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         require(
             clusterData.status != Status.NOT_REGISTERED,
             "ClusterRegistry:delegate - Cluster should be registered to delegate"
         );
-        uint256 currentEpoch = epochManager.getEpoch(block.number);
+        uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
-        if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardEpoch[_delegator] < currentEpoch) {
-            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
+        if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                            .div(10**30)
+                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
-                transferRewards(_delegator, pendingRewards);
-                clusters[_cluster].lastDelegatorRewardEpoch[_delegator] = currentEpoch;
-                // clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+                // transferRewards(_delegator, pendingRewards);
+                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
         if(_tokenType == 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_amount);
-            clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator].pond.add(_amount);
+            clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
+                                                                                    .pond
+                                                                                    .add(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.add(_amount);
         } else if(_tokenType == 1) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_amount);
-            clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator].mpond.add(_amount);
+            clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
+                                                                                    .mpond
+                                                                                    .add(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.add(_amount.mul(pondPerMpond));
         } else {
             revert("ClusterRegistry:delegate - Token type invalid");
         }
-        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                                                .div(10**30);
     }
 
     function undelegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
+        updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         require(
             clusterData.status != Status.NOT_REGISTERED,
             "ClusterRegistry:undelegate - Cluster should be registered to delegate"
         );
-        uint256 currentEpoch = epochManager.getEpoch(block.number);
+        uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
         uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
-        if(pendingRewards > 0) {
-            transferRewards(_delegator, pendingRewards);
-            clusters[_cluster].lastDelegatorRewardEpoch[_delegator] = currentEpoch;
-            // clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+        if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+            if(pendingRewards > 0) {
+                // transferRewards(_delegator, pendingRewards);
+                clusters[_cluster].lastDelegatorRewardEpoch[_delegator] = currentEpoch;
+                // clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+            }
         }
         if(_tokenType == 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_amount);
