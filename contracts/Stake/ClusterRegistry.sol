@@ -60,7 +60,7 @@ contract ClusterRegistry {
             clusters[msg.sender].status == Status.NOT_REGISTERED, 
             "ClusterRegistry:register - Cluster is already registered"
         );
-        clusters[msg.sender] = Cluster(_commission, _rewardAddress, Stake(0, 0, 0, 0), Status.INACTIVE);
+        clusters[msg.sender] = Cluster(_commission, _rewardAddress, Stake(0, 0), 0, 0, Status.INACTIVE);
         emit ClusterRegistered(msg.sender, _commission, _rewardAddress);
     }
 
@@ -166,29 +166,34 @@ contract ClusterRegistry {
         uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
-        uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
         if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                            .div(10**30)
+                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
                 // transferRewards(_delegator, pendingRewards);
-                clusters[_cluster].lastDelegatorRewardEpoch[_delegator] = currentEpoch;
-                // clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
         if(_tokenType == 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_amount);
-            clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator].pond.sub(_amount);
+            clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
+                                                                                    .pond.sub(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.sub(_amount);
         } else if(_tokenType == 1) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_amount);
-            clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator].mpond.sub(_amount);
+            clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
+                                                                                    .mpond.sub(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.sub(_amount.mul(pondPerMpond));
         } else {
             revert("ClusterRegistry:delegate - Token type invalid");
         }
-        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare).div(10**30);
+        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                                                .div(10**30);
     }
 
-    function getEffectiveStake(address _cluster, uint256 _epoch) public returns(uint256) {
-        return (clusters[_cluster].totalDelegation.pond.add(clusters[_cluster].totalDelegation.mpond.mul(pondPerMpond)));
+    function getEffectiveStake(address _cluster, uint256 _epoch) public view returns(uint256) {
+        return (clusters[_cluster].totalDelegation.pond
+                                                    .add(clusters[_cluster].totalDelegation.mpond.mul(pondPerMpond)));
     }
 }
