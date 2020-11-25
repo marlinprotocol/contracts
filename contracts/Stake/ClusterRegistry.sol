@@ -1,7 +1,7 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "./EpochManager.sol";
+// import "./EpochManager.sol";
 import "./PerfOracle.sol";
 
 contract ClusterRegistry {
@@ -24,7 +24,6 @@ contract ClusterRegistry {
         mapping(address => uint256) lastDelegatorRewardDistNonce;
         uint256 accRewardPerShare;
         uint256 lastRewardDistNonce;
-        // uint256 totalStakeAtLastReward;
         Status status;
     }
     // clusteraddress to lastUpdatedEpoch to clusterData
@@ -35,7 +34,7 @@ contract ClusterRegistry {
 
     uint256 public undelegationWaitTime;
     address stakeAddress;
-    EpochManager epochManager;
+    // EpochManager epochManager;
     PerfOracle oracle;
     enum Status{NOT_REGISTERED, INACTIVE, ACTIVE}
 
@@ -103,7 +102,6 @@ contract ClusterRegistry {
             return;
         }
         Cluster memory cluster = clusters[_cluster];
-        uint256 currentEpoch = epochManager.getEpoch(block.number);
         uint256 totalStakeAtReward = cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond));
         if(totalStakeAtReward == 0) {
             clusters[_cluster].lastRewardDistNonce++;
@@ -192,7 +190,7 @@ contract ClusterRegistry {
                                                                                 .div(10**30);
     }
 
-    function getEffectiveStake(address _cluster, uint256 _epoch) public view returns(uint256) {
+    function getEffectiveStake(address _cluster) public view returns(uint256) {
         return (clusters[_cluster].totalDelegation.pond
                                                     .add(clusters[_cluster].totalDelegation.mpond.mul(pondPerMpond)));
     }

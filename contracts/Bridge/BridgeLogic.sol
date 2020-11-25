@@ -19,7 +19,7 @@ contract BridgeLogic is Initializable {
 
     uint256 public liquidityBp;
 
-    mPondLogic public mpond;
+    MPondLogic public mpond;
     TokenLogic public pond;
     address public owner;
     address public governanceProxy;
@@ -40,7 +40,7 @@ contract BridgeLogic is Initializable {
         address _owner,
         address _governanceProxy
     ) public initializer {
-        mpond = mPondLogic(_mpond);
+        mpond = MPondLogic(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
         governanceProxy = _governanceProxy;

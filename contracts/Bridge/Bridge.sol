@@ -8,7 +8,7 @@ import "../governance/mPond.sol";
 contract Bridge {
     using SafeMath for uint256;
 
-    mPond public mpond;
+    MPond public mpond;
     TokenLogic public pond;
     address owner;
     address governanceProxy;
@@ -39,7 +39,7 @@ contract Bridge {
         address _owner,
         address _governanceProxy
     ) public {
-        mpond = mPond(_mpond);
+        mpond = MPond(_mpond);
         pond = TokenLogic(_pond);
         owner = _owner;
         governanceProxy = _governanceProxy;

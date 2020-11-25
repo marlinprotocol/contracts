@@ -2,7 +2,7 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 
-contract mPond {
+contract MPond {
     /// @notice EIP-20 token name for this token
     string public constant name = "Marlin Governance Token";
 

@@ -1,8 +1,9 @@
 pragma solidity >=0.4.21 <0.7.0;
 
-// import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./ClusterRegistry.sol";
+import "../governance/MPondLogic.sol";
 
 
 contract StakeManager {
@@ -26,6 +27,7 @@ contract StakeManager {
     // TODO: Token addresses should be upgradable by governance ?
     mapping(uint256 => address) tokenAddresses;
     ClusterRegistry clusters;
+    // mPondLogic MPOND;
 
     event StashCreated(address creator, bytes32 stashId, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
@@ -36,6 +38,7 @@ contract StakeManager {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
         clusters = ClusterRegistry(_clusterManagerAddress);
+        // MPOND = mPondLogic(_MPONDAddress);
     }
 
     function createStashAndDelegate(TokenType _tokenType, uint256 _amount, address _delegatedCluster) public {
@@ -49,7 +52,7 @@ contract StakeManager {
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         stashes[stashId] = Stash(msg.sender, address(0), _tokenType, _amount, 0);
         indices[msg.sender] = stashIndex.add(1);
-        lockTokens(_tokenType, _amount);
+        lockTokens(_tokenType, _amount, msg.sender);
         emit StashCreated(msg.sender, stashId, _tokenType, _amount);
         return stashId;
     }
@@ -73,7 +76,7 @@ contract StakeManager {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        clusters.delegate(msg.sender, _delegatedCluster, stash.amount, stash.tokenType);
+        clusters.delegate(msg.sender, _delegatedCluster, stash.amount, uint256(stash.tokenType));
         emit StashDelegated(_stashId, _delegatedCluster);
     }
 
@@ -96,7 +99,7 @@ contract StakeManager {
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        clusters.undelegate(msg.sender, stash.delegatedCluster, stash.amount, stash.tokenType);
+        clusters.undelegate(msg.sender, stash.delegatedCluster, stash.amount, uint256(stash.tokenType));
         emit StashUndelegated(_stashId, stash.delegatedCluster, undelegationBlock);
     }
 
@@ -115,16 +118,42 @@ contract StakeManager {
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
         delete stashes[_stashId];
-        unlockTokens(stash.tokenType, stash.amount);
+        unlockTokens(stash.tokenType, stash.amount, stash.staker);
         emit StashWithdrawn(_stashId, stash.tokenType, stash.amount);
     }
 
-    function lockTokens(TokenType _tokenType, uint256 _amount) internal {
+    function lockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
+        require(
+            ERC20(tokenAddresses[uint256(_tokenType)]).transferFrom(
+                _delegator,
+                address(this),
+                _amount
+            )
+        );
+        if (_tokenType == TokenType.MPOND) {
+            // send a request to delegate governance rights for the amount to delegator
+            MPondLogic(tokenAddresses[uint256(_tokenType)]).delegate(
+                _delegator,
+                uint96(_amount)
+            );
+        }
     }
 
-    function unlockTokens(TokenType _tokenType, uint256 _amount) internal {
-        
+    function unlockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
+        require(
+            ERC20(tokenAddresses[uint256(_tokenType)]).transfer(
+                _delegator,
+                _amount
+            )
+        );
+        if(_tokenType == TokenType.MPOND) {
+            // send a request to undelegate governacne rights for the amount to previous delegator
+            MPondLogic(tokenAddresses[uint256(_tokenType)]).undelegate(
+                _delegator,
+                uint96(_amount)
+            );
+        }
     }
 }
