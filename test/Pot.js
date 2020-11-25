@@ -25,15 +25,15 @@ contract.skip("Reward Pot", async function (accounts) {
 
   it("Initialize Pot", async () => {
     await LINInstance.initialize(
-      appConfig.LINData.name,
-      appConfig.LINData.symbol,
-      appConfig.LINData.decimals
+      appConfig.PONDData.name,
+      appConfig.PONDData.symbol,
+      appConfig.PONDData.decimals
     );
     await truffleAssert.reverts(
       LINInstance.initialize(
-        appConfig.LINData.name,
-        appConfig.LINData.symbol,
-        appConfig.LINData.decimals
+        appConfig.PONDData.name,
+        appConfig.PONDData.symbol,
+        appConfig.PONDData.decimals
       )
     );
     let governanceProxy = accounts[appConfig.governanceProxyAccountIndex];

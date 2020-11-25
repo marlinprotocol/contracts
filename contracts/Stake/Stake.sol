@@ -34,10 +34,10 @@ contract StakeManager {
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
 
-    constructor(address _MPONDAddress, address _PONDAddress, address _clusterManagerAddress) public {
+    constructor(address _MPONDAddress, address _PONDAddress, uint256 _undelegationWaitTime) public {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
-        clusters = ClusterRegistry(_clusterManagerAddress);
+        clusters = new ClusterRegistry(_undelegationWaitTime, address(this));
         // MPOND = mPondLogic(_MPONDAddress);
     }
 
@@ -48,13 +48,21 @@ contract StakeManager {
 
     function createStash(TokenType _tokenType, uint256 _amount) public returns(bytes32) {
         require(_amount != 0, "StakeManager:createStash - Amount should be greater than 0 to create stash");
+        require(
+            _tokenType == TokenType.POND || _tokenType == TokenType.MPOND, 
+            "StakeManager:createStash - Token type not valid"
+        );
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         stashes[stashId] = Stash(msg.sender, address(0), _tokenType, _amount, 0);
         indices[msg.sender] = stashIndex.add(1);
-        lockTokens(_tokenType, _amount, msg.sender);
+        _lockTokens(_tokenType, _amount, msg.sender);
         emit StashCreated(msg.sender, stashId, _tokenType, _amount);
         return stashId;
+    }
+
+    function addToStash(bytes32 _stashId, TokenType _tokenType, uint256 _amount) public {
+        //TODO
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
@@ -118,11 +126,11 @@ contract StakeManager {
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
         delete stashes[_stashId];
-        unlockTokens(stash.tokenType, stash.amount, stash.staker);
+        _unlockTokens(stash.tokenType, stash.amount, stash.staker);
         emit StashWithdrawn(_stashId, stash.tokenType, stash.amount);
     }
 
-    function lockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
+    function _lockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
         require(
@@ -141,7 +149,7 @@ contract StakeManager {
         }
     }
 
-    function unlockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
+    function _unlockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
         require(
             ERC20(tokenAddresses[uint256(_tokenType)]).transfer(
                 _delegator,
