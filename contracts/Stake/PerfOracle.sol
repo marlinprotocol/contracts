@@ -15,14 +15,23 @@ contract PerfOracle is Ownable {
 
     uint256 runningFeederEpochWeight;
     uint256 rewardPerWeight;
+
     uint256 rewardPerEpoch;
+    address clusterRegistry;
 
     uint256 currentEpoch;
 
     bool feedInProgress;
 
-    constructor(address _owner) public Ownable() {
-        transferOwnership(_owner);
+    modifier onlyClusterRegistry() {
+        require(msg.sender == clusterRegistry);
+        _;
+    }
+
+    constructor(address _owner, address _clusterRegistry, uint256 _rewardPerEpoch) public Ownable() {
+        // transferOwnership(_owner);
+        clusterRegistry = _clusterRegistry;
+        rewardPerEpoch = _rewardPerEpoch;
     }
 
     function feed(uint _epoch, address[] memory _clusters, uint256[] memory _perf) public onlyOwner {
@@ -55,7 +64,7 @@ contract PerfOracle is Ownable {
         currentEpoch = _epoch;
     }
 
-    function claimReward(address _cluster) public returns(uint256) {
+    function claimReward(address _cluster) public onlyClusterRegistry returns(uint256) {
         require(!feedInProgress);
         uint256 pendingRewards = clusters[_cluster].rewards;
         if(pendingRewards > 0) {

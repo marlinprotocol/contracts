@@ -6,7 +6,7 @@ const mPondProxy = artifacts.require("mPondProxy.sol");
 const mPondLogic = artifacts.require("mPondLogic.sol");
 const web3Utils = require("web3-utils");
 
-contract("Stake Drop testing", function (accounts) {
+contract.skip("Stake Drop testing", function (accounts) {
   var validatorInstance;
   var addressInstance;
   var stakeInstance;

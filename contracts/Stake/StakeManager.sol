@@ -19,26 +19,26 @@ contract StakeManager {
     }
     // stashId to stash
     // stashId = keccak256(address, index)
-    mapping(bytes32 => Stash) stashes;
+    mapping(bytes32 => Stash) public stashes;
     // address to stashIndex
     mapping(address => uint256) indices;
 
     enum TokenType {POND, MPOND}
     // TODO: Token addresses should be upgradable by governance ?
     mapping(uint256 => address) tokenAddresses;
-    ClusterRegistry clusters;
-    // mPondLogic MPOND;
+    ClusterRegistry public clusters;
+    MPondLogic MPOND;
 
-    event StashCreated(address creator, bytes32 stashId, TokenType tokenType, uint256 amount);
+    event StashCreated(address creator, bytes32 stashId, uint256 stashIndex, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
 
-    constructor(address _MPONDAddress, address _PONDAddress, uint256 _undelegationWaitTime) public {
+    constructor(address _MPONDAddress, address _PONDAddress, uint256 _undelegationWaitTime, address _oracleOwner, uint256 _rewardPerEpoch) public {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
-        clusters = new ClusterRegistry(_undelegationWaitTime, address(this));
-        // MPOND = mPondLogic(_MPONDAddress);
+        clusters = new ClusterRegistry(_undelegationWaitTime, address(this), _oracleOwner, _rewardPerEpoch);
+        MPOND = MPondLogic(_MPONDAddress);
     }
 
     function createStashAndDelegate(TokenType _tokenType, uint256 _amount, address _delegatedCluster) public {
@@ -57,7 +57,7 @@ contract StakeManager {
         stashes[stashId] = Stash(msg.sender, address(0), _tokenType, _amount, 0);
         indices[msg.sender] = stashIndex.add(1);
         _lockTokens(_tokenType, _amount, msg.sender);
-        emit StashCreated(msg.sender, stashId, _tokenType, _amount);
+        emit StashCreated(msg.sender, stashId, stashIndex, _tokenType, _amount);
         return stashId;
     }
 
@@ -142,7 +142,7 @@ contract StakeManager {
         );
         if (_tokenType == TokenType.MPOND) {
             // send a request to delegate governance rights for the amount to delegator
-            MPondLogic(tokenAddresses[uint256(_tokenType)]).delegate(
+            MPOND.delegate(
                 _delegator,
                 uint96(_amount)
             );
@@ -150,18 +150,18 @@ contract StakeManager {
     }
 
     function _unlockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
+        if(_tokenType == TokenType.MPOND) {
+            // send a request to undelegate governacne rights for the amount to previous delegator
+            MPOND.undelegate(
+                _delegator,
+                uint96(_amount)
+            );
+        }
         require(
             ERC20(tokenAddresses[uint256(_tokenType)]).transfer(
                 _delegator,
                 _amount
             )
         );
-        if(_tokenType == TokenType.MPOND) {
-            // send a request to undelegate governacne rights for the amount to previous delegator
-            MPondLogic(tokenAddresses[uint256(_tokenType)]).undelegate(
-                _delegator,
-                uint96(_amount)
-            );
-        }
     }
 }

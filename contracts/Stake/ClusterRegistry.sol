@@ -35,7 +35,7 @@ contract ClusterRegistry {
     uint256 public undelegationWaitTime;
     address stakeAddress;
     // EpochManager epochManager;
-    PerfOracle oracle;
+    PerfOracle public oracle;
     enum Status{NOT_REGISTERED, INACTIVE, ACTIVE}
 
     event ClusterRegistered(address cluster, uint256 commission, address rewardAddress);
@@ -48,17 +48,19 @@ contract ClusterRegistry {
         _;
     }
 
-    // TODO: how do you get the stakeAddress before deploying
-    constructor(uint256 _undelegationWaitTime, address _stakeAddress) public {
+    constructor(uint256 _undelegationWaitTime, address _stakeAddress, address _oracleOwner, uint256 _rewardPerEpoch) public {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
+        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch);
     }
 
+    // TODO: Add client key as one of the arguments
     function register(uint256 _commission, address _rewardAddress) public returns(bool) {
         require(
             clusters[msg.sender].status == Status.NOT_REGISTERED, 
             "ClusterRegistry:register - Cluster is already registered"
         );
+        require(_commission <= 100, "ClusterRegistry:register - Commission can't be more than 100%");
         clusters[msg.sender] = Cluster(_commission, _rewardAddress, Stake(0, 0), 0, 0, Status.INACTIVE);
         emit ClusterRegistered(msg.sender, _commission, _rewardAddress);
     }
@@ -81,6 +83,10 @@ contract ClusterRegistry {
         emit RewardAddressUpdated(msg.sender, _rewardAddress);
     }
 
+    function rotateClientKey() public {
+        // TODO
+    }
+
     function unregister() public {
         require(
             clusters[msg.sender].status != Status.NOT_REGISTERED,
@@ -91,6 +97,10 @@ contract ClusterRegistry {
     }
 
     function isClusterValid(address _cluster) public view returns(bool) {
+        return (clusters[_cluster].status != Status.NOT_REGISTERED);
+    }
+
+    function isClusterActive(address _cluster) public view returns(bool) {
         return (clusters[_cluster].status == Status.ACTIVE);
     }
 
@@ -193,5 +203,14 @@ contract ClusterRegistry {
     function getEffectiveStake(address _cluster) public view returns(uint256) {
         return (clusters[_cluster].totalDelegation.pond
                                                     .add(clusters[_cluster].totalDelegation.mpond.mul(pondPerMpond)));
+    }
+
+    function getClusterDelegation(address _cluster) 
+        public 
+        view 
+        returns(uint256 POND, uint256 MPOND) 
+    {
+        Stake memory clusterStake = clusters[_cluster].totalDelegation;
+        return (clusterStake.pond, clusterStake.mpond);
     }
 }

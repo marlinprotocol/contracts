@@ -68,7 +68,8 @@ let MPONDData = {
 };
 
 let staking = {
-  undelegationWaitTime: 3
+  undelegationWaitTime: 3,
+  rewardPerEpoch: 10000
 }
 
 module.exports = {
