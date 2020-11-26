@@ -36,7 +36,13 @@ contract.only("MPond Contract", function (accounts) {
       });
   });
 
-  it("Transfer to x-chain bridge should work", function(){
-      return mPondInstance.transfer()
-  })
+  it("Transfer from x-chain bridge should work", function () {
+    return mPondInstance
+      .transfer(accounts[12], new web3Utils.BN("3e231"), {from: accounts[4]})
+      .then(function () {
+        return mPondInstance.transfer(accounts[32], new web3Utils.BN("3e23"), {
+          from: accounts[12],
+        }); // accounts[12] is assumed to be x-chain bridge
+      });
+  });
 });
