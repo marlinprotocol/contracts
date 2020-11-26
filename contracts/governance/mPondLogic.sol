@@ -84,7 +84,11 @@ contract mPondLogic is Initializable {
      * @notice Initializer a new mPond token
      * @param account The initial account to grant all the tokens
      */
-    function initialize(address account, address bridge, address dropBridgeAddress) public initializer {
+    function initialize(
+        address account,
+        address bridge,
+        address dropBridgeAddress
+    ) public initializer {
         createConstants();
         require(
             account != bridge,
@@ -144,9 +148,9 @@ contract mPondLogic is Initializable {
         return true;
     }
 
-    function changeDropBridge(address _updatedBridge) 
-        public 
-        onlyAdmin("Only admin can change drop bridge") 
+    function changeDropBridge(address _updatedBridge)
+        public
+        onlyAdmin("Only admin can change drop bridge")
     {
         dropBridge = _updatedBridge;
     }
@@ -156,9 +160,9 @@ contract mPondLogic is Initializable {
         view
         returns (bool)
     {
-        if(_address1 == dropBridge) {
+        if (_address1 == dropBridge) {
             return true;
-        } else if(_address2 == dropBridge) {
+        } else if (_address2 == dropBridge) {
             return (isWhiteListed[_address1] || enableAllTranfers);
         }
         return

@@ -44,7 +44,7 @@ contract("Governance", function (accounts, network) {
       })
       .then(function (instance) {
         timelockInstance = instance;
-        return mPondInstance.initialize(accounts[4], accounts[11]);
+        return mPondInstance.initialize(accounts[4], accounts[11], accounts[12]); //accounts[12] is assumed to temp x-chain bridge address
       })
       .then(function () {
         let valuesToCheck = {governanceAddress, mPondAddress, timelockAddress};

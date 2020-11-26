@@ -48,7 +48,7 @@ contract("BridgeCalculations", function (accounts) {
       })
       .then(function (name) {
         console.table({name});
-        return mPond.initialize(accounts[4], accounts[11]);
+        return mPond.initialize(accounts[4], accounts[11], accounts[12]); // accounts[12] is assumed to temp x-chain bridge address
       })
       .then(function () {
         return mPond.name();
