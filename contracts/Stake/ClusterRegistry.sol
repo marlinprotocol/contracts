@@ -18,6 +18,7 @@ contract ClusterRegistry {
     struct Cluster {
         uint256 commission;
         address rewardAddress;
+        address clientKey;
         Stake totalDelegation;
         mapping(address => Stake) delegators;
         mapping(address => uint256) rewardDebt;
@@ -54,14 +55,13 @@ contract ClusterRegistry {
         oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch);
     }
 
-    // TODO: Add client key as one of the arguments
-    function register(uint256 _commission, address _rewardAddress) public returns(bool) {
+    function register(uint256 _commission, address _rewardAddress, address _clientKey) public returns(bool) {
         require(
             clusters[msg.sender].status == Status.NOT_REGISTERED, 
             "ClusterRegistry:register - Cluster is already registered"
         );
         require(_commission <= 100, "ClusterRegistry:register - Commission can't be more than 100%");
-        clusters[msg.sender] = Cluster(_commission, _rewardAddress, Stake(0, 0), 0, 0, Status.INACTIVE);
+        clusters[msg.sender] = Cluster(_commission, _rewardAddress, _clientKey, Stake(0, 0), 0, 0, Status.INACTIVE);
         emit ClusterRegistered(msg.sender, _commission, _rewardAddress);
     }
 
@@ -70,6 +70,7 @@ contract ClusterRegistry {
             clusters[msg.sender].status != Status.NOT_REGISTERED,
             "ClusterRegistry:updateCommission - Cluster not registered"
         );
+        require(_commission <= 100, "ClusterRegistry:updateCommission - Commission can't be more than 100%");
         clusters[msg.sender].commission = _commission;
         emit CommissionUpdated(msg.sender, _commission);
     }
@@ -77,14 +78,18 @@ contract ClusterRegistry {
     function updateRewardAddress(address _rewardAddress) public {
         require(
             clusters[msg.sender].status != Status.NOT_REGISTERED,
-            "ClusterRegistry:updateCommission - Cluster not registered"
+            "ClusterRegistry:updateRewardAddress - Cluster not registered"
         );
         clusters[msg.sender].rewardAddress = _rewardAddress;
         emit RewardAddressUpdated(msg.sender, _rewardAddress);
     }
 
-    function rotateClientKey() public {
-        // TODO
+    function updateClientKey(address _clientKey) public {
+        require(
+            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            "ClusterRegistry:updateClientKey - Cluster not registered"
+        );
+        clusters[msg.sender].clientKey = _clientKey;
     }
 
     function unregister() public {
@@ -104,9 +109,7 @@ contract ClusterRegistry {
         return (clusters[_cluster].status == Status.ACTIVE);
     }
 
-    function updateRewards(address _cluster) public 
-        // onlyDistributor 
-    {
+    function _updateRewards(address _cluster) internal {
         uint256 reward = oracle.claimReward(_cluster);
         if(reward == 0) {
             return;
@@ -127,7 +130,7 @@ contract ClusterRegistry {
     }
 
     function delegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
-        updateRewards(_cluster);
+        _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         require(
             clusterData.status != Status.NOT_REGISTERED,
@@ -165,7 +168,7 @@ contract ClusterRegistry {
     }
 
     function undelegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
-        updateRewards(_cluster);
+        _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         require(
             clusterData.status != Status.NOT_REGISTERED,
@@ -212,5 +215,14 @@ contract ClusterRegistry {
     {
         Stake memory clusterStake = clusters[_cluster].totalDelegation;
         return (clusterStake.pond, clusterStake.mpond);
+    }
+
+    function getDelegation(address _cluster, address _delegator) 
+        public 
+        view
+        returns(uint256 POND, uint256 MPOND) 
+    {
+        Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
+        return (delegatorStake.pond, delegatorStake.mpond);
     }
 }

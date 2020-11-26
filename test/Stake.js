@@ -32,6 +32,7 @@ contract("Stake contract", async function(accounts) {
     const unregisteredClusterRewardAddress = accounts[8];
     const deregisteredCluster = accounts[6];
     const deregisteredClusterRewardAddress = accounts[9];
+    const clientKey = accounts[19];
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
@@ -65,14 +66,10 @@ contract("Stake contract", async function(accounts) {
         );
 
         const clusterRegistryAddress = await stakeContract.clusters();
-        console.log("Cluster Registry deployed at", clusterRegistryAddress);
         clusterRegistry = await ClusterRegistry.at(clusterRegistryAddress);
 
         const perfOracleAddress = await clusterRegistry.oracle();
-        console.log("Performance oracle deployed at", perfOracleAddress);
         perfOracle = await PerfOracle.at(perfOracleAddress);
-
-        console.log((await perfOracle.owner()));
 
         await MPONDInstance.addWhiteListAddress(stakeContract.address, {
             from: admin
@@ -134,7 +131,7 @@ contract("Stake contract", async function(accounts) {
     it("Delegate POND stash", async () => {
         const amount = 1000000;
         // register cluster with cluster registry
-        await clusterRegistry.register(5, registeredClusterRewardAddress, {
+        await clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster
         });
         const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
@@ -150,7 +147,7 @@ contract("Stake contract", async function(accounts) {
     it("Delegate MPOND stash", async () => {
         const amount = 1500000;
         // register cluster with cluster registry
-        await truffleAssert.reverts(clusterRegistry.register(5, registeredClusterRewardAddress, {
+        await truffleAssert.reverts(clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster
         }));
         const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
@@ -181,7 +178,7 @@ contract("Stake contract", async function(accounts) {
     });
 
     it("Delegate MPOND to deregistered cluster", async () => {
-        await clusterRegistry.register(5, deregisteredClusterRewardAddress, {
+        await clusterRegistry.register(5, deregisteredClusterRewardAddress, clientKey, {
             from: deregisteredCluster
         });
         await clusterRegistry.unregister({
@@ -287,7 +284,7 @@ contract("Stake contract", async function(accounts) {
     it("Undelegate POND stash from a deregistered cluster", async () => {
         const amount = 670000;
         await PONDInstance.approve(stakeContract.address, amount);
-        await clusterRegistry.register(5, deregisteredClusterRewardAddress, {
+        await clusterRegistry.register(5, deregisteredClusterRewardAddress, clientKey, {
             from: deregisteredCluster
         });
 
@@ -312,7 +309,7 @@ contract("Stake contract", async function(accounts) {
             from: MPONDAccount
         });
         await MPONDInstance.approve(stakeContract.address, amount);
-        await clusterRegistry.register(5, deregisteredClusterRewardAddress, {
+        await clusterRegistry.register(5, deregisteredClusterRewardAddress, clientKey, {
             from: deregisteredCluster
         });
 
