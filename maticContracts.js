@@ -58,7 +58,7 @@ async function deployContract(web3, abi, bytecode, arguments, config) {
         reject(error);
       });
   });
-
+  
   return receiptPromise;
 }
 
@@ -115,17 +115,26 @@ async function checkDistributionContract() {
   );
   let result = distributionInstance.methods
     .getUnclaimedAmount()
-    .call({from: "0xf1a1f124ba6914087f54825b4bcf1907b61d718e"});
+    .call({from: "fb22c0b729bf5f56ad904f71307fc247a82c2af5"});
   return result;
 }
 
-checkDistributionContract().then(console.log).catch(console.log);
+// checkDistributionContract().then(console.log).catch(console.log);
 
-// deploy();
+deploy();
 
+//polkadot addresses
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // Distribution address 0x27F9C69F1a95E1283D71F876687E5fC72ecD1116
 // ValidatorRegistry address 0xC1423350f37c6F4a6E9F96435d50D70f95bBE499
 // StakeRegistry address 0x22BDBd03753298df08f2103BCaDD0a53922A34c6
 // AddressRegistry address 0x6094367346ef75c7ae080Fdb46b0e8C8f378583d
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+// bsc addresses
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0xcEB30db2fBCE607f962d4412C434E0fF13d2b642
+// ValidatorRegistry address 0x29dccB73766ff32247733Eeaa3db084234F5b328
+// StakeRegistry address 0x3A45d13aB4F70f7C327Cb60Ce8D35856aacDFa2d
+// AddressRegistry address 0xDfD511Ed1cbFC85B9ba4B7E4C21bE67A5C3FAd76
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

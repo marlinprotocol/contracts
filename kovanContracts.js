@@ -171,7 +171,7 @@ async function checkDistributionContract() {
   );
   let result = distributionInstance.methods
     .getUnclaimedAmount()
-    .call({from: "0xf1a1f124ba6914087f54825b4bcf1907b61d718e"});
+    .call({from: "0x2a63a4188082270f172ff8988fbab252e4201bee"});
   return result;
 }
 
