@@ -1,6 +1,7 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 // import "./EpochManager.sol";
 import "./PerfOracle.sol";
 
@@ -37,6 +38,7 @@ contract ClusterRegistry {
     address stakeAddress;
     // EpochManager epochManager;
     PerfOracle public oracle;
+    ERC20 MPONDToken;
     enum Status{NOT_REGISTERED, INACTIVE, ACTIVE}
 
     event ClusterRegistered(address cluster, uint256 commission, address rewardAddress);
@@ -49,10 +51,11 @@ contract ClusterRegistry {
         _;
     }
 
-    constructor(uint256 _undelegationWaitTime, address _stakeAddress, address _oracleOwner, uint256 _rewardPerEpoch) public {
+    constructor(uint256 _undelegationWaitTime, address _stakeAddress, address _oracleOwner, uint256 _rewardPerEpoch, address _MPONDAddress) public {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
-        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch);
+        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress);
+        MPONDToken = ERC20(_MPONDAddress);
     }
 
     function register(uint256 _commission, address _rewardAddress, address _clientKey) public returns(bool) {
@@ -109,7 +112,7 @@ contract ClusterRegistry {
         return (clusters[_cluster].status == Status.ACTIVE);
     }
 
-    function _updateRewards(address _cluster) internal {
+    function _updateRewards(address _cluster) public {
         uint256 reward = oracle.claimReward(_cluster);
         if(reward == 0) {
             return;
@@ -144,7 +147,7 @@ contract ClusterRegistry {
                                                             .div(10**30)
                                                             .sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
-                // transferRewards(_delegator, pendingRewards);
+                transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
@@ -182,7 +185,7 @@ contract ClusterRegistry {
                                                             .div(10**30)
                                                             .sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
-                // transferRewards(_delegator, pendingRewards);
+                transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
@@ -201,6 +204,33 @@ contract ClusterRegistry {
         }
         clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
                                                                                 .div(10**30);
+    }
+
+    function withdrawRewards(address _delegator, address _cluster) public {
+        _updateRewards(_cluster);
+        Cluster memory clusterData = clusters[_cluster];
+        require(
+            clusterData.status != Status.NOT_REGISTERED,
+            "ClusterRegistry:undelegate - Cluster should be registered to delegate"
+        );
+        uint256 currentNonce = clusterData.lastRewardDistNonce;
+        Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
+        uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
+        if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                            .div(10**30)
+                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
+            if(pendingRewards > 0) {
+                transferRewards(_delegator, pendingRewards);
+                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
+                clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
+                                                                                .div(10**30);
+            }
+        }
+    }
+
+    function transferRewards(address _to, uint256 _amount) internal {
+        MPONDToken.transfer(_to, _amount);
     }
 
     function getEffectiveStake(address _cluster) public view returns(uint256) {

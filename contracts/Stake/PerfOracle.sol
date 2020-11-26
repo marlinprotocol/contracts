@@ -1,6 +1,7 @@
 pragma solidity >=0.4.21 <0.7.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
 contract PerfOracle is Ownable {
 
@@ -18,6 +19,7 @@ contract PerfOracle is Ownable {
 
     uint256 rewardPerEpoch;
     address clusterRegistry;
+    ERC20 MPOND;
 
     uint256 currentEpoch;
 
@@ -28,10 +30,11 @@ contract PerfOracle is Ownable {
         _;
     }
 
-    constructor(address _owner, address _clusterRegistry, uint256 _rewardPerEpoch) public Ownable() {
+    constructor(address _owner, address _clusterRegistry, uint256 _rewardPerEpoch, address _MPONDAddress) public Ownable() {
         // transferOwnership(_owner);
         clusterRegistry = _clusterRegistry;
         rewardPerEpoch = _rewardPerEpoch;
+        MPOND = ERC20(_MPONDAddress);
     }
 
     function feed(uint _epoch, address[] memory _clusters, uint256[] memory _perf) public onlyOwner {
@@ -68,7 +71,7 @@ contract PerfOracle is Ownable {
         require(!feedInProgress);
         uint256 pendingRewards = clusters[_cluster].rewards;
         if(pendingRewards > 0) {
-            // transferRewards(address(clusterRegistry), clusters[_cluster].rewards);
+            transferRewards(clusterRegistry, clusters[_cluster].rewards);
             delete clusters[_cluster].rewards;
         }
         return pendingRewards;
@@ -80,6 +83,10 @@ contract PerfOracle is Ownable {
         //     // 
         // }
         // clusters[_cluster].rewardDebt = cluster.unrewardedWeight*accRewardPerWeight/10**30;
+    }
+
+    function transferRewards(address _to, uint256 _amount) internal {
+        MPOND.transfer(_to, _amount);
     }
 
     function getEffectiveStake(address _cluster) public returns(uint256) {

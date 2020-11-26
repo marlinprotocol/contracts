@@ -37,7 +37,7 @@ contract StakeManager {
     constructor(address _MPONDAddress, address _PONDAddress, uint256 _undelegationWaitTime, address _oracleOwner, uint256 _rewardPerEpoch) public {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
-        clusters = new ClusterRegistry(_undelegationWaitTime, address(this), _oracleOwner, _rewardPerEpoch);
+        clusters = new ClusterRegistry(_undelegationWaitTime, address(this), _oracleOwner, _rewardPerEpoch, _MPONDAddress);
         MPOND = MPondLogic(_MPONDAddress);
     }
 
