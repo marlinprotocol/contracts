@@ -22,7 +22,8 @@ contract ClusterRegistry is Ownable {
         mapping(address => Stake) delegators;
         mapping(address => uint256) rewardDebt;
         mapping(address => uint256) lastDelegatorRewardDistNonce;
-        uint256 accRewardPerShare;
+        uint256 accPondRewardPerShare;
+        uint256 accMPondRewardPerShare;
         uint256 lastRewardDistNonce;
         Status status;
     }
@@ -34,6 +35,8 @@ contract ClusterRegistry is Ownable {
     uint256 public undelegationWaitTime;
     address stakeAddress;
     uint256 minMPONDStake;
+    uint256 PondRewardFactor = 100;
+    uint256 MPondRewardFactor = 100;
 
     PerfOracle public oracle;
     ERC20 MPONDToken;
@@ -144,8 +147,12 @@ contract ClusterRegistry is Ownable {
         }
         uint256 commissionReward = reward.mul(cluster.commission).div(100);
         transferRewards(cluster.rewardAddress, commissionReward);
-        cluster.accRewardPerShare = cluster.accRewardPerShare
-                                            .add(reward.sub(commissionReward).mul(10**30).div(totalStakeAtReward));
+        uint256 delegatorReward = reward.sub(commissionReward);
+        uint256 weightedStake = PondRewardFactor.mul(cluster.totalDelegation.pond).add(MPondRewardFactor.mul(cluster.totalDelegation.mpond).mul(pondPerMpond));
+        cluster.accPondRewardPerShare = cluster.accPondRewardPerShare
+                                            .add(delegatorReward.mul(PondRewardFactor).mul(10**30).div(weightedStake));
+        cluster.accMPondRewardPerShare = cluster.accMPondRewardPerShare
+                                            .add(delegatorReward.mul(MPondRewardFactor).mul(pondPerMpond).mul(10**30).div(weightedStake));
         cluster.lastRewardDistNonce++;
         clusters[_cluster] = cluster;
 
@@ -161,10 +168,10 @@ contract ClusterRegistry is Ownable {
         uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
+        uint256 totalRewards = delegatorStake.pond.mul(clusterData.accPondRewardPerShare)
+                                                    .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
         if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
-            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                            .div(10**30)
-                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
+            uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
@@ -173,16 +180,15 @@ contract ClusterRegistry is Ownable {
         if(_tokenType == 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_amount);
             clusters[_cluster].delegators[_delegator].pond = delegatorStake.pond.add(_amount);
-            delegatorEffectiveStake = delegatorEffectiveStake.add(_amount);
+            totalRewards = totalRewards.add(_amount.mul(clusterData.accPondRewardPerShare));
         } else if(_tokenType == 1) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_amount);
             clusters[_cluster].delegators[_delegator].mpond = delegatorStake.mpond.add(_amount);
-            delegatorEffectiveStake = delegatorEffectiveStake.add(_amount.mul(pondPerMpond));
+            totalRewards = totalRewards.add(_amount.mul(clusterData.accMPondRewardPerShare));
         } else {
             revert("ClusterRegistry:delegate - Token type invalid");
         }
-        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                                                .div(10**30);
+        clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
     function undelegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
@@ -195,10 +201,10 @@ contract ClusterRegistry is Ownable {
         uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
+        uint256 totalRewards = delegatorStake.pond.mul(clusterData.accPondRewardPerShare)
+                                                    .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
         if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
-            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                            .div(10**30)
-                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
+            uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
@@ -208,17 +214,16 @@ contract ClusterRegistry is Ownable {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_amount);
             clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
                                                                                     .pond.sub(_amount);
-            delegatorEffectiveStake = delegatorEffectiveStake.sub(_amount);
+            totalRewards = totalRewards.sub(_amount.mul(clusterData.accPondRewardPerShare));
         } else if(_tokenType == 1) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_amount);
             clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
                                                                                     .mpond.sub(_amount);
-            delegatorEffectiveStake = delegatorEffectiveStake.sub(_amount.mul(pondPerMpond));
+            totalRewards = totalRewards.sub(_amount.mul(clusterData.accMPondRewardPerShare));
         } else {
             revert("ClusterRegistry:delegate - Token type invalid");
         }
-        clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                                                .div(10**30);
+        clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
     function withdrawRewards(address _delegator, address _cluster) public {
@@ -227,15 +232,14 @@ contract ClusterRegistry is Ownable {
         uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
+        uint256 totalRewards = delegatorStake.pond.mul(clusterData.accPondRewardPerShare)
+                                                    .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
         if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
-            uint256 pendingRewards = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                            .div(10**30)
-                                                            .sub(clusters[_cluster].rewardDebt[_delegator]);
+            uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
             if(pendingRewards > 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
-                clusters[_cluster].rewardDebt[_delegator] = delegatorEffectiveStake.mul(clusterData.accRewardPerShare)
-                                                                                .div(10**30);
+                clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
             }
         }
     }
@@ -276,5 +280,10 @@ contract ClusterRegistry is Ownable {
 
     function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
         minMPONDStake = _minMPONDStake;
+    }
+
+    function updateRewardFactors(uint256 _PONDRewardFactor, uint256 _MPONDRewardFactor) public onlyOwner {
+        PondRewardFactor = _PONDRewardFactor;
+        MPondRewardFactor = _MPONDRewardFactor;
     }
 }

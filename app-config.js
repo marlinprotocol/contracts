@@ -70,7 +70,8 @@ let MPONDData = {
 let staking = {
   undelegationWaitTime: 3,
   rewardPerEpoch: 10000,
-  minMPONDStake: 2
+  minMPONDStake: 2,
+  payoutDenomination: 100000
 }
 
 module.exports = {

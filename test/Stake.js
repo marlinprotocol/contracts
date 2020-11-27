@@ -25,6 +25,7 @@ contract("Stake contract", async function(accounts) {
     const bridge = accounts[2];
     const admin = accounts[1];
     const oracleOwner = accounts[10];
+    const clusterRegistryAdmin = accounts[2];
     const MPONDAccount = accounts[3];
     const registeredCluster = accounts[4];
     const registeredClusterRewardAddress = accounts[7];
@@ -62,8 +63,10 @@ contract("Stake contract", async function(accounts) {
             PONDInstance.address, 
             appConfig.staking.undelegationWaitTime,
             oracleOwner,
+            clusterRegistryAdmin,
             appConfig.staking.rewardPerEpoch,
             appConfig.staking.minMPONDStake,
+            appConfig.staking.payoutDenomination
         );
 
         const clusterRegistryAddress = await stakeContract.clusters();

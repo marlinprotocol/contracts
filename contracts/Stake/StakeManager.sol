@@ -40,6 +40,7 @@ contract StakeManager {
         address _PONDAddress, 
         uint256 _undelegationWaitTime, 
         address _oracleOwner, 
+        address _clusterRegistryAdmin,
         uint256 _rewardPerEpoch, 
         uint256 _minMPONDStake,
         uint256 _payoutDenomination) 
@@ -51,6 +52,7 @@ contract StakeManager {
             _undelegationWaitTime, 
             address(this), 
             _oracleOwner, 
+            _clusterRegistryAdmin,
             _minMPONDStake, 
             _rewardPerEpoch, 
             _MPONDAddress,
@@ -98,8 +100,8 @@ contract StakeManager {
         if(stash.delegatedCluster != address(0)) {
             clusters.delegate(msg.sender, stash.delegatedCluster, _amount, uint256(_tokenType));
         }
-        _lockTokens(_tokenType, _amount, _delegator);
-        emit AddedToStash(msg.sender, stash.delegatedCluster, _amount, tokenType);
+        _lockTokens(_tokenType, _amount, msg.sender);
+        emit AddedToStash(msg.sender, stash.delegatedCluster, _amount, _tokenType);
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
