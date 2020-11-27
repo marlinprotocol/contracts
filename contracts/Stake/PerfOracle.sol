@@ -6,23 +6,15 @@ import "./ClusterRegistry.sol";
 
 contract PerfOracle is Ownable {
 
-    struct ClusterData {
-        uint256 unrewardedWeight;
-        uint256 rewards;
-    }
-
-    mapping(address => ClusterData) clusters;
-
-    uint256 public runningFeederEpochWeight;
-    uint256 rewardPerWeight;
+    mapping(address => uint256) clusterRewards;
 
     uint256 rewardPerEpoch;
+    uint256 payoutDenomination;
+
     address clusterRegistryAddress;
     ERC20 MPOND;
 
     uint256 public currentEpoch;
-
-    bool feedInProgress;
 
     modifier onlyClusterRegistry() {
         require(msg.sender == clusterRegistryAddress);
@@ -43,58 +35,19 @@ contract PerfOracle is Ownable {
         MPOND = ERC20(_MPONDAddress);
     }
 
-    function feed(uint _epoch, address[] memory _clusters, uint256[] memory _perf) public onlyOwner {
-        require(_epoch == currentEpoch+1, "PerfOracle:feed - Invalid Epoch");
+    function feed(address[] memory _clusters, uint256[] memory _payouts) public onlyOwner {
         for(uint256 i=0; i < _clusters.length; i++) {
-            uint256 weight = ClusterRegistry(clusterRegistryAddress).getEffectiveStake(_clusters[i])*_perf[i];
-            clusters[_clusters[i]].unrewardedWeight = weight;
-            runningFeederEpochWeight += weight;
-        }
-        if(runningFeederEpochWeight != 0) {
-            feedInProgress = true;
-        } 
-    }
-
-    function closeFeed(uint _epoch) public onlyOwner {
-        require(
-            _epoch == currentEpoch+1 
-            && feedInProgress,  
-            "PerfOracle:closeFeed - Invalid epoch or valid feed not provided"
-        );
-        rewardPerWeight = rewardPerEpoch*10**30/runningFeederEpochWeight;
-        delete runningFeederEpochWeight;
-    }
-
-    function distributeRewards(uint _epoch, address[] memory _clusters) public onlyOwner {
-        require(
-            _epoch == currentEpoch+1 
-            && feedInProgress 
-            && runningFeederEpochWeight == 0,
-            "PerfOracle:distributeRewards - Invalid epoch or feed not closed"
-        );
-        for(uint256 i=0; i < _clusters.length; i++) {
-            clusters[_clusters[i]].rewards += clusters[_clusters[i]].unrewardedWeight*rewardPerWeight/10**30;
+            clusterRewards[_clusters[i]] += rewardPerEpoch*_payouts[i]/payoutDenomination;
         }
     }
 
-    function lockEpoch(uint _epoch) public onlyOwner {
-        require(
-            _epoch == currentEpoch+1 
-            && feedInProgress 
-            && runningFeederEpochWeight == 0,
-            "PerfOracle:lockEpoch - Invalid epoch or feed not closed"
-        );
-        feedInProgress = false;
-        delete rewardPerWeight;
-        currentEpoch = _epoch;
-    }
-
+    // only cluster registry is necessary because the rewards 
+    // should be updated in the cluster registry against the cluster
     function claimReward(address _cluster) public onlyClusterRegistry returns(uint256) {
-        require(!feedInProgress, "PerfOracle:claimReward - Feed in progress");
-        uint256 pendingRewards = clusters[_cluster].rewards;
+        uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 0) {
-            transferRewards(clusterRegistryAddress, clusters[_cluster].rewards);
-            delete clusters[_cluster].rewards;
+            transferRewards(clusterRegistryAddress, pendingRewards);
+            delete clusterRewards[_cluster];
         }
         return pendingRewards;
     }

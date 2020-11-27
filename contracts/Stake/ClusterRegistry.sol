@@ -1,10 +1,11 @@
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "./PerfOracle.sol";
 
-contract ClusterRegistry {
+contract ClusterRegistry is Ownable {
 
     using SafeMath for uint256;
 
@@ -53,16 +54,19 @@ contract ClusterRegistry {
         uint256 _undelegationWaitTime, 
         address _stakeAddress, 
         address _oracleOwner, 
+        address _clusterRegistryAdmin,
         uint256 _minMPONDStake, 
         uint256 _rewardPerEpoch, 
         address _MPONDAddress) 
         public 
+        Ownable()
     {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
         oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress);
         MPONDToken = ERC20(_MPONDAddress);
         minMPONDStake = _minMPONDStake;
+        initialize(_clusterRegistryAdmin);
     }
 
     function register(uint256 _commission, address _rewardAddress, address _clientKey) public returns(bool) {
@@ -263,5 +267,13 @@ contract ClusterRegistry {
     {
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         return (delegatorStake.pond, delegatorStake.mpond);
+    }
+
+    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
+        undelegationWaitTime = _undelegationWaitTime;
+    }
+
+    function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
+        minMPONDStake = _minMPONDStake;
     }
 }
