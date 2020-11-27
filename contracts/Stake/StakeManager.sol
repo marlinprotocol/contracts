@@ -43,7 +43,9 @@ contract StakeManager {
         address _clusterRegistryAdmin,
         uint256 _rewardPerEpoch, 
         uint256 _minMPONDStake,
-        uint256 _payoutDenomination) 
+        uint256 _payoutDenomination,
+        uint256 _PondRewardFactor,
+        uint256 _MPondRewardFactor) 
         public 
     {
         tokenAddresses[0] = _PONDAddress;
@@ -56,7 +58,9 @@ contract StakeManager {
             _minMPONDStake, 
             _rewardPerEpoch, 
             _MPONDAddress,
-            _payoutDenomination
+            _payoutDenomination,
+            _PondRewardFactor,
+            _MPondRewardFactor
         );
         MPOND = MPondLogic(_MPONDAddress);
     }

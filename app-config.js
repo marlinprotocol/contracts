@@ -71,7 +71,9 @@ let staking = {
   undelegationWaitTime: 3,
   rewardPerEpoch: 10000,
   minMPONDStake: 2,
-  payoutDenomination: 100000
+  payoutDenomination: 100000,
+  PondRewardFactor: 100,
+  MPondRewardFactor: 100
 }
 
 module.exports = {

@@ -66,7 +66,9 @@ contract("Stake contract", async function(accounts) {
             clusterRegistryAdmin,
             appConfig.staking.rewardPerEpoch,
             appConfig.staking.minMPONDStake,
-            appConfig.staking.payoutDenomination
+            appConfig.staking.payoutDenomination,
+            appConfig.staking.PondRewardFactor,
+            appConfig.staking.MPondRewardFactor
         );
 
         const clusterRegistryAddress = await stakeContract.clusters();
