@@ -58,12 +58,9 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 _undelegationWaitTime, 
         address _stakeAddress, 
         address _oracleAddress,
-        address _oracleOwner, 
         address _clusterRegistryAdmin,
         uint256 _minMPONDStake, 
-        uint256 _rewardPerEpoch, 
         address _MPONDAddress,
-        uint256 _payoutDenomination,
         uint256 _PondRewardFactor,
         uint256 _MPondRewardFactor
         ) 

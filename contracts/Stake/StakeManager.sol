@@ -39,15 +39,7 @@ contract StakeManager is Initializable {
     function initialize(
         address _MPONDAddress, 
         address _PONDAddress, 
-        address _clusterRegistryAddress,
-        uint256 _undelegationWaitTime, 
-        address _oracleOwner, 
-        address _clusterRegistryAdmin,
-        uint256 _rewardPerEpoch, 
-        uint256 _minMPONDStake,
-        uint256 _payoutDenomination,
-        uint256 _PondRewardFactor,
-        uint256 _MPondRewardFactor)
+        address _clusterRegistryAddress)
         initializer
         public 
     {
@@ -55,18 +47,6 @@ contract StakeManager is Initializable {
         tokenAddresses[1] = _MPONDAddress;
         MPOND = MPondLogic(_MPONDAddress);
         clusters = ClusterRegistry(_clusterRegistryAddress);
-        // clusters = new ClusterRegistry(
-        //     _undelegationWaitTime, 
-        //     address(this), 
-        //     _oracleOwner, 
-        //     _clusterRegistryAdmin,
-        //     _minMPONDStake, 
-        //     _rewardPerEpoch, 
-        //     _MPONDAddress,
-        //     _payoutDenomination,
-        //     _PondRewardFactor,
-        //     _MPondRewardFactor
-        // );
     }
 
     function createStashAndDelegate(TokenType _tokenType, uint256 _amount, address _delegatedCluster) public {

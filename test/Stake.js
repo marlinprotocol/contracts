@@ -77,27 +77,16 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.initialize(
             MPONDInstance.address, 
             PONDInstance.address, 
-            clusterRegistry.address,
-            appConfig.staking.undelegationWaitTime,
-            oracleOwner,
-            clusterRegistryAdmin,
-            appConfig.staking.rewardPerEpoch,
-            appConfig.staking.minMPONDStake,
-            appConfig.staking.payoutDenomination,
-            appConfig.staking.PondRewardFactor,
-            appConfig.staking.MPondRewardFactor
+            clusterRegistry.address
         );
 
         await clusterRegistry.initialize(
             appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             perfOracle.address,
-            oracleOwner,
             clusterRegistryAdmin,
             appConfig.staking.minMPONDStake,
-            appConfig.staking.rewardPerEpoch,
             MPONDInstance.address, 
-            appConfig.staking.payoutDenomination,
             appConfig.staking.PondRewardFactor,
             appConfig.staking.MPondRewardFactor
         );
