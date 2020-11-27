@@ -25,7 +25,8 @@ contract PerfOracle is Ownable {
         address _owner, 
         address _clusterRegistryAddress, 
         uint256 _rewardPerEpoch, 
-        address _MPONDAddress) 
+        address _MPONDAddress,
+        uint256 _payoutDenomination) 
         public 
         Ownable() 
     {
@@ -33,6 +34,7 @@ contract PerfOracle is Ownable {
         clusterRegistryAddress = _clusterRegistryAddress;
         rewardPerEpoch = _rewardPerEpoch;
         MPOND = ERC20(_MPONDAddress);
+        payoutDenomination = _payoutDenomination;
     }
 
     function feed(address[] memory _clusters, uint256[] memory _payouts) public onlyOwner {

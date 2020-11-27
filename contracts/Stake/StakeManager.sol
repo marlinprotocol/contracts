@@ -33,6 +33,7 @@ contract StakeManager {
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
+    event AddedToStash(address staker, address delegatedCluster, uint256 amount, TokenType tokenType);
 
     constructor(
         address _MPONDAddress, 
@@ -40,7 +41,8 @@ contract StakeManager {
         uint256 _undelegationWaitTime, 
         address _oracleOwner, 
         uint256 _rewardPerEpoch, 
-        uint256 _minMPONDStake) 
+        uint256 _minMPONDStake,
+        uint256 _payoutDenomination) 
         public 
     {
         tokenAddresses[0] = _PONDAddress;
@@ -51,7 +53,8 @@ contract StakeManager {
             _oracleOwner, 
             _minMPONDStake, 
             _rewardPerEpoch, 
-            _MPONDAddress
+            _MPONDAddress,
+            _payoutDenomination
         );
         MPOND = MPondLogic(_MPONDAddress);
     }
@@ -78,7 +81,25 @@ contract StakeManager {
     }
 
     function addToStash(bytes32 _stashId, TokenType _tokenType, uint256 _amount) public {
-        //TODO
+        Stash memory stash = stashes[_stashId];
+        require(
+            _tokenType == stash.tokenType, 
+            "StakeManager:createStash - Stash token type different from added tokens"
+        );
+        require(
+            stash.staker == msg.sender, 
+            "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
+        );
+        require(
+            stash.undelegatesAt <= block.number,
+            "StakeManager:delegateStash - Can't add to stash during undelegation"
+        );
+        stashes[_stashId].amount = stash.amount.add(_amount);
+        if(stash.delegatedCluster != address(0)) {
+            clusters.delegate(msg.sender, stash.delegatedCluster, _amount, uint256(_tokenType));
+        }
+        _lockTokens(_tokenType, _amount, _delegator);
+        emit AddedToStash(msg.sender, stash.delegatedCluster, _amount, tokenType);
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {

@@ -57,13 +57,14 @@ contract ClusterRegistry is Ownable {
         address _clusterRegistryAdmin,
         uint256 _minMPONDStake, 
         uint256 _rewardPerEpoch, 
-        address _MPONDAddress) 
+        address _MPONDAddress,
+        uint256 _payoutDenomination) 
         public 
         Ownable()
     {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
-        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress);
+        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress, _payoutDenomination);
         MPONDToken = ERC20(_MPONDAddress);
         minMPONDStake = _minMPONDStake;
         initialize(_clusterRegistryAdmin);
