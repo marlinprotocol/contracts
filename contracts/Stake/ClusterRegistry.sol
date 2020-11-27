@@ -2,7 +2,6 @@ pragma solidity >=0.4.21 <0.7.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
-// import "./EpochManager.sol";
 import "./PerfOracle.sol";
 
 contract ClusterRegistry {
@@ -10,9 +9,7 @@ contract ClusterRegistry {
     using SafeMath for uint256;
 
     struct Stake {
-        // uint256 mpondWeight;
         uint256 mpond;
-        // uint256 pondWeight;
         uint256 pond;
     }
 
@@ -28,20 +25,21 @@ contract ClusterRegistry {
         uint256 lastRewardDistNonce;
         Status status;
     }
-    // clusteraddress to lastUpdatedEpoch to clusterData
+
     mapping(address => Cluster) clusters;
-    // mapping(address => uint256) lastUpdatedEpoch;
 
     uint256 constant pondPerMpond = 10**6;
 
     uint256 public undelegationWaitTime;
     address stakeAddress;
-    // EpochManager epochManager;
+    uint256 minMPONDStake;
+
     PerfOracle public oracle;
     ERC20 MPONDToken;
-    enum Status{NOT_REGISTERED, INACTIVE, ACTIVE}
 
-    event ClusterRegistered(address cluster, uint256 commission, address rewardAddress);
+    enum Status{NOT_REGISTERED, REGISTERED}
+
+    event ClusterRegistered(address cluster, uint256 commission, address rewardAddress, address clientKey);
     event CommissionUpdated(address cluster, uint256 updatedCommission);
     event RewardAddressUpdated(address cluster, address updatedRewardAddress);
     event ClusterUnregistered(address cluster);
@@ -51,11 +49,20 @@ contract ClusterRegistry {
         _;
     }
 
-    constructor(uint256 _undelegationWaitTime, address _stakeAddress, address _oracleOwner, uint256 _rewardPerEpoch, address _MPONDAddress) public {
+    constructor(
+        uint256 _undelegationWaitTime, 
+        address _stakeAddress, 
+        address _oracleOwner, 
+        uint256 _minMPONDStake, 
+        uint256 _rewardPerEpoch, 
+        address _MPONDAddress) 
+        public 
+    {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
         oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress);
         MPONDToken = ERC20(_MPONDAddress);
+        minMPONDStake = _minMPONDStake;
     }
 
     function register(uint256 _commission, address _rewardAddress, address _clientKey) public returns(bool) {
@@ -64,8 +71,12 @@ contract ClusterRegistry {
             "ClusterRegistry:register - Cluster is already registered"
         );
         require(_commission <= 100, "ClusterRegistry:register - Commission can't be more than 100%");
-        clusters[msg.sender] = Cluster(_commission, _rewardAddress, _clientKey, Stake(0, 0), 0, 0, Status.INACTIVE);
-        emit ClusterRegistered(msg.sender, _commission, _rewardAddress);
+        clusters[msg.sender].commission = _commission;
+        clusters[msg.sender].rewardAddress = _rewardAddress;
+        clusters[msg.sender].clientKey = _clientKey;
+        clusters[msg.sender].status = Status.REGISTERED;
+        
+        emit ClusterRegistered(msg.sender, _commission, _rewardAddress, _clientKey);
     }
 
     function updateCommission(uint256 _commission) public {
@@ -109,7 +120,10 @@ contract ClusterRegistry {
     }
 
     function isClusterActive(address _cluster) public view returns(bool) {
-        return (clusters[_cluster].status == Status.ACTIVE);
+        return (
+            clusters[_cluster].status == Status.REGISTERED 
+            && clusters[_cluster].totalDelegation.mpond >= minMPONDStake
+        );
     }
 
     function _updateRewards(address _cluster) public {
@@ -124,7 +138,7 @@ contract ClusterRegistry {
             return;
         }
         uint256 commissionReward = reward.mul(cluster.commission).div(100);
-        // transferRewards(cluster.rewardAddress, commissionReward);
+        transferRewards(cluster.rewardAddress, commissionReward);
         cluster.accRewardPerShare = cluster.accRewardPerShare
                                             .add(reward.sub(commissionReward).mul(10**30).div(totalStakeAtReward));
         cluster.lastRewardDistNonce++;
@@ -153,15 +167,11 @@ contract ClusterRegistry {
         }
         if(_tokenType == 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_amount);
-            clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
-                                                                                    .pond
-                                                                                    .add(_amount);
+            clusters[_cluster].delegators[_delegator].pond = delegatorStake.pond.add(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.add(_amount);
         } else if(_tokenType == 1) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_amount);
-            clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
-                                                                                    .mpond
-                                                                                    .add(_amount);
+            clusters[_cluster].delegators[_delegator].mpond = delegatorStake.mpond.add(_amount);
             delegatorEffectiveStake = delegatorEffectiveStake.add(_amount.mul(pondPerMpond));
         } else {
             revert("ClusterRegistry:delegate - Token type invalid");
@@ -209,10 +219,6 @@ contract ClusterRegistry {
     function withdrawRewards(address _delegator, address _cluster) public {
         _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
-        require(
-            clusterData.status != Status.NOT_REGISTERED,
-            "ClusterRegistry:undelegate - Cluster should be registered to delegate"
-        );
         uint256 currentNonce = clusterData.lastRewardDistNonce;
         Stake memory delegatorStake = clusters[_cluster].delegators[_delegator];
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
@@ -234,8 +240,11 @@ contract ClusterRegistry {
     }
 
     function getEffectiveStake(address _cluster) public view returns(uint256) {
-        return (clusters[_cluster].totalDelegation.pond
+        if(isClusterActive(_cluster)) {
+            return (clusters[_cluster].totalDelegation.pond
                                                     .add(clusters[_cluster].totalDelegation.mpond.mul(pondPerMpond)));
+        }
+        return 0;
     }
 
     function getClusterDelegation(address _cluster) 

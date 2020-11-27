@@ -63,6 +63,7 @@ contract("Stake contract", async function(accounts) {
             appConfig.staking.undelegationWaitTime,
             oracleOwner,
             appConfig.staking.rewardPerEpoch,
+            appConfig.staking.minMPONDStake,
         );
 
         const clusterRegistryAddress = await stakeContract.clusters();
@@ -417,6 +418,14 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.withdrawStash(stashId);
         const balanceAfter = await MPONDInstance.balanceOf(accounts[0]);
         assert(balanceAfter - balanceBefore == amount)
+    });
+
+    it("Redelegate POND stash", async () => {
+
+    });
+
+    it("Redelegate MPOND stash", async () => {
+        
     });
 
     async function createStash(tokenType, amount) {

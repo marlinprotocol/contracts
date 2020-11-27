@@ -26,18 +26,33 @@ contract StakeManager {
     enum TokenType {POND, MPOND}
     // TODO: Token addresses should be upgradable by governance ?
     mapping(uint256 => address) tokenAddresses;
-    ClusterRegistry public clusters;
     MPondLogic MPOND;
+    ClusterRegistry public clusters;
 
     event StashCreated(address creator, bytes32 stashId, uint256 stashIndex, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
 
-    constructor(address _MPONDAddress, address _PONDAddress, uint256 _undelegationWaitTime, address _oracleOwner, uint256 _rewardPerEpoch) public {
+    constructor(
+        address _MPONDAddress, 
+        address _PONDAddress, 
+        uint256 _undelegationWaitTime, 
+        address _oracleOwner, 
+        uint256 _rewardPerEpoch, 
+        uint256 _minMPONDStake) 
+        public 
+    {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
-        clusters = new ClusterRegistry(_undelegationWaitTime, address(this), _oracleOwner, _rewardPerEpoch, _MPONDAddress);
+        clusters = new ClusterRegistry(
+            _undelegationWaitTime, 
+            address(this), 
+            _oracleOwner, 
+            _minMPONDStake, 
+            _rewardPerEpoch, 
+            _MPONDAddress
+        );
         MPOND = MPondLogic(_MPONDAddress);
     }
 
@@ -55,6 +70,7 @@ contract StakeManager {
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         stashes[stashId] = Stash(msg.sender, address(0), _tokenType, _amount, 0);
+        // This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
         _lockTokens(_tokenType, _amount, msg.sender);
         emit StashCreated(msg.sender, stashId, stashIndex, _tokenType, _amount);
@@ -103,7 +119,7 @@ contract StakeManager {
             "StakeManager:undelegateStash - stash is already waiting for undelegation"
         );
         uint256 waitTime = clusters.undelegationWaitTime();
-        // TODO: probably don't need to use safemath add
+        // use + for gas savings as overflow can't happen
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;

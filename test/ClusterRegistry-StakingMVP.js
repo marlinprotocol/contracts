@@ -71,6 +71,7 @@ contract("Stake contract", async function(accounts) {
             appConfig.staking.undelegationWaitTime,
             oracleOwner,
             appConfig.staking.rewardPerEpoch,
+            appConfig.staking.minMPONDStake,
         );
 
         const clusterRegistryAddress = await stakeContract.clusters();

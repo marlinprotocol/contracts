@@ -9,8 +9,6 @@ contract PerfOracle is Ownable {
     struct ClusterData {
         uint256 unrewardedWeight;
         uint256 rewards;
-        // uint256 lastDrawnEpoch;
-        // uint256 rewardDebt;
     }
 
     mapping(address => ClusterData) clusters;
@@ -31,7 +29,14 @@ contract PerfOracle is Ownable {
         _;
     }
 
-    constructor(address _owner, address _clusterRegistryAddress, uint256 _rewardPerEpoch, address _MPONDAddress) public Ownable() {
+    constructor(
+        address _owner, 
+        address _clusterRegistryAddress, 
+        uint256 _rewardPerEpoch, 
+        address _MPONDAddress) 
+        public 
+        Ownable() 
+    {
         initialize(_owner);
         clusterRegistryAddress = _clusterRegistryAddress;
         rewardPerEpoch = _rewardPerEpoch;
@@ -92,14 +97,6 @@ contract PerfOracle is Ownable {
             delete clusters[_cluster].rewards;
         }
         return pendingRewards;
-        // if(currentEpoch <= cluster.lastDrawnEpoch) {
-        //     return;
-        // }
-        // uint pendingRewards = cluster.unrewardedWeight*accRewardPerWeight/10**30 - cluster.rewardDebt;
-        // if(pendingRewards != 0) {
-        //     // 
-        // }
-        // clusters[_cluster].rewardDebt = cluster.unrewardedWeight*accRewardPerWeight/10**30;
     }
 
     function transferRewards(address _to, uint256 _amount) internal {
