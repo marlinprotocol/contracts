@@ -1,11 +1,12 @@
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "./PerfOracle.sol";
 
-contract ClusterRegistry is Ownable {
+contract ClusterRegistry is Initializable, Ownable {
 
     using SafeMath for uint256;
 
@@ -53,9 +54,10 @@ contract ClusterRegistry is Ownable {
         _;
     }
 
-    constructor(
+    function initialize(
         uint256 _undelegationWaitTime, 
         address _stakeAddress, 
+        address _oracleAddress,
         address _oracleOwner, 
         address _clusterRegistryAdmin,
         uint256 _minMPONDStake, 
@@ -66,11 +68,12 @@ contract ClusterRegistry is Ownable {
         uint256 _MPondRewardFactor
         ) 
         public 
-        Ownable()
+        initializer
     {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
-        oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress, _payoutDenomination);
+        oracle = PerfOracle(_oracleAddress);
+        // oracle = new PerfOracle(_oracleOwner, address(this), _rewardPerEpoch, _MPONDAddress, _payoutDenomination);
         MPONDToken = ERC20(_MPONDAddress);
         minMPONDStake = _minMPONDStake;
         PondRewardFactor = _PondRewardFactor;

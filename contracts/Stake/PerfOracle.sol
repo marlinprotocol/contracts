@@ -1,10 +1,11 @@
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "./ClusterRegistry.sol";
 
-contract PerfOracle is Ownable {
+contract PerfOracle is Initializable, Ownable {
 
     mapping(address => uint256) clusterRewards;
 
@@ -21,14 +22,14 @@ contract PerfOracle is Ownable {
         _;
     }
 
-    constructor(
+    function initialize(
         address _owner, 
         address _clusterRegistryAddress, 
         uint256 _rewardPerEpoch, 
         address _MPONDAddress,
         uint256 _payoutDenomination) 
-        public 
-        Ownable() 
+        public
+        initializer
     {
         initialize(_owner);
         clusterRegistryAddress = _clusterRegistryAddress;
