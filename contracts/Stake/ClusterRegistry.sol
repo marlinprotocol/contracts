@@ -149,8 +149,8 @@ contract ClusterRegistry is Initializable, Ownable {
         }
         Cluster memory cluster = clusters[_cluster];
         uint256 totalStakeAtReward = cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond));
-        clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
         if(totalStakeAtReward == 0) {
+            clusters[_cluster].lastRewardDistNonce++;
             return;
         }
         uint256 commissionReward = reward.mul(cluster.commission).div(100);
@@ -177,6 +177,7 @@ contract ClusterRegistry is Initializable, Ownable {
                                                 .mul(10**30)
                                                 .div(weightedStake)
                                             );
+        cluster.lastRewardDistNonce++;
         clusters[_cluster] = cluster;
 
     }
