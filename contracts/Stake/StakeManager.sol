@@ -177,6 +177,29 @@ contract StakeManager is Initializable {
         emit StashWithdrawn(_stashId, stash.tokenType, stash.amount);
     }
 
+    function withdrawStash(bytes32 _stashId, uint256 _amount) public {
+        Stash memory stash = stashes[_stashId];
+        require(
+            stash.staker == msg.sender,
+            "StakeManager:withdrawStash - Only staker can withdraw stash"
+        );
+        require(
+            stash.delegatedCluster == address(0),
+            "StakeManager:withdrawStash - Stash is delegated. Please undelegate before withdrawal"
+        );
+        require(
+            stash.undelegatesAt <= block.number,
+            "StakeManager:withdrawStash - stash is not yet undelegated"
+        );
+        require(
+            stash.amount >= _amount,
+            "StakeManager:withdrawStash - balance not sufficient"
+        );
+        stashes[_stashId].amount = stash.amount.sub(_amount);
+        _unlockTokens(stash.tokenType, _amount, stash.staker);
+        emit StashWithdrawn(_stashId, stash.tokenType, _amount);
+    }
+
     function _lockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
