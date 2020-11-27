@@ -1,5 +1,6 @@
 pragma solidity >=0.4.21 <0.7.0;
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./ClusterRegistry.sol";
@@ -35,7 +36,7 @@ contract StakeManager {
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
     event AddedToStash(address staker, address delegatedCluster, uint256 amount, TokenType tokenType);
 
-    constructor(
+    function initialize(
         address _MPONDAddress, 
         address _PONDAddress, 
         uint256 _undelegationWaitTime, 
@@ -47,6 +48,7 @@ contract StakeManager {
         uint256 _PondRewardFactor,
         uint256 _MPondRewardFactor) 
         public 
+        initializer
     {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;

@@ -153,11 +153,27 @@ contract ClusterRegistry is Ownable {
         uint256 commissionReward = reward.mul(cluster.commission).div(100);
         transferRewards(cluster.rewardAddress, commissionReward);
         uint256 delegatorReward = reward.sub(commissionReward);
-        uint256 weightedStake = PondRewardFactor.mul(cluster.totalDelegation.pond).add(MPondRewardFactor.mul(cluster.totalDelegation.mpond).mul(pondPerMpond));
+        uint256 weightedStake = PondRewardFactor.mul(cluster.totalDelegation.pond)
+                                                .add(
+                                                    MPondRewardFactor
+                                                    .mul(cluster.totalDelegation.mpond)
+                                                    .mul(pondPerMpond)
+                                                );
         cluster.accPondRewardPerShare = cluster.accPondRewardPerShare
-                                            .add(delegatorReward.mul(PondRewardFactor).mul(10**30).div(weightedStake));
+                                            .add(
+                                                delegatorReward
+                                                .mul(PondRewardFactor)
+                                                .mul(10**30)
+                                                .div(weightedStake)
+                                            );
         cluster.accMPondRewardPerShare = cluster.accMPondRewardPerShare
-                                            .add(delegatorReward.mul(MPondRewardFactor).mul(pondPerMpond).mul(10**30).div(weightedStake));
+                                            .add(
+                                                delegatorReward
+                                                .mul(MPondRewardFactor)
+                                                .mul(pondPerMpond)
+                                                .mul(10**30)
+                                                .div(weightedStake)
+                                            );
         cluster.lastRewardDistNonce++;
         clusters[_cluster] = cluster;
 
