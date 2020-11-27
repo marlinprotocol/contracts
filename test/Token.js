@@ -5,7 +5,7 @@ var tokenProxy;
 var tokenLogic;
 var web3Utils = require("web3-utils");
 
-contract("Marlin Token", function (accounts) {
+contract.only("Marlin Token", function (accounts) {
   var tokenInstance;
   let totalSupplyBeforeMinting;
 
@@ -27,13 +27,13 @@ contract("Marlin Token", function (accounts) {
       .then(function (instance) {
         tokenInstance = instance;
         return tokenInstance
-          .initialize("Marlin Protocol", "POND", 18, tempBridgeAddress)
+          .initialize("Marlin", "POND", 18, tempBridgeAddress)
           .then(function () {
             return tokenInstance.name();
           });
       })
       .then(function (name) {
-        assert.equal(name, "Marlin Protocol", "Incorrect name");
+        assert.equal(name, "Marlin", "Incorrect name");
         return tokenInstance.decimals();
       })
       .then(function (decimal) {
@@ -42,6 +42,11 @@ contract("Marlin Token", function (accounts) {
       })
       .then(function (symbol) {
         assert.equal(symbol, "POND", "Incorrect symbol");
+        return tokenInstance.balanceOf(tempBridgeAddress)
+      })
+      .then(function(bridgeBalance){
+        assert.equal(bridgeBalance, 3000000000e18, "Wrong amount of tokens minted on bridge");
+        return;
       });
   });
 

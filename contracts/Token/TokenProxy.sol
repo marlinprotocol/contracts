@@ -27,6 +27,17 @@ contract TokenProxy {
         }
     }
 
+    function updateAdmin(address _newAdmin) public {
+        require(
+            msg.sender == getAdmin(),
+            "Only the current admin should be able to new admin"
+        );
+        bytes32 slot = PROXY_ADMIN_SLOT;
+        assembly {
+            sstore(slot, _newAdmin)
+        }
+    }
+
     /// @author Marlin
     /// @dev Only admin can update the contract
     /// @param _newLogic address is the address of the contract that has to updated to

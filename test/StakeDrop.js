@@ -27,7 +27,9 @@ contract("Stake Drop testing", function (accounts) {
       })
       .then(function (instance) {
         stakeInstance = instance;
-        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, accounts[20], {
+          from: accounts[1],
+        }); // accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         return mPondLogic.at(proxyContract.address);

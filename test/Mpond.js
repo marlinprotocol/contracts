@@ -4,7 +4,7 @@ const web3Utils = require("web3-utils");
 
 var mPondInstance;
 
-contract.only("MPond Contract", function (accounts) {
+contract("MPond Contract", function (accounts) {
   it("Deploy contracts", function () {
     return mPondProxy
       .new(mPondLogic.address, accounts[50], {from: accounts[1]}) //assuming that accounts[50] is proxy admin

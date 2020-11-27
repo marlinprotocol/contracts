@@ -14,19 +14,19 @@ module.exports = async function (deployer, network, accounts) {
     await deployer
       .deploy(mPondLogic)
       .then(function () {
-        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[0]);
+        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[20]); //accounts[20] is the proxy admin
       })
       .then(function () {
         return deployer.deploy(TokenLogic);
       })
       .then(function () {
-        return deployer.deploy(TokenProxy, TokenLogic.address, accounts[0]);
+        return deployer.deploy(TokenProxy, TokenLogic.address, accounts[20]); //accounts[20] is the proxy admin
       })
       .then(function () {
         return deployer.deploy(BridgeLogic);
       })
       .then(function () {
-        return deployer.deploy(BridgeProxy, BridgeLogic.address);
+        return deployer.deploy(BridgeProxy, BridgeLogic.address, accounts[20]); //accounts[20] is the proxy admin
       });
     // .then(function () {
     //   return deployer.deploy(
