@@ -7,6 +7,9 @@ const MPONDProxy = artifacts.require("MPondProxy.sol");
 const Stake = artifacts.require("StakeManager.sol");
 const StakeProxy = artifacts.require("StakeManagerProxy.sol");
 
+const RewardDelegators = artifacts.require("RewardDelegators.sol");
+const RewardDelegatorsProxy = artifacts.require("RewardDelegatorsProxy.sol");
+
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
@@ -25,11 +28,12 @@ contract("Stake contract", async function(accounts) {
     let stakeContract;
     let clusterRegistry;
     let perfOracle;
+    let rewardDelegators;
     const bridge = accounts[2];
     const admin = accounts[1];
     const oracleOwner = accounts[10];
     const proxyAdmin = accounts[1];
-    const clusterRegistryAdmin = accounts[2];
+    const rewardDelegatorsAdmin = accounts[2];
     const MPONDAccount = accounts[3];
     const registeredCluster = accounts[4];
     const registeredClusterRewardAddress = accounts[7];
@@ -78,6 +82,10 @@ contract("Stake contract", async function(accounts) {
         const clusterRegistryProxy = await ClusterRegistryProxy.new(clusterRegistryDeployment.address, proxyAdmin);
         clusterRegistry = await ClusterRegistry.at(clusterRegistryProxy.address);
 
+        const rewardDelegatorsDeployment = await RewardDelegators.new();
+        const rewardDelegatorsProxy = await RewardDelegatorsProxy.new(rewardDelegatorsDeployment.address, proxyAdmin);
+        rewardDelegators = await RewardDelegators.at(rewardDelegatorsProxy.address);
+
         const perfOracleDeployment = await PerfOracle.new();
         const perfOracleProxyInstance = await PerfOracleProxy.new(perfOracleDeployment.address, proxyAdmin);
         perfOracle = await PerfOracle.at(perfOracleProxyInstance.address);
@@ -85,14 +93,18 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.initialize(
             MPONDInstance.address, 
             PONDInstance.address, 
-            clusterRegistry.address
+            clusterRegistry.address,
+            rewardDelegators.address
         );
 
-        await clusterRegistry.initialize(
+        await clusterRegistry.initialize();
+
+        await rewardDelegators.initialize(
             appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             perfOracle.address,
-            clusterRegistryAdmin,
+            clusterRegistry.address,
+            rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
             MPONDInstance.address, 
             appConfig.staking.PondRewardFactor,
@@ -101,17 +113,11 @@ contract("Stake contract", async function(accounts) {
 
         await perfOracle.initialize(
             oracleOwner,
-            clusterRegistry.address,
+            rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
             MPONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
-
-        // const clusterRegistryAddress = await stakeContract.clusters();
-        // clusterRegistry = await ClusterRegistry.at(clusterRegistryAddress);
-
-        // const perfOracleAddress = await clusterRegistry.oracle();
-        // perfOracle = await PerfOracle.at(perfOracleAddress);
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");
 
@@ -120,10 +126,10 @@ contract("Stake contract", async function(accounts) {
         })
         assert((await MPONDInstance.isWhiteListed(stakeContract.address), "StakeManager contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(clusterRegistry.address, {
+        await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
             from: admin
         })
-        assert((await MPONDInstance.isWhiteListed(clusterRegistry.address), "clusterRegistry contract not whitelisted"));
+        assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
 
         await MPONDInstance.addWhiteListAddress(perfOracle.address, {
             from: admin
@@ -223,7 +229,6 @@ contract("Stake contract", async function(accounts) {
         // 2 users delegate tokens to a cluster - one twice the other
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 2000000], [1, 0]);
-        console.log((await clusterRegistry.isClusterActive(registeredCluster1)), (await clusterRegistry.isClusterActive(registeredCluster2)))
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
@@ -258,8 +263,8 @@ contract("Stake contract", async function(accounts) {
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let MPondBalance3Before = await MPONDInstance.balanceOf(delegator3);
-        await clusterRegistry.withdrawRewards(delegator3, registeredCluster3);
-        await clusterRegistry.withdrawRewards(delegator3, registeredCluster4);
+        await rewardDelegators.withdrawRewards(delegator3, registeredCluster3);
+        await rewardDelegators.withdrawRewards(delegator3, registeredCluster4);
         let MPondBalance3After = await MPONDInstance.balanceOf(delegator3);
         console.log(MPondBalance3After.sub(MPondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
         assert(MPondBalance3After.sub(MPondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
@@ -285,7 +290,6 @@ contract("Stake contract", async function(accounts) {
         // 2 users delegate tokens to a cluster - one twice the other
         const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 2000000], [1, 0]);
-        console.log((await clusterRegistry.isClusterActive(registeredCluster1)), (await clusterRegistry.isClusterActive(registeredCluster2)))
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
@@ -372,7 +376,7 @@ contract("Stake contract", async function(accounts) {
         const stakes = [];
         let totalStake = new BigNumber(0);
         for(let i=0; i < clusters.length; i++) {
-            const clusterStake = await clusterRegistry.getEffectiveStake(clusters[i]);
+            const clusterStake = await rewardDelegators.getEffectiveStake(clusters[i]);
             stakes.push(clusterStake);
             totalStake = totalStake.add(clusterStake.toString());
         }
@@ -418,6 +422,10 @@ contract("Stake contract", async function(accounts) {
         const clusterRegistryProxy = await ClusterRegistryProxy.new(clusterRegistryDeployment.address, proxyAdmin);
         clusterRegistry = await ClusterRegistry.at(clusterRegistryProxy.address);
 
+        const rewardDelegatorsDeployment = await RewardDelegators.new();
+        const rewardDelegatorsProxy = await RewardDelegatorsProxy.new(rewardDelegatorsDeployment.address, proxyAdmin);
+        rewardDelegators = await RewardDelegators.at(rewardDelegatorsProxy.address);
+
         const perfOracleDeployment = await PerfOracle.new();
         const perfOracleProxyInstance = await PerfOracleProxy.new(perfOracleDeployment.address, proxyAdmin);
         perfOracle = await PerfOracle.at(perfOracleProxyInstance.address);
@@ -425,14 +433,18 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.initialize(
             MPONDInstance.address, 
             PONDInstance.address, 
-            clusterRegistry.address
+            clusterRegistry.address,
+            rewardDelegators.address
         );
 
-        await clusterRegistry.initialize(
+        await clusterRegistry.initialize();
+
+        await rewardDelegators.initialize(
             appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             perfOracle.address,
-            clusterRegistryAdmin,
+            clusterRegistry.address,
+            rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
             MPONDInstance.address, 
             appConfig.staking.PondRewardFactor,
@@ -441,17 +453,11 @@ contract("Stake contract", async function(accounts) {
 
         await perfOracle.initialize(
             oracleOwner,
-            clusterRegistry.address,
+            rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
             MPONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
-
-        // const clusterRegistryAddress = await stakeContract.clusters();
-        // clusterRegistry = await ClusterRegistry.at(clusterRegistryAddress);
-
-        // const perfOracleAddress = await clusterRegistry.oracle();
-        // perfOracle = await PerfOracle.at(perfOracleAddress);
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");
 
@@ -460,10 +466,10 @@ contract("Stake contract", async function(accounts) {
         })
         assert((await MPONDInstance.isWhiteListed(stakeContract.address), "StakeManager contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(clusterRegistry.address, {
+        await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
             from: admin
         })
-        assert((await MPONDInstance.isWhiteListed(clusterRegistry.address), "clusterRegistry contract not whitelisted"));
+        assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
 
         await MPONDInstance.addWhiteListAddress(perfOracle.address, {
             from: admin

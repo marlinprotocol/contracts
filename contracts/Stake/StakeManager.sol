@@ -3,7 +3,7 @@ pragma solidity >=0.4.21 <0.7.0;
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "./ClusterRegistry.sol";
+import "./RewardDelegators.sol";
 import "../governance/MPondLogic.sol";
 
 
@@ -28,7 +28,8 @@ contract StakeManager is Initializable {
     // TODO: Token addresses should be upgradable by governance ?
     mapping(uint256 => address) tokenAddresses;
     MPondLogic MPOND;
-    ClusterRegistry public clusters;
+    ClusterRegistry clusterRegistry;
+    RewardDelegators public rewardDelegators;
 
     event StashCreated(address creator, bytes32 stashId, uint256 stashIndex, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
@@ -39,14 +40,17 @@ contract StakeManager is Initializable {
     function initialize(
         address _MPONDAddress, 
         address _PONDAddress, 
-        address _clusterRegistryAddress)
+        address _clusterRegistryAddress,
+        address _rewardDelegatorsAddress)
         initializer
         public 
     {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
         MPOND = MPondLogic(_MPONDAddress);
-        clusters = ClusterRegistry(_clusterRegistryAddress);
+        clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
+        rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
+
     }
 
     function createStashAndDelegate(TokenType _tokenType, uint256 _amount, address _delegatedCluster) public {
@@ -86,7 +90,7 @@ contract StakeManager is Initializable {
         );
         stashes[_stashId].amount = stash.amount.add(_amount);
         if(stash.delegatedCluster != address(0)) {
-            clusters.delegate(msg.sender, stash.delegatedCluster, _amount, uint256(_tokenType));
+            rewardDelegators.delegate(msg.sender, stash.delegatedCluster, _amount, uint256(_tokenType));
         }
         _lockTokens(_tokenType, _amount, msg.sender);
         emit AddedToStash(msg.sender, stash.delegatedCluster, _amount, _tokenType);
@@ -99,7 +103,7 @@ contract StakeManager is Initializable {
             "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
         );
         require(
-            clusters.isClusterValid(_delegatedCluster), 
+            clusterRegistry.isClusterValid(_delegatedCluster), 
             "StakeManager:delegateStash - delegated cluster address is not valid"
         );
         require(
@@ -111,7 +115,7 @@ contract StakeManager is Initializable {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        clusters.delegate(msg.sender, _delegatedCluster, stash.amount, uint256(stash.tokenType));
+        rewardDelegators.delegate(msg.sender, _delegatedCluster, stash.amount, uint256(stash.tokenType));
         emit StashDelegated(_stashId, _delegatedCluster);
     }
 
@@ -129,12 +133,12 @@ contract StakeManager is Initializable {
             stash.undelegatesAt <= block.number,
             "StakeManager:undelegateStash - stash is already waiting for undelegation"
         );
-        uint256 waitTime = clusters.undelegationWaitTime();
+        uint256 waitTime = rewardDelegators.undelegationWaitTime();
         // use + for gas savings as overflow can't happen
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        clusters.undelegate(msg.sender, stash.delegatedCluster, stash.amount, uint256(stash.tokenType));
+        rewardDelegators.undelegate(msg.sender, stash.delegatedCluster, stash.amount, uint256(stash.tokenType));
         emit StashUndelegated(_stashId, stash.delegatedCluster, undelegationBlock);
     }
 

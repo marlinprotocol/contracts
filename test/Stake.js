@@ -7,6 +7,9 @@ const MPONDProxy = artifacts.require("MPondProxy.sol");
 const Stake = artifacts.require("StakeManager.sol");
 const StakeProxy = artifacts.require("StakeManagerProxy.sol");
 
+const RewardDelegators = artifacts.require("RewardDelegators.sol");
+const RewardDelegatorsProxy = artifacts.require("RewardDelegatorsProxy.sol");
+
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
@@ -25,11 +28,12 @@ contract("Stake contract", async function(accounts) {
     let stakeContract;
     let clusterRegistry;
     let perfOracle;
+    let rewardDelegators;
     const bridge = accounts[2];
     const admin = accounts[1];
     const proxyAdmin = accounts[1];
     const oracleOwner = accounts[10];
-    const clusterRegistryAdmin = accounts[2];
+    const rewardDelegatorsAdmin = accounts[2];
     const MPONDAccount = accounts[3];
     const registeredCluster = accounts[4];
     const registeredClusterRewardAddress = accounts[7];
@@ -70,6 +74,10 @@ contract("Stake contract", async function(accounts) {
         const clusterRegistryProxy = await ClusterRegistryProxy.new(clusterRegistryDeployment.address, proxyAdmin);
         clusterRegistry = await ClusterRegistry.at(clusterRegistryProxy.address);
 
+        const rewardDelegatorsDeployment = await RewardDelegators.new();
+        const rewardDelegatorsProxy = await RewardDelegatorsProxy.new(rewardDelegatorsDeployment.address, proxyAdmin);
+        rewardDelegators = await RewardDelegators.at(rewardDelegatorsProxy.address);
+
         const perfOracleDeployment = await PerfOracle.new();
         const perfOracleProxyInstance = await PerfOracleProxy.new(perfOracleDeployment.address, proxyAdmin);
         perfOracle = await PerfOracle.at(perfOracleProxyInstance.address);
@@ -77,14 +85,18 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.initialize(
             MPONDInstance.address, 
             PONDInstance.address, 
-            clusterRegistry.address
+            clusterRegistry.address,
+            rewardDelegators.address
         );
 
-        await clusterRegistry.initialize(
+        await clusterRegistry.initialize();
+
+        await rewardDelegators.initialize(
             appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             perfOracle.address,
-            clusterRegistryAdmin,
+            clusterRegistry.address,
+            rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
             MPONDInstance.address, 
             appConfig.staking.PondRewardFactor,
@@ -93,17 +105,11 @@ contract("Stake contract", async function(accounts) {
 
         await perfOracle.initialize(
             oracleOwner,
-            clusterRegistry.address,
+            rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
             MPONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
-
-        // const clusterRegistryAddress = await stakeContract.clusters();
-        // clusterRegistry = await ClusterRegistry.at(clusterRegistryAddress);
-
-        // const perfOracleAddress = await clusterRegistry.oracle();
-        // perfOracle = await PerfOracle.at(perfOracleAddress);
 
         await MPONDInstance.addWhiteListAddress(stakeContract.address, {
             from: admin
@@ -168,12 +174,12 @@ contract("Stake contract", async function(accounts) {
         await clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster
         });
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         
         const stashId = await createStash(0, amount);
         
         await stakeContract.delegateStash(stashId, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
     });
@@ -184,12 +190,12 @@ contract("Stake contract", async function(accounts) {
         await truffleAssert.reverts(clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster
         }));
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         
         const stashId = await createStash(1, amount);
         
         await stakeContract.delegateStash(stashId, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
     });
@@ -229,11 +235,11 @@ contract("Stake contract", async function(accounts) {
         const amount = 750000;
         await PONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         await stakeContract.createStashAndDelegate(0, amount, registeredCluster);
 
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
     });
 
@@ -244,11 +250,11 @@ contract("Stake contract", async function(accounts) {
         });
         await MPONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
 
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
     });
 
@@ -256,18 +262,18 @@ contract("Stake contract", async function(accounts) {
         const amount = 730000;
         await PONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         const receipt = await stakeContract.createStashAndDelegate(0, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
         const balanceBefore = await PONDInstance.balanceOf(accounts[0]);
         await stakeContract.undelegateStash(stashId);
         const balanceAfter = await PONDInstance.balanceOf(accounts[0]);
-        assert(balanceBefore == balanceBefore);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        assert(balanceAfter.toString() == balanceBefore.toString());
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.POND.toString() == clusterDelegationAfterUndelegation.POND.toString());
     });
 
@@ -278,9 +284,9 @@ contract("Stake contract", async function(accounts) {
         });
         await MPONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
@@ -288,7 +294,7 @@ contract("Stake contract", async function(accounts) {
         await stakeContract.undelegateStash(stashId);
         const balanceAfter = await MPONDInstance.balanceOf(accounts[0]);
         assert(balanceBefore == balanceBefore);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.MPOND.toString() == clusterDelegationAfterUndelegation.MPOND.toString());
     });
 
@@ -322,9 +328,9 @@ contract("Stake contract", async function(accounts) {
             from: deregisteredCluster
         });
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         const receipt = await stakeContract.createStashAndDelegate(0, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
@@ -333,7 +339,7 @@ contract("Stake contract", async function(accounts) {
         });
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.POND.toString() == clusterDelegationAfterUndelegation.POND.toString());
     });
 
@@ -347,9 +353,9 @@ contract("Stake contract", async function(accounts) {
             from: deregisteredCluster
         });
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
         
@@ -358,7 +364,7 @@ contract("Stake contract", async function(accounts) {
         });
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.MPOND.toString() == clusterDelegationAfterUndelegation.MPOND.toString());
     });
 
@@ -366,15 +372,15 @@ contract("Stake contract", async function(accounts) {
         const amount = 650000;
         await PONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         const receipt = await stakeContract.createStashAndDelegate(0, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.POND.toString() == clusterDelegationAfterUndelegation.POND.toString());
 
         await skipBlocks(appConfig.staking.undelegationWaitTime-2);
@@ -389,14 +395,14 @@ contract("Stake contract", async function(accounts) {
         });
         await MPONDInstance.approve(stakeContract.address, amount);
         
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.MPOND.toString() == clusterDelegationAfterUndelegation.MPOND.toString());
 
         await skipBlocks(appConfig.staking.undelegationWaitTime-2);
@@ -408,15 +414,15 @@ contract("Stake contract", async function(accounts) {
         const amount = 630000;
         await PONDInstance.approve(stakeContract.address, amount);
 
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
         const receipt = await stakeContract.createStashAndDelegate(0, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.POND - clusterInitialDelegation.POND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.POND.toString() == clusterDelegationAfterUndelegation.POND.toString());
 
         await skipBlocks(appConfig.staking.undelegationWaitTime-1);
@@ -435,14 +441,14 @@ contract("Stake contract", async function(accounts) {
         });
         await MPONDInstance.approve(stakeContract.address, amount);
         
-        const clusterInitialDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
-        const clusterDelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
 
         await stakeContract.undelegateStash(stashId);
-        const clusterDelegationAfterUndelegation = (await clusterRegistry.getClusterDelegation(registeredCluster));
+        const clusterDelegationAfterUndelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterInitialDelegation.MPOND.toString() == clusterDelegationAfterUndelegation.MPOND.toString());
 
         await skipBlocks(appConfig.staking.undelegationWaitTime-1);
