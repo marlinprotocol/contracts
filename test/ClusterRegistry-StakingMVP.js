@@ -227,14 +227,14 @@ contract("Stake contract", async function(accounts) {
             from: registeredCluster2
         });
         // 2 users delegate tokens to a cluster - one twice the other
-        await delegate(delegator1, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
-        await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 2000000], [1, 0]);
+        await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
+        await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let MPondBalance1Before = await MPONDInstance.balanceOf(delegator1);
-        await delegate(delegator1, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
+        await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let MPondBalance1After = await MPONDInstance.balanceOf(delegator1);
         console.log(MPondBalance1After.sub(MPondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
         assert(MPondBalance1After.sub(MPondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
@@ -242,7 +242,7 @@ contract("Stake contract", async function(accounts) {
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
         let MPondBalance2Before = await MPONDInstance.balanceOf(delegator2);
-        await delegate(delegator2, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
+        await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let MPondBalance2After = await MPONDInstance.balanceOf(delegator2);
         console.log(MPondBalance2After.sub(MPondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
         assert(MPondBalance2After.sub(MPondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
@@ -256,8 +256,8 @@ contract("Stake contract", async function(accounts) {
             from: registeredCluster4
         });
         // 2 users delegate tokens to a cluster - one twice the other
-        await delegate(delegator3, [registeredCluster3, registeredCluster4], [2000000, 4], [0, 1]);
-        await delegate(delegator4, [registeredCluster3, registeredCluster4], [10, 2000000], [1, 0]);
+        await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
+        await delegate(delegator4, [registeredCluster3, registeredCluster4], [10, 0], [0, 2000000]);
         // data is fed to the oracle
         await feedData([registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
@@ -269,11 +269,11 @@ contract("Stake contract", async function(accounts) {
         console.log(MPondBalance3After.sub(MPondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
         assert(MPondBalance3After.sub(MPondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle
-        await delegate(delegator3, [registeredCluster3, registeredCluster4], [2000000, 4], [0, 1]);
+        await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         await feedData([registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
         let MPondBalance4Before = await MPONDInstance.balanceOf(delegator4);
-        await delegate(delegator4, [registeredCluster3, registeredCluster4], [2000000, 4], [0, 1]);
+        await delegate(delegator4, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         let MPondBalance4After = await MPONDInstance.balanceOf(delegator4);
         console.log(MPondBalance4After.sub(MPondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
         assert(MPondBalance4After.sub(MPondBalance4Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
@@ -288,8 +288,8 @@ contract("Stake contract", async function(accounts) {
             from: registeredCluster2
         });
         // 2 users delegate tokens to a cluster - one twice the other
-        const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
-        await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 2000000], [1, 0]);
+        const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
+        await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
@@ -305,25 +305,22 @@ contract("Stake contract", async function(accounts) {
         console.log(MPondBalance1After.sub(MPondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
         assert(MPondBalance1After.sub(MPondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle
-        await delegate(delegator1, [registeredCluster1, registeredCluster2], [4000000, 8], [0, 1]);
+        await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 8], [4000000, 0]);
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
         let MPondBalance2Before = await MPONDInstance.balanceOf(delegator2);
-        await delegate(delegator2, [registeredCluster1, registeredCluster2], [2000000, 4], [0, 1]);
+        await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let MPondBalance2After = await MPONDInstance.balanceOf(delegator2);
         console.log(MPondBalance2After.sub(MPondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
         assert(MPondBalance2After.sub(MPondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
     });
 
-    async function delegate(delegator, clusters, amounts, tokenType) {
+    async function delegate(delegator, clusters, mpondAmounts, pondAmounts) {
         let totalPond = 0;
         let totalMPond = 0;
-        for(let i=0; i < amounts.length; i++) {
-            if(tokenType[i] == 0) {
-                totalPond += amounts[i];
-            } else if(tokenType[i] == 1) {
-                totalMPond += amounts[i];
-            }     
+        for(let i=0; i < pondAmounts.length; i++) {
+            totalPond += pondAmounts[i];
+            totalMPond += mpondAmounts[i];
         }
 
         if(totalMPond > 0) {
@@ -342,8 +339,8 @@ contract("Stake contract", async function(accounts) {
         }
         const stashes = [];
         for(let i=0; i < clusters.length; i++) {
-            console.log(tokenType[i], amounts[i], clusters[i]);
-            const receipt = await stakeContract.createStashAndDelegate(tokenType[i], amounts[i], clusters[i], {
+            // console.log(tokenType[i], amounts[i], clusters[i]);
+            const receipt = await stakeContract.createStashAndDelegate(mpondAmounts[i], pondAmounts[i], clusters[i], {
                 from: delegator
             });
             stashes.push(receipt.logs[0].args.stashId);

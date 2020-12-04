@@ -155,17 +155,17 @@ contract("Stake contract", async function(accounts) {
 
         await MPONDInstance.approve(stakeContract.address, amount);
         assert((await MPONDInstance.allowance(accounts[0], stakeContract.address)) == amount);
-        let tx = await stakeContract.createStash(1, amount - 100);
+        let tx = await stakeContract.createStash(amount - 100, 0);
         console.log("stash created with id:", (tx.logs[0].args.stashId))
 
         await MPONDInstance.approve(stakeContract.address, amount);
-        await stakeContract.createStash(1, amount);
+        await stakeContract.createStash(amount, 0);
 
         await MPONDInstance.approve(stakeContract.address, amount);
-        await truffleAssert.reverts(stakeContract.createStash(1, amount + 1));
+        await truffleAssert.reverts(stakeContract.createStash(amount + 1, 0));
 
         await MPONDInstance.approve(stakeContract.address, amount);
-        await truffleAssert.reverts(stakeContract.createStash(1, 0));
+        await truffleAssert.reverts(stakeContract.createStash(0, 0));
     });
 
     it("Delegate POND stash", async () => {
@@ -192,7 +192,7 @@ contract("Stake contract", async function(accounts) {
         }));
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         
-        const stashId = await createStash(1, amount);
+        const stashId = await createStash(amount, 0);
         
         await stakeContract.delegateStash(stashId, registeredCluster);
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
@@ -200,10 +200,10 @@ contract("Stake contract", async function(accounts) {
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
     });
 
-    it("Delegate random token to stash", async () => {
-        const amount = 100000;
-        await truffleAssert.fails(stakeContract.createStash(2, amount));
-    });
+    // it("Delegate random token to stash", async () => {
+    //     const amount = 100000;
+    //     await truffleAssert.fails(stakeContract.createStash(2, amount));
+    // });
 
     it("Delegate POND to invalid cluster", async () => {
         const amount = 900000;
@@ -213,7 +213,7 @@ contract("Stake contract", async function(accounts) {
 
     it("Delegate MPOND to invalid cluster", async () => {
         const amount = 800000;
-        const stashId = await createStash(1, amount);
+        const stashId = await createStash(amount, 0);
         await truffleAssert.reverts(stakeContract.delegateStash(stashId, unregisteredCluster));
     });
 
@@ -226,7 +226,7 @@ contract("Stake contract", async function(accounts) {
         })
 
         const amount = 700000;
-        const stashId = await createStash(1, amount);
+        const stashId = await createStash(amount, 0);
 
         await truffleAssert.reverts(stakeContract.delegateStash(stashId, deregisteredCluster));
     });
@@ -252,7 +252,7 @@ contract("Stake contract", async function(accounts) {
 
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
 
-        await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
 
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
@@ -285,7 +285,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.approve(stakeContract.address, amount);
 
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
-        const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        const receipt = await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
@@ -314,7 +314,7 @@ contract("Stake contract", async function(accounts) {
             from: MPONDAccount
         });
         await MPONDInstance.approve(stakeContract.address, amount);
-        const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        const receipt = await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
         const stashId = receipt.logs[0].args.stashId;
         await stakeContract.undelegateStash(stashId);
 
@@ -354,7 +354,7 @@ contract("Stake contract", async function(accounts) {
         });
 
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
-        const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        const receipt = await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
@@ -396,7 +396,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.approve(stakeContract.address, amount);
         
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
-        const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        const receipt = await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
@@ -442,7 +442,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.approve(stakeContract.address, amount);
         
         const clusterInitialDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
-        const receipt = await stakeContract.createStashAndDelegate(1, amount, registeredCluster);
+        const receipt = await stakeContract.createStashAndDelegate(amount, 0, registeredCluster);
         const clusterDelegation = (await rewardDelegators.getClusterDelegation(registeredCluster));
         assert(clusterDelegation.MPOND - clusterInitialDelegation.MPOND == amount);
         const stashId = receipt.logs[0].args.stashId;
@@ -467,16 +467,17 @@ contract("Stake contract", async function(accounts) {
         
     });
 
-    async function createStash(tokenType, amount) {
-        if(tokenType == 1) {
-            await MPONDInstance.transfer(accounts[0], amount, {
+    async function createStash(mpondAmount, pondAmount) {
+        if(mpondAmount != 0) {
+            await MPONDInstance.transfer(accounts[0], mpondAmount, {
                 from: MPONDAccount
             });
-            await MPONDInstance.approve(stakeContract.address, amount);
-        } else if(tokenType == 0) {
-            await PONDInstance.approve(stakeContract.address, amount);
+            await MPONDInstance.approve(stakeContract.address, mpondAmount);
         }
-        const tx = await stakeContract.createStash(tokenType, amount);
+        if(pondAmount != 0) {
+            await PONDInstance.approve(stakeContract.address, pondAmount);
+        }
+        const tx = await stakeContract.createStash(mpondAmount, pondAmount);
         return (tx.logs[0].args.stashId);
     }
 

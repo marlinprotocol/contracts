@@ -124,9 +124,9 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
         uint256 totalRewards = delegatorStake.pond.mul(clusterData.accPondRewardPerShare)
                                                     .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
-        if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+        if(delegatorEffectiveStake != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
-            if(pendingRewards > 0) {
+            if(pendingRewards != 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
@@ -153,18 +153,18 @@ contract RewardDelegators is Initializable, Ownable {
                                                     .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
         if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
-            if(pendingRewards > 0) {
+            if(pendingRewards != 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
-        if(_PONDAmount == 0) {
+        if(_PONDAmount != 0) {
             clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_PONDAmount);
             clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
                                                                                     .pond.sub(_PONDAmount);
             totalRewards = totalRewards.sub(_PONDAmount.mul(clusterData.accPondRewardPerShare));
         } 
-        if(_MPONDAmount == 1) {
+        if(_MPONDAmount != 0) {
             clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_MPONDAmount);
             clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
                                                                                     .mpond.sub(_MPONDAmount);
@@ -181,9 +181,9 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 delegatorEffectiveStake = delegatorStake.pond.add(delegatorStake.mpond.mul(pondPerMpond));
         uint256 totalRewards = delegatorStake.pond.mul(clusterData.accPondRewardPerShare)
                                                     .add(delegatorStake.mpond.mul(clusterData.accMPondRewardPerShare));
-        if(delegatorEffectiveStake > 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
+        if(delegatorEffectiveStake != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
-            if(pendingRewards > 0) {
+            if(pendingRewards != 0) {
                 transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
                 clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
