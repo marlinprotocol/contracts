@@ -112,7 +112,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     }
 
-    function delegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
+    function delegate(address _delegator, address _cluster, uint256 _MPONDAmount, uint256 _PONDAmount) public onlyStake {
         _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         require(
@@ -131,21 +131,20 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
-        if(_tokenType == 0) {
-            clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_amount);
-            clusters[_cluster].delegators[_delegator].pond = delegatorStake.pond.add(_amount);
-            totalRewards = totalRewards.add(_amount.mul(clusterData.accPondRewardPerShare));
-        } else if(_tokenType == 1) {
-            clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_amount);
-            clusters[_cluster].delegators[_delegator].mpond = delegatorStake.mpond.add(_amount);
-            totalRewards = totalRewards.add(_amount.mul(clusterData.accMPondRewardPerShare));
-        } else {
-            revert("ClusterRegistry:delegate - Token type invalid");
+        if(_PONDAmount != 0) {
+            clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_PONDAmount);
+            clusters[_cluster].delegators[_delegator].pond = delegatorStake.pond.add(_PONDAmount);
+            totalRewards = totalRewards.add(_PONDAmount.mul(clusterData.accPondRewardPerShare));
+        }
+        if(_MPONDAmount != 0) {
+            clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_MPONDAmount);
+            clusters[_cluster].delegators[_delegator].mpond = delegatorStake.mpond.add(_MPONDAmount);
+            totalRewards = totalRewards.add(_MPONDAmount.mul(clusterData.accMPondRewardPerShare));
         }
         clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
-    function undelegate(address _delegator, address _cluster, uint256 _amount, uint256 _tokenType) public onlyStake {
+    function undelegate(address _delegator, address _cluster, uint256 _MPONDAmount, uint256 _PONDAmount) public onlyStake {
         _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         uint256 currentNonce = clusterData.lastRewardDistNonce;
@@ -159,18 +158,17 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
-        if(_tokenType == 0) {
-            clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_amount);
+        if(_PONDAmount == 0) {
+            clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_PONDAmount);
             clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
-                                                                                    .pond.sub(_amount);
-            totalRewards = totalRewards.sub(_amount.mul(clusterData.accPondRewardPerShare));
-        } else if(_tokenType == 1) {
-            clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_amount);
+                                                                                    .pond.sub(_PONDAmount);
+            totalRewards = totalRewards.sub(_PONDAmount.mul(clusterData.accPondRewardPerShare));
+        } 
+        if(_MPONDAmount == 1) {
+            clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_MPONDAmount);
             clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
-                                                                                    .mpond.sub(_amount);
-            totalRewards = totalRewards.sub(_amount.mul(clusterData.accMPondRewardPerShare));
-        } else {
-            revert("ClusterRegistry:delegate - Token type invalid");
+                                                                                    .mpond.sub(_MPONDAmount);
+            totalRewards = totalRewards.sub(_MPONDAmount.mul(clusterData.accMPondRewardPerShare));
         }
         clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
