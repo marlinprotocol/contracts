@@ -10,7 +10,7 @@ contract PerfOracle is Initializable, Ownable {
 
     using SafeMath for uint256;
 
-    mapping(address => uint256) clusterRewards;
+    mapping(address => uint256) public clusterRewards;
 
     uint256 rewardPerEpoch;
     uint256 payoutDenomination;

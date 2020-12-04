@@ -175,7 +175,7 @@ contract RewardDelegators is Initializable, Ownable {
         clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
-    function withdrawRewards(address _delegator, address _cluster) public {
+    function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
         _updateRewards(_cluster);
         Cluster memory clusterData = clusters[_cluster];
         uint256 currentNonce = clusterData.lastRewardDistNonce;
@@ -190,7 +190,9 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
                 clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
             }
+            return pendingRewards;
         }
+        return 0;
     }
 
     function transferRewards(address _to, uint256 _amount) internal {

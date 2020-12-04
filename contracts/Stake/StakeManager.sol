@@ -31,7 +31,7 @@ contract StakeManager is Initializable {
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
 
-    event StashCreated(address creator, bytes32 stashId, uint256 stashIndex, TokenType tokenType, uint256 amount);
+    event StashCreated(address indexed creator, bytes32 stashId, uint256 stashIndex, TokenType tokenType, uint256 amount);
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, TokenType tokenType, uint256 amount);
