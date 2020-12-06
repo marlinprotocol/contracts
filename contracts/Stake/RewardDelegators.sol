@@ -4,7 +4,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
-import "./PerfOracle.sol";
+import "./ClusterRewards.sol";
 import "./ClusterRegistry.sol";
 
 contract RewardDelegators is Initializable, Ownable {
@@ -36,7 +36,7 @@ contract RewardDelegators is Initializable, Ownable {
     uint256 PondRewardFactor;
     uint256 MPondRewardFactor;
 
-    PerfOracle public oracle;
+    ClusterRewards public clusterRewards;
     ClusterRegistry clusterRegistry;
     ERC20 MPONDToken;
 
@@ -48,7 +48,7 @@ contract RewardDelegators is Initializable, Ownable {
     function initialize(
         uint256 _undelegationWaitTime, 
         address _stakeAddress, 
-        address _oracleAddress,
+        address _clusterRewardsAddress,
         address _clusterRegistry,
         address _rewardDelegatorsAdmin,
         uint256 _minMPONDStake, 
@@ -62,7 +62,7 @@ contract RewardDelegators is Initializable, Ownable {
         undelegationWaitTime = _undelegationWaitTime;
         stakeAddress = _stakeAddress;
         clusterRegistry = ClusterRegistry(_clusterRegistry);
-        oracle = PerfOracle(_oracleAddress);
+        clusterRewards = ClusterRewards(_clusterRewardsAddress);
         MPONDToken = ERC20(_MPONDAddress);
         minMPONDStake = _minMPONDStake;
         PondRewardFactor = _PondRewardFactor;
@@ -72,7 +72,7 @@ contract RewardDelegators is Initializable, Ownable {
     
 
     function _updateRewards(address _cluster) public {
-        uint256 reward = oracle.claimReward(_cluster);
+        uint256 reward = clusterRewards.claimReward(_cluster);
         if(reward == 0) {
             return;
         }

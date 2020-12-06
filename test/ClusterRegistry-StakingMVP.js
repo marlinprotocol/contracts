@@ -13,8 +13,8 @@ const RewardDelegatorsProxy = artifacts.require("RewardDelegatorsProxy.sol");
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
-const PerfOracle = artifacts.require("PerfOracle.sol");
-const PerfOracleProxy = artifacts.require("PerfOracleProxy.sol");
+const PerfOracle = artifacts.require("ClusterRewards.sol");
+const PerfOracleProxy = artifacts.require("ClusterRewardsProxy.sol");
 
 const { BigNumber } = require("ethers/utils");
 const appConfig = require("../app-config");

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./RewardDelegators.sol";
 
-contract PerfOracle is Initializable, Ownable {
+contract ClusterRewards is Initializable, Ownable {
 
     using SafeMath for uint256;
 
