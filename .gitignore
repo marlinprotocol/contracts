@@ -3,3 +3,5 @@ vendor
 build
 slither.log
 .env
+.DS_Store
+.vscode

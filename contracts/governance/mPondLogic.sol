@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract mPondLogic is Initializable {
+contract MPondLogic is Initializable {
     /// @notice EIP-20 token name for this token
     string public name;
 

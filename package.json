@@ -9,7 +9,6 @@
   "scripts": {
     "test": "truffle test",
     "solhint": "solhint -f table contracts/**/*.sol",
-    "compile": "sol-compiler",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
     "prettify:test": "npx prettier --write test/*.js",
     "prettify:migrations": "npx prettier --write migrations/*.js"

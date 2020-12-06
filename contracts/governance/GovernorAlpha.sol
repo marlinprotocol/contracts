@@ -35,7 +35,7 @@ contract GovernorAlpha {
     TimelockInterface public timelock;
 
     /// @notice The address of the mPond governance token
-    mPondInterface public mPond;
+    MPondInterface public mPond;
 
     /// @notice The address of the Governor Guardian
     address public guardian;
@@ -148,7 +148,7 @@ contract GovernorAlpha {
         address guardian_
     ) public {
         timelock = TimelockInterface(timelock_);
-        mPond = mPondInterface(mPond_);
+        mPond = MPondInterface(mPond_);
         guardian = guardian_;
     }
 
@@ -539,7 +539,7 @@ interface TimelockInterface {
 }
 
 
-interface mPondInterface {
+interface MPondInterface {
     function getPriorVotes(address account, uint256 blockNumber)
         external
         view

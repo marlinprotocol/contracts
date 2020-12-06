@@ -5,7 +5,7 @@ pragma solidity >=0.4.21 <0.7.0;
 /// @author Marlin
 /// @notice Use this contract only for testing
 /// @dev Contract may or may not change in future (depending upon the new slots in proxy-store)
-contract mPondProxy {
+contract MPondProxy {
     bytes32 internal constant IMPLEMENTATION_SLOT = bytes32(
         uint256(keccak256("eip1967.proxy.implementation")) - 1
     );
