@@ -11,7 +11,7 @@ const privKeys = [
   "ea2ba5f4f9dbc562523545351642337dfe28d15313c67343621ce69268811dd6",
   "e4d6377bc42be08808a118a066947b2b43a8099cd57a2c93b673b113915415d8",
   "1acecbf0180e32ffbfe2696d6e1489ee450ef2c8ae29c76d9127da792a3d074d",
-  "ee87c9bc1d06bffc71f6bd1e69b1a965224317f03b0964c46c38a61377b4871c"
+  "ee87c9bc1d06bffc71f6bd1e69b1a965224317f03b0964c46c38a61377b4871c",
 ];
 
 for (let index = 0; index < privKeys.length; index++) {
@@ -26,7 +26,7 @@ const addresses = [
   "0xb8148b8471492B17C6a1e34DA915d48300b52197", // extra address
   "0x88BC9131cc36437B6fEdf38d196d6facd54c7204", //extra address
   "0x8e5129957707C059a242f37BEddbfbD2A09529e0", // extra address
-  "0x730F2706CD6e6e6b66E1A4Ee75B7a2d3eA6Bee13"
+  "0x730F2706CD6e6e6b66E1A4Ee75B7a2d3eA6Bee13",
 ];
 
 var governanceInstance = new web3.eth.Contract(
@@ -35,7 +35,7 @@ var governanceInstance = new web3.eth.Contract(
 );
 var tokenInstance = new web3.eth.Contract(
   tokenAbi,
-  "0x20065f17565b7ab7a2e271178f38b9eaa2576f0f"// kovan address
+  "0x20065f17565b7ab7a2e271178f38b9eaa2576f0f" // kovan address
 );
 
 tokenInstance.methods.symbol().call().then(console.log);
@@ -82,7 +82,7 @@ governanceInstance.methods.proposals(4).call().then(console.log);
 
 // web3.eth.getTransactionReceipt("0xc9441ea20c11ab7d003943306b6f4c3e92222552f61b87984782530c84731d53").then(print);
 
-function print(data){
+function print(data) {
   console.log(JSON.stringify(data, null, 4));
 }
 

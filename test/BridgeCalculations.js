@@ -16,14 +16,16 @@ contract.skip("BridgeCalculations", function (accounts) {
   it("deploy contracts and instantiate", function () {
     return TokenLogic.new({from: accounts[1]})
       .then(function (logic) {
-        return TokenProxy.new(logic.address, {from: accounts[1]});
+        return TokenProxy.new(logic.address, accounts[20], {from: accounts[1]}); // accounts[20] is the proxy admin
       })
       .then(function (instance) {
         return TokenLogic.at(instance.address);
       })
       .then(function (instance) {
         token = instance;
-        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, accounts[20], {
+          from: accounts[1],
+        }); // accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         let mPondAdmin = accounts[0];
@@ -34,7 +36,9 @@ contract.skip("BridgeCalculations", function (accounts) {
         let admin = accounts[0];
         let governanceProxy = accounts[0];
         // return Bridge.new(mPond.address, token.address, admin, governanceProxy);
-        return BridgeProxy.new(BridgeLogic.address, {from: accounts[1]});
+        return BridgeProxy.new(BridgeLogic.address, accounts[20], {
+          from: accounts[1],
+        }); // accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         return BridgeLogic.at(proxyContract.address);
@@ -48,7 +52,7 @@ contract.skip("BridgeCalculations", function (accounts) {
       })
       .then(function (name) {
         console.table({name});
-        return mPond.initialize(accounts[4], accounts[11]);
+        return mPond.initialize(accounts[4], accounts[11], accounts[12]); // accounts[12] is assumed to temp x-chain bridge address
       })
       .then(function () {
         return mPond.name();
@@ -223,8 +227,11 @@ contract.skip("BridgeCalculations", function (accounts) {
   });
 
   it("Day 180: convert 85 mPond to pond of epoch 0", function () {
-    return bridge
-      .convert(new web3Utils.BN("0"), new web3Utils.BN("85"))
+    return mPond
+      .addWhiteListAddress(bridge.address)
+      .then(function () {
+        return bridge.convert(new web3Utils.BN("0"), new web3Utils.BN("85"));
+      })
       .then(function () {
         return mPond.balanceOf(accounts[0]);
       })

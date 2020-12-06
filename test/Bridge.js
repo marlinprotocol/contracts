@@ -16,14 +16,16 @@ contract.skip("Bridge", function (accounts) {
   it("deploy contracts and instantiate", function () {
     return TokenLogic.new({from: accounts[1]})
       .then(function (logic) {
-        return TokenProxy.new(logic.address, {from: accounts[1]});
+        return TokenProxy.new(logic.address, accounts[20], {from: accounts[1]}); //accounts[20] is the proxy admin
       })
       .then(function (instance) {
         return TokenLogic.at(instance.address);
       })
       .then(function (instance) {
         token = instance;
-        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, accounts[20], {
+          from: accounts[1],
+        }); //accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         let mPondAdmin = accounts[0];
@@ -34,7 +36,9 @@ contract.skip("Bridge", function (accounts) {
         let admin = accounts[0];
         let governanceProxy = accounts[0];
         // return Bridge.new(mPond.address, token.address, admin, governanceProxy);
-        return BridgeProxy.new(BridgeLogic.address, {from: accounts[1]});
+        return BridgeProxy.new(BridgeLogic.address, accounts[20], {
+          from: accounts[1],
+        }); //accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         return BridgeLogic.at(proxyContract.address);
@@ -48,7 +52,7 @@ contract.skip("Bridge", function (accounts) {
       })
       .then(function (name) {
         console.table({name});
-        return mPond.initialize(accounts[4], accounts[11]);
+        return mPond.initialize(accounts[4], accounts[11], accounts[12]); // accounts[12] is assumed to temp x-chain bridge address
       })
       .then(function () {
         return mPond.name();
@@ -63,11 +67,11 @@ contract.skip("Bridge", function (accounts) {
         );
       })
       .then(function () {
-        return bridge.getConversionRate();
+        return bridge.pondPerMpond();
       })
       .then(function (pondPerMpond) {
         console.table({pondPerMpond});
-        return;
+        return mPond.changeDropBridge(bridge.address);
       });
   });
 
@@ -111,7 +115,7 @@ contract.skip("Bridge", function (accounts) {
         });
       })
       .then(function () {
-        token.approve(bridge.address, new web3Utils.BN("10000000"));
+        return token.approve(bridge.address, new web3Utils.BN("10000000"));
       })
       .then(function () {
         return bridge.addLiquidity(
@@ -133,6 +137,7 @@ contract.skip("Bridge", function (accounts) {
           true,
           "pond liquidity should be greated than 0"
         );
+        return mPond.addWhiteListAddress(accounts[0]);
       });
   });
   it("pond to mPond conversion (i.e get mpond)", function () {
@@ -221,7 +226,7 @@ contract.skip("Bridge", function (accounts) {
       })
       .then(function () {
         // above will create request on 0th epoch.
-        return bridge.viewRequest(testingAccount, 0);
+        return bridge.requests(testingAccount, 0);
       })
       .then(function (request) {
         console.log({request});
@@ -246,6 +251,9 @@ contract.skip("Bridge", function (accounts) {
       })
       .then(function (liquidityBp) {
         console.log(`effective liquidity at ${liquidityBp} at end`);
+        return mPond.addWhiteListAddress(testingAccount);
+      })
+      .then(function () {
         return bridge.convert(0, 2, {from: testingAccount});
       })
       .then(function () {
