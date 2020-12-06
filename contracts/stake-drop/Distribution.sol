@@ -12,7 +12,7 @@ contract Distribution {
     ValidatorRegistry public validatorRegistry;
     StakeRegistry public stakeRegistry;
     AddressRegistry public addressRegistry;
-    mPondLogic public mpond;
+    MPondLogic public mpond;
 
     mapping(bytes32 => uint256) public claimedBalances;
 
@@ -26,7 +26,7 @@ contract Distribution {
         validatorRegistry = ValidatorRegistry(_validatorRegistry);
         stakeRegistry = StakeRegistry(_stakeRegistry);
         addressRegistry = AddressRegistry(_addressRegistry);
-        mpond = mPondLogic(_tokenAddress);
+        mpond = MPondLogic(_tokenAddress);
     }
 
     function addTokens(uint256 _amount) public returns (bool) {

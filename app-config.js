@@ -53,12 +53,28 @@ let clusterExitWaitEpochs = 2;
 // Minimum number of LIN to stake for a cluster to join network
 let clusterMinStake = 10;
 
-let LINData = {
+let PONDData = {
   name: "Marlin Protocol",
-  symbol: "LIN",
+  symbol: "POND",
   decimals: 18,
-  id: "0xf16beb5846e557de31bd8fec4a0a6ec8dd91f2aa17a5118d4b2ab7d9ab14abbc", // keccak256("LIN")
+  id: "0xce802da114f69a4ecceeef68321cb8ad9b268d4419375940651a2ec028713744", // keccak256("POND")
 };
+
+let MPONDData = {
+  name: "Marlin Protocol - Governance",
+  symbol: "MPOND",
+  decimals: 18,
+  id: "0x9d76bde6f6a1e9bf8e29a98238a6cb26e11f790c4377a675d10c5b375109dbc8", // keccak256("MPOND")
+};
+
+let staking = {
+  undelegationWaitTime: 3,
+  rewardPerEpoch: 10000,
+  minMPONDStake: 2,
+  payoutDenomination: 100000,
+  PondRewardFactor: 100,
+  MPondRewardFactor: 100
+}
 
 module.exports = {
   governanceProxyAccountIndex,
@@ -68,9 +84,9 @@ module.exports = {
   relayerAccountIndex,
   clusterExitWaitEpochs,
   clusterMinStake,
-  LINData,
+  PONDData,
+  MPONDData,
   verifiedClaimAccountIndex,
-  reward1ClaimerIndex,
-  reward2ClaimerIndex,
-  reward3ClaimerIndex,
+  reward1ClaimerIndex, reward2ClaimerIndex, reward3ClaimerIndex,
+  staking
 };

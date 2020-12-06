@@ -2,12 +2,12 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 
-contract mPond {
+contract MPond {
     /// @notice EIP-20 token name for this token
     string public constant name = "Marlin Governance Token";
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "mPOND";
+    string public constant symbol = "MPOND";
 
     /// @notice EIP-20 token decimals for this token
     uint8 public constant decimals = 18;

@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract mPondLogic is Initializable {
+contract MPondLogic is Initializable {
     /// @notice EIP-20 token name for this token
     string public name;
 
@@ -127,7 +127,7 @@ contract mPondLogic is Initializable {
             "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
         );
         admin = msg.sender;
-        enableAllTranfers = false; //This is only for testing, will be false in prod
+        // enableAllTranfers = true; //This is only for testing, will be false
     }
 
     function addWhiteListAddress(address _address)
