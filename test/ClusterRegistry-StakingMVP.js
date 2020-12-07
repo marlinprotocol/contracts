@@ -21,7 +21,7 @@ const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const {AddressZero} = require("ethers/constants");
 
-contract("Stake contract", async function (accounts) {
+contract("Staking Flow", async function (accounts) {
   let PONDInstance;
   let MPONDInstance;
   let stakeContract;

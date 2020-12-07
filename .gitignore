@@ -4,3 +4,4 @@ build
 slither.log
 .env
 *merged.sol
+temp

@@ -21,7 +21,7 @@ const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const {AddressZero} = require("ethers/constants");
 
-contract.skip("Stake contract", async function (accounts) {
+contract("Stake contract", async function (accounts) {
   let PONDInstance;
   let MPONDInstance;
   let stakeContract;
@@ -29,6 +29,7 @@ contract.skip("Stake contract", async function (accounts) {
   let perfOracle;
   let rewardDelegators;
   const bridge = accounts[2];
+  const dropBridgeAddress = accounts[21];
   const admin = accounts[1];
   const proxyAdmin = accounts[1];
   const oracleOwner = accounts[10];
@@ -63,7 +64,7 @@ contract.skip("Stake contract", async function (accounts) {
       appConfig.PONDData.decimals,
       bridge
     );
-    await MPONDInstance.initialize(MPONDAccount, bridge, {
+    await MPONDInstance.initialize(MPONDAccount, bridge, dropBridgeAddress, {
       from: admin,
     });
 
