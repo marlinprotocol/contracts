@@ -16,6 +16,8 @@ contract MPondLogic is Initializable {
     /// @notice Total number of tokens in circulation
     uint256 public totalSupply; // 10k mPond
     uint256 public bridgeSupply; // 3k mPond
+
+    address public dropBridge;
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 
@@ -82,7 +84,11 @@ contract MPondLogic is Initializable {
      * @notice Initializer a new mPond token
      * @param account The initial account to grant all the tokens
      */
-    function initialize(address account, address bridge) public initializer {
+    function initialize(
+        address account,
+        address bridge,
+        address dropBridgeAddress
+    ) public initializer {
         createConstants();
         require(
             account != bridge,
@@ -101,12 +107,13 @@ contract MPondLogic is Initializable {
         balances[account] = remainingSupply;
         delegates[account][address(0)] = remainingSupply;
         isWhiteListed[account] = true;
+        dropBridge = dropBridgeAddress;
         emit Transfer(address(0), account, uint256(remainingSupply));
     }
 
     function createConstants() internal {
         name = "Marlin Governance Token";
-        symbol = "mPOND";
+        symbol = "MPOND";
         decimals = 18;
         totalSupply = 10000e18;
         bridgeSupply = 7000e18;
@@ -141,11 +148,23 @@ contract MPondLogic is Initializable {
         return true;
     }
 
+    function changeDropBridge(address _updatedBridge)
+        public
+        onlyAdmin("Only admin can change drop bridge")
+    {
+        dropBridge = _updatedBridge;
+    }
+
     function isWhiteListedTransfer(address _address1, address _address2)
         public
         view
         returns (bool)
     {
+        if (_address1 == dropBridge) {
+            return true;
+        } else if (_address2 == dropBridge) {
+            return (isWhiteListed[_address1] || enableAllTranfers);
+        }
         return
             (isWhiteListed[_address1] || isWhiteListed[_address2]) ||
             enableAllTranfers;

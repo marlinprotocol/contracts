@@ -1,9 +1,10 @@
 const Web3 = require("web3");
+// const web3 = new Web3(
+//   "https://goerli.infura.io/v3/f69c3698961e47d7834969e8c4347c1b" //goerli
+// );
 const web3 = new Web3(
-  "https://kovan.infura.io/v3/dd408c1672464e64bb74631ca8541967"
+  "https://rpc-mumbai.maticvigil.com/v1/0576d7be18bbf8c43ae3cbeccaf541f80c6eed1a" //matic
 );
-const mPondLogicCompiled = require("./build/contracts/mPondLogic.json");
-const mPondProxyCompiled = require("./build/contracts/mPondProxy.json");
 const addressRegistryCompiled = require("./build/contracts/AddressRegistry.json");
 const validatorRegistryCompiled = require("./build/contracts/ValidatorRegistry.json");
 const stakeRegistryCompiled = require("./build/contracts/StakeRegistry.json");
@@ -32,6 +33,10 @@ for (let index = 0; index < privKeys.length; index++) {
   web3.eth.accounts.wallet.add(privateKey);
 }
 
+const childChainManagerProxy = "0xb5505a6d998549090530911180f38aC5130101c6";
+const tokenAddress = "0xD439a0f22e0d8020764Db754efd7Af78100c6389"; // this was deployed from remix browser
+const tokenDeployedFrom = "0x0744bFE7c9F034cB54FEd508f50eF1bA3F29b80A";
+
 async function deployContract(web3, abi, bytecode, arguments, config) {
   const contract = new web3.eth.Contract(abi);
   const receiptPromise = new Promise((resolve, reject) => {
@@ -53,7 +58,7 @@ async function deployContract(web3, abi, bytecode, arguments, config) {
         reject(error);
       });
   });
-
+  
   return receiptPromise;
 }
 
@@ -83,22 +88,6 @@ async function deploy() {
     [validatorRegistryAddress, config.governanceProxy],
     config.deploymentConfig
   );
-  console.log("-------------Deploying MPOND Logic--------------");
-  const mPondLogicAddress = await deployContract(
-    web3,
-    mPondLogicCompiled.abi,
-    mPondLogicCompiled.bytecode,
-    [],
-    config.deploymentConfig
-  );
-  console.log("-------------Deploying MPOND Proxy--------------");
-  const mPondProxyAddress = await deployContract(
-    web3,
-    mPondProxyCompiled.abi,
-    mPondProxyCompiled.bytecode,
-    [mPondLogicAddress],
-    config.deploymentConfig
-  );
   console.log("-------------Deploying Distribution--------------");
   const distributionAddress = await deployContract(
     web3,
@@ -108,7 +97,7 @@ async function deploy() {
       validatorRegistryAddress,
       stakeRegistryAddress,
       addressRegistryAddress,
-      mPondProxyAddress,
+      tokenAddress,
     ],
     config.deploymentConfig
   );
@@ -117,72 +106,35 @@ async function deploy() {
   console.log("ValidatorRegistry address", validatorRegistryAddress);
   console.log("StakeRegistry address", stakeRegistryAddress);
   console.log("AddressRegistry address", addressRegistryAddress);
-  console.log("mPondLogic address", mPondLogicAddress);
-  console.log("mPondProxy address", mPondProxyAddress);
   console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 }
-
-// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-// Distribution address 0x7b45587B7a993aE4481A713de4a4b487C05308C2
-// ValidatorRegistry address 0x56dF8F7306DceECf9Bb91b2ee861032D575E0972
-// StakeRegistry address 0x04149a2cCb98f649302BbdCc4a3D7118B7ABcAf5
-// AddressRegistry address 0x63B222F4222ac71DE4be09A06cE5C4Fd0B5a2635
-// mPondLogic address 0x49F86fAff3cf45C66872b1C1135f309Cd6468DB9
-// mPondProxy address 0x9c2B9044e1e52f2fAC04A4A843C2d4cE9f5Ff3f0
-// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-var distributionContractAddress = "0x7b45587B7a993aE4481A713de4a4b487C05308C2";
-var tokenProxyAddress = "0x9c2B9044e1e52f2fAC04A4A843C2d4cE9f5Ff3f0";
-
-async function init() {
-  var tokenInstance = new web3.eth.Contract(
-    mPondLogicCompiled.abi,
-    tokenProxyAddress // kovan address
-  );
-  let result = await tokenInstance.methods
-    .initialize(
-      "0xf55B1947e877e3Fa87ad13fA8169df82c544f1ef",
-      distributionContractAddress
-    )
-    // externalAddress, distribution address
-    .send({from: addresses[0], gas: 2000000, gasPrice: 1000000000});
-  return result;
-}
-
-async function checkBalance() {
-  var tokenInstance = new web3.eth.Contract(
-    mPondLogicCompiled.abi,
-    tokenProxyAddress // kovan address
-  );
-  let result = await tokenInstance.methods
-    .balanceOf(distributionContractAddress)
-    .call();
-  return result;
-}
-
-async function abi() {
-  return distributionCompiled.abi;
-}
-
 async function checkDistributionContract() {
   let distributionInstance = new web3.eth.Contract(
     distributionCompiled.abi,
-    distributionContractAddress
+    "0x27F9C69F1a95E1283D71F876687E5fC72ecD1116"
   );
   let result = distributionInstance.methods
     .getUnclaimedAmount()
-    .call({from: "0x2a63a4188082270f172ff8988fbab252e4201bee"});
+    .call({from: "fb22c0b729bf5f56ad904f71307fc247a82c2af5"});
   return result;
 }
 
-checkDistributionContract().then(console.log).catch(console.log);
+// checkDistributionContract().then(console.log).catch(console.log);
 
-// abi().then(print).catch(console.log)
-// checkBalance().then(console.log).catch(console.log);
-// init().then(console.log).catch(console.log);
+deploy();
 
-// deploy();
+//polkadot addresses
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0x27F9C69F1a95E1283D71F876687E5fC72ecD1116
+// ValidatorRegistry address 0xC1423350f37c6F4a6E9F96435d50D70f95bBE499
+// StakeRegistry address 0x22BDBd03753298df08f2103BCaDD0a53922A34c6
+// AddressRegistry address 0x6094367346ef75c7ae080Fdb46b0e8C8f378583d
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function print(data) {
-  console.log(JSON.stringify(data, null, 4));
-}
+// bsc addresses
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0xcEB30db2fBCE607f962d4412C434E0fF13d2b642
+// ValidatorRegistry address 0x29dccB73766ff32247733Eeaa3db084234F5b328
+// StakeRegistry address 0x3A45d13aB4F70f7C327Cb60Ce8D35856aacDFa2d
+// AddressRegistry address 0xDfD511Ed1cbFC85B9ba4B7E4C21bE67A5C3FAd76
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

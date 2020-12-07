@@ -27,7 +27,9 @@ contract.skip("Stake Drop testing", function (accounts) {
       })
       .then(function (instance) {
         stakeInstance = instance;
-        return mPondProxy.new(mPondLogic.address, {from: accounts[1]});
+        return mPondProxy.new(mPondLogic.address, accounts[20], {
+          from: accounts[1],
+        }); // accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
         return mPondLogic.at(proxyContract.address);
@@ -50,7 +52,7 @@ contract.skip("Stake Drop testing", function (accounts) {
   it("Init proxy contracts", function () {
     let mPondAdmin = accounts[0];
     let bridgeAddress = accounts[10];
-    return tokenInstance.initialize(mPondAdmin, bridgeAddress);
+    return tokenInstance.initialize(mPondAdmin, bridgeAddress, accounts[12]); // accounts[12] is assumed to be temp x-chain bridge address
   });
 
   it("Validator Registry: add 2,2,3,4 validators in epochs 1,2,3,4", function () {
