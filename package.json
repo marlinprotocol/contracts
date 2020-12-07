@@ -34,6 +34,7 @@
     "rlp": "^2.2.6",
     "solidity-bytes-utils": "0.0.8",
     "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-privatekey-provider": "^1.5.0",
     "web3": "^1.2.7",
     "web3-utils": "^1.2.8"
   },
