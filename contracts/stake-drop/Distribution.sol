@@ -3,7 +3,7 @@ pragma solidity 0.5.17;
 import "./AddressRegistry.sol";
 import "./StakeRegistry.sol";
 import "./ValidatorRegistry.sol";
-import "../governance/mPondLogic.sol";
+import "../governance/MPondLogic.sol";
 
 
 contract Distribution {

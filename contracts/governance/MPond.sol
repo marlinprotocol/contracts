@@ -13,8 +13,8 @@ contract MPond {
     uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint256 public constant totalSupply = 10000e18; // 10k mPond
-    uint256 public constant bridgeSupply = 7000e18; // 3k mPond
+    uint256 public constant totalSupply = 10000e18; // 10k MPond
+    uint256 public constant bridgeSupply = 7000e18; // 3k MPond
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 

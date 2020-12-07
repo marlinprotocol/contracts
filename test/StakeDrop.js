@@ -2,11 +2,11 @@ const AddressRegistry = artifacts.require("AddressRegistry.sol");
 const StakeRegistry = artifacts.require("StakeRegistry.sol");
 const ValidatorRegistry = artifacts.require("ValidatorRegistry.sol");
 const Distribution = artifacts.require("Distribution.sol");
-const mPondProxy = artifacts.require("mPondProxy.sol");
-const mPondLogic = artifacts.require("mPondLogic.sol");
+const MPondProxy = artifacts.require("MPondProxy.sol");
+const MPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
 
-contract.skip("Stake Drop testing", function (accounts) {
+contract("Stake Drop testing", function (accounts) {
   var validatorInstance;
   var addressInstance;
   var stakeInstance;
@@ -27,12 +27,12 @@ contract.skip("Stake Drop testing", function (accounts) {
       })
       .then(function (instance) {
         stakeInstance = instance;
-        return mPondProxy.new(mPondLogic.address, accounts[20], {
+        return MPondProxy.new(MPondLogic.address, accounts[20], {
           from: accounts[1],
         }); // accounts[20] is the proxy admin
       })
       .then(function (proxyContract) {
-        return mPondLogic.at(proxyContract.address);
+        return MPondLogic.at(proxyContract.address);
       })
       .then(function (instance) {
         tokenInstance = instance;
@@ -50,9 +50,9 @@ contract.skip("Stake Drop testing", function (accounts) {
   });
 
   it("Init proxy contracts", function () {
-    let mPondAdmin = accounts[0];
+    let MPondAdmin = accounts[0];
     let bridgeAddress = accounts[10];
-    return tokenInstance.initialize(mPondAdmin, bridgeAddress, accounts[12]); // accounts[12] is assumed to be temp x-chain bridge address
+    return tokenInstance.initialize(MPondAdmin, bridgeAddress, accounts[12]); // accounts[12] is assumed to be temp x-chain bridge address
   });
 
   it("Validator Registry: add 2,2,3,4 validators in epochs 1,2,3,4", function () {
@@ -62,7 +62,7 @@ contract.skip("Stake Drop testing", function (accounts) {
     let validator4 = web3Utils.keccak256("validator 4");
     // return validatorInstance.addValidator(1, validator1);
     return validatorInstance
-      .addValidatorsBulk(1, [validator1, validator2, validator3, validator4])
+      .addValidatorsBulk(1, [validator1, validator2, validator4])
       .then(function () {
         return validatorInstance.addValidatorsBulk(2, [
           validator1,
@@ -160,25 +160,24 @@ contract.skip("Stake Drop testing", function (accounts) {
       .then(function () {
         return stakeInstance.addStakeBulk(
           1,
-          [delegator2, delegator3, delegator4, delegator5],
-          [validator2, validator2, validator1, validator3],
-          [200, 300, 400, 500]
+          [delegator2, delegator3, delegator4],
+          [validator2, validator2, validator1],
+          [200, 300, 400]
         );
       })
       .then(function (transaction) {
         // console.log(transaction.tx);
-        let [log2, log3, log4, log5] = transaction.logs;
+        let [log2, log3, log4] = transaction.logs;
         assert.equal(log2.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log3.event, "StakeAdded", "Event should StakeAdded");
         assert.equal(log4.event, "StakeAdded", "Event should StakeAdded");
-        assert.equal(log5.event, "StakeAdded", "Event should StakeAdded");
         return stakeInstance.rewardPerAddress(delegator1);
       })
       .then(function (reward) {
         assert.equal(
           reward,
           100000000000000000,
-          "0.1 mPond should be the reward"
+          "0.1 MPond should be the reward"
         );
         return stakeInstance.addTotalStakeForEpoch(3, 50000);
       })
@@ -197,7 +196,7 @@ contract.skip("Stake Drop testing", function (accounts) {
         assert.equal(
           reward,
           900000000000000000,
-          "0.9 mPond should be the reward"
+          "0.9 MPond should be the reward"
         );
         return;
       });
@@ -218,7 +217,7 @@ contract.skip("Stake Drop testing", function (accounts) {
         assert.equal(
           reward,
           900000000000000000,
-          "0.9 mPond should be the reward"
+          "0.9 MPond should be the reward"
         );
         return tokenInstance.enableAllTransfers();
       })
@@ -238,7 +237,7 @@ contract.skip("Stake Drop testing", function (accounts) {
         assert.equal(
           balance,
           900000000000000000,
-          "0.9 mPond should be the balance"
+          "0.9 MPond should be the balance"
         );
         return;
       });

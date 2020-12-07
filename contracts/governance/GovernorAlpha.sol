@@ -9,12 +9,12 @@ contract GovernorAlpha {
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes() public pure returns (uint256) {
         return 8000e18;
-    } // 8000 mPond
+    } // 8000 MPond
 
     /// @notice The number of votes required in order for a voter to become a proposer
     function proposalThreshold() public pure returns (uint256) {
         return 1e18;
-    } // 1 mPond
+    } // 1 MPond
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint256) {
@@ -31,11 +31,11 @@ contract GovernorAlpha {
         return 17200;
     } // ~3 days in blocks (assuming 15s blocks)
 
-    /// @notice The address of the mPond Protocol Timelock
+    /// @notice The address of the MPond Protocol Timelock
     TimelockInterface public timelock;
 
-    /// @notice The address of the mPond governance token
-    mPondInterface public mPond;
+    /// @notice The address of the MPond governance token
+    MPondInterface public MPond;
 
     /// @notice The address of the Governor Guardian
     address public guardian;
@@ -144,11 +144,11 @@ contract GovernorAlpha {
 
     constructor(
         address timelock_,
-        address mPond_,
+        address MPond_,
         address guardian_
     ) public {
         timelock = TimelockInterface(timelock_);
-        mPond = mPondInterface(mPond_);
+        MPond = MPondInterface(MPond_);
         guardian = guardian_;
     }
 
@@ -160,7 +160,7 @@ contract GovernorAlpha {
         string memory description
     ) public returns (uint256) {
         require(
-            mPond.getPriorVotes(msg.sender, sub256(block.number, 1)) >
+            MPond.getPriorVotes(msg.sender, sub256(block.number, 1)) >
                 proposalThreshold(),
             "GovernorAlpha::propose: proposer votes below proposal threshold"
         );
@@ -296,7 +296,7 @@ contract GovernorAlpha {
         Proposal storage proposal = proposals[proposalId];
         require(
             msg.sender == guardian ||
-                mPond.getPriorVotes(
+                MPond.getPriorVotes(
                     proposal.proposer,
                     sub256(block.number, 1)
                 ) <
@@ -418,7 +418,7 @@ contract GovernorAlpha {
             receipt.hasVoted == false,
             "GovernorAlpha::_castVote: voter already voted"
         );
-        uint96 votes = mPond.getPriorVotes(voter, proposal.startBlock);
+        uint96 votes = MPond.getPriorVotes(voter, proposal.startBlock);
 
         if (support) {
             proposal.forVotes = add256(proposal.forVotes, votes);
@@ -539,7 +539,7 @@ interface TimelockInterface {
 }
 
 
-interface mPondInterface {
+interface MPondInterface {
     function getPriorVotes(address account, uint256 blockNumber)
         external
         view

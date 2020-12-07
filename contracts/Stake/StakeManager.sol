@@ -8,7 +8,6 @@ import "../governance/MPondLogic.sol";
 
 
 contract StakeManager is Initializable {
-
     using SafeMath for uint256;
 
     struct Stash {
@@ -31,53 +30,92 @@ contract StakeManager is Initializable {
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
 
-    event StashCreated(address indexed creator, bytes32 stashId, uint256 stashIndex, uint256 MPONDAmount, uint256 PONDAmount);
+    event StashCreated(
+        address indexed creator,
+        bytes32 stashId,
+        uint256 stashIndex,
+        uint256 MPONDAmount,
+        uint256 PONDAmount
+    );
     event StashDelegated(bytes32 stashId, address delegatedCluster);
-    event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
-    event StashWithdrawn(bytes32 stashId, uint256 MPONDAmount, uint256 PONDAmount);
-    event AddedToStash(address staker, address delegatedCluster, uint256 MPONDAmount, uint256 PONDAmount);
+    event StashUndelegated(
+        bytes32 stashId,
+        address undelegatedCluster,
+        uint256 undelegatesAt
+    );
+    event StashWithdrawn(
+        bytes32 stashId,
+        uint256 MPONDAmount,
+        uint256 PONDAmount
+    );
+    event AddedToStash(
+        address staker,
+        address delegatedCluster,
+        uint256 MPONDAmount,
+        uint256 PONDAmount
+    );
 
     function initialize(
-        address _MPONDAddress, 
-        address _PONDAddress, 
+        address _MPONDAddress,
+        address _PONDAddress,
         address _clusterRegistryAddress,
-        address _rewardDelegatorsAddress)
-        initializer
-        public 
-    {
+        address _rewardDelegatorsAddress
+    ) public initializer {
         tokenAddresses[0] = _PONDAddress;
         tokenAddresses[1] = _MPONDAddress;
         MPOND = MPondLogic(_MPONDAddress);
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
-
     }
 
-    function createStashAndDelegate(uint256 _MPONDAmount, uint256 _PONDAmount, address _delegatedCluster) public {
+    function createStashAndDelegate(
+        uint256 _MPONDAmount,
+        uint256 _PONDAmount,
+        address _delegatedCluster
+    ) public {
         bytes32 stashId = createStash(_MPONDAmount, _PONDAmount);
         delegateStash(stashId, _delegatedCluster);
     }
 
-    function createStash(uint256 _MPONDAmount, uint256 _PONDAmount) public returns(bytes32) {
+    function createStash(uint256 _MPONDAmount, uint256 _PONDAmount)
+        public
+        returns (bytes32)
+    {
         require(
-            _PONDAmount != 0 || _MPONDAmount != 0, 
+            _PONDAmount != 0 || _MPONDAmount != 0,
             "StakeManager:createStash - Amount should be greater than 0 to create stash"
         );
-        uint stashIndex = indices[msg.sender];
+        uint256 stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
-        stashes[stashId] = Stash(msg.sender, address(0), _MPONDAmount, _PONDAmount, 0);
+        stashes[stashId] = Stash(
+            msg.sender,
+            address(0),
+            _MPONDAmount,
+            _PONDAmount,
+            0
+        );
         // This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
         _lockTokens(TokenType.MPOND, _MPONDAmount, msg.sender);
         _lockTokens(TokenType.POND, _PONDAmount, msg.sender);
-        emit StashCreated(msg.sender, stashId, stashIndex, _MPONDAmount, _PONDAmount);
+        emit StashCreated(
+            msg.sender,
+            stashId,
+            stashIndex,
+            _MPONDAmount,
+            _PONDAmount
+        );
         return stashId;
     }
 
-    function addToStash(bytes32 _stashId, uint256 _MPONDAmount, uint256 _PONDAmount) public {
+    function addToStash(
+        bytes32 _stashId,
+        uint256 _MPONDAmount,
+        uint256 _PONDAmount
+    ) public {
         Stash memory stash = stashes[_stashId];
         require(
-            stash.staker == msg.sender, 
+            stash.staker == msg.sender,
             "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
         );
         require(
@@ -86,22 +124,32 @@ contract StakeManager is Initializable {
         );
         stashes[_stashId].MPONDAmount = stash.MPONDAmount.add(_MPONDAmount);
         stashes[_stashId].PONDAmount = stash.PONDAmount.add(_PONDAmount);
-        if(stash.delegatedCluster != address(0)) {
-            rewardDelegators.delegate(msg.sender, stash.delegatedCluster, _MPONDAmount, _PONDAmount);
+        if (stash.delegatedCluster != address(0)) {
+            rewardDelegators.delegate(
+                msg.sender,
+                stash.delegatedCluster,
+                _MPONDAmount,
+                _PONDAmount
+            );
         }
         _lockTokens(TokenType.MPOND, _MPONDAmount, msg.sender);
         _lockTokens(TokenType.POND, _PONDAmount, msg.sender);
-        emit AddedToStash(msg.sender, stash.delegatedCluster, _MPONDAmount, _PONDAmount);
+        emit AddedToStash(
+            msg.sender,
+            stash.delegatedCluster,
+            _MPONDAmount,
+            _PONDAmount
+        );
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
         Stash memory stash = stashes[_stashId];
         require(
-            stash.staker == msg.sender, 
+            stash.staker == msg.sender,
             "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
         );
         require(
-            clusterRegistry.isClusterValid(_delegatedCluster), 
+            clusterRegistry.isClusterValid(_delegatedCluster),
             "StakeManager:delegateStash - delegated cluster address is not valid"
         );
         require(
@@ -113,14 +161,19 @@ contract StakeManager is Initializable {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        rewardDelegators.delegate(msg.sender, _delegatedCluster, stash.MPONDAmount, stash.PONDAmount);
+        rewardDelegators.delegate(
+            msg.sender,
+            _delegatedCluster,
+            stash.MPONDAmount,
+            stash.PONDAmount
+        );
         emit StashDelegated(_stashId, _delegatedCluster);
     }
 
     function undelegateStash(bytes32 _stashId) public {
         Stash memory stash = stashes[_stashId];
         require(
-            stash.staker == msg.sender, 
+            stash.staker == msg.sender,
             "StakeManager:undelegateStash - Only staker can undelegate stash"
         );
         require(
@@ -133,11 +186,20 @@ contract StakeManager is Initializable {
         );
         uint256 waitTime = rewardDelegators.undelegationWaitTime();
         // use + for gas savings as overflow can't happen
-        uint undelegationBlock = block.number.add(waitTime);
+        uint256 undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        rewardDelegators.undelegate(msg.sender, stash.delegatedCluster, stash.MPONDAmount, stash.PONDAmount);
-        emit StashUndelegated(_stashId, stash.delegatedCluster, undelegationBlock);
+        rewardDelegators.undelegate(
+            msg.sender,
+            stash.delegatedCluster,
+            stash.MPONDAmount,
+            stash.PONDAmount
+        );
+        emit StashUndelegated(
+            _stashId,
+            stash.delegatedCluster,
+            undelegationBlock
+        );
     }
 
     function withdrawStash(bytes32 _stashId) public {
@@ -160,7 +222,11 @@ contract StakeManager is Initializable {
         emit StashWithdrawn(_stashId, stash.MPONDAmount, stash.PONDAmount);
     }
 
-    function withdrawStash(bytes32 _stashId, uint256 _MPONDAmount, uint256 _PONDAmount) public {
+    function withdrawStash(
+        bytes32 _stashId,
+        uint256 _MPONDAmount,
+        uint256 _PONDAmount
+    ) public {
         Stash memory stash = stashes[_stashId];
         require(
             stash.staker == msg.sender,
@@ -175,7 +241,8 @@ contract StakeManager is Initializable {
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
         require(
-            stash.MPONDAmount >= _MPONDAmount && stash.PONDAmount >= _PONDAmount,
+            stash.MPONDAmount >= _MPONDAmount &&
+                stash.PONDAmount >= _PONDAmount,
             "StakeManager:withdrawStash - balance not sufficient"
         );
         stashes[_stashId].PONDAmount = stash.PONDAmount.sub(_PONDAmount);
@@ -185,8 +252,12 @@ contract StakeManager is Initializable {
         emit StashWithdrawn(_stashId, _MPONDAmount, _PONDAmount);
     }
 
-    function _lockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
+    function _lockTokens(
+        TokenType _tokenType,
+        uint256 _amount,
+        address _delegator
+    ) internal {
+        if (_amount == 0) {
             return;
         }
         // pull tokens from mpond/pond contract
@@ -200,23 +271,21 @@ contract StakeManager is Initializable {
         );
         if (_tokenType == TokenType.MPOND) {
             // send a request to delegate governance rights for the amount to delegator
-            MPOND.delegate(
-                _delegator,
-                uint96(_amount)
-            );
+            MPOND.delegate(_delegator, uint96(_amount));
         }
     }
 
-    function _unlockTokens(TokenType _tokenType, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
+    function _unlockTokens(
+        TokenType _tokenType,
+        uint256 _amount,
+        address _delegator
+    ) internal {
+        if (_amount == 0) {
             return;
         }
-        if(_tokenType == TokenType.MPOND) {
+        if (_tokenType == TokenType.MPOND) {
             // send a request to undelegate governacne rights for the amount to previous delegator
-            MPOND.undelegate(
-                _delegator,
-                uint96(_amount)
-            );
+            MPOND.undelegate(_delegator, uint96(_amount));
         }
         require(
             ERC20(tokenAddresses[uint256(_tokenType)]).transfer(

@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./RewardDelegators.sol";
 
-contract ClusterRewards is Initializable, Ownable {
 
+contract ClusterRewards is Initializable, Ownable {
     using SafeMath for uint256;
 
     mapping(address => uint256) public clusterRewards;
@@ -26,14 +26,12 @@ contract ClusterRewards is Initializable, Ownable {
     }
 
     function initialize(
-        address _owner, 
-        address _rewardDelegatorsAddress, 
-        uint256 _rewardPerEpoch, 
+        address _owner,
+        address _rewardDelegatorsAddress,
+        uint256 _rewardPerEpoch,
         address _MPONDAddress,
-        uint256 _payoutDenomination) 
-        public
-        initializer
-    {
+        uint256 _payoutDenomination
+    ) public initializer {
         initialize(_owner);
         rewardDelegatorsAddress = _rewardDelegatorsAddress;
         rewardPerEpoch = _rewardPerEpoch;
@@ -41,19 +39,26 @@ contract ClusterRewards is Initializable, Ownable {
         payoutDenomination = _payoutDenomination;
     }
 
-    function feed(address[] memory _clusters, uint256[] memory _payouts) public onlyOwner {
-        for(uint256 i=0; i < _clusters.length; i++) {
+    function feed(address[] memory _clusters, uint256[] memory _payouts)
+        public
+        onlyOwner
+    {
+        for (uint256 i = 0; i < _clusters.length; i++) {
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(
-                                                rewardPerEpoch.mul(_payouts[i]).div(payoutDenomination)
-                                            );
+                rewardPerEpoch.mul(_payouts[i]).div(payoutDenomination)
+            );
         }
     }
 
-    // only cluster registry is necessary because the rewards 
+    // only cluster registry is necessary because the rewards
     // should be updated in the cluster registry against the cluster
-    function claimReward(address _cluster) public onlyRewardDelegatorsContract returns(uint256) {
+    function claimReward(address _cluster)
+        public
+        onlyRewardDelegatorsContract
+        returns (uint256)
+    {
         uint256 pendingRewards = clusterRewards[_cluster];
-        if(pendingRewards != 0) {
+        if (pendingRewards != 0) {
             transferRewards(rewardDelegatorsAddress, pendingRewards);
             delete clusterRewards[_cluster];
         }

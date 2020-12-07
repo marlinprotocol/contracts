@@ -2,8 +2,8 @@ const AddressRegistry = artifacts.require("AddressRegistry.sol");
 const StakeRegistry = artifacts.require("StakeRegistry.sol");
 const ValidatorRegistry = artifacts.require("ValidatorRegistry.sol");
 const Distribution = artifacts.require("Distribution.sol");
-const mPondProxy = artifacts.require("mPondProxy.sol");
-const mPondLogic = artifacts.require("mPondLogic.sol");
+const MPondProxy = artifacts.require("MPondProxy.sol");
+const MPondLogic = artifacts.require("MPondLogic.sol");
 
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
@@ -23,10 +23,10 @@ module.exports = async function (deployer, network, accounts) {
         );
       })
       .then(function () {
-        return deployer.deploy(mPondLogic);
+        return deployer.deploy(MPondLogic);
       })
       .then(function () {
-        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[0]);
+        return deployer.deploy(MPondProxy, MPondLogic.address, accounts[0]);
       })
       .then(function () {
         return deployer.deploy(
@@ -34,7 +34,7 @@ module.exports = async function (deployer, network, accounts) {
           ValidatorRegistry.address,
           StakeRegistry.address,
           AddressRegistry.address,
-          mPondProxy.address
+          MPondProxy.address
         );
       })
       .then(function () {
@@ -43,8 +43,8 @@ module.exports = async function (deployer, network, accounts) {
         console.log("ValidatorRegistry.address", ValidatorRegistry.address);
         console.log("StakeRegistry.address", StakeRegistry.address);
         console.log("AddressRegistry.address", AddressRegistry.address);
-        console.log("mPondLogic.address", mPondLogic.address);
-        console.log("mPondProxy.address", mPondProxy.address);
+        console.log("MPondLogic.address", MPondLogic.address);
+        console.log("MPondProxy.address", MPondProxy.address);
         console.log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
         return;
       });

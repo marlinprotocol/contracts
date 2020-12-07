@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "../Token/TokenLogic.sol";
-import "../governance/mPondLogic.sol";
+import "../governance/MPondLogic.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
 

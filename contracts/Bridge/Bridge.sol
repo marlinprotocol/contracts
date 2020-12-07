@@ -2,7 +2,7 @@ pragma solidity >=0.4.21 <0.7.0;
 pragma experimental ABIEncoderV2;
 
 import "../Token/TokenLogic.sol";
-import "../governance/mPond.sol";
+import "../governance/MPond.sol";
 
 
 contract Bridge {
