@@ -38,7 +38,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     ClusterRewards public clusterRewards;
     ClusterRegistry clusterRegistry;
-    ERC20 MPONDToken;
+    ERC20 PONDToken;
 
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "ClusterRegistry:onlyStake: only stake contract can invoke this function");
@@ -52,7 +52,7 @@ contract RewardDelegators is Initializable, Ownable {
         address _clusterRegistry,
         address _rewardDelegatorsAdmin,
         uint256 _minMPONDStake, 
-        address _MPONDAddress,
+        address _PONDAddress,
         uint256 _PondRewardFactor,
         uint256 _MPondRewardFactor
         ) 
@@ -63,7 +63,7 @@ contract RewardDelegators is Initializable, Ownable {
         stakeAddress = _stakeAddress;
         clusterRegistry = ClusterRegistry(_clusterRegistry);
         clusterRewards = ClusterRewards(_clusterRewardsAddress);
-        MPONDToken = ERC20(_MPONDAddress);
+        PONDToken = ERC20(_PONDAddress);
         minMPONDStake = _minMPONDStake;
         PondRewardFactor = _PondRewardFactor;
         MPondRewardFactor = _MPondRewardFactor;
@@ -194,7 +194,7 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function transferRewards(address _to, uint256 _amount) internal {
-        MPONDToken.transfer(_to, _amount);
+        PONDToken.transfer(_to, _amount);
     }
 
     function getEffectiveStake(address _cluster) public view returns(uint256) {

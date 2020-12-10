@@ -32,6 +32,7 @@ contract("Stake contract", async function(accounts) {
     const bridge = accounts[2];
     const admin = accounts[1];
     const proxyAdmin = accounts[1];
+    const dropBridgeAddress = accounts[11];
     const oracleOwner = accounts[10];
     const rewardDelegatorsAdmin = accounts[2];
     const MPONDAccount = accounts[3];
@@ -45,11 +46,11 @@ contract("Stake contract", async function(accounts) {
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
-        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address);
+        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address, proxyAdmin);
         PONDInstance = await PONDToken.at(pondProxyInstance.address);
 
         const MPONDDeployment = await MPONDToken.new();
-        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address);
+        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address, proxyAdmin);
         MPONDInstance = await MPONDToken.at(MpondProxyInstance.address);
 
         await PONDInstance.initialize(
@@ -61,6 +62,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.initialize(
             MPONDAccount,
             bridge,
+            dropBridgeAddress,
             {
                 from: admin
             }
@@ -98,7 +100,7 @@ contract("Stake contract", async function(accounts) {
             clusterRegistry.address,
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.PondRewardFactor,
             appConfig.staking.MPondRewardFactor
         );
@@ -107,7 +109,7 @@ contract("Stake contract", async function(accounts) {
             oracleOwner,
             rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
 
@@ -121,9 +123,9 @@ contract("Stake contract", async function(accounts) {
         })
         assert((await MPONDInstance.isWhiteListed(perfOracle.address), "StakeManager contract not whitelisted"));
 
-        await MPONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100, {
-            from: MPONDAccount
-        });
+        await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+
+        await PONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100);
     });
 
     it("create POND stash", async () => {

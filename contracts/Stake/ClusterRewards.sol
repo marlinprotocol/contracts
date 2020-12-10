@@ -16,7 +16,7 @@ contract ClusterRewards is Initializable, Ownable {
     uint256 payoutDenomination;
 
     address rewardDelegatorsAddress;
-    ERC20 MPOND;
+    ERC20 POND;
 
     uint256 public currentEpoch;
 
@@ -29,7 +29,7 @@ contract ClusterRewards is Initializable, Ownable {
         address _owner, 
         address _rewardDelegatorsAddress, 
         uint256 _rewardPerEpoch, 
-        address _MPONDAddress,
+        address _PONDAddress,
         uint256 _payoutDenomination) 
         public
         initializer
@@ -37,7 +37,7 @@ contract ClusterRewards is Initializable, Ownable {
         initialize(_owner);
         rewardDelegatorsAddress = _rewardDelegatorsAddress;
         rewardPerEpoch = _rewardPerEpoch;
-        MPOND = ERC20(_MPONDAddress);
+        POND = ERC20(_PONDAddress);
         payoutDenomination = _payoutDenomination;
     }
 
@@ -61,6 +61,6 @@ contract ClusterRewards is Initializable, Ownable {
     }
 
     function transferRewards(address _to, uint256 _amount) internal {
-        MPOND.transfer(_to, _amount);
+        POND.transfer(_to, _amount);
     }
 }

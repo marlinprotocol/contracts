@@ -30,6 +30,7 @@ contract("Stake contract", async function(accounts) {
     let perfOracle;
     let rewardDelegators;
     const bridge = accounts[2];
+    const dropBridgeAddress = accounts[20];
     const admin = accounts[1];
     const oracleOwner = accounts[10];
     const proxyAdmin = accounts[1];
@@ -53,11 +54,11 @@ contract("Stake contract", async function(accounts) {
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
-        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address);
+        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address, proxyAdmin);
         PONDInstance = await PONDToken.at(pondProxyInstance.address);
 
         const MPONDDeployment = await MPONDToken.new();
-        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address);
+        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address, proxyAdmin);
         MPONDInstance = await MPONDToken.at(MpondProxyInstance.address);
 
         await PONDInstance.initialize(
@@ -69,6 +70,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.initialize(
             MPONDAccount,
             bridge,
+            dropBridgeAddress,
             {
                 from: admin
             }
@@ -106,7 +108,7 @@ contract("Stake contract", async function(accounts) {
             clusterRegistry.address,
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.PondRewardFactor,
             appConfig.staking.MPondRewardFactor
         );
@@ -115,7 +117,7 @@ contract("Stake contract", async function(accounts) {
             oracleOwner,
             rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
 
@@ -126,21 +128,19 @@ contract("Stake contract", async function(accounts) {
         })
         assert((await MPONDInstance.isWhiteListed(stakeContract.address), "StakeManager contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
-            from: admin
-        })
-        assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
+        // await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
+        //     from: admin
+        // })
+        // assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(perfOracle.address, {
-            from: admin
-        })
-        assert((await MPONDInstance.isWhiteListed(perfOracle.address), "StakeManager contract not whitelisted"));
-
-        await MPONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100, {
-            from: MPONDAccount
-        });
+        // await MPONDInstance.addWhiteListAddress(perfOracle.address, {
+        //     from: admin
+        // })
+        // assert((await MPONDInstance.isWhiteListed(perfOracle.address), "StakeManager contract not whitelisted"));
 
         await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+
+        await PONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100);
     });
 
     it("Register cluster", async () => {
@@ -233,19 +233,19 @@ contract("Stake contract", async function(accounts) {
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
-        let MPondBalance1Before = await MPONDInstance.balanceOf(delegator1);
+        let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
-        let MPondBalance1After = await MPONDInstance.balanceOf(delegator1);
-        console.log(MPondBalance1After.sub(MPondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
-        assert(MPondBalance1After.sub(MPondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
+        let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+        console.log(PondBalance1After.sub(PondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
+        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
-        let MPondBalance2Before = await MPONDInstance.balanceOf(delegator2);
+        let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
-        let MPondBalance2After = await MPONDInstance.balanceOf(delegator2);
-        console.log(MPondBalance2After.sub(MPondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-        assert(MPondBalance2After.sub(MPondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
+        let PondBalance2After = await PONDInstance.balanceOf(delegator2);
+        console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
+        assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
     });
 
     it("Delegator withdraw rewards from a cluster", async () => {
@@ -262,21 +262,21 @@ contract("Stake contract", async function(accounts) {
         await feedData([registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
-        let MPondBalance3Before = await MPONDInstance.balanceOf(delegator3);
+        let PondBalance3Before = await PONDInstance.balanceOf(delegator3);
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster3);
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster4);
-        let MPondBalance3After = await MPONDInstance.balanceOf(delegator3);
-        console.log(MPondBalance3After.sub(MPondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
-        assert(MPondBalance3After.sub(MPondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
+        let PondBalance3After = await PONDInstance.balanceOf(delegator3);
+        console.log(PondBalance3After.sub(PondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
+        assert(PondBalance3After.sub(PondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle
         await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         await feedData([registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
-        let MPondBalance4Before = await MPONDInstance.balanceOf(delegator4);
+        let PondBalance4Before = await PONDInstance.balanceOf(delegator4);
         await delegate(delegator4, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
-        let MPondBalance4After = await MPONDInstance.balanceOf(delegator4);
-        console.log(MPondBalance4After.sub(MPondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-        assert(MPondBalance4After.sub(MPondBalance4Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
+        let PondBalance4After = await PONDInstance.balanceOf(delegator4);
+        console.log(PondBalance4After.sub(PondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
+        assert(PondBalance4After.sub(PondBalance4Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
     });
 
     it("Delegator undelegate and get rewards from a cluster", async () => {
@@ -294,25 +294,25 @@ contract("Stake contract", async function(accounts) {
         await feedData([registeredCluster1, registeredCluster2]);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
-        let MPondBalance1Before = await MPONDInstance.balanceOf(delegator1);
+        let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
         await stakeContract.undelegateStash(stashes[1], {
             from: delegator1
         });
         await stakeContract.undelegateStash(stashes[0], {
             from: delegator1
         });
-        let MPondBalance1After = await MPONDInstance.balanceOf(delegator1);
-        console.log(MPondBalance1After.sub(MPondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
-        assert(MPondBalance1After.sub(MPondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
+        let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+        console.log(PondBalance1After.sub(PondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
+        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 8], [4000000, 0]);
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // do some delegations for both users to the cluster
-        let MPondBalance2Before = await MPONDInstance.balanceOf(delegator2);
+        let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
-        let MPondBalance2After = await MPONDInstance.balanceOf(delegator2);
-        console.log(MPondBalance2After.sub(MPondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-        assert(MPondBalance2After.sub(MPondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
+        let PondBalance2After = await PONDInstance.balanceOf(delegator2);
+        console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
+        assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
     });
 
     async function delegate(delegator, clusters, mpondAmounts, pondAmounts) {
@@ -390,11 +390,11 @@ contract("Stake contract", async function(accounts) {
 
     async function redeploy() {
         const PONDDeployment = await PONDToken.new();
-        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address);
+        const pondProxyInstance = await PONDProxy.new(PONDDeployment.address, proxyAdmin);
         PONDInstance = await PONDToken.at(pondProxyInstance.address);
 
         const MPONDDeployment = await MPONDToken.new();
-        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address);
+        const MpondProxyInstance = await MPONDProxy.new(MPONDDeployment.address, proxyAdmin);
         MPONDInstance = await MPONDToken.at(MpondProxyInstance.address);
 
         await PONDInstance.initialize(
@@ -406,6 +406,7 @@ contract("Stake contract", async function(accounts) {
         await MPONDInstance.initialize(
             MPONDAccount,
             bridge,
+            dropBridgeAddress,
             {
                 from: admin
             }
@@ -443,7 +444,7 @@ contract("Stake contract", async function(accounts) {
             clusterRegistry.address,
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.PondRewardFactor,
             appConfig.staking.MPondRewardFactor
         );
@@ -452,7 +453,7 @@ contract("Stake contract", async function(accounts) {
             oracleOwner,
             rewardDelegators.address,
             appConfig.staking.rewardPerEpoch,
-            MPONDInstance.address, 
+            PONDInstance.address, 
             appConfig.staking.payoutDenomination,
         );
 
@@ -463,20 +464,18 @@ contract("Stake contract", async function(accounts) {
         })
         assert((await MPONDInstance.isWhiteListed(stakeContract.address), "StakeManager contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
-            from: admin
-        })
-        assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
+        // await MPONDInstance.addWhiteListAddress(rewardDelegators.address, {
+        //     from: admin
+        // })
+        // assert((await MPONDInstance.isWhiteListed(rewardDelegators.address), "rewardDelegators contract not whitelisted"));
 
-        await MPONDInstance.addWhiteListAddress(perfOracle.address, {
-            from: admin
-        })
-        assert((await MPONDInstance.isWhiteListed(perfOracle.address), "StakeManager contract not whitelisted"));
-
-        await MPONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100, {
-            from: MPONDAccount
-        });
+        // await MPONDInstance.addWhiteListAddress(perfOracle.address, {
+        //     from: admin
+        // })
+        // assert((await MPONDInstance.isWhiteListed(perfOracle.address), "StakeManager contract not whitelisted"));
 
         await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+
+        await PONDInstance.transfer(perfOracle.address, appConfig.staking.rewardPerEpoch*100);
     }
 });
