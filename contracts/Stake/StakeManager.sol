@@ -35,7 +35,8 @@ contract StakeManager is Initializable {
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, uint256 MPONDAmount, uint256 PONDAmount);
-    event AddedToStash(address staker, address delegatedCluster, uint256 MPONDAmount, uint256 PONDAmount);
+    event StashClosed(bytes32 stashId);
+    event AddedToStash(bytes32 stashId, address delegatedCluster, uint256 MPONDAmount, uint256 PONDAmount);
 
     function initialize(
         address _MPONDAddress, 
@@ -91,7 +92,7 @@ contract StakeManager is Initializable {
         }
         _lockTokens(TokenType.MPOND, _MPONDAmount, msg.sender);
         _lockTokens(TokenType.POND, _PONDAmount, msg.sender);
-        emit AddedToStash(msg.sender, stash.delegatedCluster, _MPONDAmount, _PONDAmount);
+        emit AddedToStash(_stashId, stash.delegatedCluster, _MPONDAmount, _PONDAmount);
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
@@ -158,6 +159,7 @@ contract StakeManager is Initializable {
         _unlockTokens(TokenType.MPOND, stash.MPONDAmount, stash.staker);
         _unlockTokens(TokenType.POND, stash.PONDAmount, stash.staker);
         emit StashWithdrawn(_stashId, stash.MPONDAmount, stash.PONDAmount);
+        emit StashClosed(_stashId);
     }
 
     function withdrawStash(bytes32 _stashId, uint256 _MPONDAmount, uint256 _PONDAmount) public {
@@ -174,12 +176,17 @@ contract StakeManager is Initializable {
             stash.undelegatesAt <= block.number,
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
-        require(
-            stash.MPONDAmount >= _MPONDAmount && stash.PONDAmount >= _PONDAmount,
-            "StakeManager:withdrawStash - balance not sufficient"
-        );
-        stashes[_stashId].PONDAmount = stash.PONDAmount.sub(_PONDAmount);
-        stashes[_stashId].MPONDAmount = stash.MPONDAmount.sub(_PONDAmount);
+        if(stash.PONDAmount == _PONDAmount && stash.MPONDAmount == _MPONDAmount) {
+            delete stashes[_stashId];
+            emit StashClosed(_stashId);
+        } else {
+            require(
+                stash.MPONDAmount >= _MPONDAmount && stash.PONDAmount >= _PONDAmount,
+                "StakeManager:withdrawStash - balance not sufficient"
+            );
+            stashes[_stashId].PONDAmount = stash.PONDAmount.sub(_PONDAmount);
+            stashes[_stashId].MPONDAmount = stash.MPONDAmount.sub(_MPONDAmount);
+        }
         _unlockTokens(TokenType.MPOND, _MPONDAmount, stash.staker);
         _unlockTokens(TokenType.POND, _PONDAmount, stash.staker);
         emit StashWithdrawn(_stashId, _MPONDAmount, _PONDAmount);
