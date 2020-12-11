@@ -35,7 +35,7 @@ contract StakeManager is Initializable {
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, uint256 MPONDAmount, uint256 PONDAmount);
-    event StashClosed(bytes32 stashId);
+    event StashClosed(bytes32 stashId, address indexed staker);
     event AddedToStash(bytes32 stashId, address delegatedCluster, uint256 MPONDAmount, uint256 PONDAmount);
 
     function initialize(
@@ -159,7 +159,7 @@ contract StakeManager is Initializable {
         _unlockTokens(TokenType.MPOND, stash.MPONDAmount, stash.staker);
         _unlockTokens(TokenType.POND, stash.PONDAmount, stash.staker);
         emit StashWithdrawn(_stashId, stash.MPONDAmount, stash.PONDAmount);
-        emit StashClosed(_stashId);
+        emit StashClosed(_stashId, stash.staker);
     }
 
     function withdrawStash(bytes32 _stashId, uint256 _MPONDAmount, uint256 _PONDAmount) public {
@@ -178,7 +178,7 @@ contract StakeManager is Initializable {
         );
         if(stash.PONDAmount == _PONDAmount && stash.MPONDAmount == _MPONDAmount) {
             delete stashes[_stashId];
-            emit StashClosed(_stashId);
+            emit StashClosed(_stashId, stash.staker);
         } else {
             require(
                 stash.MPONDAmount >= _MPONDAmount && stash.PONDAmount >= _PONDAmount,
