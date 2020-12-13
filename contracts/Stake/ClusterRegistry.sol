@@ -13,6 +13,7 @@ contract ClusterRegistry is Initializable {
         uint256 commission;
         address rewardAddress;
         address clientKey;
+        bytes32 networkId; // keccak256("ETH") // token ticker for anyother chain in place of ETH
         Status status;
     }
 
@@ -20,9 +21,16 @@ contract ClusterRegistry is Initializable {
 
     enum Status{NOT_REGISTERED, REGISTERED}
 
-    event ClusterRegistered(address cluster, uint256 commission, address rewardAddress, address clientKey);
+    event ClusterRegistered(
+        address cluster, 
+        bytes32 networkId, 
+        uint256 commission, 
+        address rewardAddress, 
+        address clientKey
+    );
     event CommissionUpdated(address cluster, uint256 updatedCommission);
     event RewardAddressUpdated(address cluster, address updatedRewardAddress);
+    event NetworkSwitched(address cluster, bytes32 networkId);
     event ClusterUnregistered(address cluster);
 
     function initialize() 
@@ -32,7 +40,13 @@ contract ClusterRegistry is Initializable {
 
     }
 
-    function register(uint256 _commission, address _rewardAddress, address _clientKey) public returns(bool) {
+    function register(
+        bytes32 _networkId, 
+        uint256 _commission, 
+        address _rewardAddress, 
+        address _clientKey
+    ) public returns(bool) {
+        // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
             clusters[msg.sender].status == Status.NOT_REGISTERED, 
             "ClusterRegistry:register - Cluster is already registered"
@@ -41,9 +55,10 @@ contract ClusterRegistry is Initializable {
         clusters[msg.sender].commission = _commission;
         clusters[msg.sender].rewardAddress = _rewardAddress;
         clusters[msg.sender].clientKey = _clientKey;
+        clusters[msg.sender].networkId = _networkId;
         clusters[msg.sender].status = Status.REGISTERED;
         
-        emit ClusterRegistered(msg.sender, _commission, _rewardAddress, _clientKey);
+        emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
     }
 
     function updateCommission(uint256 _commission) public {
@@ -54,6 +69,15 @@ contract ClusterRegistry is Initializable {
         require(_commission <= 100, "ClusterRegistry:updateCommission - Commission can't be more than 100%");
         clusters[msg.sender].commission = _commission;
         emit CommissionUpdated(msg.sender, _commission);
+    }
+
+    function switchNetwork(bytes32 _networkId) public {
+        require(
+            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            "ClusterRegistry:updateCommission - Cluster not registered"
+        );
+        clusters[msg.sender].networkId = _networkId;
+        emit NetworkSwitched(msg.sender, _networkId);
     }
 
     function updateRewardAddress(address _rewardAddress) public {
