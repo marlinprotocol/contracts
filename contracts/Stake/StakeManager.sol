@@ -68,11 +68,12 @@ contract StakeManager is Initializable, Ownable {
         );
         for(uint256 i=0; i < _tokenIds.length; i++) {
             tokenAddresses[_tokenIds[i]] = _tokenAddresses[i];
+            emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
-        initialize(_owner);
+        super.initialize(_owner);
     }
 
     function changeMPONDTokenAddress(
@@ -126,7 +127,7 @@ contract StakeManager is Initializable, Ownable {
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         stashes[stashId] = Stash(msg.sender, address(0), 0, new bytes32[](0));
-        // This can never overflow, so change to + for gas savings
+        // TODO: This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
         uint256 index = stashes[stashId].tokensDelegated.length;
         for(uint256 i=0; i < _tokens.length; i++) {
@@ -159,15 +160,15 @@ contract StakeManager is Initializable, Ownable {
         Stash memory stash = stashes[_stashId];
         require(
             stash.staker == msg.sender, 
-            "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
+            "StakeManager:addToStash - Only staker can delegate stash to a cluster"
         );
         require(
             stash.undelegatesAt <= block.number,
-            "StakeManager:delegateStash - Can't add to stash during undelegation"
+            "StakeManager:addToStash - Can't add to stash during undelegation"
         );
         require(
             _tokens.length == _amounts.length, 
-            "StakeManager:delegateStash - Each tokenId should have a corresponding amount and vice versa"
+            "StakeManager:addToStash - Each tokenId should have a corresponding amount and vice versa"
         );
         if(stash.delegatedCluster != address(0)) {
             rewardDelegators.delegate(msg.sender, stash.delegatedCluster, _tokens, _amounts);
@@ -176,7 +177,7 @@ contract StakeManager is Initializable, Ownable {
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
                 tokenAddresses[_tokens[i]] != address(0), 
-                "StakeManager:delegateStash - Invalid tokenId"
+                "StakeManager:addToStash - Invalid tokenId"
             );
             if(_amounts[i] != 0) {
                 TokenData memory tokenData = stashes[_stashId].amount[_tokens[i]];
