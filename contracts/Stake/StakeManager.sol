@@ -18,11 +18,6 @@ contract StakeManager is Initializable, Ownable {
         uint256 index; // index in tokensDelegated array
     }
 
-    struct TokenAddressData {
-        address tokenAddress;
-        uint256 index;
-    }
-
     struct Stash {
         address staker;
         address delegatedCluster;
@@ -36,8 +31,7 @@ contract StakeManager is Initializable, Ownable {
     // address to stashIndex
     mapping(address => uint256) indices;
     // tokenId to token address - tokenId = keccak256(tokenTicker)
-    mapping(bytes32 => TokenAddressData) tokenAddresses;
-    bytes32[] public tokenList;
+    mapping(bytes32 => address) tokenAddresses;
     MPondLogic MPOND;
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
@@ -73,8 +67,7 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:initialize - each tokenId should have a corresponding tokenAddress and vice versa"
         );
         for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokenAddresses[_tokenIds[i]] = TokenAddressData(_tokenAddresses[i], tokenList.length);
-            tokenList.push(_tokenIds[i]);
+            tokenAddresses[_tokenIds[i]] = _tokenAddresses[i];
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
@@ -94,27 +87,21 @@ contract StakeManager is Initializable, Ownable {
         address _address
     ) public onlyOwner {
         require(
-            tokenAddresses[_tokenId].tokenAddress == address(0), 
+            tokenAddresses[_tokenId] == address(0), 
             "StakeManager:enableToken - Token already enabled"
         );
         require(_address != address(0), "StakeManager:enableToken - Zero address not allowed");
-        tokenAddresses[_tokenId] = TokenAddressData(_address, tokenList.length);
-        tokenList.push(_tokenId);
+        tokenAddresses[_tokenId] = _address;
         emit TokenAdded(_tokenId, _address);
     }
 
     function disableToken(
         bytes32 _tokenId
     ) public onlyOwner {
-        TokenAddressData memory token = tokenAddresses[_tokenId];
         require(
-            token.tokenAddress != address(0), 
+            tokenAddresses[_tokenId] != address(0), 
             "StakeManager:enableToken - Token already enabled"
         );
-        bytes32 tokenToReplace = tokenList[tokenList.length - 1];
-        tokenList[token.index] = tokenToReplace;
-        tokenAddresses[tokenToReplace].index = token.index;
-        tokenList.pop();
         delete tokenAddresses[_tokenId];
         emit TokenRemoved(_tokenId);
     }
@@ -144,7 +131,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 index = stashes[stashId].tokensDelegated.length;
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
-                tokenAddresses[_tokens[i]].tokenAddress != address(0), 
+                tokenAddresses[_tokens[i]] != address(0), 
                 "StakeManager:createStash - Invalid tokenId"
             );
             if(_amounts[i] != 0) {
@@ -188,7 +175,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 index = stashes[_stashId].tokensDelegated.length;
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
-                tokenAddresses[_tokens[i]].tokenAddress != address(0), 
+                tokenAddresses[_tokens[i]] != address(0), 
                 "StakeManager:delegateStash - Invalid tokenId"
             );
             if(_amounts[i] != 0) {
@@ -342,7 +329,7 @@ contract StakeManager is Initializable, Ownable {
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId].tokenAddress;
+        address tokenAddress = tokenAddresses[_tokenId];
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
         require(
@@ -365,7 +352,7 @@ contract StakeManager is Initializable, Ownable {
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId].tokenAddress;
+        address tokenAddress = tokenAddresses[_tokenId];
         if(tokenAddress == address(MPOND)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPOND.undelegate(

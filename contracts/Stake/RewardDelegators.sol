@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "./ClusterRewards.sol";
 import "./ClusterRegistry.sol";
-import "./StakeManager.sol";
 
 contract RewardDelegators is Initializable, Ownable {
 
@@ -111,12 +110,6 @@ contract RewardDelegators is Initializable, Ownable {
         transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
         uint256 delegatorReward = reward.sub(commissionReward);
         uint256 weightedStake = cluster.weightedStake;
-        // uint256 weightedStake = PondRewardFactor.mul(cluster.totalDelegation.pond)
-        //                                         .add(
-        //                                             MPondRewardFactor
-        //                                             .mul(cluster.totalDelegation.mpond)
-        //                                             .mul(pondPerMpond)
-        //                                         );
         bytes32[] memory tokens = tokenList;
         for(uint i=0; i < tokens.length; i++) {
             clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
@@ -169,17 +162,6 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
-        // if(_PONDAmount != 0) {
-        //     clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.add(_PONDAmount);
-        //     clusters[_cluster].delegators[_delegator].pond = delegatorStake.pond.add(_PONDAmount);
-        //     totalRewards = totalRewards.add(_PONDAmount.mul(clusterData.accPondRewardPerShare));
-        // }
-        // if(_MPONDAmount != 0) {
-        //     clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.add(_MPONDAmount);
-        //     clusters[_cluster].delegators[_delegator].mpond = delegatorStake.mpond.add(_MPONDAmount);
-        //     totalRewards = totalRewards.add(_MPONDAmount.mul(clusterData.accMPondRewardPerShare));
-        // }
-        // clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
     function undelegate(
@@ -218,19 +200,6 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
             }
         }
-        // if(_PONDAmount != 0) {
-        //     clusters[_cluster].totalDelegation.pond = clusterData.totalDelegation.pond.sub(_PONDAmount);
-        //     clusters[_cluster].delegators[_delegator].pond = clusters[_cluster].delegators[_delegator]
-        //                                                                             .pond.sub(_PONDAmount);
-        //     totalRewards = totalRewards.sub(_PONDAmount.mul(clusterData.accPondRewardPerShare));
-        // } 
-        // if(_MPONDAmount != 0) {
-        //     clusters[_cluster].totalDelegation.mpond = clusterData.totalDelegation.mpond.sub(_MPONDAmount);
-        //     clusters[_cluster].delegators[_delegator].mpond = clusters[_cluster].delegators[_delegator]
-        //                                                                             .mpond.sub(_MPONDAmount);
-        //     totalRewards = totalRewards.sub(_MPONDAmount.mul(clusterData.accMPondRewardPerShare));
-        // }
-        // clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
     }
 
     function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
@@ -259,29 +228,12 @@ contract RewardDelegators is Initializable, Ownable {
             return pendingRewards;
         }
         return 0;
-        // if(totalRewards != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
-        //     uint256 pendingRewards = totalRewards.div(10**30).sub(clusters[_cluster].rewardDebt[_delegator]);
-        //     if(pendingRewards != 0) {
-        //         transferRewards(_delegator, pendingRewards);
-        //         clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
-        //         clusters[_cluster].rewardDebt[_delegator] = totalRewards.div(10**30);
-        //     }
-        //     return pendingRewards;
-        // }
-        // return 0;
     }
 
     function transferRewards(address _to, uint256 _amount) internal {
         PONDToken.transfer(_to, _amount);
     }
 
-    // function getEffectiveStake(address _cluster) public view returns(uint256) {
-    //     Cluster memory cluster = clusters[_cluster];
-    //     if(clusterRegistry.isClusterValid(_cluster) && cluster.totalDelegation.mpond >= minMPONDStake) {
-    //         return (cluster.totalDelegation.pond.add(cluster.totalDelegation.mpond.mul(pondPerMpond)));
-    //     }
-    //     return 0;
-    // }
     function isClusterActive(address _cluster) public view returns(bool) {
         if(
             clusterRegistry.isClusterValid(_cluster) 
