@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./RewardDelegators.sol";
 import "../governance/MPondLogic.sol";
+import "./ClusterRegistry.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -15,6 +16,11 @@ contract StakeManager is Initializable, Ownable {
     struct TokenData {
         uint256 amount;
         uint256 index; // index in tokensDelegated array
+    }
+
+    struct TokenAddressData {
+        address tokenAddress;
+        uint256 index;
     }
 
     struct Stash {
@@ -30,7 +36,8 @@ contract StakeManager is Initializable, Ownable {
     // address to stashIndex
     mapping(address => uint256) indices;
     // tokenId to token address - tokenId = keccak256(tokenTicker)
-    mapping(bytes32 => address) tokenAddresses;
+    mapping(bytes32 => TokenAddressData) tokenAddresses;
+    bytes32[] public tokenList;
     MPondLogic MPOND;
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
@@ -44,17 +51,17 @@ contract StakeManager is Initializable, Ownable {
     );
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
-    event StashWithdrawn(bytes32 stashId, uint256 MPONDAmount, uint256 PONDAmount);
+    event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
     event StashClosed(bytes32 stashId, address indexed staker);
     event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
     event TokenAdded(bytes32 tokenId, address tokenAddress);
-    event TokenRemoved(bytes32 tokenId, address tokenAddress);
+    event TokenRemoved(bytes32 tokenId);
     event TokenUpdated(bytes32 tokenId, address tokenAddress);
 
     function initialize(
         bytes32[] memory _tokenIds, 
         address[] memory _tokenAddresses,
-        bytes32 _MPONDTokenAddress,
+        address _MPONDTokenAddress,
         address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
         address _owner)
@@ -66,7 +73,8 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:initialize - each tokenId should have a corresponding tokenAddress and vice versa"
         );
         for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokenAddresses[_tokenIds[i]] = _tokenAddresses[i];
+            tokenAddresses[_tokenIds[i]] = TokenAddressData(_tokenAddresses[i], tokenList.length);
+            tokenList.push(_tokenIds[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
@@ -85,16 +93,30 @@ contract StakeManager is Initializable, Ownable {
         bytes32 _tokenId, 
         address _address
     ) public onlyOwner {
-        tokenAddresses[_tokenId] = _address;
+        require(
+            tokenAddresses[_tokenId].tokenAddress == address(0), 
+            "StakeManager:enableToken - Token already enabled"
+        );
+        require(_address != address(0), "StakeManager:enableToken - Zero address not allowed");
+        tokenAddresses[_tokenId] = TokenAddressData(_address, tokenList.length);
+        tokenList.push(_tokenId);
         emit TokenAdded(_tokenId, _address);
     }
 
     function disableToken(
-        bytes32 _tokenId, 
-        address _address
+        bytes32 _tokenId
     ) public onlyOwner {
-        tokenAddresses[_tokenId] = _address;
-        emit TokenRemoved(_tokenId, _address);
+        TokenAddressData memory token = tokenAddresses[_tokenId];
+        require(
+            token.tokenAddress != address(0), 
+            "StakeManager:enableToken - Token already enabled"
+        );
+        bytes32 tokenToReplace = tokenList[tokenList.length - 1];
+        tokenList[token.index] = tokenToReplace;
+        tokenAddresses[tokenToReplace].index = token.index;
+        tokenList.pop();
+        delete tokenAddresses[_tokenId];
+        emit TokenRemoved(_tokenId);
     }
 
     function createStashAndDelegate(
@@ -116,17 +138,17 @@ contract StakeManager is Initializable, Ownable {
         );
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
-        stashes[stashId] = Stash(msg.sender, address(0), 0);
+        stashes[stashId] = Stash(msg.sender, address(0), 0, new bytes32[](0));
         // This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
         uint256 index = stashes[stashId].tokensDelegated.length;
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
-                tokenAddresses[_tokens[i]] != address(0), 
+                tokenAddresses[_tokens[i]].tokenAddress != address(0), 
                 "StakeManager:createStash - Invalid tokenId"
             );
             if(_amounts[i] != 0) {
-                uint256 tokenData = stashes[stashId].amount[_tokens[i]];
+                TokenData memory tokenData = stashes[stashId].amount[_tokens[i]];
                 // if someone sends same token 2 times while creating stash
                 if(tokenData.amount == 0) {
                     stashes[stashId].tokensDelegated.push(_tokens[i]);
@@ -166,11 +188,11 @@ contract StakeManager is Initializable, Ownable {
         uint256 index = stashes[_stashId].tokensDelegated.length;
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
-                tokenAddresses[_tokens[i]] != address(0), 
+                tokenAddresses[_tokens[i]].tokenAddress != address(0), 
                 "StakeManager:delegateStash - Invalid tokenId"
             );
             if(_amounts[i] != 0) {
-                uint256 tokenData = stashes[_stashId].amount[_tokens[i]];
+                TokenData memory tokenData = stashes[_stashId].amount[_tokens[i]];
                 if(tokenData.amount == 0) {
                     stashes[_stashId].tokensDelegated.push(_tokens[i]);
                     stashes[_stashId].amount[_tokens[i]] = TokenData(_amounts[i], index);
@@ -204,8 +226,8 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        uint256[] memory tokens = stashes[_stashId].tokensDelegated;
-        uint256[] memory amounts = uint256[](tokens.length);
+        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
         }
@@ -232,8 +254,8 @@ contract StakeManager is Initializable, Ownable {
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        uint256[] memory tokens = stashes[_stashId].tokensDelegated;
-        uint256[] memory amounts = uint256[](tokens.length);
+        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
         }
@@ -255,8 +277,8 @@ contract StakeManager is Initializable, Ownable {
             stash.undelegatesAt <= block.number,
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
-        uint256[] memory tokens = stashes[_stashId].tokensDelegated;
-        uint256[] memory amounts = uint256[](tokens.length);
+        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
             delete stashes[_stashId].amount[tokens[i]];
@@ -264,7 +286,7 @@ contract StakeManager is Initializable, Ownable {
         }
         // TODO-deleting the tokens array might be costly, so optimize
         delete stashes[_stashId];
-        emit StashWithdrawn(_stashId, stash.MPONDAmount, stash.PONDAmount);
+        emit StashWithdrawn(_stashId, tokens, amounts);
         emit StashClosed(_stashId, stash.staker);
     }
 
@@ -298,10 +320,11 @@ contract StakeManager is Initializable, Ownable {
             );
             if(balance == _amounts[i]) {
                 // delete element from array
-                stashes[_stashId].tokensDelegated[
-                    stashes[_stashId].amount[_tokens[i]].index
-                ] = stashes[_stashId].tokensDelegated[stashes[_stashId].tokensDelegated.length-1];
+                uint256 tokenIndex = stashes[_stashId].amount[_tokens[i]].index;
+                bytes32 tokenToReplace = stashes[_stashId].tokensDelegated[stashes[_stashId].tokensDelegated.length-1];
+                stashes[_stashId].tokensDelegated[tokenIndex] = tokenToReplace;
                 stashes[_stashId].tokensDelegated.pop();
+                stashes[_stashId].amount[tokenToReplace].index = tokenIndex;
                 delete stashes[_stashId].amount[_tokens[i]];
             } else {
                 stashes[_stashId].amount[_tokens[i]].amount = balance.sub(_amounts[i]);
@@ -319,7 +342,7 @@ contract StakeManager is Initializable, Ownable {
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId];
+        address tokenAddress = tokenAddresses[_tokenId].tokenAddress;
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
         require(
@@ -342,7 +365,7 @@ contract StakeManager is Initializable, Ownable {
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId];
+        address tokenAddress = tokenAddresses[_tokenId].tokenAddress;
         if(tokenAddress == address(MPOND)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPOND.undelegate(
