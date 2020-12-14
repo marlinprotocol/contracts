@@ -23,8 +23,6 @@ contract RewardDelegators is Initializable, Ownable {
 
     mapping(address => Cluster) clusters;
 
-    uint256 constant pondPerMpond = 10**6;
-
     uint256 public undelegationWaitTime;
     address stakeAddress;
     uint256 minMPONDStake;
@@ -91,8 +89,10 @@ contract RewardDelegators is Initializable, Ownable {
         delete tokenIndex[_tokenId];
     }
 
-    function updateRewardFactor() public onlyOwner {
-        // TODO: Think about implications of this function on rewards
+    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
+        require(rewardFactor[_tokenId] == 0, "RewardDelegators:addReward - Reward already exists");
+        require(_updatedRewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
+        rewardFactor[_tokenId] = _updatedRewardFactor;
     }
 
     function _updateRewards(address _cluster) public {
