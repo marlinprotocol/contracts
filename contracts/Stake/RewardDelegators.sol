@@ -34,6 +34,15 @@ contract RewardDelegators is Initializable, Ownable {
     ClusterRegistry clusterRegistry;
     ERC20 PONDToken;
 
+    event AddReward(bytes32 tokenId, uint256 rewardFactor);
+    event RemoveReward(bytes32 tokenId);
+    event MPONDTokenIdUpdated(bytes32 MPONDTokenId);
+    event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
+    event ClusterRewardDistributed(address cluster);
+    event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
+    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
+    event MinMPONDStakeUpdated(uint256 minMPONDStake);
+
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "ClusterRegistry:onlyStake: only stake contract can invoke this function");
         _;
@@ -51,23 +60,32 @@ contract RewardDelegators is Initializable, Ownable {
         bytes32[] memory _tokenIds,
         uint256[] memory _rewardFactors
     ) public initializer {
+        require(
+            _tokenIds.length == _rewardFactors.length,
+            "RewardDelegators:initalize - Each TokenId should have a corresponding Reward Factor and vice versa"
+        );
         undelegationWaitTime = _undelegationWaitTime;
+        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
         stakeAddress = _stakeAddress;
         clusterRegistry = ClusterRegistry(_clusterRegistry);
         clusterRewards = ClusterRewards(_clusterRewardsAddress);
         PONDToken = ERC20(_PONDAddress);
         minMPONDStake = _minMPONDStake;
+        emit MinMPONDStakeUpdated(_minMPONDStake);
         MPONDTokenId = _MPONDTokenId;
+        emit MPONDTokenIdUpdated(_MPONDTokenId);
         for(uint256 i=0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
             tokenIndex[_tokenIds[i]] = tokenList.length;
             tokenList.push(_tokenIds[i]);
+            emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
         super.initialize(_rewardDelegatorsAdmin);
     }
 
     function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) public onlyOwner {
         MPONDTokenId = _updatedMPONDTokenId;
+        emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
     }
 
     function addReward(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
@@ -76,6 +94,7 @@ contract RewardDelegators is Initializable, Ownable {
         rewardFactor[_tokenId] = _rewardFactor;
         tokenIndex[_tokenId] = tokenList.length;
         tokenList.push(_tokenId);
+        emit AddReward(_tokenId, _rewardFactor);
     }
     
     function removeRewardFactor(bytes32 _tokenId) public onlyOwner {
@@ -87,12 +106,14 @@ contract RewardDelegators is Initializable, Ownable {
         tokenList.pop();
         delete rewardFactor[_tokenId];
         delete tokenIndex[_tokenId];
+        emit RemoveReward(_tokenId);
     }
 
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
         require(rewardFactor[_tokenId] == 0, "RewardDelegators:addReward - Reward already exists");
         require(_updatedRewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
+        emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
 
     function _updateRewards(address _cluster) public {
@@ -120,6 +141,7 @@ contract RewardDelegators is Initializable, Ownable {
                                                                 );
         }
         clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
+        emit ClusterRewardDistributed(_cluster);
     }
 
     function delegate(
@@ -158,8 +180,9 @@ contract RewardDelegators is Initializable, Ownable {
         if(totalRewards != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
             if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
+                transferRewards(_delegator, pendingRewards);
+                emit RewardsWithdrawn(_cluster, _delegator, _tokens, pendingRewards);
             }
         }
     }
@@ -196,8 +219,9 @@ contract RewardDelegators is Initializable, Ownable {
         if(totalRewards != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
             if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
+                transferRewards(_delegator, pendingRewards);
+                emit RewardsWithdrawn(_cluster, _delegator, _tokens, pendingRewards);
             }
         }
     }
@@ -222,8 +246,9 @@ contract RewardDelegators is Initializable, Ownable {
         if(totalRewards != 0 && clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] < currentNonce) {
             uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
             if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator] = currentNonce;
+                transferRewards(_delegator, pendingRewards);
+                emit RewardsWithdrawn(_cluster, _delegator, tokens, pendingRewards);
             }
             return pendingRewards;
         }
@@ -262,9 +287,11 @@ contract RewardDelegators is Initializable, Ownable {
 
     function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
         undelegationWaitTime = _undelegationWaitTime;
+        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
         minMPONDStake = _minMPONDStake;
+        emit MinMPONDStakeUpdated(_minMPONDStake);
     }
 }
