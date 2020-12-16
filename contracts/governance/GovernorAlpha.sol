@@ -8,8 +8,8 @@ contract GovernorAlpha {
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes() public pure returns (uint256) {
-        return 8000e18;
-    } // 8000 MPond
+        return 200e18;
+    } // 200 MPond
 
     /// @notice The number of votes required in order for a voter to become a proposer
     function proposalThreshold() public pure returns (uint256) {
@@ -353,7 +353,7 @@ contract GovernorAlpha {
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
         } else if (
-            proposal.forVotes <= proposal.againstVotes ||
+            3 * proposal.forVotes <= 17 * proposal.againstVotes ||
             proposal.forVotes < quorumVotes()
         ) {
             return ProposalState.Defeated;

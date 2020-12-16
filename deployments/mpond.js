@@ -28,8 +28,8 @@ if (!process.env.PROXY_ADMIN) {
 
 const config = {
   deploymentConfig: {
-    gas: 5000000,
-    gasPrice: 35000000000,
+    gas: 2000000,
+    gasPrice: 116000000000,
     from: web3.eth.accounts.wallet[0].address,
   },
 };
@@ -38,14 +38,14 @@ const MPondLogic = require("../build/contracts/MPondLogic.json");
 const MPondProxy = require("../build/contracts/MPondProxy.json");
 
 async function deploy() {
-  const MPondLogicAddress = await deployContract(
-    web3,
-    MPondLogic.abi,
-    MPondLogic.bytecode,
-    [],
-    config.deploymentConfig
-  );
-
+  // const MPondLogicAddress = await deployContract(
+  //   web3,
+  //   MPondLogic.abi,
+  //   MPondLogic.bytecode,
+  //   [],
+  //   config.deploymentConfig
+  // );
+  const MPondLogicAddress = "0x8ef2e125eea6800ae35c10d5be3b96fe1171b5f0";
   const MPondProxyAddress = await deployContract(
     web3,
     MPondProxy.abi,
