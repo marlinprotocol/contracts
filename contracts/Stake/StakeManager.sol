@@ -126,28 +126,25 @@ contract StakeManager is Initializable, Ownable {
         );
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
-        stashes[stashId] = Stash(msg.sender, address(0), 0, new bytes32[](0));
         // TODO: This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
-        uint256 index = stashes[stashId].tokensDelegated.length;
+        uint256 index = 0;
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
                 tokenAddresses[_tokens[i]] != address(0), 
                 "StakeManager:createStash - Invalid tokenId"
             );
+            require(
+                stashes[stashId].amount[_tokens[i]].amount == 0, 
+                "StakeManager:createStash - Can't add the same token twice while creating stash"
+            );
             if(_amounts[i] != 0) {
-                TokenData memory tokenData = stashes[stashId].amount[_tokens[i]];
-                // if someone sends same token 2 times while creating stash
-                if(tokenData.amount == 0) {
-                    stashes[stashId].tokensDelegated.push(_tokens[i]);
-                    stashes[stashId].amount[_tokens[i]] = TokenData(_amounts[i], index);
-                    index++;
-                } else {
-                    stashes[stashId].amount[_tokens[i]].amount = tokenData.amount.add(_amounts[i]);
-                }
+                stashes[stashId].amount[_tokens[i]] = TokenData(_amounts[i], index);
+                index++;
                 _lockTokens(_tokens[i], _amounts[i], msg.sender);
             }
         }
+        stashes[stashId] = Stash(msg.sender, address(0), 0, _tokens);
         emit StashCreated(msg.sender, stashId, stashIndex, _tokens, _amounts);
         return stashId;
     }
