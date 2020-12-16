@@ -126,10 +126,10 @@ contract StakeManager is Initializable, Ownable {
         );
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
-        stashes[stashId] = Stash(msg.sender, address(0), 0, new bytes32[](0));
         // TODO: This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
-        uint256 index = stashes[stashId].tokensDelegated.length;
+        uint256 index = 0;
+        bytes32[] memory uniqueTokens = new bytes32[](0);
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
                 tokenAddresses[_tokens[i]] != address(0), 
@@ -139,7 +139,7 @@ contract StakeManager is Initializable, Ownable {
                 TokenData memory tokenData = stashes[stashId].amount[_tokens[i]];
                 // if someone sends same token 2 times while creating stash
                 if(tokenData.amount == 0) {
-                    stashes[stashId].tokensDelegated.push(_tokens[i]);
+                    uniqueTokens[index] = _tokens[i];
                     stashes[stashId].amount[_tokens[i]] = TokenData(_amounts[i], index);
                     index++;
                 } else {
@@ -148,6 +148,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokens[i], _amounts[i], msg.sender);
             }
         }
+        stashes[stashId] = Stash(msg.sender, address(0), 0, uniqueTokens);
         emit StashCreated(msg.sender, stashId, stashIndex, _tokens, _amounts);
         return stashId;
     }
