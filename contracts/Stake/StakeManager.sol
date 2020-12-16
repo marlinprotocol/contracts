@@ -129,7 +129,7 @@ contract StakeManager is Initializable, Ownable {
         // TODO: This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
         uint256 index = 0;
-        bytes32[] memory uniqueTokens = new bytes32[](0);
+        bytes32[] memory uniqueTokens = new bytes32[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             require(
                 tokenAddresses[_tokens[i]] != address(0), 
