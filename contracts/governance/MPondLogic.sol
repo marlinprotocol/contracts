@@ -14,8 +14,8 @@ contract MPondLogic is Initializable {
     uint8 public decimals;
 
     /// @notice Total number of tokens in circulation
-    uint256 public totalSupply; // 10k mPond
-    uint256 public bridgeSupply; // 3k mPond
+    uint256 public totalSupply; // 10k MPond
+    uint256 public bridgeSupply; // 3k MPond
 
     address public dropBridge;
     /// @notice Allowance amounts on behalf of others
@@ -81,7 +81,7 @@ contract MPondLogic is Initializable {
     );
 
     /**
-     * @notice Initializer a new mPond token
+     * @notice Initializer a new MPond token
      * @param account The initial account to grant all the tokens
      */
     function initialize(
@@ -102,7 +102,7 @@ contract MPondLogic is Initializable {
         uint96 remainingSupply = sub96(
             uint96(totalSupply),
             uint96(bridgeSupply),
-            "mPond: Subtraction overflow in the constructor"
+            "MPond: Subtraction overflow in the constructor"
         );
         balances[account] = remainingSupply;
         delegates[account][address(0)] = remainingSupply;
@@ -112,8 +112,8 @@ contract MPondLogic is Initializable {
     }
 
     function createConstants() internal {
-        name = "Marlin Governance Token";
-        symbol = "MPOND";
+        name = "Marlin";
+        symbol = "MPond";
         decimals = 18;
         totalSupply = 10000e18;
         bridgeSupply = 7000e18;
@@ -139,12 +139,30 @@ contract MPondLogic is Initializable {
         return true;
     }
 
+    function removeWhiteListAddress(address _address)
+        external
+        onlyAdmin("Only admin can remove from whitelist")
+        returns (bool)
+    {
+        isWhiteListed[_address] = false;
+        return true;
+    }
+
     function enableAllTransfers()
         external
-        onlyAdmin("Only enable can enable all transfers")
+        onlyAdmin("Only admin can enable all transfers")
         returns (bool)
     {
         enableAllTranfers = true;
+        return true;
+    }
+
+    function disableAllTransfers()
+        external
+        onlyAdmin("Only admin can disable all transfers")
+        returns (bool)
+    {
+        enableAllTranfers = false;
         return true;
     }
 
@@ -202,7 +220,7 @@ contract MPondLogic is Initializable {
         } else {
             amount = safe96(
                 rawAmount,
-                "mPond::approve: amount exceeds 96 bits"
+                "MPond::approve: amount exceeds 96 bits"
             );
         }
 
@@ -222,14 +240,14 @@ contract MPondLogic is Initializable {
         } else {
             amount = safe96(
                 addedAmount,
-                "mPond::approve: addedAmount exceeds 96 bits"
+                "MPond::approve: addedAmount exceeds 96 bits"
             );
         }
 
         allowances[msg.sender][spender] = add96(
             allowances[msg.sender][spender],
             amount,
-            "mPond: increaseAllowance allowance value overflows"
+            "MPond: increaseAllowance allowance value overflows"
         );
         emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
         return true;
@@ -245,14 +263,14 @@ contract MPondLogic is Initializable {
         } else {
             amount = safe96(
                 removedAmount,
-                "mPond::approve: removedAmount exceeds 96 bits"
+                "MPond::approve: removedAmount exceeds 96 bits"
             );
         }
 
         allowances[msg.sender][spender] = sub96(
             allowances[msg.sender][spender],
             amount,
-            "mPond: decreaseAllowance allowance value underflows"
+            "MPond: decreaseAllowance allowance value underflows"
         );
         emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
         return true;
@@ -280,7 +298,7 @@ contract MPondLogic is Initializable {
         );
         uint96 amount = safe96(
             rawAmount,
-            "mPond::transfer: amount exceeds 96 bits"
+            "MPond::transfer: amount exceeds 96 bits"
         );
         _transferTokens(msg.sender, dst, amount);
         return true;
@@ -306,14 +324,14 @@ contract MPondLogic is Initializable {
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(
             rawAmount,
-            "mPond::approve: amount exceeds 96 bits"
+            "MPond::approve: amount exceeds 96 bits"
         );
 
         if (spender != src && spenderAllowance != uint96(-1)) {
             uint96 newAllowance = sub96(
                 spenderAllowance,
                 amount,
-                "mPond::transferFrom: transfer amount exceeds spender allowance"
+                "MPond::transferFrom: transfer amount exceeds spender allowance"
             );
             allowances[src][spender] = newAllowance;
 
@@ -371,13 +389,13 @@ contract MPondLogic is Initializable {
         address signatory = ecrecover(digest, v, r, s);
         require(
             signatory != address(0),
-            "mPond::delegateBySig: invalid signature"
+            "MPond::delegateBySig: invalid signature"
         );
         require(
             nonce == nonces[signatory]++,
-            "mPond::delegateBySig: invalid nonce"
+            "MPond::delegateBySig: invalid nonce"
         );
-        require(now <= expiry, "mPond::delegateBySig: signature expired");
+        require(now <= expiry, "MPond::delegateBySig: signature expired");
         return _delegate(signatory, delegatee, amount);
     }
 
@@ -407,13 +425,13 @@ contract MPondLogic is Initializable {
         address signatory = ecrecover(digest, v, r, s);
         require(
             signatory != address(0),
-            "mPond::undelegateBySig: invalid signature"
+            "MPond::undelegateBySig: invalid signature"
         );
         require(
             nonce == nonces[signatory]++,
-            "mPond::undelegateBySig: invalid nonce"
+            "MPond::undelegateBySig: invalid nonce"
         );
-        require(now <= expiry, "mPond::undelegateBySig: signature expired");
+        require(now <= expiry, "MPond::undelegateBySig: signature expired");
         return _undelegate(signatory, delegatee, amount);
     }
 
@@ -444,7 +462,7 @@ contract MPondLogic is Initializable {
     {
         require(
             blockNumber < block.number,
-            "mPond::getPriorVotes: not yet determined"
+            "MPond::getPriorVotes: not yet determined"
         );
 
         uint32 nCheckpoints = numCheckpoints[account];
@@ -486,12 +504,12 @@ contract MPondLogic is Initializable {
         delegates[delegator][address(0)] = sub96(
             delegates[delegator][address(0)],
             amount,
-            "mPond: delegates underflow"
+            "MPond: delegates underflow"
         );
         delegates[delegator][delegatee] = add96(
             delegates[delegator][delegatee],
             amount,
-            "mPond: delegates overflow"
+            "MPond: delegates overflow"
         );
 
         emit DelegateChanged(delegator, address(0), delegatee);
@@ -507,12 +525,12 @@ contract MPondLogic is Initializable {
         delegates[delegator][delegatee] = sub96(
             delegates[delegator][delegatee],
             amount,
-            "mPond: undelegates underflow"
+            "MPond: undelegates underflow"
         );
         delegates[delegator][address(0)] = add96(
             delegates[delegator][address(0)],
             amount,
-            "mPond: delegates underflow"
+            "MPond: delegates underflow"
         );
         emit DelegateChanged(delegator, delegatee, address(0));
         _moveDelegates(delegatee, address(0), amount);
@@ -525,37 +543,37 @@ contract MPondLogic is Initializable {
     ) internal {
         require(
             src != address(0),
-            "mPond::_transferTokens: cannot transfer from the zero address"
+            "MPond::_transferTokens: cannot transfer from the zero address"
         );
         require(
             delegates[src][address(0)] >= amount,
-            "mPond: _transferTokens: undelegated amount should be greater than transfer amount"
+            "MPond: _transferTokens: undelegated amount should be greater than transfer amount"
         );
         require(
             dst != address(0),
-            "mPond::_transferTokens: cannot transfer to the zero address"
+            "MPond::_transferTokens: cannot transfer to the zero address"
         );
 
         balances[src] = sub96(
             balances[src],
             amount,
-            "mPond::_transferTokens: transfer amount exceeds balance"
+            "MPond::_transferTokens: transfer amount exceeds balance"
         );
         delegates[src][address(0)] = sub96(
             delegates[src][address(0)],
             amount,
-            "mPond: _tranferTokens: undelegate subtraction error"
+            "MPond: _tranferTokens: undelegate subtraction error"
         );
 
         balances[dst] = add96(
             balances[dst],
             amount,
-            "mPond::_transferTokens: transfer amount overflows"
+            "MPond::_transferTokens: transfer amount overflows"
         );
         delegates[dst][address(0)] = add96(
             delegates[dst][address(0)],
             amount,
-            "mPond: _transferTokens: undelegate addition error"
+            "MPond: _transferTokens: undelegate addition error"
         );
         emit Transfer(src, dst, amount);
 
@@ -576,7 +594,7 @@ contract MPondLogic is Initializable {
                 uint96 srcRepNew = sub96(
                     srcRepOld,
                     amount,
-                    "mPond::_moveVotes: vote amount underflows"
+                    "MPond::_moveVotes: vote amount underflows"
                 );
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
@@ -589,7 +607,7 @@ contract MPondLogic is Initializable {
                 uint96 dstRepNew = add96(
                     dstRepOld,
                     amount,
-                    "mPond::_moveVotes: vote amount overflows"
+                    "MPond::_moveVotes: vote amount overflows"
                 );
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
@@ -604,7 +622,7 @@ contract MPondLogic is Initializable {
     ) internal {
         uint32 blockNumber = safe32(
             block.number,
-            "mPond::_writeCheckpoint: block number exceeds 32 bits"
+            "MPond::_writeCheckpoint: block number exceeds 32 bits"
         );
 
         if (

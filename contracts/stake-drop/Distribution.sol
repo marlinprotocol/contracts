@@ -40,6 +40,15 @@ contract Distribution {
         return true;
     }
 
+    function changeTokenAddress(address _newTokenAddress)
+        public
+        returns (bool)
+    {
+        require(msg.sender == admin, "Only owner can change token address");
+        mpond = MPondLogic(_newTokenAddress);
+        return true;
+    }
+
     function getUnclaimedAmount() public view returns (uint256) {
         bytes32 stakingAddressHash = addressRegistry.reverseMap(msg.sender);
         uint256 reward = stakeRegistry.rewardPerAddress(stakingAddressHash);

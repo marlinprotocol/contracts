@@ -691,10 +691,10 @@ contract ERC677BridgeToken is IBurnableMintableERC677Token, DetailedERC20, Burna
 
     address public childChainManagerProxy;
     
-    constructor(string memory _name, string memory _symbol, uint8 _decimals, address _childChainManagerProxy) public DetailedERC20(_name, _symbol, _decimals) {
+    constructor(string memory _name, string memory _symbol, uint8 _decimals, address _childChainManagerProxy, address _admin) public DetailedERC20(_name, _symbol, _decimals) {
         // solhint-disable-previous-line no-empty-blocks
-        admin = msg.sender;
-        enableAllTranfers = true; // will false in production
+        admin = _admin;
+        enableAllTranfers = false; // will false in production
         childChainManagerProxy = _childChainManagerProxy;
     }
     
@@ -748,7 +748,7 @@ contract ERC677BridgeToken is IBurnableMintableERC677Token, DetailedERC20, Burna
     }
 
     function burn(uint256 _value) public override(BurnableToken, IBurnableMintableERC677Token) {
-        _burn(msg.sender, _value);
+        
     }
     
     function mint(
@@ -761,11 +761,7 @@ contract ERC677BridgeToken is IBurnableMintableERC677Token, DetailedERC20, Burna
         canMint
         returns (bool)
     {
-        totalSupply_ = totalSupply_.add(_amount);
-        balances[_to] = balances[_to].add(_amount);
-        emit Mint(_to, _amount);
-        emit Transfer(address(0), _to, _amount);
-        return true;
+        
     }
     
     function transferAndCall(address _to, uint256 _value, bytes calldata _data) external override validRecipient(_to) returns (bool) {

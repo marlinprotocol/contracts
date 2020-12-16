@@ -73,8 +73,8 @@ let staking = {
   minMPONDStake: 2,
   payoutDenomination: 100000,
   PondRewardFactor: 100,
-  MPondRewardFactor: 100
-}
+  MPondRewardFactor: 100,
+};
 
 module.exports = {
   governanceProxyAccountIndex,
@@ -87,6 +87,8 @@ module.exports = {
   PONDData,
   MPONDData,
   verifiedClaimAccountIndex,
-  reward1ClaimerIndex, reward2ClaimerIndex, reward3ClaimerIndex,
-  staking
+  reward1ClaimerIndex,
+  reward2ClaimerIndex,
+  reward3ClaimerIndex,
+  staking,
 };

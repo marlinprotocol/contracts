@@ -137,20 +137,26 @@ async function deploy() {
 async function checkDistributionContract() {
   let distributionInstance = new web3.eth.Contract(
     distributionCompiled.abi,
-    "0x27F9C69F1a95E1283D71F876687E5fC72ecD1116"
+    "0xE8dcD0444B96beeD4A6Ad635A96508F8c350Eef0"
   );
   let result = distributionInstance.methods
     .getUnclaimedAmount()
-    .call({from: "0x90C1AB208Bc7C22a4306BC70899622934BF0F513"});
+    .call({from: "0x3e3666d42BEEa1AbB58BD93C973545c8a87954A7"});
   return result;
 }
 
+// ValidatorRegistry address 0x4a4521b507bC7EF071eF2D3d49d3B1B8EDd7A758
+// StakeRegistry address 0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429
+// AddressRegistry address 0x0Fa02d23ed5F24db1cB729563166a900274e530F
+
+// 721fd596a0052f7cd74fbe2fb784377d7a52b01f6016116dffc22157ffb3d32d
+// 0x36A8EEB273c5AcA3562CfC063789E96a07C3AB91
 async function addSource() {
-  let newSource = "0xCd1F1AAE53D44E42D5fC7ec9702D2554F826E514";
+  let newSource = "0x36A8EEB273c5AcA3562CfC063789E96a07C3AB91";
   let oracles = [
-    "0x376289b38CF6B271b82aAC8BCe9e603D8c33C2cC",
-    "0x863d74a7Fb677A8D931d0aAA373dFf7258ba2034",
-    "0x93Fd304D842907625a18A2EA331c3c03832a032B",
+    "0x0Fa02d23ed5F24db1cB729563166a900274e530F",
+    "0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429",
+    "0x4a4521b507bC7EF071eF2D3d49d3B1B8EDd7A758",
   ];
   for (let index = 0; index < oracles.length; index++) {
     const oracleAddress = oracles[index];
@@ -160,7 +166,7 @@ async function addSource() {
     );
     await instance.methods
       .addSource(newSource)
-      .send({from: addresses[1], gas: 2000000, gasPrice: 1000000000});
+      .call({from: addresses[1], gas: 2000000, gasPrice: 1000000000});
     let sources = await instance.methods
       .numberOfSources()
       .call({from: addresses[1]});
@@ -177,10 +183,10 @@ async function addSource() {
 async function changeRewardPerEpoch() {
   let stakeRegistryInstance = new web3.eth.Contract(
     stakeRegistryCompiled.abi,
-    "0x63E508BAd8119a601CC7B70FD71fe351aB5689a4"
+    "0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429"
   );
   let result = await stakeRegistryInstance.methods
-    .changeRewardPerEpoch(new web3Utils.BN("1000000000000000000"))
+    .changeRewardPerEpoch(new web3Utils.BN("1000000000000000"))
     .send({from: addresses[0], gas: 2000000, gasPrice: 1000000000});
 
   return result;
@@ -189,7 +195,7 @@ async function changeRewardPerEpoch() {
 async function getRewardPerEpoch() {
   let stakeRegistryInstance = new web3.eth.Contract(
     stakeRegistryCompiled.abi,
-    "0x63E508BAd8119a601CC7B70FD71fe351aB5689a4"
+    "0x3a1e969A6B4C8623879d4acaA263114117c5BEF8"
   );
   let result = await stakeRegistryInstance.methods
     .rewardPerEpoch()
@@ -204,7 +210,7 @@ async function checkBalance() {
     "0xD439a0f22e0d8020764Db754efd7Af78100c6389"
   );
   let result = await tokenInstance.methods
-    .balanceOf("0x442fcB562FB9dA4F9F3F92CDB19843E83b0c5690")
+    .balanceOf("0xE8dcD0444B96beeD4A6Ad635A96508F8c350Eef0")
     .call();
   return result;
 }
@@ -233,13 +239,27 @@ async function checkAggregator() {
   return result;
 }
 
+async function getAddressFromStakeRegistry() {
+  let addressRegistryInstance = new web3.eth.Contract(
+    addressRegistryCompiled.abi,
+    "0x3a1e969A6B4C8623879d4acaA263114117c5BEF8"
+  );
+
+  let stakingAddressHash = await addressRegistryInstance.methods
+    .reverseMap("0xdeff2cd841bd47592760ce068a113b8e594f8553")
+    .call({from: "0xdeff2cd841bd47592760ce068a113b8e594f8553"});
+  return stakingAddressHash;
+}
+
+// getAddressFromStakeRegistry().then(console.log).catch(console.log);
+
 // checkBalance().then(console.log);
 // checkAggregator().then(console.log);
 // checkDistributionContract().then(console.log).catch(console.log);
 // deploy();
 // deployAggregator();
 // addSource().then(console.log).catch(console.log);
-changeRewardPerEpoch().then(console.log).catch(console.log);
+// changeRewardPerEpoch().then(console.log).catch(console.log);
 // getRewardPerEpoch().then(console.log).catch(console.log);
 
 //polkadot addresses
@@ -288,4 +308,12 @@ changeRewardPerEpoch().then(console.log).catch(console.log);
 // ValidatorRegistry address 0x376289b38CF6B271b82aAC8BCe9e603D8c33C2cC
 // StakeRegistry address 0x863d74a7Fb677A8D931d0aAA373dFf7258ba2034
 // AddressRegistry address 0x93Fd304D842907625a18A2EA331c3c03832a032B
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+// matic addresses
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0x1501E3edDFfDc7cEfBdb49b636494Ae23583AddD
+// ValidatorRegistry address 0x4a4521b507bC7EF071eF2D3d49d3B1B8EDd7A758
+// StakeRegistry address 0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429
+// AddressRegistry address 0x0Fa02d23ed5F24db1cB729563166a900274e530F
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
