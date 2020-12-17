@@ -28,7 +28,7 @@ const config = {
   },
 };
 
-const tokenAddress = "0xdB3164f9A053171d3cCA9C93386Eb59CFe2EC6A9";
+const tokenAddress = "0x27B064fE4B708fDa0fD0C4ff2b78a1e4DAB812D1";
 
 const standardOracle = require("../build/contracts/StandardOracle.json");
 const addressRegistry = require("../build/contracts/AddressRegistry.json");
@@ -86,7 +86,7 @@ async function deploy() {
 
 // deploy().then(console.log).catch(console.log);
 // addSource().then(console.log).catch(console.log);
-// changeRewardPerEpoch("0x4dB6CA88214733d154726F4FCd3A0f7755bC7597", "0").then(console.log).catch(console.log);
+// changeRewardPerEpoch("0x8cFC6733f26b5E920fD5b53340B893CE7A368683", "0").then(console.log).catch(console.log);
 //  getRewardPerEpoch()
 changeAllRewardPerEpoch().then(console.log);
 // tokenAddress: 0x7e88Aeaef1163bc6fA1D30cC360a3D5388e161ab
@@ -148,12 +148,20 @@ changeAllRewardPerEpoch().then(console.log);
 // AddressRegistry address 0xD5794185FD3eDfa54c5f6d57D6A7131C260F850A
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+// fantom (source: 0x97600d2F926c630C157B5F8dF7eb1068f117c11C) (rewardPerEpoch: 0)
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0x13C68DC51e595e57e08b4A4e4dA9F39f6B1AD73B
+// ValidatorRegistry address 0x8612b1C94Aa05dF0c2924dfF02220Af189fC616f
+// StakeRegistry address 0x0Af8C66320D30924F6f3452a9b79E31F2ECc3bEc
+// AddressRegistry address 0x08D30A26E0002d62d5568638d789755Fb94bc20F
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 async function addSource() {
-  let newSource = "0x8DfFDb94AA11918f0eb1310d3195Ad0BA7343CFE";
+  let newSource = "0x97600d2F926c630C157B5F8dF7eb1068f117c11C";
   let oracles = [
-    "0xc5CB95F281A0144c6E8f129ac91c486CbFd67D2a",
-    "0x4dB6CA88214733d154726F4FCd3A0f7755bC7597",
-    "0x6a5171CFfc1E3ca13e638b6bB3F7b9E6b2f85D39",
+    "0x8612b1C94Aa05dF0c2924dfF02220Af189fC616f",
+    "0x0Af8C66320D30924F6f3452a9b79E31F2ECc3bEc",
+    "0x08D30A26E0002d62d5568638d789755Fb94bc20F",
   ];
   for (let index = 0; index < oracles.length; index++) {
     const oracleAddress = oracles[index];
@@ -185,7 +193,7 @@ async function changeRewardPerEpoch(address, valueString) {
 async function getRewardPerEpoch() {
   let stakeRegistryInstance = new web3.eth.Contract(
     stakeRegistry.abi,
-    "0x95C2d75CE279aA7443F3479Dc3C288219a50fa2E"
+    "0x8cFC6733f26b5E920fD5b53340B893CE7A368683"
   );
   let result = await stakeRegistryInstance.methods
     .rewardPerEpoch()
@@ -197,19 +205,21 @@ async function getRewardPerEpoch() {
 async function changeAllRewardPerEpoch() {
   let allRewardContracts = [
     "0x4ab72Ca6b3dF67676EcA7c11afAB4E2B2F04EE18",
-    // "0x4874e852D2FDCcA5F0B3C27f7d7D3c031c5B78a8",
-    // "0x5216748ec4F387fDe4f6aF3A0283967F87BEeA17",
-    // "0xe79282eC349bcBE1cfa3e0EeD97c5f01e4cdC24e",
-    // "0xeC19845b2E43cbE1a028F182649d1ce9e6740feb",
-    // "0xFC82374Afa1C1852325692246bB88f081a2019f1"
+    "0x4874e852D2FDCcA5F0B3C27f7d7D3c031c5B78a8",
+    "0x5216748ec4F387fDe4f6aF3A0283967F87BEeA17",
+    "0xe79282eC349bcBE1cfa3e0EeD97c5f01e4cdC24e",
+    "0xeC19845b2E43cbE1a028F182649d1ce9e6740feb",
+    "0x8cFC6733f26b5E920fD5b53340B893CE7A368683",
+    "0xFC82374Afa1C1852325692246bB88f081a2019f1"
   ];
   let rewardChanges = [
-    "365000000000000000",
-    // "2534722222000000",
-    // "7300000000000000",
-    // "7300000000000000",
-    // "5069444444000000",
-    // "5069444444000000"
+    "312857142900000000",
+    "2172619048000000",
+    "6257142857000000",
+    "6257142857000000",
+    "4345238095000000",
+    "6517857143000000",
+    "4345238095000000"
   ];
   for (let index = 0; index < allRewardContracts.length; index++) {
     const contractAddress = allRewardContracts[index];

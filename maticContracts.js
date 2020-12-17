@@ -151,12 +151,13 @@ async function checkDistributionContract() {
 
 // 721fd596a0052f7cd74fbe2fb784377d7a52b01f6016116dffc22157ffb3d32d
 // 0x36A8EEB273c5AcA3562CfC063789E96a07C3AB91
+
 async function addSource() {
-  let newSource = "0x36A8EEB273c5AcA3562CfC063789E96a07C3AB91";
+  let newSource = "0xb331222A8A5847349B07Cba5BC60e75076144837";
   let oracles = [
-    "0x0Fa02d23ed5F24db1cB729563166a900274e530F",
-    "0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429",
-    "0x4a4521b507bC7EF071eF2D3d49d3B1B8EDd7A758",
+    "0x2af08cE9A1eCe86da46AC688e396eC5FD3a6fD8d",
+    "0xB7627c0cF0Eb4B9D504BB5391Dd73E612418FaB9",
+    "0xB11787fC7575CcD7aD0BB53bFa93a2e85730A0c8",
   ];
   for (let index = 0; index < oracles.length; index++) {
     const oracleAddress = oracles[index];
@@ -166,7 +167,7 @@ async function addSource() {
     );
     await instance.methods
       .addSource(newSource)
-      .call({from: addresses[1], gas: 2000000, gasPrice: 1000000000});
+      .send({from: addresses[1], gas: 2000000, gasPrice: 1000000000});
     let sources = await instance.methods
       .numberOfSources()
       .call({from: addresses[1]});
@@ -183,10 +184,10 @@ async function addSource() {
 async function changeRewardPerEpoch() {
   let stakeRegistryInstance = new web3.eth.Contract(
     stakeRegistryCompiled.abi,
-    "0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429"
+    "0xB7627c0cF0Eb4B9D504BB5391Dd73E612418FaB9"
   );
   let result = await stakeRegistryInstance.methods
-    .changeRewardPerEpoch(new web3Utils.BN("1000000000000000"))
+    .changeRewardPerEpoch(new web3Utils.BN("5703125000000000"))
     .send({from: addresses[0], gas: 2000000, gasPrice: 1000000000});
 
   return result;
@@ -259,7 +260,7 @@ async function getAddressFromStakeRegistry() {
 // deploy();
 // deployAggregator();
 // addSource().then(console.log).catch(console.log);
-// changeRewardPerEpoch().then(console.log).catch(console.log);
+changeRewardPerEpoch().then(console.log).catch(console.log);
 // getRewardPerEpoch().then(console.log).catch(console.log);
 
 //polkadot addresses
@@ -316,4 +317,12 @@ async function getAddressFromStakeRegistry() {
 // ValidatorRegistry address 0x4a4521b507bC7EF071eF2D3d49d3B1B8EDd7A758
 // StakeRegistry address 0xD026005DA7A9BFd38762B2Aa4891aC1d28BB2429
 // AddressRegistry address 0x0Fa02d23ed5F24db1cB729563166a900274e530F
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+//fantom addresses
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Distribution address 0xD7564E6351e4e855469A8Ac847aBB8CCac5C7Bd8
+// ValidatorRegistry address 0xB11787fC7575CcD7aD0BB53bFa93a2e85730A0c8
+// StakeRegistry address 0xB7627c0cF0Eb4B9D504BB5391Dd73E612418FaB9
+// AddressRegistry address 0x2af08cE9A1eCe86da46AC688e396eC5FD3a6fD8d
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

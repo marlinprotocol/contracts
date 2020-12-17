@@ -3,11 +3,13 @@ const Timelock = artifacts.require("Timelock.sol");
 const MPondProxy = artifacts.require("MPondProxy.sol");
 const MPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
+const TestingContract = artifacts.require("GovernanceTester.sol");
 
 var govInstance;
 var MPondInstance;
 var timelockInstance;
 var proposalId;
+var testingInstance;
 
 var governanceAddress;
 var MPondAddress;
@@ -16,11 +18,13 @@ var timelockAddress;
 contract.only("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   console.log(network);
-  const tempAddress = accounts[9];
-  const targets = [tempAddress];
-  const values = ["0x2223"];
-  const signatures = ["34440011"];
-  const calldatas = ["0x7888"];
+  var tempAddress = accounts[9];
+  var targets = [];
+  const values = [0];
+  const signatures = ["82ab890a"];
+  const calldatas = [
+    "0x0000000000000000000000000000000000000000000000000000000000000045",
+  ];
   const description = "This is a sample description";
 
   it("deploy contracts", function () {
@@ -56,7 +60,18 @@ contract.only("Governance", function (accounts, network) {
         return;
       });
   });
-
+  it("Deploy a tesing instance which can be updated by governance, value 5", function () {
+    return TestingContract.new(govInstance.address, 5)
+      .then(function (instance) {
+        testingInstance = instance;
+        targets.push(testingInstance.address);
+        return testingInstance.value();
+      })
+      .then(function (value) {
+        assert.equal(value, 5, "Should be 5");
+        return;
+      });
+  });
   it("check timelocks", function () {
     return timelockInstance.delay().then(function (delay) {
       console.log("timelock delay", delay);
@@ -66,45 +81,77 @@ contract.only("Governance", function (accounts, network) {
   it("check balances of MPond token and transfer MPond to other accounts", function () {
     return MPondInstance.balanceOf(accounts[4])
       .then(function () {
-        return MPondInstance.transfer(accounts[6], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[6],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return MPondInstance.transfer(accounts[7], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[7],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return MPondInstance.transfer(accounts[8], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[8],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return MPondInstance.transfer(accounts[9], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[9],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       });
   });
 
   it("other users who have balances should also be able to delegate", function () {
-    return MPondInstance.delegate(accounts[6], new web3Utils.BN("100000000000000000000"), {
-      from: accounts[6],
-    })
+    return MPondInstance.delegate(
+      accounts[6],
+      new web3Utils.BN("100000000000000000000"),
+      {
+        from: accounts[6],
+      }
+    )
       .then(function () {
-        return MPondInstance.delegate(accounts[7], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[7],
-        });
+        return MPondInstance.delegate(
+          accounts[7],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[7],
+          }
+        );
       })
       .then(function () {
-        return MPondInstance.delegate(accounts[8], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[8],
-        });
+        return MPondInstance.delegate(
+          accounts[8],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[8],
+          }
+        );
       })
       .then(function () {
-        return MPondInstance.delegate(accounts[9], new web3Utils.BN("100000000000000000000"), {
-          from: accounts[9],
-        });
+        return MPondInstance.delegate(
+          accounts[9],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[9],
+          }
+        );
       })
       .then(function () {
         return addBlocks(2, accounts);
@@ -217,7 +264,10 @@ contract.only("Governance", function (accounts, network) {
         return govInstance.state(proposalId);
       })
       .then(async function (state) {
-        console.log("state for proposal after casting all votes and adding 20 blocks", state);
+        console.log(
+          "state for proposal after casting all votes and adding 20 blocks",
+          state
+        );
         await govInstance.queue(proposalId); //account-3 is timelock admin
         return govInstance.proposals(proposalId);
       })

@@ -178,14 +178,16 @@ contract MPondLogic is Initializable {
         view
         returns (bool)
     {
-        if (_address1 == dropBridge) {
+        if (
+            enableAllTranfers ||
+            isWhiteListed[_address1] ||
+            isWhiteListed[_address2]
+        ) {
             return true;
-        } else if (_address2 == dropBridge) {
-            return (isWhiteListed[_address1] || enableAllTranfers);
+        } else if (_address1 == dropBridge) {
+            return true;
         }
-        return
-            (isWhiteListed[_address1] || isWhiteListed[_address2]) ||
-            enableAllTranfers;
+        return false;
     }
 
     /**
@@ -317,7 +319,7 @@ contract MPondLogic is Initializable {
         uint256 rawAmount
     ) external returns (bool) {
         require(
-            isWhiteListedTransfer(msg.sender, dst),
+            isWhiteListedTransfer(src, dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         address spender = msg.sender;

@@ -1,5 +1,5 @@
 const GovernorAlphaAbi = require("./build/contracts/GovernorAlpha.json").abi;
-const tokenAbi = require("./build/contracts/Comp.json").abi;
+const tokenAbi = require("./build/contracts/MpondLogic.json").abi;
 const Web3 = require("web3");
 const web3 = new Web3("http://34.93.40.96:8545");
 const web3Utils = require("web3-utils");
@@ -89,3 +89,6 @@ function print(data) {
 // /contracts/Token/*
 // /contracts/governance/*
 // /contracts/Bridge/*
+
+// signature 82ab890a
+// calldata 0x0000000000000000000000000000000000000000000000000000000000000045
