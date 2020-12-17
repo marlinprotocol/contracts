@@ -128,21 +128,21 @@ contract StakeManager is Initializable, Ownable {
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         // TODO: This can never overflow, so change to + for gas savings
         indices[msg.sender] = stashIndex.add(1);
-        uint256 index = 0;
-        for(uint256 i=0; i < _tokens.length; i++) {
+        for(uint256 index=0; index < _tokens.length; index++) {
             require(
-                tokenAddresses[_tokens[i]] != address(0), 
+                tokenAddresses[_tokens[index]] != address(0), 
                 "StakeManager:createStash - Invalid tokenId"
             );
             require(
-                stashes[stashId].amount[_tokens[i]].amount == 0, 
+                stashes[stashId].amount[_tokens[index]].amount == 0, 
                 "StakeManager:createStash - Can't add the same token twice while creating stash"
             );
-            if(_amounts[i] != 0) {
-                stashes[stashId].amount[_tokens[i]] = TokenData(_amounts[i], index);
-                index++;
-                _lockTokens(_tokens[i], _amounts[i], msg.sender);
-            }
+            require(
+                _amounts[index] != 0,
+                "StakeManager:createStash - Can't add tokens with 0 amount"
+            );
+            stashes[stashId].amount[_tokens[index]] = TokenData(_amounts[index], index);
+            _lockTokens(_tokens[index], _amounts[index], msg.sender);
         }
         stashes[stashId] = Stash(msg.sender, address(0), 0, _tokens);
         emit StashCreated(msg.sender, stashId, stashIndex, _tokens, _amounts);
