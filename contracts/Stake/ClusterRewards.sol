@@ -45,12 +45,13 @@ contract ClusterRewards is Initializable, Ownable {
             _networkIds.length == _rewardWeight.length, 
             "ClusterRewards:initialize - Each NetworkId need a corresponding RewardPerEpoch and vice versa"
         );
-        initialize(_owner);
+        super.initialize(_owner);
         uint256 weight = 0;
         rewardDelegatorsAddress = _rewardDelegatorsAddress;
         for(uint256 i=0; i < _networkIds.length; i++) {
             rewardWeight[_networkIds[i]] = _rewardWeight[i];
             weight = weight.add(_rewardWeight[i]);
+            emit NetworkAdded(_networkIds[i], _rewardWeight[i]);
         }
         totalWeight = weight;
         totalRewardsPerEpoch = _totalRewardsPerEpoch;
