@@ -14,7 +14,7 @@ contract StakeRegistry is StandardOracle {
     ValidatorRegistry public validatorRegistry;
 
     address public governanceProxy;
-    uint256 public rewardPerEpoch = 0; // 1 mPond per epoch
+    uint256 public rewardPerEpoch = 1e18; // 1 mPond per epoch
 
     constructor(address _validatorRegistry, address _governanceProxy)
         public

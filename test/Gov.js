@@ -15,15 +15,21 @@ var governanceAddress;
 var MPondAddress;
 var timelockAddress;
 
-contract.only("Governance", function (accounts, network) {
+contract("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   console.log(network);
   var tempAddress = accounts[9];
   var targets = [];
   const values = [0];
-  const signatures = ["82ab890a"];
+  const signatures = ["update(uint256)"];
+  // const calldatas = [
+  //   "0x0000000000000000000000000000000000000000000000000000000000000045",
+  // ];
   const calldatas = [
-    "0x0000000000000000000000000000000000000000000000000000000000000045",
+    web3.eth.abi.encodeParameters(
+      ["uint256"],
+      ["0x0000000000000000000000000000000000000000000000000000000000000045"]
+    ),
   ];
   const description = "This is a sample description";
 
@@ -61,7 +67,7 @@ contract.only("Governance", function (accounts, network) {
       });
   });
   it("Deploy a tesing instance which can be updated by governance, value 5", function () {
-    return TestingContract.new(govInstance.address, 5)
+    return TestingContract.new(timelockInstance.address, 5)
       .then(function (instance) {
         testingInstance = instance;
         targets.push(testingInstance.address);
@@ -74,7 +80,7 @@ contract.only("Governance", function (accounts, network) {
   });
   it("check timelocks", function () {
     return timelockInstance.delay().then(function (delay) {
-      console.log("timelock delay", delay);
+      // console.log("timelock delay", delay);
     });
   });
 
@@ -168,7 +174,7 @@ contract.only("Governance", function (accounts, network) {
     ).then(function () {
       return MPondInstance.getCurrentVotes(accounts[4])
         .then(function (votes) {
-          console.log({votes});
+          // console.log({votes});
           // assert latter
 
           // this transactions is only to increase the few block
@@ -179,7 +185,7 @@ contract.only("Governance", function (accounts, network) {
           return MPondInstance.getPriorVotes(accounts[4], block.number - 1);
         })
         .then(function (priorVotes) {
-          console.log(priorVotes);
+          // console.log(priorVotes);
           return;
         })
         .then(function () {
@@ -193,7 +199,7 @@ contract.only("Governance", function (accounts, network) {
           );
         })
         .then(function (transaction) {
-          console.log(transaction.logs[0].args[0]);
+          // console.log(transaction.logs[0].args[0]);
           proposalId = transaction.logs[0].args[0];
           return;
         });
@@ -204,11 +210,11 @@ contract.only("Governance", function (accounts, network) {
     return timelockInstance
       .admin()
       .then(function (data) {
-        console.log(data);
+        // console.log(data);
         return timelockInstance.pendingAdmin();
       })
       .then(function (pendingAdmin) {
-        console.log(pendingAdmin);
+        // console.log(pendingAdmin);
         return timelockInstance.setPendingAdmin(governanceAddress, {
           from: accounts[3],
         });
@@ -222,18 +228,18 @@ contract.only("Governance", function (accounts, network) {
     return govInstance
       .getActions(proposalId)
       .then(function (actions) {
-        console.log("actions");
-        console.log(actions);
+        // console.log("actions");
+        // console.log(actions);
         return govInstance.state(proposalId);
       })
       .then(function (state) {
-        console.log("state");
-        console.log(state);
+        // console.log("state");
+        // console.log(state);
         return govInstance.proposals(proposalId);
       })
       .then(function (proposal) {
-        console.log("proposal, just after creation");
-        console.log(proposal);
+        // console.log("proposal, just after creation");
+        // console.log(proposal);
       });
   });
 
@@ -258,30 +264,44 @@ contract.only("Governance", function (accounts, network) {
         return govInstance.proposals(proposalId);
       })
       .then(async function (proposal) {
-        console.log("proposal, after cast vote by all accounts");
-        console.log(proposal);
+        // console.log("proposal, after cast vote by all accounts");
+        // console.log(proposal);
         await addBlocks(200, accounts);
         return govInstance.state(proposalId);
       })
       .then(async function (state) {
-        console.log(
-          "state for proposal after casting all votes and adding 20 blocks",
-          state
-        );
+        // console.log(
+        //   "state for proposal after casting all votes and adding 20 blocks",
+        //   state
+        // );
         await govInstance.queue(proposalId); //account-3 is timelock admin
         return govInstance.proposals(proposalId);
       })
       .then(function (proposal) {
-        console.log("proposal, after queuing the proposal");
-        console.log(proposal);
+        // console.log("proposal, after queuing the proposal");
+        // console.log(proposal);
         return govInstance.state(proposalId);
       })
       .then(function (state) {
-        console.log("state after queueing", state);
+        // console.log("state after queueing", state);
         return addBlocks(200, accounts);
       })
       .then(function () {
+        return increaseTime(5 * 86400);
+      })
+      .then(function () {
+        return addBlocks(1, accounts);
+      })
+      .then(function () {
         return govInstance.execute(proposalId);
+      })
+      .then(function (tx) {
+        print(tx);
+        return testingInstance.value();
+      })
+      .then(function (value) {
+        assert.equal(value, 69, "Value should be 69");
+        return;
       });
   });
 });
@@ -306,4 +326,20 @@ async function addBlocks(count, accounts) {
   //   id: 12345
   // });
   // return;
+}
+
+async function increaseTime(time) {
+  await web3.currentProvider.send(
+    {
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [time],
+      id: 0,
+    },
+    () => {}
+  );
+}
+
+function print(data) {
+  console.log(JSON.stringify(data, null, 4));
 }

@@ -47,7 +47,7 @@ contract("Pond Token", function (accounts) {
       .then(function (bridgeBalance) {
         assert.equal(
           bridgeBalance,
-          3000000000e18,
+          1000000000e18,
           "Wrong amount of tokens minted on bridge"
         );
         return;

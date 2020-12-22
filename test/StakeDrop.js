@@ -4,14 +4,20 @@ const ValidatorRegistry = artifacts.require("ValidatorRegistry.sol");
 const Distribution = artifacts.require("Distribution.sol");
 const MPondProxy = artifacts.require("MPondProxy.sol");
 const MPondLogic = artifacts.require("MPondLogic.sol");
+const DistributionDeployerAndAdmin = artifacts.require(
+  "DistributionDeployerAndAdmin.sol"
+);
+
 const web3Utils = require("web3-utils");
 
-contract("Stake Drop testing", function (accounts) {
+contract.only("Stake Drop testing", function (accounts) {
   var validatorInstance;
   var addressInstance;
   var stakeInstance;
   var tokenInstance;
   var distributionInstance;
+  var distributionDeployerInstance;
+  var distributionInstanceToVerify;
 
   it("Deploy all contracts", function () {
     return ValidatorRegistry.new()
@@ -238,6 +244,113 @@ contract("Stake Drop testing", function (accounts) {
           balance,
           900000000000000000,
           "0.9 MPond should be the balance"
+        );
+        return;
+      });
+  });
+
+  it("Distribution deployer and admin: create contract", async function () {
+    return DistributionDeployerAndAdmin.new(tokenInstance.address, accounts[0])
+      .then(function (instance) {
+        distributionDeployerInstance = instance;
+        return instance.multisigOwner();
+      })
+      .then(function (owner) {
+        assert.equal(
+          owner.toLowerCase(),
+          accounts[0].toLowerCase(),
+          "account - 0 should be the multisig owner"
+        );
+        return;
+      });
+  });
+
+  it("Distribution deployer and admin: create distribution contracts and add balance", async function () {
+    return distributionDeployerInstance
+      .createDistributionFromSet(
+        validatorInstance.address,
+        stakeInstance.address,
+        addressInstance.address,
+        tokenInstance.address
+      )
+      .then(function (tx) {
+        console.log(tx.logs[0].event);
+        console.log(tx.logs[0].args);
+        console.log(Object.keys(tx));
+        return Distribution.at(tx.logs[0].args.distribution);
+      })
+      .then(function (instance) {
+        distributionInstanceToVerify = instance;
+        return tokenInstance.transfer(
+          distributionInstanceToVerify.address,
+          new web3Utils.BN("1000000000000000000")
+        );
+      })
+      .then(function () {
+        return tokenInstance.balanceOf(distributionInstanceToVerify.address);
+      })
+      .then(function (balance) {
+        assert.equal(balance, 1e18, "Balance should be one mpond");
+        return;
+      });
+  });
+
+  it("Distribution deployer and admin: pull tokens by admin", function () {
+    return distributionDeployerInstance
+      .pullTokens(
+        distributionInstanceToVerify.address,
+        new web3Utils.BN("500000000000000000")
+      )
+      .then(function () {
+        return tokenInstance.balanceOf(distributionInstanceToVerify.address);
+      })
+      .then(function (balance) {
+        assert.equal(
+          balance,
+          5e17,
+          "Balance of distribution contract should be half mpond"
+        );
+        return tokenInstance.balanceOf(distributionDeployerInstance.address);
+      })
+      .then(function (balance) {
+        assert.equal(
+          balance,
+          5e17,
+          "Balance of distribution admin contract should be half mpond"
+        );
+        return;
+      });
+  });
+
+  it("Distribution deployer and admin: random address can't claim token ", function () {
+    return distributionDeployerInstance
+      .claimTokens(accounts[54], new web3Utils.BN("500000000000000000"), {
+        from: accounts[3],
+      }) // pulling  to account -54
+      .then(function () {
+        // if need
+        throw new Error("This should fail, else this is a bug");
+      })
+      .catch(function (ex) {
+        if (!ex) {
+          throw new Error("This should throw an exception, else this is a bug");
+        }
+      });
+  });
+
+  it("Distribution deployer and admin: admin can claim token ", function () {
+    return distributionDeployerInstance
+      .claimTokens(accounts[54], new web3Utils.BN("200000000000000000"), {
+        from: accounts[0],
+      }) // account -0 is admin
+      .then(function () {
+        return tokenInstance.balanceOf(accounts[54]); // pulling  to account -54
+      })
+      .then(function (balance) {
+        assert.equal(
+          balance,
+          2e17,
+          "Balance of account-54 should be 0.2 mpond"
         );
         return;
       });

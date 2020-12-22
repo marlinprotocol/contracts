@@ -256,11 +256,11 @@ async function getAddressFromStakeRegistry() {
 
 // checkBalance().then(console.log);
 // checkAggregator().then(console.log);
-// checkDistributionContract().then(console.log).catch(console.log);
+checkDistributionContract().then(console.log).catch(console.log);
 // deploy();
 // deployAggregator();
 // addSource().then(console.log).catch(console.log);
-changeRewardPerEpoch().then(console.log).catch(console.log);
+// changeRewardPerEpoch().then(console.log).catch(console.log);
 // getRewardPerEpoch().then(console.log).catch(console.log);
 
 //polkadot addresses

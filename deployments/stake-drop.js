@@ -210,7 +210,7 @@ async function changeAllRewardPerEpoch() {
     "0xe79282eC349bcBE1cfa3e0EeD97c5f01e4cdC24e",
     "0xeC19845b2E43cbE1a028F182649d1ce9e6740feb",
     "0x8cFC6733f26b5E920fD5b53340B893CE7A368683",
-    "0xFC82374Afa1C1852325692246bB88f081a2019f1"
+    "0xFC82374Afa1C1852325692246bB88f081a2019f1",
   ];
   let rewardChanges = [
     "312857142900000000",
@@ -219,7 +219,7 @@ async function changeAllRewardPerEpoch() {
     "6257142857000000",
     "4345238095000000",
     "6517857143000000",
-    "4345238095000000"
+    "4345238095000000",
   ];
   for (let index = 0; index < allRewardContracts.length; index++) {
     const contractAddress = allRewardContracts[index];
