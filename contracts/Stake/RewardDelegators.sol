@@ -232,8 +232,8 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 totalRewardDebt;
         bytes32[] memory tokens = tokenList;
         for(uint256 i=0; i < tokens.length; i++) {
-            uint256 accReward = delegatorTokens.mul(clusters[_cluster].accRewardPerShare[tokens[i]]);
             uint256 delegatorTokens = clusters[_cluster].delegators[_delegator][tokens[i]];
+            uint256 accReward = delegatorTokens.mul(clusters[_cluster].accRewardPerShare[tokens[i]]);
             if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][tokens[i]] < currentNonce) {
                 totalRewards = totalRewards.add(accReward);
                 totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][tokens[i]]);
