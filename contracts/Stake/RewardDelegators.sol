@@ -166,9 +166,9 @@ contract RewardDelegators is Initializable, Ownable {
                 totalRewards = totalRewards.add(delegatorTokens.mul(tokenAccRewardPerShare));
                 totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][_tokens[i]]);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] = currentNonce;
-                uint256 totalRewardsForDebt = delegatorTokens.add(_amounts[i]).mul(tokenAccRewardPerShare);
-                clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
             }
+            uint256 totalRewardsForDebt = delegatorTokens.add(_amounts[i]).mul(tokenAccRewardPerShare);
+            clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
             // update balances
             if(_amounts[i] != 0) {
                 clusters[_cluster].delegators[_delegator][_tokens[i]] = delegatorTokens.add(_amounts[i]);
@@ -204,9 +204,9 @@ contract RewardDelegators is Initializable, Ownable {
                 totalRewards = totalRewards.add(delegatorTokens.mul(tokenAccRewardPerShare));
                 totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][_tokens[i]]);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] = currentNonce;
-                uint256 totalRewardsForDebt = delegatorTokens.sub(_amounts[i]).mul(tokenAccRewardPerShare);
-                clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
             }
+            uint256 totalRewardsForDebt = delegatorTokens.sub(_amounts[i]).mul(tokenAccRewardPerShare);
+            clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
             // update balances
             if(_amounts[i] != 0) {
                 clusters[_cluster].delegators[_delegator][_tokens[i]] = delegatorTokens.sub(_amounts[i]);
