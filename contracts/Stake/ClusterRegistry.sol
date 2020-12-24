@@ -9,6 +9,8 @@ contract ClusterRegistry is Initializable {
 
     using SafeMath for uint256;
 
+    uint256 constant UINT256_MAX = ~uint256(0);
+
     struct Cluster {
         uint256 commission;
         address rewardAddress;
@@ -31,6 +33,7 @@ contract ClusterRegistry is Initializable {
     event CommissionUpdated(address cluster, uint256 updatedCommission);
     event RewardAddressUpdated(address cluster, address updatedRewardAddress);
     event NetworkSwitched(address cluster, bytes32 networkId);
+    event ClientKeyUpdated(address cluster, address clientKey);
     event ClusterUnregistered(address cluster);
 
     function initialize() 
@@ -59,6 +62,30 @@ contract ClusterRegistry is Initializable {
         clusters[msg.sender].status = Status.REGISTERED;
         
         emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
+    }
+
+    function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
+        require(
+            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            "ClusterRegistry:updateCluster - Cluster not registered"
+        );
+        if(_networkId != bytes32(0)) {
+            clusters[msg.sender].networkId = _networkId;
+            emit NetworkSwitched(msg.sender, _networkId);
+        }
+        if(_rewardAddress != address(0)) {
+            clusters[msg.sender].rewardAddress = _rewardAddress;
+            emit RewardAddressUpdated(msg.sender, _rewardAddress);
+        }
+        if(_clientKey != address(0)) {
+            clusters[msg.sender].clientKey = _clientKey;
+            emit ClientKeyUpdated(msg.sender, _clientKey);
+        }
+        if(_commission != UINT256_MAX) {
+            require(_commission <= 100, "ClusterRegistry:updateCluster - Commission can't be more than 100%");
+            clusters[msg.sender].commission = _commission;
+            emit CommissionUpdated(msg.sender, _commission);
+        }
     }
 
     function updateCommission(uint256 _commission) public {
@@ -95,6 +122,7 @@ contract ClusterRegistry is Initializable {
             "ClusterRegistry:updateClientKey - Cluster not registered"
         );
         clusters[msg.sender].clientKey = _clientKey;
+        emit ClientKeyUpdated(msg.sender, _clientKey);
     }
 
     function unregister() public {
