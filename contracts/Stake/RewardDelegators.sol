@@ -110,7 +110,8 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
-        require(_updatedRewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
+        require(rewardFactor[_tokenId] != 0, "RewardDelegators:updateReward - Can't update reward that doesn't exist");
+        require(_updatedRewardFactor != 0, "RewardDelegators:updateReward - Reward can't be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
