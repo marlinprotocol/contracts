@@ -25,6 +25,12 @@ contract StakeManager is Initializable, Ownable {
         uint256 undelegatesAt;
         bytes32[] tokensDelegated;
     }
+
+    struct Lock {
+        uint256 unlockTime;
+        address aValue;
+        // bytes32 bValue;
+    }
     // stashId to stash
     // stashId = keccak256(address, index)
     mapping(bytes32 => Stash) public stashes;
@@ -35,6 +41,12 @@ contract StakeManager is Initializable, Ownable {
     MPondLogic MPOND;
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
+
+    mapping(bytes32 => Lock) locks;
+    uint256 lockWaitTime;
+
+    bytes32 constant MPOND_LOCK_SELECTOR = keccak256("MPOND_LOCK");
+    string constant TOKEN_LOCK_SELECTOR = "TOKEN_LOCK";
 
     event StashCreated(
         address indexed creator, 
@@ -49,8 +61,10 @@ contract StakeManager is Initializable, Ownable {
     event StashClosed(bytes32 stashId, address indexed staker);
     event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
     event TokenAdded(bytes32 tokenId, address tokenAddress);
+    event TokenRemoveRequested(bytes32 tokenId, uint256 effectiveBlock);
     event TokenRemoved(bytes32 tokenId);
-    event TokenUpdated(bytes32 tokenId, address tokenAddress);
+    event TokenUpdated(bytes32 tokenId, address tokenAddress, uint256 effectiveBlock);
+    event LockTimeUpdated(uint256 prevLockTime, uint256 updatedLockTime);
 
     function initialize(
         bytes32[] memory _tokenIds, 
@@ -76,11 +90,26 @@ contract StakeManager is Initializable, Ownable {
         super.initialize(_owner);
     }
 
+    function updateLockWaitTime(uint256 _updatedWaitTime) public onlyOwner {
+        emit LockTimeUpdated(lockWaitTime, _updatedWaitTime);
+        lockWaitTime = _updatedWaitTime; 
+    }
+
     function changeMPONDTokenAddress(
         address _MPONDTokenAddress
     ) public onlyOwner {
-        MPOND = MPondLogic(_MPONDTokenAddress);
-        emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
+        bytes32 lockId = MPOND_LOCK_SELECTOR;
+        Lock memory lock = locks[lockId];
+        require(
+            lock.unlockTime == 0 || lock.unlockTime < block.number, 
+            "StakeManager:changeMPONDTokenAddress - please wait till the current MPOND address change request is complete"
+        );
+        if(lock.unlockTime != 0 && lock.unlockTime < block.number) {
+            MPOND = MPondLogic(lock.aValue);
+        }
+        uint256 unlockBlock = block.number.add(lockWaitTime);
+        locks[lockId] = Lock(unlockBlock, _MPONDTokenAddress);
+        emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress, unlockBlock);
     }
 
     function enableToken(
@@ -103,7 +132,28 @@ contract StakeManager is Initializable, Ownable {
             tokenAddresses[_tokenId] != address(0), 
             "StakeManager:enableToken - Token already enabled"
         );
+        bytes32 lockId = keccak256(abi.encodePacked(TOKEN_LOCK_SELECTOR, _tokenId));
+        uint256 unlockTime = locks[lockId].unlockTime;
+        require(
+            unlockTime == 0, 
+            "StakeManager:changeMPONDTokenAddress - disable request has already been placed"
+        );
+        uint256 unlockBlock = block.number.add(lockWaitTime);
+        locks[lockId] = Lock(unlockBlock, address(0));
+        emit TokenRemoveRequested(_tokenId, unlockBlock);
+    }
+
+    function removeToken(
+        bytes32 _tokenId
+    ) public {
+        bytes32 lockId = keccak256(abi.encodePacked(TOKEN_LOCK_SELECTOR, _tokenId));
+        uint256 unlockTime = locks[lockId].unlockTime;
+        require(
+            unlockTime != 0 && unlockTime < block.number, 
+            "StakeManager:removeToken - remove token request either not placed or wait time not completed"
+        );
         delete tokenAddresses[_tokenId];
+        delete locks[lockId];
         emit TokenRemoved(_tokenId);
     }
 
@@ -337,6 +387,12 @@ contract StakeManager is Initializable, Ownable {
                 _amount
             )
         );
+        bytes32 lockId = MPOND_LOCK_SELECTOR;
+        uint256 unlockTime = locks[lockId].unlockTime;
+        if(unlockTime != 0 && unlockTime < block.number) {
+            delete locks[lockId];
+            MPOND = MPondLogic(locks[lockId].aValue);
+        }
         if (tokenAddress == address(MPOND)) {
             // send a request to delegate governance rights for the amount to delegator
             MPOND.delegate(
@@ -349,6 +405,12 @@ contract StakeManager is Initializable, Ownable {
     function _unlockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         if(_amount == 0) {
             return;
+        }
+        bytes32 lockId = MPOND_LOCK_SELECTOR;
+        uint256 unlockTime = locks[lockId].unlockTime;
+        if(unlockTime != 0 && unlockTime < block.number) {
+            delete locks[lockId];
+            MPOND = MPondLogic(locks[lockId].aValue);
         }
         address tokenAddress = tokenAddresses[_tokenId];
         if(tokenAddress == address(MPOND)) {

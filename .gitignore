@@ -4,3 +4,4 @@ build
 slither.log
 temp
 .env
+.DS_Store
