@@ -72,7 +72,8 @@ contract StakeManager is Initializable, Ownable {
         address _MPONDTokenAddress,
         address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
-        address _owner)
+        address _owner,
+        uint256 _lockWaitTime)
         initializer
         public 
     {
@@ -87,6 +88,7 @@ contract StakeManager is Initializable, Ownable {
         MPOND = MPondLogic(_MPONDTokenAddress);
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
+        lockWaitTime = _lockWaitTime;
         super.initialize(_owner);
     }
 

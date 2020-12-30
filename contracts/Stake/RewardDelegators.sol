@@ -256,7 +256,7 @@ contract RewardDelegators is Initializable, Ownable {
         PONDToken.transfer(_to, _amount);
     }
 
-    function isClusterActive(address _cluster) public view returns(bool) {
+    function isClusterActive(address _cluster) public returns(bool) {
         if(
             clusterRegistry.isClusterValid(_cluster) 
             && clusters[_cluster].totalDelegations[MPONDTokenId] > minMPONDStake
