@@ -44,7 +44,7 @@ contract StakeManager is Initializable, Ownable {
     // tokenId to token address - tokenId = keccak256(tokenTicker)
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
-    address prevMPONDAddress;
+    MPondLogic prevMPOND;
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
 
@@ -91,7 +91,7 @@ contract StakeManager is Initializable, Ownable {
     function changeMPONDTokenAddress(
         address _MPONDTokenAddress
     ) public onlyOwner {
-        prevMPONDAddress = address(MPOND);
+        prevMPOND = MPOND;
         MPOND = MPondLogic(_MPONDTokenAddress);
         emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
     }
@@ -364,9 +364,14 @@ contract StakeManager is Initializable, Ownable {
             return;
         }
         address tokenAddress = tokenAddresses[_tokenId].addr;
-        if(tokenAddress == address(MPOND) || tokenAddress == prevMPONDAddress) {
+        if(tokenAddress == address(MPOND)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPOND.undelegate(
+                _delegator,
+                uint96(_amount)
+            );
+        } else if(tokenAddress == address(prevMPOND)) {
+            prevMPOND.undelegate(
                 _delegator,
                 uint96(_amount)
             );
