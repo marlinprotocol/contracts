@@ -88,7 +88,7 @@ async function deploy() {
 // addSource().then(console.log).catch(console.log);
 // changeRewardPerEpoch("0x8cFC6733f26b5E920fD5b53340B893CE7A368683", "0").then(console.log).catch(console.log);
 //  getRewardPerEpoch()
-changeAllRewardPerEpoch().then(console.log);
+// changeAllRewardPerEpoch().then(console.log);
 // tokenAddress: 0x7e88Aeaef1163bc6fA1D30cC360a3D5388e161ab
 // ERC 677BridgeToken: 0xF9c7483851017744FE0A5D79607AC609619B9eA7
 

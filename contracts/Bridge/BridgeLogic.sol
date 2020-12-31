@@ -177,8 +177,45 @@ contract BridgeLogic is Initializable {
         return pondToDeduct;
     }
 
+    function transferOwner(address newOwner)
+        public
+        onlyOwner("transferOwner: only existing owner can call this function")
+    {
+        require(
+            newOwner != address(0),
+            "BridgeLogic: newOwner is the zero address"
+        );
+        owner = newOwner;
+    }
+
+    function renounceOwnership()
+        public
+        onlyOwner(
+            "renounceOwnership: only existing owner can call this function"
+        )
+    {
+        owner = address(0);
+    }
+
+    function transferGovernance(address newGoverance)
+        public
+        onlyGovernance(
+            "transferGovernance: only governance can call this function"
+        )
+    {
+        require(
+            newGoverance != address(0),
+            "BridgeLogic: newGovernance is the zero address"
+        );
+        governanceProxy = newGoverance;
+    }
+
     modifier onlyOwner(string memory _error) {
         require(msg.sender == owner, _error);
+        _;
+    }
+    modifier onlyGovernance(string memory _error) {
+        require(msg.sender == governanceProxy, _error);
         _;
     }
 }

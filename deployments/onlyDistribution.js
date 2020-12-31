@@ -116,4 +116,17 @@ async function deployAll() {
   }
 }
 
-deployAll().then(console.log).catch(console.log);
+async function check() {
+  let distributionInstance = new web3.eth.Contract(
+    distribution.abi,
+    "0x2ef72f4cb462421c17a4d90e08c568b9e0aa5ee7"
+  );
+  let result = distributionInstance.methods
+    .getUnclaimedAmount()
+    .call({from: "0x0b7f59b78e3ddae9a693c3ebf90f7e5de7749b89"});
+  return result;
+}
+// deployAll().then(console.log).catch(console.log);
+
+check().then(console.log).catch(console.log);
+//
