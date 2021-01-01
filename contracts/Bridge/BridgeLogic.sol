@@ -45,6 +45,7 @@ contract BridgeLogic is Initializable {
 
     mapping(address => mapping(uint256 => Requests)) public requests; //address->epoch->Request(amount, lockTime)
     mapping(address => mapping(uint256 => uint256)) public claimedAmounts; //address->epoch->amount
+    mapping(address => uint256) public totalAmountPlacedInRequests; //address -> amount
 
     function initialize(
         address _mpond,
@@ -150,22 +151,33 @@ contract BridgeLogic is Initializable {
         mpond.transferFrom(msg.sender, address(this), _amount);
         // pond.tranfer(msg.sender, _amount.mul(pondPerMpond));
         SafeERC20.safeTransfer(pond, msg.sender, _amount.mul(pondPerMpond));
+        uint256 amountLockedInRequests = totalAmountPlacedInRequests[msg.sender];
+        totalAmountPlacedInRequests[msg.sender] = amountLockedInRequests.sub(_amount);
         emit MPondToPond(msg.sender, _epoch, _amount.mul(pondPerMpond));
         return _amount.mul(pondPerMpond);
     }
 
     function placeRequest(uint256 amount) external returns (uint256, uint256) {
         uint256 epoch = getCurrentEpoch();
+        uint256 amountInRequests = totalAmountPlacedInRequests[msg.sender];
+        uint256 amountOnWhichRequestCanBePlaced = mpond
+            .balanceOf(msg.sender)
+            .sub(amountInRequests);
         require(
-            amount != 0 && amount <= mpond.balanceOf(msg.sender),
-            "Request should be placed with amount greater than 0 and less than the balance of the user"
+            amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
         );
+        // require(
+        //     amount != 0 && amount <= mpond.balanceOf(msg.sender),
+        //     "Request should be placed with amount greater than 0 and less than the balance of the user"
+        // );
         require(
             requests[msg.sender][epoch].amount == 0,
             "Only one request per epoch is acceptable"
         );
         Requests memory _req = Requests(amount, epoch.add(lockTimeEpochs));
         requests[msg.sender][epoch] = _req;
+        totalAmountPlacedInRequests[msg.sender] = amountInRequests.add(amount);
         emit PlacedRequest(msg.sender, epoch, _req.releaseEpoch);
         return (epoch, _req.releaseEpoch);
     }
