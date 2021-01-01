@@ -114,4 +114,20 @@ contract ClusterRewards is Initializable, Ownable {
     function transferRewards(address _to, uint256 _amount) internal {
         POND.transfer(_to, _amount);
     }
+
+    function updateRewardDelegatorAddress(address _updatedRewardDelegator) public onlyOwner {
+        require(
+            _updatedRewardDelegator != address(0),
+            "ClusterRewards:updateRewardDelegatorAddress - Updated Reward delegator address cannot be 0"
+        );
+        rewardDelegatorsAddress = _updatedRewardDelegator;
+    }
+
+    function updatePONDAddress(address _updatedPOND) public onlyOwner {
+        require(
+            _updatedPOND != address(0),
+            "ClusterRewards:updatePONDAddress - Updated POND token address cannot be 0"
+        );
+        POND = ERC20(_updatedPOND);
+    }
 }

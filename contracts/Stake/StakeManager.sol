@@ -96,6 +96,26 @@ contract StakeManager is Initializable, Ownable {
         emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
     }
 
+    function updateRewardDelegators(
+        address _updatedRewardDelegator
+    ) public onlyOwner {
+        require(
+            _updatedRewardDelegator != address(0), 
+            "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
+        );
+        rewardDelegators = RewardDelegators(_updatedRewardDelegator);
+    }
+
+    function updateClusterRegistry(
+        address _updatedClusterRegistry
+    ) public onlyOwner {
+        require(
+            _updatedClusterRegistry != address(0),
+            "StakeManager:updateClusterRegistry - Cluster Registry address cannot be 0"
+        );
+        clusterRegistry = ClusterRegistry(_updatedClusterRegistry);
+    }
+
     function enableToken(
         bytes32 _tokenId, 
         address _address

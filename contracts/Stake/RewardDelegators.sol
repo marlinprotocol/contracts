@@ -291,4 +291,40 @@ contract RewardDelegators is Initializable, Ownable {
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
     }
+
+    function updateStakeAddress(address _updatedStakeAddress) public onlyOwner {
+        require(
+            _updatedStakeAddress != address(0),
+            "RewardDelegators:updateStakeAddress - Updated Stake contract address cannot be 0"
+        );
+        stakeAddress = _updatedStakeAddress;
+    }
+
+    function updateClusterRewards(
+        address _updatedClusterRewards
+    ) public onlyOwner {
+        require(
+            _updatedClusterRewards != address(0), 
+            "RewardDelegators:updateClusterRewards - ClusterRewards address cannot be 0"
+        );
+        clusterRewards = ClusterRewards(_updatedClusterRewards);
+    }
+
+    function updateClusterRegistry(
+        address _updatedClusterRegistry
+    ) public onlyOwner {
+        require(
+            _updatedClusterRegistry != address(0),
+            "RewardDelegators:updateClusterRegistry - Cluster Registry address cannot be 0"
+        );
+        clusterRegistry = ClusterRegistry(_updatedClusterRegistry);
+    }
+
+    function updatePONDAddress(address _updatedPOND) public onlyOwner {
+        require(
+            _updatedPOND != address(0),
+            "RewardDelegators:updatePONDAddress - Updated POND token address cannot be 0"
+        );
+        PONDToken = ERC20(_updatedPOND);
+    }
 }
