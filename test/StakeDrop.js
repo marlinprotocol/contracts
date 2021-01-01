@@ -10,7 +10,7 @@ const DistributionDeployerAndAdmin = artifacts.require(
 
 const web3Utils = require("web3-utils");
 
-contract.only("Stake Drop testing", function (accounts) {
+contract("Stake Drop testing", function (accounts) {
   var validatorInstance;
   var addressInstance;
   var stakeInstance;

@@ -7,17 +7,17 @@ import "../governance/MPondLogic.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
 
+// convertMultipleEpochs()
 contract BridgeLogic is Initializable {
     using SafeMath for uint256;
 
     uint256 public constant pondPerMpond = 1000000;
     uint256 public constant epochLength = 1 days;
-    uint256 public constant lockTimeEpochs = 180;
-    uint256 public constant liquidityDecimals = 4;
-    uint256 public constant liquidityEpochLength = 180 days;
     uint256 public constant liquidityStartEpoch = 1;
 
     uint256 public liquidityBp;
+    uint256 public lockTimeEpochs;
+    uint256 public liquidityEpochLength;
 
     MPondLogic public mpond;
     TokenLogic public pond;
@@ -30,6 +30,18 @@ contract BridgeLogic is Initializable {
         uint256 amount;
         uint256 releaseEpoch;
     }
+
+    event PlacedRequest(
+        address indexed sender,
+        uint256 requestCreateEpoch,
+        uint256 unlockRequestEpoch
+    );
+    event MPondToPond(
+        address indexed sender,
+        uint256 indexed requestCreateEpoch,
+        uint256 PondReceived
+    );
+    event PondToMPond(address indexed sender, uint256 MpondReceived);
 
     mapping(address => mapping(uint256 => Requests)) public requests; //address->epoch->Request(amount, lockTime)
     mapping(address => mapping(uint256 => uint256)) public claimedAmounts; //address->epoch->amount
@@ -46,7 +58,9 @@ contract BridgeLogic is Initializable {
         governanceProxy = _governanceProxy;
         startTime = block.timestamp;
         liquidityStartTime = block.timestamp;
-        liquidityBp = 20;
+        liquidityBp = 1000;
+        lockTimeEpochs = 180;
+        liquidityEpochLength = 180 days;
     }
 
     function changeLiquidityBp(uint256 _newLbp) external {
@@ -55,6 +69,26 @@ contract BridgeLogic is Initializable {
             "Liquidity can be only changed by governance or owner"
         );
         liquidityBp = _newLbp;
+    }
+
+    // input should be number of days
+    function changeLockTimeEpochs(uint256 _newLockTimeEpochs) external {
+        require(
+            msg.sender == owner || msg.sender == governanceProxy,
+            "LockTime can be only changed by goveranance or owner"
+        );
+        lockTimeEpochs = _newLockTimeEpochs;
+    }
+
+    // input should be number of days
+    function changeLiquidityEpochLength(uint256 _newLiquidityEpochLength)
+        external
+    {
+        require(
+            msg.sender == owner || msg.sender == governanceProxy,
+            "LiquidityEpoch length can only be changed by governance or owner"
+        );
+        liquidityEpochLength = _newLiquidityEpochLength.mul(1 days);
     }
 
     function getCurrentEpoch() internal view returns (uint256) {
@@ -116,6 +150,7 @@ contract BridgeLogic is Initializable {
         mpond.transferFrom(msg.sender, address(this), _amount);
         // pond.tranfer(msg.sender, _amount.mul(pondPerMpond));
         SafeERC20.safeTransfer(pond, msg.sender, _amount.mul(pondPerMpond));
+        emit MPondToPond(msg.sender, _epoch, _amount.mul(pondPerMpond));
         return _amount.mul(pondPerMpond);
     }
 
@@ -131,6 +166,7 @@ contract BridgeLogic is Initializable {
         );
         Requests memory _req = Requests(amount, epoch.add(lockTimeEpochs));
         requests[msg.sender][epoch] = _req;
+        emit PlacedRequest(msg.sender, epoch, _req.releaseEpoch);
         return (epoch, _req.releaseEpoch);
     }
 
@@ -174,6 +210,7 @@ contract BridgeLogic is Initializable {
             pondToDeduct
         );
         mpond.transfer(msg.sender, _mpond);
+        emit PondToMPond(msg.sender, _mpond);
         return pondToDeduct;
     }
 

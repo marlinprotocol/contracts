@@ -223,6 +223,14 @@ contract.only("BridgeCalculations", function (accounts) {
       });
   });
 
+  it("Day 180: get convertable amount", function(){
+    return bridge.getConvertableAmount(accounts[0], new web3Utils.BN("0")).then(function(data){
+      console.log("*********convertable amount");
+      console.log(data);
+      console.log("*********convertable amount");
+    })
+  })
+  
   it("Day 180: convert 85 MPond to pond of epoch 0", function () {
     return MPond.addWhiteListAddress(bridge.address)
       .then(function () {
