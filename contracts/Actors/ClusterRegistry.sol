@@ -9,7 +9,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 // import "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract ClusterRegistry is Initializable {
+contract ClusterRegistryOld is Initializable {
     using SafeMath for uint256;
 
     TokenLogic LINProxy;

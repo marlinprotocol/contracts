@@ -17,7 +17,7 @@ contract VerifierProducer is Initializable {
     using SafeMath for uint256;
 
     Producer producerRegistry;
-    ClusterRegistry clusterRegistry;
+    ClusterRegistryOld clusterRegistry;
     LuckManager luckManager;
     Pot pot;
     FundManager fundManager;
@@ -37,7 +37,7 @@ contract VerifierProducer is Initializable {
         bytes32 _tokenId
     ) public initializer {
         producerRegistry = Producer(_producerRegistry);
-        clusterRegistry = ClusterRegistry(_clusterRegistry);
+        clusterRegistry = ClusterRegistryOld(_clusterRegistry);
         luckManager = LuckManager(_luckManager);
         pot = Pot(_pot);
         fundManager = FundManager(_fundManager);

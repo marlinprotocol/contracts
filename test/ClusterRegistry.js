@@ -1,210 +1,160 @@
-//initialize the following contracts
-// clusterRegistry
-// cluserDefault
+const truffleAssert = require("truffle-assertions");
 
-const ClusterDefaultProxy = artifacts.require("ClusterDefaultProxy.sol");
-const ClusterDefault = artifacts.require("ClusterDefault.sol");
-const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
-const TokenProxy = artifacts.require("TokenProxy.sol");
-const TokenLogic = artifacts.require("TokenLogic.sol");
-const PotProxy = artifacts.require("PotProxy.sol");
-const Pot = artifacts.require("Pot.sol");
-const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
-const appConfig = require("../app-config");
+const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
-var clusterInstance;
-var tokenInstance;
-var defaultInstance;
-var potInstance;
-var govInstance;
-var governanceProxy;
+contract("ClusterRegistry contract", async function(accounts) {
+    let clusterRegistry;
 
-contract.skip("Cluster Registry", function (accounts) {
-  it("deploy and initialise the contracts", function () {
-    return TokenProxy.deployed({from: accounts[1]})
-      .then(function () {
-        return TokenLogic.at(TokenProxy.address);
-      })
-      .then(function (instance) {
-        tokenInstance = instance;
-        return ClusterRegistryProxy.deployed({from: accounts[1]});
-      })
-      .then(function () {
-        return ClusterRegistry.at(ClusterRegistryProxy.address);
-      })
-      .then(function (instance) {
-        clusterInstance = instance;
-        return ClusterDefaultProxy.deployed({from: accounts[1]});
-      })
-      .then(function (instance) {
-        return ClusterDefault.at(instance.address);
-      })
-      .then(function (instance) {
-        defaultInstance = instance;
-        return GovernorAlpha.deployed();
-      })
-      .then(function (instance) {
-        govInstance = instance;
-        return PotProxy.deployed({from: accounts[1]});
-      })
-      .then(function (instance) {
-        return Pot.at(instance.address);
-      })
-      .then(function (instance) {
-        potInstance = instance;
-        return;
-      });
-  });
+    const proxyAdmin = accounts[1];
+    const admin = accounts[2];
+    const rewardAddress = accounts[3];
+    const clientKey = accounts[4];
 
-  it("initialize contracts", async function () {
-    // address _governanceEnforcerProxy,
-    // uint _firstEpochStartBlock,
-    // uint _EthBlocksPerEpoch,
-    // bytes32[] memory _ids,
-    // uint[] memory _fractionPerCent,
-    // bytes32[] memory _tokens,
-    // address[] memory _tokenContracts,
-    // uint[] memory _epochsToWaitForClaims
+    const registeredCluster = accounts[5];
+    const unregisteredCluster = accounts[6];
 
-    governanceProxy = accounts[appConfig.governanceProxyAccountIndex];
-    let firstEpochStartBlock;
-    let EthBlocksPerEpoch = appConfig.EthBlockPerEpoch;
-    await web3.eth.getBlockNumber((err, blockNo) => {
-      firstEpochStartBlock = blockNo + appConfig.potFirstEpochStartBlockDelay;
+    const updatedRewardAddress = accounts[7];
+    const updatedClientKey = accounts[8];
+
+    it("Deploy cluster registry", async () => {
+        const clusterRegistryDeployment = await ClusterRegistry.new();
+        const clusterRegistryProxy = await ClusterRegistryProxy.new(clusterRegistryDeployment.address, proxyAdmin);
+        clusterRegistry = await ClusterRegistry.at(clusterRegistryProxy.address);
+
+        const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
+        const lockWaitTimes = [20, 21, 22];
+
+        await clusterRegistry.initialize(selectors, lockWaitTimes, admin);
+        assert((await clusterRegistry.owner.call()).toString() == admin, "Admin not set correctly");
+        assert((await clusterRegistry.lockWaitTime.call(selectors[0])).toString() == lockWaitTimes[0], "Lock times not set correctly");
     });
-    let roles = [];
-    let distribution = [];
-    let claimWaitEpochs = [];
-    for (let role in appConfig.roleParams) {
-      let currentRole = appConfig.roleParams[role];
-      roles.push(currentRole.roleId);
-      distribution.push(currentRole.allocation);
-      claimWaitEpochs.push(currentRole.epochsToWaitForClaims);
+
+    it("Register cluster", async () => {
+        await truffleAssert.reverts(clusterRegistry.register(web3.utils.keccak256("DOT"), 101, rewardAddress, clientKey, {
+            from: registeredCluster
+        }));
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), 7, rewardAddress, clientKey, {
+            from: registeredCluster
+        });
+        await truffleAssert.reverts(clusterRegistry.register(web3.utils.keccak256("DOT"), 7, rewardAddress, clientKey, {
+            from: registeredCluster
+        }));
+        const clusterData = await clusterRegistry.getCluster.call(registeredCluster);
+        assert(clusterData.commission == 7, "Commission not correctly set");
+        assert(clusterData.networkId == web3.utils.keccak256("DOT"), "NetworkId not correctly set");
+        assert(clusterData.rewardAddress == rewardAddress, "Reward address not correctly set");
+        assert(clusterData.isValidCluster, "Cluster not registered correctly");
+    });
+
+    it("update commission", async () => {
+        await truffleAssert.reverts(clusterRegistry.updateCommission(15, {
+            from: unregisteredCluster
+        }));
+        const prevCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        await clusterRegistry.updateCommission(15, {
+            from: registeredCluster
+        });
+        const afterUpdateCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        assert(prevCommission == afterUpdateCommission, "Commission shouldn't be updated instantly");
+        await skipBlocks(20);
+        const justBeforeUpdateCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        assert(justBeforeUpdateCommission == prevCommission, "Commission shouldn't be updated before wait time");
+        await skipBlocks(1);
+        const afterWaitCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        assert(afterWaitCommission == 15, "Commission not getting updated after wait time");
+    });
+
+    it("switch network", async () => {
+        await truffleAssert.reverts(clusterRegistry.switchNetwork(web3.utils.keccak256("NEAR"), {
+            from: unregisteredCluster
+        }));
+        const prevNetwork = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        await clusterRegistry.switchNetwork(web3.utils.keccak256("NEAR"), {
+            from: registeredCluster
+        });
+        const networkAfterSwitch = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        assert(prevNetwork == networkAfterSwitch, "Network shouldn't be switched instantly");
+        await skipBlocks(21);
+        const justBeforeSwitchNetwork = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        assert(justBeforeSwitchNetwork == prevNetwork, "Network shouldn't be switched before wait time");
+        await skipBlocks(1);
+        const afterSwitchNetwork = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        assert(afterSwitchNetwork == web3.utils.keccak256("NEAR"), "Network not getting switched after wait time");
+    });
+
+    it("update reward address", async () => {
+        await truffleAssert.reverts(clusterRegistry.updateRewardAddress(updatedRewardAddress, {
+            from: unregisteredCluster
+        }));
+        const prevRewardAddress = await clusterRegistry.getRewardAddress.call(registeredCluster);
+        await clusterRegistry.updateRewardAddress(updatedRewardAddress, {
+            from: registeredCluster
+        });
+        const afterUpdateAddress = await clusterRegistry.getRewardAddress.call(registeredCluster);
+        assert(prevRewardAddress != afterUpdateAddress, "Reward address didn't change");
+        assert(afterUpdateAddress == updatedRewardAddress, "Reward address updated to new address");
+    });
+
+    it("update client key", async () => {
+        await truffleAssert.reverts(clusterRegistry.updateClientKey(updatedClientKey, {
+            from: unregisteredCluster
+        }));
+        const prevClientKey = await clusterRegistry.getClientKey.call(registeredCluster);
+        await clusterRegistry.updateClientKey(updatedClientKey, {
+            from: registeredCluster
+        });
+        const afterClientKey = await clusterRegistry.getClientKey.call(registeredCluster);
+        assert(prevClientKey != afterClientKey, "Client key didn't change");
+        assert(afterClientKey == updatedClientKey, "Client Key updated to new one");
+    });
+
+    it("update cluster params", async () => {
+        await truffleAssert.reverts(clusterRegistry.updateCluster(7, web3.utils.keccak256("DOT"), rewardAddress, clientKey, {
+            from: unregisteredCluster
+        }));
+        const clusterData = await clusterRegistry.getCluster.call(registeredCluster);
+        await clusterRegistry.updateCluster(7, web3.utils.keccak256("DOT"), rewardAddress, clientKey, {
+            from: registeredCluster
+        });
+        const clusterDataAfterUpdate = await clusterRegistry.getCluster.call(registeredCluster);
+        assert(clusterData.clientKey != clusterDataAfterUpdate.clientKey, "Client key didn't change");
+        assert(clusterDataAfterUpdate.clientKey == clientKey, "Client Key updated to new one");
+        assert(clusterData.rewardAddress != clusterDataAfterUpdate.rewardAddress, "reward address didn't change");
+        assert(clusterDataAfterUpdate.rewardAddress == rewardAddress, "Reward address updated to new one");
+        assert(clusterData.commission.toString() == clusterDataAfterUpdate.commission.toString(), "Commission shouldn't change instantly");
+        assert(clusterData.networkId == clusterDataAfterUpdate.networkId, "Network shouldn't change instantly");
+        await skipBlocks(20);
+        const justBeforeUpdateCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        assert(justBeforeUpdateCommission == parseInt(clusterData.commission.toString()), "Commission shouldn't be updated before wait time");
+        await skipBlocks(1);
+        const afterWaitCommission = parseInt((await clusterRegistry.getCommission.call(registeredCluster)).toString());
+        assert(afterWaitCommission == 7, "Commission not getting updated after wait time");
+        const justBeforeSwitchNetwork = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        assert(justBeforeSwitchNetwork == clusterData.networkId, "Network shouldn't be switched before wait time");
+        await skipBlocks(1);
+        const afterSwitchNetwork = parseInt((await clusterRegistry.getNetwork.call(registeredCluster)).toString());
+        assert(afterSwitchNetwork == web3.utils.keccak256("DOT"), "Network not getting switched after wait time");
+    });
+    
+    it("Unregister cluster", async () => {
+        await truffleAssert.reverts(clusterRegistry.unregister({
+            from: unregisteredCluster
+        }));
+        assert((await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster not registered");
+        await clusterRegistry.unregister({
+            from: registeredCluster
+        });
+        assert((await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster shouldn't be unregistered instantly");
+        await skipBlocks(22);
+        assert((await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster shouldn't be unregistered before wait time");
+        await skipBlocks(1);
+        assert(!(await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster should get unregistered after wait time");
+    });
+
+    async function skipBlocks(blocks) {
+        for(let i=0; i < blocks; i++) {
+            await clusterRegistry.getNetwork(unregisteredCluster);
+        }
     }
-
-    //what params should be added to make sure that pot is 100% filled
-    // replace governanceProxy with govInstance.address during integration
-    return potInstance
-      .initialize(
-        governanceProxy,
-        firstEpochStartBlock,
-        EthBlocksPerEpoch,
-        roles,
-        distribution,
-        [appConfig.LINData.id],
-        [tokenInstance.address],
-        claimWaitEpochs
-      )
-      .then(function () {
-        return defaultInstance.initialize(accounts[0], {from: accounts[0]});
-      })
-      .then(function () {
-        return tokenInstance.initialize("Marlin Protocol", "LIN", 18);
-      })
-      .then(function () {
-        // address _defaultCluster,
-        // uint _clusterExitWaitEpochs,
-        // uint _minStakeAmount,
-        // address _LINToken,
-        // address _pot
-
-        return clusterInstance.initialize(
-          defaultInstance.address,
-          0x5,
-          0xff,
-          tokenInstance.address,
-          potInstance.address,
-          governanceProxy
-        );
-      });
-  });
-
-  it("add cluster", function () {
-    return clusterInstance
-      .GovernanceEnforcerProxy({from: governanceProxy})
-      .then(function (govProxy) {
-        assert.equal(govProxy, governanceProxy, "gov proxy must be same");
-        return clusterInstance.openClusterRegistry({from: governanceProxy});
-      })
-      .then(function () {
-        return tokenInstance.mint(accounts[0], 0xabcde);
-      })
-      .then(function () {
-        return tokenInstance.approve(clusterInstance.address, 0xabcde);
-      })
-      .then(function () {
-        return clusterInstance.addCluster(0xabcde / 0x2);
-      })
-      .then(function () {
-        return clusterInstance.addCluster(0xabcde / 0x2);
-      })
-      .then(function (tx) {
-        // console.log(tx);
-        return clusterInstance.closeClusterRegistry({from: governanceProxy});
-      });
-  });
-
-  it("check cluster status", function () {
-    return clusterInstance.getClusterStatus
-      .call(accounts[0])
-      .then(function (status) {
-        assert.equal(status, 1, "status should be waiting to join");
-        return addBlocks(10, accounts);
-      })
-      .then(function () {
-        return clusterInstance.getClusterStatus.call(accounts[0]);
-      })
-      .then(function (status) {
-        assert.equal(status, 2, "status should be active");
-        return clusterInstance.clusters.call(accounts[0]);
-      })
-      .then(function (cluster) {
-        console.log(cluster);
-        return clusterInstance.proposeExit();
-      })
-      .then(function () {
-        return clusterInstance.getClusterStatus.call(accounts[0]);
-      })
-      .then(function (status) {
-        assert.equal(status, 3, "status should be exiting");
-        return potInstance.getCurrentEpoch();
-      })
-      .then(function (epoch) {
-        console.log(epoch);
-        return addBlocks(5, accounts);
-      })
-      .then(function () {
-        return potInstance.getCurrentEpoch();
-      })
-      .then(function (epoch) {
-        console.log(epoch);
-        return addBlocks(30, accounts);
-      })
-      .then(function () {
-        return clusterInstance.exit();
-      });
-  });
 });
-
-async function increaseBlocks(accounts) {
-  // this transactions is only to increase the few block
-  return web3.eth.sendTransaction({
-    from: accounts[1],
-    to: accounts[2],
-    value: 1,
-  });
-}
-
-async function addBlocks(count, accounts) {
-  for (let index = 0; index < count; index++) {
-    await increaseBlocks(accounts);
-  }
-  return;
-  // await web3.currentProvider.send({
-  //   jsonrpc: "2.0",
-  //   method: "evm_mine",
-  //   id: 12345
-  // });
-  // return;
-}

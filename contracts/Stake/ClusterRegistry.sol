@@ -24,10 +24,10 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 iValue;
     }
 
-    mapping(address => Cluster) public clusters;
+    mapping(address => Cluster) clusters;
 
     mapping(bytes32 => Lock) public locks;
-    mapping(bytes32 => uint256) lockWaitTime;
+    mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant COMMISSION_LOCK_SELECTOR = keccak256("COMMISSION_LOCK");
     bytes32 constant SWITCH_NETWORK_LOCK_SELECTOR = keccak256("SWITCH_NETWORK_LOCK");
     bytes32 constant UNREGISTER_LOCK_SELECTOR = keccak256("UNREGISTER_LOCK");
@@ -60,7 +60,7 @@ contract ClusterRegistry is Initializable, Ownable {
             "ClusterRegistry:initalize - Invalid params"
         );
         for(uint256 i=0; i < _selectors.length; i++) {
-            lockWaitTime[_selectors[i]] == _lockWaitTimes[i];
+            lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
             emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
         }
         super.initialize(_owner);
@@ -79,7 +79,7 @@ contract ClusterRegistry is Initializable, Ownable {
     ) public returns(bool) {
         // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
-            clusters[msg.sender].status == Status.NOT_REGISTERED, 
+            !isClusterValid(msg.sender), 
             "ClusterRegistry:register - Cluster is already registered"
         );
         require(_commission <= 100, "ClusterRegistry:register - Commission can't be more than 100%");
@@ -94,7 +94,7 @@ contract ClusterRegistry is Initializable, Ownable {
 
     function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            isClusterValid(msg.sender),
             "ClusterRegistry:updateCluster - Cluster not registered"
         );
         if(_networkId != bytes32(0)) {
@@ -115,7 +115,7 @@ contract ClusterRegistry is Initializable, Ownable {
 
     function updateCommission(uint256 _commission) public {
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            isClusterValid(msg.sender),
             "ClusterRegistry:updateCommission - Cluster not registered"
         );
         require(_commission <= 100, "ClusterRegistry:updateCommission - Commission can't be more than 100%");
@@ -137,7 +137,7 @@ contract ClusterRegistry is Initializable, Ownable {
 
     function switchNetwork(bytes32 _networkId) public {
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            isClusterValid(msg.sender),
             "ClusterRegistry:updateCommission - Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender));
@@ -158,7 +158,7 @@ contract ClusterRegistry is Initializable, Ownable {
 
     function updateRewardAddress(address _rewardAddress) public {
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            isClusterValid(msg.sender),
             "ClusterRegistry:updateRewardAddress - Cluster not registered"
         );
         clusters[msg.sender].rewardAddress = _rewardAddress;
@@ -168,7 +168,7 @@ contract ClusterRegistry is Initializable, Ownable {
     function updateClientKey(address _clientKey) public {
         // TODO: Add delay to client key updates as well
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            isClusterValid(msg.sender),
             "ClusterRegistry:updateClientKey - Cluster not registered"
         );
         clusters[msg.sender].clientKey = _clientKey;
@@ -236,5 +236,25 @@ contract ClusterRegistry is Initializable, Ownable {
 
     function getRewardAddress(address _cluster) public view returns(address) {
         return clusters[_cluster].rewardAddress;
+    }
+
+    function getClientKey(address _cluster) public view returns(address) {
+        return clusters[_cluster].clientKey;
+    }
+
+    function getCluster(address _cluster) public returns(
+        uint256 commission, 
+        address rewardAddress, 
+        address clientKey, 
+        bytes32 networkId, 
+        bool isValidCluster
+    ) {
+        return (
+            getCommission(_cluster), 
+            clusters[_cluster].rewardAddress, 
+            clusters[_cluster].clientKey, 
+            getNetwork(_cluster), 
+            isClusterValid(_cluster)
+        );
     }
 }

@@ -144,7 +144,7 @@ contract("Stake contract", async function(accounts) {
     });
 
     it("Register cluster", async () => {
-
+        
     });
 
     it("Register cluster with commission above 100", async () => {
