@@ -189,6 +189,7 @@ contract ClusterRegistry is Initializable, Ownable {
         if(unlockBlock != 0 && unlockBlock < block.number) {
             clusters[msg.sender].status = Status.NOT_REGISTERED;
             emit ClusterUnregistered(msg.sender, unlockBlock);
+            return;
         }
         uint256 updatedUnlockBlock = block.number.add(lockWaitTime[UNREGISTER_LOCK_SELECTOR]);
         locks[lockId] = Lock(updatedUnlockBlock, 0);
