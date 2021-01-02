@@ -19,6 +19,7 @@ contract ClusterRewards is Initializable, Ownable {
 
     address rewardDelegatorsAddress;
     ERC20 POND;
+    address feeder;
 
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
     event NetworkRemoved(bytes32 networkId);
@@ -26,7 +27,12 @@ contract ClusterRewards is Initializable, Ownable {
     event ClusterRewarded(bytes32 networkId);
 
     modifier onlyRewardDelegatorsContract() {
-        require(msg.sender == rewardDelegatorsAddress);
+        require(msg.sender == rewardDelegatorsAddress, "Sender not Reward Delegators contract");
+        _;
+    }
+
+    modifier onlyFeeder() {
+        require(msg.sender == feeder, "Sender not feeder");
         _;
     }
 
@@ -37,7 +43,8 @@ contract ClusterRewards is Initializable, Ownable {
         uint256[] memory _rewardWeight,
         uint256 _totalRewardsPerEpoch, 
         address _PONDAddress,
-        uint256 _payoutDenomination) 
+        uint256 _payoutDenomination,
+        address _feeder) 
         public
         initializer
     {
@@ -57,6 +64,11 @@ contract ClusterRewards is Initializable, Ownable {
         totalRewardsPerEpoch = _totalRewardsPerEpoch;
         POND = ERC20(_PONDAddress);
         payoutDenomination = _payoutDenomination;
+        feeder = _feeder;
+    }
+
+    function changeFeeder(address _newFeeder) public onlyOwner {
+        feeder = _newFeeder;
     }
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight) public onlyOwner {
@@ -83,7 +95,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
     }
 
-    function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts) public onlyOwner {
+    function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts) public onlyFeeder {
         for(uint256 i=0; i < _clusters.length; i++) {
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(
                                                 totalRewardsPerEpoch
