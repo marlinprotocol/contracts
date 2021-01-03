@@ -133,11 +133,17 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 weightedStake = cluster.weightedStake;
         bytes32[] memory tokens = tokenList;
         for(uint i=0; i < tokens.length; i++) {
+            // clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
+            //                                                         delegatorReward
+            //                                                         .mul(rewardFactor[tokens[i]])
+            //                                                         .mul(10**30)
+            //                                                         .div(weightedStake)
+            //                                                     );
             clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
                                                                     delegatorReward
-                                                                    .mul(rewardFactor[tokens[i]])
                                                                     .mul(10**30)
-                                                                    .div(weightedStake)
+                                                                    .div(tokens.length)
+                                                                    .div(totalDelegations[tokens[i]])
                                                                 );
         }
         clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
