@@ -146,4 +146,8 @@ contract ClusterRewards is Initializable, Ownable {
     function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) public onlyOwner {
         totalRewardsPerEpoch = _updatedRewardPerEpoch;
     }
+
+    function changePayoutDenomination(uint256 _updatedPayoutDenomination) public onlyOwner {
+        payoutDenomination = _updatedPayoutDenomination;
+    }
 }
