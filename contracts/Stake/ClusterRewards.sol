@@ -142,4 +142,8 @@ contract ClusterRewards is Initializable, Ownable {
         );
         POND = ERC20(_updatedPOND);
     }
+
+    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) public onlyOwner {
+        totalRewardsPerEpoch = _updatedRewardPerEpoch;
+    }
 }

@@ -29,6 +29,7 @@ contract RewardDelegators is Initializable, Ownable {
     bytes32 MPONDTokenId;
     mapping(bytes32 => uint256) rewardFactor;
     mapping(bytes32 => uint256) tokenIndex;
+    mapping(bytes32 => uint256) public totalDelegations;
     bytes32[] public tokenList;
     ClusterRewards public clusterRewards;
     ClusterRegistry clusterRegistry;
@@ -175,6 +176,7 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].totalDelegations[_tokens[i]] = clusters[_cluster].totalDelegations[_tokens[i]]
                                                                     .add(_amounts[i]);
                 clusters[_cluster].weightedStake = clusterData.weightedStake.add(_amounts[i].mul(rewardFactor[_tokens[i]]));
+                totalDelegations[_tokens[i]] = totalDelegations[_tokens[i]].add(_amounts[i]);
             }
         }
         if(totalRewards != 0) {
@@ -213,6 +215,7 @@ contract RewardDelegators is Initializable, Ownable {
                 clusters[_cluster].totalDelegations[_tokens[i]] = clusters[_cluster].totalDelegations[_tokens[i]]
                                                                     .sub(_amounts[i]);
                 clusters[_cluster].weightedStake = clusterData.weightedStake.sub(_amounts[i].mul(rewardFactor[_tokens[i]]));
+                totalDelegations[_tokens[i]] = totalDelegations[_tokens[i]].sub(_amounts[i]);
             }
         }
         if(totalRewards != 0) {
