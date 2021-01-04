@@ -96,18 +96,18 @@ contract BridgeLogic is Initializable {
         return (block.timestamp - startTime) / (epochLength);
     }
 
-    function getLiquidityEpoch() public view returns (uint256) {
-        if (block.timestamp < liquidityStartTime + 180 days) {
+    function getLiquidityEpoch(uint256 _startTime) public view returns (uint256) {
+        if (block.timestamp < _startTime) {
             return 0;
         }
         return
-            (block.timestamp - liquidityStartTime - 180 days) /
+            (block.timestamp - _startTime) /
             (liquidityEpochLength) +
             liquidityStartEpoch;
     }
 
-    function effectiveLiquidity() public view returns (uint256) {
-        uint256 effective = getLiquidityEpoch().mul(liquidityBp);
+    function effectiveLiquidity(uint256 _startTime) public view returns (uint256) {
+        uint256 effective = getLiquidityEpoch(_startTime).mul(liquidityBp);
         if (effective > 10000) {
             return 10000;
         }
@@ -120,12 +120,13 @@ contract BridgeLogic is Initializable {
         returns (uint256)
     {
         uint256 _reqAmount = requests[_address][_epoch].amount;
+        uint256 _reqReleaseTime = requests[_address][_epoch].releaseEpoch.mul(epochLength).add(liquidityStartTime);
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
-        if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity()) / (10000)) {
+        if (_claimedAmount >= _reqAmount.mul(effectiveLiquidity(_reqReleaseTime)) / (10000)) {
             return 0;
         }
         return
-            (_reqAmount.mul(effectiveLiquidity()) / (10000)).sub(
+            (_reqAmount.mul(effectiveLiquidity(_reqReleaseTime)) / (10000)).sub(
                 _claimedAmount
             );
     }
@@ -135,11 +136,12 @@ contract BridgeLogic is Initializable {
         uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
         uint256 totalUnlockableAmount = _claimedAmount.add(_amount);
         Requests memory _req = requests[msg.sender][_epoch];
+        uint256 _reqReleaseTime = _req.releaseEpoch.mul(epochLength).add(liquidityStartTime);
 
         // replace div with actual divide
         require(
             totalUnlockableAmount <=
-                _req.amount.mul(effectiveLiquidity()) / (10000),
+                _req.amount.mul(effectiveLiquidity(_reqReleaseTime)) / (10000),
             "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
         );
         require(
