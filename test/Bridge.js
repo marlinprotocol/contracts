@@ -9,19 +9,9 @@ const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
+
 const z6 = "000000"
 const z18 = z6+z6+z6
-
-async function reverts(promise, message) {
-    try {
-        await promise;
-        throw null;
-    }
-    catch (error) {
-        assert(error, "Expected an error but did not get one");
-        assert(error.message.startsWith(PREFIX + message), "Expected an error starting with '" + PREFIX + message + "' but got '" + error.message + "' instead");
-    }
-};
 
 contract("Bridge", async (accounts) => {
   it("should initialize", async () => {
