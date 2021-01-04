@@ -213,7 +213,7 @@ contract BridgeLogic is Initializable {
     }
 
     function getMpond(uint256 _mpond) public returns (uint256) {
-        uint256 pondToDeduct = mpond.balanceOf(msg.sender).mul(pondPerMpond);
+        uint256 pondToDeduct = _mpond.mul(pondPerMpond);
         // pond.transferFrom(msg.sender, address(this), pondToDeduct);
         SafeERC20.safeTransferFrom(
             pond,
