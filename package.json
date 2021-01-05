@@ -28,6 +28,7 @@
     "@openzeppelin/contracts": "^2.5.1",
     "@openzeppelin/contracts-ethereum-package": "^2.3.0",
     "@openzeppelin/upgrades": "^2.8.0",
+    "@poanet/solidity-flattener": "^3.0.6",
     "ethereumjs-tx": "^2.1.2",
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^4.0.47",

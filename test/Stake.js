@@ -48,6 +48,7 @@ contract("Stake contract", async function(accounts) {
     const clusterRegistryOwner = accounts[13];
     const rewardDelegatorsOwner = accounts[14];
     const clusterRewardsOwner = accounts[15];
+    const feeder = accounts[16];
 
     let PONDTokenId;
     let MPONDTokenId;
@@ -130,6 +131,7 @@ contract("Stake contract", async function(accounts) {
             appConfig.staking.rewardPerEpoch,
             MPONDInstance.address, 
             appConfig.staking.payoutDenomination,
+            feeder
         )
 
         await MPONDInstance.addWhiteListAddress(stakeContract.address, {

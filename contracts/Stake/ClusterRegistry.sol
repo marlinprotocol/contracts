@@ -122,10 +122,10 @@ contract ClusterRegistry is Initializable, Ownable {
         bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
-            unlockBlock == 0 || unlockBlock < block.number, 
+            unlockBlock < block.number, 
             "ClusterRegistry:updateCommission - Commission update is already waiting"
         );
-        if(unlockBlock != 0 && unlockBlock < block.number) {
+        if(unlockBlock != 0) {
             uint256 currentCommission = locks[lockId].iValue;
             clusters[msg.sender].commission = currentCommission;
             emit CommissionUpdated(msg.sender, currentCommission, unlockBlock);
@@ -143,10 +143,10 @@ contract ClusterRegistry is Initializable, Ownable {
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
-            unlockBlock == 0 || unlockBlock < block.number,
+            unlockBlock < block.number,
             "ClusterRegistry:switchNetwork - Network switch already waiting"
         );
-        if(unlockBlock != 0 && unlockBlock < block.number) {
+        if(unlockBlock != 0) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
             clusters[msg.sender].networkId = currentNetwork;
             emit NetworkSwitched(msg.sender, currentNetwork, unlockBlock);
@@ -183,12 +183,15 @@ contract ClusterRegistry is Initializable, Ownable {
         bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, msg.sender));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
-            unlockBlock == 0 || unlockBlock < block.number,
+            unlockBlock < block.number,
             "ClusterRegistry:unregister - Unregistration already in progress"
         );
-        if(unlockBlock != 0 && unlockBlock < block.number) {
+        if(unlockBlock != 0) {
             clusters[msg.sender].status = Status.NOT_REGISTERED;
             emit ClusterUnregistered(msg.sender, unlockBlock);
+            delete locks[lockId];
+            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
+            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
             return;
         }
         uint256 updatedUnlockBlock = block.number.add(lockWaitTime[UNREGISTER_LOCK_SELECTOR]);
@@ -203,6 +206,8 @@ contract ClusterRegistry is Initializable, Ownable {
             clusters[_cluster].status = Status.NOT_REGISTERED;
             emit ClusterUnregistered(_cluster, unlockBlock);
             delete locks[lockId];
+            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
+            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
             return false;
         }
         return (clusters[_cluster].status != Status.NOT_REGISTERED);
