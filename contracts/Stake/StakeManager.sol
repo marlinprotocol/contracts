@@ -26,12 +26,6 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] tokensDelegated;
     }
 
-    struct Lock {
-        uint256 unlockTime;
-        address aValue;
-        // bytes32 bValue;
-    }
-
     struct Token {
         address addr;
         bool isActive;
@@ -244,6 +238,7 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:delegateStash - stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
+        delete stashes[_stashId].undelegatesAt;
         bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
         uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
