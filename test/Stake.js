@@ -20,6 +20,8 @@ const { BigNumber } = require("ethers/utils");
 const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
+const { parse } = require("ethers/utils/transaction");
+const { it } = require("ethers/wordlists");
 
 contract("Stake contract", async function(accounts) {
 
@@ -153,47 +155,122 @@ contract("Stake contract", async function(accounts) {
         const amount = 12000000;
 
         await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+
+        await PONDInstance.approve(stakeContract.address, 0);
+        // should revert without token allowance
+        await truffleAssert.reverts(stakeContract.createStash([PONDTokenId], [1]));
         
         await PONDInstance.approve(stakeContract.address, amount);
         assert((await PONDInstance.allowance(accounts[0], stakeContract.address)) == amount);
+        const prevUserBalance = await PONDInstance.balanceOf(accounts[0]);
+        const prevBalLowStash = await PONDInstance.balanceOf(stakeContract.address);
+        // Even if excess amount is approved, only amount mentioned while creating stash should be used and tokens should be transferred to stakingContract.
         let tx = await stakeContract.createStash([PONDTokenId], [amount - 100]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId))
+        const postBalLowStash = await PONDInstance.balanceOf(stakeContract.address);
+        const postUserBalance = await PONDInstance.balanceOf(accounts[0]);
+        console.log("stash created with id:", (tx.logs[0].args.stashId));
+        assert(postBalLowStash.sub(prevBalLowStash) == amount-100, `StakeManager balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
+        assert(prevUserBalance.sub(postUserBalance) == amount-100, `User balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
 
         await PONDInstance.approve(stakeContract.address, amount);
+        const prevBalEqStash = await PONDInstance.balanceOf(stakeContract.address);
+        // If exact amount is approved, the stash should still be created and tokens transferred to stakingContract with specified amount
         await stakeContract.createStash([PONDTokenId], [amount]);
+        const postBalEqStash = await PONDInstance.balanceOf(stakeContract.address);
+        assert(postBalEqStash.sub(prevBalEqStash) == amount);
 
+        // Should revert if trying to createStash with more amount than approved.
         await PONDInstance.approve(stakeContract.address, amount);
         await truffleAssert.reverts(stakeContract.createStash([PONDTokenId], [amount+1]));
 
+        // should revert if trying to createStash with any of the token using 0 amount
         await PONDInstance.approve(stakeContract.address, amount);
         await truffleAssert.reverts(stakeContract.createStash([PONDTokenId], [0]));
         await truffleAssert.reverts(stakeContract.createStash([PONDTokenId, MPONDTokenId], [amount, 0]));
+
+        // should revert if trying to createStash with same tokenId sent multiple times in same tx
+        await PONDInstance.approve(stakeContract.address, amount+2);
+        await MPONDInstance.transfer(accounts[0], amount, {
+            from: MPONDAccount
+        });
+        await MPONDInstance.approve(stakeContract.address, amount);
+        await truffleAssert.reverts(stakeContract.createStash([PONDTokenId, MPONDTokenId, PONDTokenId], [amount, amount, 2]))
+        // If multiple stashes with same data are created, stashid should be different for both
+        await PONDInstance.approve(stakeContract.address, amount*2);
+        let tx1 = await stakeContract.createStash([PONDTokenId], [amount]);
+        let tx2 = await stakeContract.createStash([PONDTokenId], [amount]);
+        assert(tx1.logs[0].args.stashId != tx2.logs[0].args.stashId);
     });
 
     it("create MPOND stash", async () => {
         const amount = 13000000;
         
-        await MPONDInstance.transfer(accounts[0], amount*4, {
+        await MPONDInstance.transfer(accounts[0], amount*8, {
             from: MPONDAccount
         });
 
+        await MPONDInstance.approve(stakeContract.address, 0);
+        // should revert without token allowance
+        await truffleAssert.reverts(stakeContract.createStash([MPONDTokenId], [1]));
+
         await MPONDInstance.approve(stakeContract.address, amount);
         assert((await MPONDInstance.allowance(accounts[0], stakeContract.address)) == amount);
+
+        const prevUserBalance = await MPONDInstance.balanceOf(accounts[0]);
+        const prevBalLowStash = await MPONDInstance.balanceOf(stakeContract.address);
+        // Even if excess amount is approved, only amount mentioned while creating stash should be used and tokens should be transferred to stakingContract.
         let tx = await stakeContract.createStash([MPONDTokenId], [amount - 100]);
+        const postBalLowStash = await MPONDInstance.balanceOf(stakeContract.address);
+        const postUserBalance = await MPONDInstance.balanceOf(accounts[0]);
         console.log("stash created with id:", (tx.logs[0].args.stashId))
+        assert(postBalLowStash.sub(prevBalLowStash) == amount-100);
+        assert(prevUserBalance.sub(postUserBalance) == amount-100);
 
         await MPONDInstance.approve(stakeContract.address, amount);
+        const prevBalEqStash = await MPONDInstance.balanceOf(stakeContract.address);
+        // If exact amount is approved, the stash should still be created and tokens transferred to stakingContract with specified amount
         await stakeContract.createStash([MPONDTokenId], [amount]);
+        const postBalEqStash = await MPONDInstance.balanceOf(stakeContract.address);
+        assert(postBalEqStash.sub(prevBalEqStash) == amount);
 
+        // Should revert if trying to createStash with more amount than approved.
         await MPONDInstance.approve(stakeContract.address, amount);
         await truffleAssert.reverts(stakeContract.createStash([MPONDTokenId], [amount+1]));
 
+        // should revert if trying to createStash with any of the token using 0 amount
         await MPONDInstance.approve(stakeContract.address, amount);
         await truffleAssert.reverts(stakeContract.createStash([MPONDTokenId], [0]));
         await truffleAssert.reverts(stakeContract.createStash([PONDTokenId, MPONDTokenId], [0, amount]));
+
+        // should revert if trying to createStash with same tokenId sent multiple times in same tx
+        await MPONDInstance.approve(stakeContract.address, amount+2);
+        await PONDInstance.approve(stakeContract.address, amount);
+        await truffleAssert.reverts(stakeContract.createStash([MPONDTokenId, PONDTokenId, MPONDTokenId], [amount, amount, 2]))
+        // If multiple stashes with same data are created, stashid should be different for both
+        await MPONDInstance.approve(stakeContract.address, amount*2);
+        let tx1 = await stakeContract.createStash([MPONDTokenId], [amount]);
+        let tx2 = await stakeContract.createStash([MPONDTokenId], [amount]);
+        assert(tx1.logs[0].args.stashId != tx2.logs[0].args.stashId);
+    });
+
+    it("Delegated Stash to cluster that is yet to be created", async () => {
+        
     });
 
     it("Delegate POND stash", async () => {
+        // delegate a stash that is to be created, should revert
+        // delegate a stash and ensure that total cluster delegation increased and the delegator delegation increased
+        // delegate a stash that is partially withdrawn before delegating
+        // delegate a stash that is withdrawn before delegating and hence deleted
+        // delegate a stash already delegating
+        // delegate a stash that is undelegating to same cluster
+        // delegate a stash that is undelegating to different cluster
+        // delegate a stash that is undelegated to a different cluster
+        // delegate a stash that is undelegated to same cluster
+        // delegate a stash that is undelegated and some amount is withdrawn
+        // delegate a stash that is undelegated and completely withdrawn, hence deleted
+        // delegate a stash that has multiple tokens
+        // delegate from a stash 
         const amount = 1000000;
         // register cluster with cluster registry
         await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
