@@ -323,7 +323,7 @@ contract("Stake contract", async function(accounts) {
             totalMPond += mpondAmounts[i];
         }
 
-        if(totalMPond > 0) {
+        if(totalPond > 0) {
             await PONDInstance.transfer(delegator, totalPond);
             await PONDInstance.approve(stakeContract.address, totalPond, {
                 from: delegator

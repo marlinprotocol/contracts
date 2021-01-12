@@ -25,13 +25,13 @@ contract RewardDelegators is Initializable, Ownable {
 
     uint256 public undelegationWaitTime;
     address stakeAddress;
-    uint256 minMPONDStake;
-    bytes32 MPONDTokenId;
+    uint256 public minMPONDStake;
+    bytes32 public MPONDTokenId;
     mapping(bytes32 => uint256) rewardFactor;
     mapping(bytes32 => uint256) tokenIndex;
     mapping(bytes32 => uint256) public totalDelegations;
     bytes32[] public tokenList;
-    ClusterRewards public clusterRewards;
+    ClusterRewards clusterRewards;
     ClusterRegistry clusterRegistry;
     ERC20 PONDToken;
 
@@ -89,7 +89,7 @@ contract RewardDelegators is Initializable, Ownable {
         emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
     }
 
-    function addReward(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
+    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
         require(rewardFactor[_tokenId] == 0, "RewardDelegators:addReward - Reward already exists");
         require(_rewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
         rewardFactor[_tokenId] = _rewardFactor;
@@ -124,7 +124,7 @@ contract RewardDelegators is Initializable, Ownable {
         }
         Cluster memory cluster = clusters[_cluster];
         if(cluster.weightedStake == 0) {
-            clusters[_cluster].lastRewardDistNonce++;
+            clusters[_cluster].lastRewardDistNonce++; // probably not needed
             return;
         }
         

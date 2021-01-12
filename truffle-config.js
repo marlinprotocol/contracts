@@ -63,7 +63,11 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "*", // Any network (default: none)
     },
-
+    // mainnet: {
+    //   provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://mainnet.infura.io/v3/f69c3698961e47d7834969e8c4347c1b`),
+    //   port: 80,
+    //   network_id: "*"
+    // },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port

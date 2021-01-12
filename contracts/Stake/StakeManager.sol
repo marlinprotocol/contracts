@@ -151,6 +151,10 @@ contract StakeManager is Initializable, Ownable {
             _tokens.length == _amounts.length, 
             "StakeManager:createStash - each tokenId should have a corresponding amount and vice versa"
         );
+        require(
+            _tokens.length != 0,
+            "StakeManager:createStash - stash must have atleast one token"
+        );
         uint stashIndex = indices[msg.sender];
         bytes32 stashId = keccak256(abi.encodePacked(msg.sender, stashIndex));
         // TODO: This can never overflow, so change to + for gas savings
@@ -397,5 +401,9 @@ contract StakeManager is Initializable, Ownable {
                 _amount
             )
         );
+    }
+
+    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) public view returns(uint256) {
+        return stashes[_stashId].amount[_tokenId].amount;
     }
 }

@@ -14,12 +14,12 @@ contract ClusterRewards is Initializable, Ownable {
 
     mapping(bytes32 => uint256) public rewardWeight;
     uint256 totalWeight;
-    uint256 totalRewardsPerEpoch;
+    uint256 public totalRewardsPerEpoch;
     uint256 payoutDenomination;
 
     address rewardDelegatorsAddress;
     ERC20 POND;
-    address feeder;
+    address public feeder;
 
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
     event NetworkRemoved(bytes32 networkId);
