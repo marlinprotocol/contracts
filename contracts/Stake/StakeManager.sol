@@ -41,6 +41,15 @@ contract StakeManager is Initializable, Ownable {
     MPondLogic prevMPOND;
     ClusterRegistry clusterRegistry;
     RewardDelegators public rewardDelegators;
+    // new variables
+    struct Lock {
+        uint256 unlockBlock;
+        uint256 iValue;
+    }
+
+    mapping(bytes32 => Lock) public locks;
+    mapping(bytes32 => uint256) public lockWaitTime;
+    bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
 
     event StashCreated(
         address indexed creator, 
@@ -57,6 +66,8 @@ contract StakeManager is Initializable, Ownable {
     event TokenAdded(bytes32 tokenId, address tokenAddress);
     event TokenRemoved(bytes32 tokenId);
     event TokenUpdated(bytes32 tokenId, address tokenAddress);
+    event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
+    event Redelegated(bytes32 stashId, address updatedCluster);
 
     function initialize(
         bytes32[] memory _tokenIds, 
@@ -235,7 +246,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             stash.delegatedCluster == address(0),
-            "StakeManager:delegateStash - stash already delegated to another cluster. Please undelegate from delegating."
+            "StakeManager:delegateStash - stash already delegated to another cluster. Please undelegate from delegating"
         );
         require(
             stash.undelegatesAt <= block.number,
@@ -243,6 +254,10 @@ contract StakeManager is Initializable, Ownable {
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
         delete stashes[_stashId].undelegatesAt;
+        bytes32 lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, stash.staker));
+        if(locks[lockId].unlockBlock != 0) {
+            delete locks[lockId];
+        }
         bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
         uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
@@ -250,6 +265,56 @@ contract StakeManager is Initializable, Ownable {
         }
         rewardDelegators.delegate(msg.sender, _delegatedCluster, tokens, amounts);
         emit StashDelegated(_stashId, _delegatedCluster);
+    }
+
+    function requestStashRedelegation(bytes32 _stashId, address _newCluster) public {
+        Stash memory stash = stashes[_stashId];
+        require(
+            stash.staker == msg.sender,
+            "StakeManager:requestStashRedelegation - Only staker can redelegate stash to another cluster"
+        );
+        require(
+            stash.delegatedCluster != address(0),
+            "StakeManager:requestStashRedelegation - Stash not already delegated"
+        );
+        require(
+            stash.undelegatesAt <= block.number,
+            "StakeManager:requestStashRedelegation - Stash is not yet undelegated"
+        );
+        bytes32 lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, msg.sender));
+        uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(
+            unlockBlock == 0,
+            "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one"
+        );
+        uint256 redelegationBlock = block.number.add(lockWaitTime[REDELEGATION_LOCK_SELECTOR]);
+        locks[lockId] = Lock(redelegationBlock, uint256(_newCluster));
+        emit RedelegationRequested(_stashId, stash.delegatedCluster, _newCluster, redelegationBlock);
+    }
+
+    function redelegateStash(bytes32 _stashId) public {
+        require(
+            stash.delegatedCluster != address(0),
+            "StakeManager:redelegateStash - Stash not already delegated"
+        );
+        require(
+            stash.undelegatesAt <= block.number,
+            "StakeManager:redelegateStash - Stash is not yet undelegated"
+        );
+        bytes32 lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, stashes[_stashId].staker));
+        uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(
+            unlockBlock <= block.number,
+            "StakeManager:redelegateStash - Redelegation period is not yet complete"
+        );
+        address updatedCluster = address(locks[lockId].iValue);
+        require(
+            clusterRegistry.isClusterValid(updatedCluster),
+            "StakeManager:redelegateStash - can't delegate to invalid cluster"
+        );
+        stashes[_stashId].delegatedCluster = updatedCluster;
+        delete locks[lockId];
+        emit Redelegated(_stashId, updatedCluster);
     }
 
     function undelegateStash(bytes32 _stashId) public {
