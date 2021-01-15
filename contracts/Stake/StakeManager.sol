@@ -68,6 +68,7 @@ contract StakeManager is Initializable, Ownable {
     event TokenUpdated(bytes32 tokenId, address tokenAddress);
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
+    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
 
     function initialize(
         bytes32[] memory _tokenIds, 
@@ -91,6 +92,11 @@ contract StakeManager is Initializable, Ownable {
         clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
         super.initialize(_owner);
+    }
+
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
+        emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
+        lockWaitTime[_selector] = _updatedWaitTime; 
     }
 
     function changeMPONDTokenAddress(
@@ -293,6 +299,7 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function redelegateStash(bytes32 _stashId) public {
+        Stash memory stash = stashes[_stashId];
         require(
             stash.delegatedCluster != address(0),
             "StakeManager:redelegateStash - Stash not already delegated"
