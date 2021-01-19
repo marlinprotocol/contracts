@@ -319,6 +319,13 @@ contract StakeManager is Initializable, Ownable {
             clusterRegistry.isClusterValid(updatedCluster),
             "StakeManager:redelegateStash - can't delegate to invalid cluster"
         );
+        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        uint256[] memory amounts = new uint256[](tokens.length);
+        for(uint256 i=0; i < tokens.length; i++) {
+            amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
+        }
+        rewardDelegators.undelegate(msg.sender, stash.delegatedCluster, tokens, amounts);
+        rewardDelegators.delegate(msg.sender, updatedCluster, tokens, amounts);
         stashes[_stashId].delegatedCluster = updatedCluster;
         delete locks[lockId];
         emit Redelegated(_stashId, updatedCluster);
