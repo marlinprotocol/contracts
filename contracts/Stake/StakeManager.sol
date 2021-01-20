@@ -319,7 +319,7 @@ contract StakeManager is Initializable, Ownable {
             clusterRegistry.isClusterValid(updatedCluster),
             "StakeManager:redelegateStash - can't delegate to invalid cluster"
         );
-        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        bytes32[] memory tokens = stash.tokensDelegated;
         uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
@@ -350,7 +350,7 @@ contract StakeManager is Initializable, Ownable {
         uint undelegationBlock = block.number.add(waitTime);
         stashes[_stashId].undelegatesAt = undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        bytes32[] memory tokens = stash.tokensDelegated;
         uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
@@ -373,7 +373,7 @@ contract StakeManager is Initializable, Ownable {
             stash.undelegatesAt <= block.number,
             "StakeManager:withdrawStash - stash is not yet undelegated"
         );
-        bytes32[] memory tokens = stashes[_stashId].tokensDelegated;
+        bytes32[] memory tokens = stash.tokensDelegated;
         uint256[] memory amounts = new uint256[](tokens.length);
         for(uint256 i=0; i < tokens.length; i++) {
             amounts[i] = stashes[_stashId].amount[tokens[i]].amount;
