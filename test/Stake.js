@@ -616,15 +616,59 @@ contract("Stake contract", async function(accounts) {
         await clusterRegistry.unregister({
             from: registeredCluster1
         });
+        await skipBlocks(4);
         await stakeContract.redelegateStash(stashId);
     });
 
-    it("Check if redelegation requests before ", async () => {
-
+    it("Check if redelegation requests before undelegation are applicable after", async () => {
+        const amount = 1000000;
+        // register and delegate
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, clientKey, {
+                from: registeredCluster1
+            });
+        }
+        const stashId = await createStash(amount, amount);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+        // Register redelegate to a cluster, undelegate and delegate again to another cluster. Now apply redelegation
+        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+        await stakeContract.undelegateStash(stashId);
+        await skipBlocks(23);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
     });
 
-    it("", async () => {
-
+    it("Check if redelegation request remains active even after usage", async () => {
+        const amount = 1000000;
+        // register and delegate
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, clientKey, {
+                from: registeredCluster1
+            });
+        }
+        const stashId = await createStash(amount, amount);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+        // Register redelegate to a cluster and apply redelegation, undelegate and delegate again to another cluster. Now apply redelegation again
+        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+        await skipBlocks(4);
+        await stakeContract.redelegateStash(stashId)
+        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
+        await skipBlocks(4);
+        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
+        await stakeContract.undelegateStash(stashId);
+        await skipBlocks(23);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
     });
     // Redelegate a stash that is undelegating
     // Redelegate a stash that is undelegated
@@ -634,8 +678,6 @@ contract("Stake contract", async function(accounts) {
     
     // Register redelegate when cluster is delegated and apply it after undelegated and delegate again. Now apply redelegation again
     // Register redelegate when cluster is undelegating and apply it after undelegated and delegate again. Now apply redelegation again.
-    // Register redelegate to a cluster, undelegate and delegate again to another cluster. Now apply redelegation
-    // Register redelegate to a cluster and apply redelegation, undelegate and delegate again to another cluster. Now apply redelegation again
 
     it("create and Delegate POND stash", async () => {
         const amount = 750000;
