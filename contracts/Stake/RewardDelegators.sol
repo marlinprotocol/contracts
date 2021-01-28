@@ -169,13 +169,18 @@ contract RewardDelegators is Initializable, Ownable {
         for(uint256 i=0; i < _tokens.length; i++) {
             uint256 tokenAccRewardPerShare = clusters[_cluster].accRewardPerShare[_tokens[i]];
             uint256 delegatorTokens = clusters[_cluster].delegators[_delegator][_tokens[i]];
+
+            // calculating pending rewards for the delegator if any
             if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] < currentNonce) {
                 totalRewards = totalRewards.add(delegatorTokens.mul(tokenAccRewardPerShare));
                 totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][_tokens[i]]);
                 clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] = currentNonce;
             }
+
+            // update the debt for next reward calculation
             uint256 totalRewardsForDebt = delegatorTokens.add(_amounts[i]).mul(tokenAccRewardPerShare);
             clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
+
             // update balances
             if(_amounts[i] != 0) {
                 clusters[_cluster].delegators[_delegator][_tokens[i]] = delegatorTokens.add(_amounts[i]);
@@ -335,5 +340,9 @@ contract RewardDelegators is Initializable, Ownable {
             "RewardDelegators:updatePONDAddress - Updated POND token address cannot be 0"
         );
         PONDToken = ERC20(_updatedPOND);
+    }
+
+    function getClustersWeightedStake(address _cluster) public view returns (uint256) {
+        return clusters[_cluster].weightedStake;
     }
 }

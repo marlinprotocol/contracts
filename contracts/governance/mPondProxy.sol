@@ -2,7 +2,6 @@ pragma solidity >=0.4.21 <0.7.0;
 
 
 /// @title Contract to reward overlapping stakes
-/// @author Marlin
 /// @notice Use this contract only for testing
 /// @dev Contract may or may not change in future (depending upon the new slots in proxy-store)
 contract MPondProxy {

@@ -25,7 +25,7 @@ module.exports = async function (deployer, network, accounts) {
       return deployer.deploy(ClusterDefaultProxy, ClusterDefault.address);
     });
     await deployer.deploy(ClusterRegistry).then(function () {
-      return deployer.deploy(ClusterRegistryProxy, ClusterRegistry.address);
+      return deployer.deploy(ClusterRegistryProxy, ClusterRegistry.address, accounts[20]); // accounts[20] is proxy admin
     });
   }
 };

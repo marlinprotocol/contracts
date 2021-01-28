@@ -1,7 +1,7 @@
 const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
 const Timelock = artifacts.require("Timelock.sol");
-const mPondProxy = artifacts.require("mPondProxy.sol");
-const mPondLogic = artifacts.require("mPondLogic.sol");
+const mPondProxy = artifacts.require("MPondProxy.sol");
+const mPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
 
 var govInstance;

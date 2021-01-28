@@ -210,7 +210,7 @@ contract ClusterRegistry is Initializable, Ownable {
             delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
             return false;
         }
-        return (clusters[_cluster].status != Status.NOT_REGISTERED);
+        return (clusters[_cluster].status != Status.NOT_REGISTERED);    // returns true if the status is registered
     }
 
     function getCommission(address _cluster) public returns(uint256) {

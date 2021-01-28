@@ -2,8 +2,8 @@ const AddressRegistry = artifacts.require("AddressRegistry.sol");
 const StakeRegistry = artifacts.require("StakeRegistry.sol");
 const ValidatorRegistry = artifacts.require("ValidatorRegistry.sol");
 const Distribution = artifacts.require("Distribution.sol");
-const mPondProxy = artifacts.require("mPondProxy.sol");
-const mPondLogic = artifacts.require("mPondLogic.sol");
+const mPondProxy = artifacts.require("MPondProxy.sol");
+const mPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
 
 contract.skip("Stake Drop testing", function (accounts) {

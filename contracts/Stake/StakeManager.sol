@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./RewardDelegators.sol";
-import "../governance/MPondLogic.sol";
+import "../governance/mPondLogic.sol";
 import "./ClusterRegistry.sol";
 
 
@@ -21,7 +21,7 @@ contract StakeManager is Initializable, Ownable {
     struct Stash {
         address staker;
         address delegatedCluster;
-        mapping(bytes32 => TokenData) amount;
+        mapping(bytes32 => TokenData) amount;   // name is not intuitive
         uint256 undelegatesAt;
         bytes32[] tokensDelegated;
     }
@@ -417,6 +417,8 @@ contract StakeManager is Initializable, Ownable {
             if(balance == _amounts[i]) {
                 // delete element from array
                 uint256 tokenIndex = stashes[_stashId].amount[_tokens[i]].index;
+
+                // replace the last token in the array
                 bytes32 tokenToReplace = stashes[_stashId].tokensDelegated[stashes[_stashId].tokensDelegated.length-1];
                 stashes[_stashId].tokensDelegated[tokenIndex] = tokenToReplace;
                 stashes[_stashId].tokensDelegated.pop();
@@ -446,7 +448,7 @@ contract StakeManager is Initializable, Ownable {
                 _delegator,
                 address(this),
                 _amount
-            )
+            ), "StakeManager: ERC20 transfer failed"
         );
         if (tokenAddress == address(MPOND)) {
             // send a request to delegate governance rights for the amount to delegator

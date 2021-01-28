@@ -20,8 +20,9 @@ const { BigNumber } = require("ethers/utils");
 const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
+const { keccak256 } = require("web3-utils");
 
-contract("Stake contract", async function(accounts) {
+contract.only("Stake contract", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
@@ -51,6 +52,7 @@ contract("Stake contract", async function(accounts) {
     const delegator3 = accounts[17];
     const delegator4 = accounts[18];
     const clientKey = accounts[19];
+    const ethereumNetworkID = keccak256('ethereum');
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
@@ -91,15 +93,28 @@ contract("Stake contract", async function(accounts) {
         const perfOracleDeployment = await PerfOracle.new();
         const perfOracleProxyInstance = await PerfOracleProxy.new(perfOracleDeployment.address, proxyAdmin);
         perfOracle = await PerfOracle.at(perfOracleProxyInstance.address);
+        
+        const tokenIDs = [keccak256('mpond'), keccak256('pond')];
+        const tokenAddresses = [MPONDInstance.address, PONDInstance.address];
 
         await stakeContract.initialize(
-            MPONDInstance.address, 
-            PONDInstance.address, 
+            tokenIDs,
+            tokenAddresses,
+            MPONDInstance.address,
             clusterRegistry.address,
-            rewardDelegators.address
+            rewardDelegators.address,
+            proxyAdmin
         );
 
-        await clusterRegistry.initialize();
+        const selectors = [keccak256("COMMISSION_LOCK"), 
+        keccak256("SWITCH_NETWORK_LOCK"),
+        keccak256("UNREGISTER_LOCK")];
+        const lockWaitTimes = [1, 1, 1];
+        
+        await clusterRegistry.initialize(selectors, lockWaitTimes, proxyAdmin);
+
+        const mpondTokenID = keccak256('mpond');
+        const rewardFactors = [1000000, 1];
 
         await rewardDelegators.initialize(
             appConfig.staking.undelegationWaitTime,
@@ -108,17 +123,25 @@ contract("Stake contract", async function(accounts) {
             clusterRegistry.address,
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
+            mpondTokenID,
             PONDInstance.address, 
-            appConfig.staking.PondRewardFactor,
-            appConfig.staking.MPondRewardFactor
-        );
+            tokenIDs,
+            rewardFactors
+            );
+
+        const networkIDs = [ethereumNetworkID];
+        const rewardWeight = [1];
+        const feeder = oracleOwner;
 
         await perfOracle.initialize(
             oracleOwner,
             rewardDelegators.address,
+            networkIDs,
+            rewardWeight,
             appConfig.staking.rewardPerEpoch,
             PONDInstance.address, 
             appConfig.staking.payoutDenomination,
+            feeder
         );
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");
@@ -220,26 +243,40 @@ contract("Stake contract", async function(accounts) {
     });
 
     it("Delegator delegate and get rewards from a cluster", async () => {
-        await clusterRegistry.register(10, registeredClusterRewardAddress, clientKey, {
+        await redeploy();
+        await clusterRegistry.register(ethereumNetworkID, 10, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster1
         });
-        await clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(ethereumNetworkID, 5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster2
         });
+
+        // activate mpond and pond tokens
+        const stakeContractOwner = await stakeContract.owner();
+        // await stakeContract.enableToken(keccak256('mpond'), MPONDInstance.address,
+        //     {from: stakeContractOwner});
+        // await stakeContract.enableToken(keccak256('pond'), PONDInstance.address,
+        //     {from: stakeContractOwner});
+
         // 2 users delegate tokens to a cluster - one twice the other
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
+
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
+
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+        console.log("POND balance after - before:");
         console.log(PondBalance1After.sub(PondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
-        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
+        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6 + 1.0/3*19/20*2/3)));
+
         // feed data again to the oracle
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
+
         // do some delegations for both users to the cluster
         let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
@@ -249,10 +286,10 @@ contract("Stake contract", async function(accounts) {
     });
 
     it("Delegator withdraw rewards from a cluster", async () => {
-        await clusterRegistry.register(10, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(ethereumNetworkID, 10, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster3
         });
-        await clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(ethereumNetworkID, 5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster4
         });
         // 2 users delegate tokens to a cluster - one twice the other
@@ -281,12 +318,20 @@ contract("Stake contract", async function(accounts) {
 
     it("Delegator undelegate and get rewards from a cluster", async () => {
         await redeploy();
-        await clusterRegistry.register(10, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(ethereumNetworkID, 10, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster1
         });
-        await clusterRegistry.register(5, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(ethereumNetworkID, 5, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster2
         });
+
+        // activate mpond and pond tokens
+        const stakeContractOwner = await stakeContract.owner();
+        // await stakeContract.enableToken(keccak256('mpond'), MPONDInstance.address,
+        //     {from: stakeContractOwner});
+        // await stakeContract.enableToken(keccak256('pond'), PONDInstance.address,
+        //     {from: stakeContractOwner});
+
         // 2 users delegate tokens to a cluster - one twice the other
         const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
@@ -338,9 +383,24 @@ contract("Stake contract", async function(accounts) {
             });
         }
         const stashes = [];
+    
         for(let i=0; i < clusters.length; i++) {
             // console.log(tokenType[i], amounts[i], clusters[i]);
-            const receipt = await stakeContract.createStashAndDelegate(mpondAmounts[i], pondAmounts[i], clusters[i], {
+
+            let tokenIDs
+            let amounts
+
+            if (mpondAmounts[i] == 0){
+                tokenIDs = [keccak256('pond')];
+                amounts = [pondAmounts[i]];
+            } else if (pondAmounts[i] == 0){
+                tokenIDs = [keccak256('mpond')];
+                amounts = [mpondAmounts[i]];
+            } else {
+                tokenIDs = [keccak256('mpond'), keccak256('pond')];
+                amounts = [mpondAmounts[i], pondAmounts[i]];
+            }
+            const receipt = await stakeContract.createStashAndDelegate(tokenIDs, amounts, clusters[i], {
                 from: delegator
             });
             stashes.push(receipt.logs[0].args.stashId);
@@ -373,17 +433,24 @@ contract("Stake contract", async function(accounts) {
         const stakes = [];
         let totalStake = new BigNumber(0);
         for(let i=0; i < clusters.length; i++) {
-            const clusterStake = await rewardDelegators.getEffectiveStake(clusters[i]);
+            const clusterStake = await rewardDelegators.getClustersWeightedStake(clusters[i]);
             stakes.push(clusterStake);
             totalStake = totalStake.add(clusterStake.toString());
         }
         const payouts = [];
-        for(let i=0; i < clusters.length; i++) {
-            const stake = new BigNumber(stakes[i].toString());
-            payouts.push(stake.mul(100000).div(totalStake.toString()).toString())
+        if (totalStake == 0){
+            for(let i=0; i < clusters.length; i++) {
+                const stake = new BigNumber(stakes[i].toString());
+                payouts.push(stake.mul(100000))
+            }
+        } else {
+            for(let i=0; i < clusters.length; i++) {
+                const stake = new BigNumber(stakes[i].toString());
+                payouts.push(stake.mul(100000).div(totalStake.toString()).toString())
+            }
         }
-        console.log(payouts);
-        await perfOracle.feed(clusters, payouts, {
+        console.log("Payouts: ", payouts);   
+        await perfOracle.feed(ethereumNetworkID, clusters, payouts, {
             from: oracleOwner
         });
     }
@@ -428,14 +495,27 @@ contract("Stake contract", async function(accounts) {
         const perfOracleProxyInstance = await PerfOracleProxy.new(perfOracleDeployment.address, proxyAdmin);
         perfOracle = await PerfOracle.at(perfOracleProxyInstance.address);
 
+        const tokenIDs = [keccak256('mpond'), keccak256('pond')];
+        const tokenAddresses = [MPONDInstance.address, PONDInstance.address];
+
         await stakeContract.initialize(
-            MPONDInstance.address, 
-            PONDInstance.address, 
+            tokenIDs,
+            tokenAddresses,
+            MPONDInstance.address,
             clusterRegistry.address,
-            rewardDelegators.address
+            rewardDelegators.address,
+            proxyAdmin
         );
 
-        await clusterRegistry.initialize();
+        const selectors = [keccak256("COMMISSION_LOCK"), 
+        keccak256("SWITCH_NETWORK_LOCK"),
+        keccak256("UNREGISTER_LOCK")];
+        const lockWaitTimes = [1, 1, 1];
+        
+        await clusterRegistry.initialize(selectors, lockWaitTimes, proxyAdmin);
+    
+        const mpondTokenID = keccak256('mpond');
+        const rewardFactors = [1000000, 1];
 
         await rewardDelegators.initialize(
             appConfig.staking.undelegationWaitTime,
@@ -444,18 +524,26 @@ contract("Stake contract", async function(accounts) {
             clusterRegistry.address,
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
+            mpondTokenID,
             PONDInstance.address, 
-            appConfig.staking.PondRewardFactor,
-            appConfig.staking.MPondRewardFactor
-        );
+            tokenIDs,
+            rewardFactors
+            );
 
-        await perfOracle.initialize(
-            oracleOwner,
-            rewardDelegators.address,
-            appConfig.staking.rewardPerEpoch,
-            PONDInstance.address, 
-            appConfig.staking.payoutDenomination,
-        );
+            const networkIDs = [ethereumNetworkID];
+            const rewardWeight = [1];
+            const feeder = oracleOwner;
+    
+            await perfOracle.initialize(
+                oracleOwner,
+                rewardDelegators.address,
+                networkIDs,
+                rewardWeight,
+                appConfig.staking.rewardPerEpoch,
+                PONDInstance.address, 
+                appConfig.staking.payoutDenomination,
+                feeder
+            );
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");
 
