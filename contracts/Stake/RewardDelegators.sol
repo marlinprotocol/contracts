@@ -143,7 +143,7 @@ contract RewardDelegators is Initializable, Ownable {
                                                                     delegatorReward
                                                                     .mul(10**30)
                                                                     .div(tokens.length)
-                                                                    .div(totalDelegations[tokens[i]])
+                                                                    .div(clusters[_cluster].totalDelegations[tokens[i]])
                                                                 );
         }
         clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
@@ -344,5 +344,11 @@ contract RewardDelegators is Initializable, Ownable {
 
     function getClustersWeightedStake(address _cluster) public view returns (uint256) {
         return clusters[_cluster].weightedStake;
+    }
+    // ************************ IMPORTANT - TO REMOVE ***********************
+    // TO remove - for testing only
+    // ************************ IMPORTANT - TO REMOVE ***********************
+    function getAccRewardPerShare(address _cluster, bytes32 _tokenId) public view returns(uint256) {
+        return clusters[_cluster].accRewardPerShare[_tokenId];
     }
 }

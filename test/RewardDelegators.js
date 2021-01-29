@@ -196,6 +196,8 @@ contract("RewardDelegators contract", async function(accounts) {
         // 2 users delegate tokens to a cluster - one twice the other
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
+        let accPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
+        let accMPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
         const cluster1Reward = await clusterRewards.clusterRewards(registeredCluster1);
@@ -208,6 +210,9 @@ contract("RewardDelegators contract", async function(accounts) {
         let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+        let accPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
+        let accMPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
+        console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
         console.log(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)), appConfig.staking.rewardPerEpoch/3);
         assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
         // feed data again to the oracle

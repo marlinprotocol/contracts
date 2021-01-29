@@ -243,6 +243,8 @@ contract.only("Stake contract", async function(accounts) {
     });
 
     it("Delegator delegate and get rewards from a cluster", async () => {
+        const PONDTokenId = web3.utils.keccak256("pond");
+        const MPONDTokenId = web3.utils.keccak256("mpond");
         await redeploy();
         await clusterRegistry.register(ethereumNetworkID, 10, registeredClusterRewardAddress, clientKey, {
             from: registeredCluster1
@@ -261,6 +263,10 @@ contract.only("Stake contract", async function(accounts) {
         // 2 users delegate tokens to a cluster - one twice the other
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
+        let accPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
+        let accMPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
+        let accPondRewardPerShareBefore2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, PONDTokenId);
+        let accMPondRewardPerShareBefore2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, MPONDTokenId);
 
         // data is fed to the oracle
         await feedData([registeredCluster1, registeredCluster2]);
@@ -270,6 +276,12 @@ contract.only("Stake contract", async function(accounts) {
         let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+        let accPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
+        let accMPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
+        let accPondRewardPerShare2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, PONDTokenId);
+        let accMPondRewardPerShare2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, MPONDTokenId);
+        console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
+        console.log(accPondRewardPerShare2.sub(accPondRewardPerShareBefore2).toString(), accMPondRewardPerShare2.sub(accMPondRewardPerShareBefore2).toString())
         console.log("POND balance after - before:");
         console.log(PondBalance1After.sub(PondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
         assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6 + 1.0/3*19/20*2/3)));
