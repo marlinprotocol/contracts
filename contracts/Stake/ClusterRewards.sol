@@ -96,13 +96,16 @@ contract ClusterRewards is Initializable, Ownable {
     }
 
     function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts) public onlyFeeder {
+        uint256 totalNetworkWeight = totalWeight;
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
+        uint256 currentPayoutDenomination = payoutDenomination;
         for(uint256 i=0; i < _clusters.length; i++) {
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(
-                                                totalRewardsPerEpoch
+                                                currentTotalRewardsPerEpoch
                                                 .mul(rewardWeight[_networkId])
                                                 .mul(_payouts[i])
-                                                .div(totalWeight)
-                                                .div(payoutDenomination)
+                                                .div(totalNetworkWeight)
+                                                .div(currentPayoutDenomination)
                                             );
         }
         emit ClusterRewarded(_networkId);
