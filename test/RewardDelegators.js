@@ -202,7 +202,7 @@ contract("RewardDelegators contract", async function(accounts) {
         await feedData([registeredCluster1, registeredCluster2]);
         const cluster1Reward = await clusterRewards.clusterRewards(registeredCluster1);
         const cluster2Reward = await clusterRewards.clusterRewards(registeredCluster2);
-        console.log(cluster1Reward, cluster2Reward);
+        console.log(cluster1Reward.toString(), cluster2Reward.toString());
         assert(cluster1Reward.toString() == parseInt((10+2)/(10+2+4+2)*appConfig.staking.rewardPerEpoch/3));
         assert(cluster2Reward.toString() == parseInt((4+2)/(10+2+4+2)*appConfig.staking.rewardPerEpoch/3));
         // do some delegations for both users to the cluster
@@ -213,8 +213,8 @@ contract("RewardDelegators contract", async function(accounts) {
         let accPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
         let accMPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
         console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
-        console.log(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)), appConfig.staking.rewardPerEpoch/3);
-        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
+        console.log(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*1/3*(2.0/3*1/2+1.0/3*1/2)), appConfig.staking.rewardPerEpoch/3);
+        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*1/3*(2.0/3*1/2+1.0/3*1/2)));
         // feed data again to the oracle
         // await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // // do some delegations for both users to the cluster
