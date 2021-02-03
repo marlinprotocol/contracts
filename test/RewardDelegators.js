@@ -24,7 +24,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract("RewardDelegators contract", async function(accounts) {
+contract.only("RewardDelegators contract", async function(accounts) {
 
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
@@ -50,8 +50,11 @@ contract("RewardDelegators contract", async function(accounts) {
     const delegator = accounts[21];
     const delegator1 = accounts[22];
     const delegator2 = accounts[23];
+    const delegator3 = accounts[24];
 
     it("Initialize contract", async () => {
+
+        // deploy pond and mpond tokens
         const PONDDeployment = await PONDToken.new();
         const pondProxyInstance = await PONDProxy.new(PONDDeployment.address, proxyAdmin);
         PONDInstance = await PONDToken.at(pondProxyInstance.address);
@@ -158,13 +161,6 @@ contract("RewardDelegators contract", async function(accounts) {
         ));
     });
 
-    it("update MPOND Token id", async () => {
-        // update MPOND token id and check if minMPOND requirements is happenning(is cluster  active) with the updated token
-        // cluster had minMPOND before and after change it doesn't
-        // cluster had minMPOND before and after change it does have in new tokenId as well
-        // update MPOND token to id that doesn't have an address mapped
-    });
-
     it("Add reward factor", async () => {
         // TODO: Not being used as of now, but add test cases later
     });
@@ -182,6 +178,58 @@ contract("RewardDelegators contract", async function(accounts) {
         // update rewards when there are pending rewards for cluster and check if cluster is getting correct commission and also that accRewardPerShare is getting updated correctly
         // If weightedStake is 0, then check that no rewards are distributed
         // If rewards exist and then weightedStake becomes 0, then rewards still have to be distributed
+
+        // If weightedStake is 0, then check that no rewards are distributed
+        const weightedStake = await rewardDelegators.getClustersWeightedStake(registeredCluster);
+        assert.equal(Number(weightedStake), 0);
+
+        const clusterBeforeReward = await clusterRewards.clusterRewards(registeredCluster);
+        assert.equal(Number(clusterBeforeReward), 0);
+
+        await rewardDelegators._updateRewards(registeredCluster, { from: rewardDelegatorsOwner });
+
+        const clusterAfterReward = await clusterRewards.clusterRewards(registeredCluster);
+        assert.equal(Number(clusterAfterReward), 0);
+
+        // Check For Correct Update Case
+        const commission = 5;
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredClusterRewardAddress, clientKey, {
+            from: registeredCluster
+        });
+
+        await delegate(delegator, [registeredCluster], [0], [2000000]); // failing
+        // await delegate(delegator, [registeredCluster], [1], [2000000]); // passing
+        await feedData([registeredCluster]);
+
+        const clusterUpdatedReward = await clusterRewards.clusterRewards(registeredCluster);
+        assert.equal(Number(clusterUpdatedReward), 3333);
+
+        const rewardAddrOldBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress);
+        assert.equal(Number(rewardAddrOldBalance), 0);
+
+        const accPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster, PONDTokenId);
+        const accMPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster, MPONDTokenId);
+        assert.equal(Number(accPondRewardPerShareBefore), 0);
+        assert.equal(Number(accMPondRewardPerShareBefore), 0);
+
+        await rewardDelegators._updateRewards(registeredCluster, { from: rewardDelegatorsOwner });
+
+        // Checking Cluster Reward
+        const cluster1UpdatedRewardNew = await clusterRewards.clusterRewards(registeredCluster);
+        assert.equal(Number(cluster1UpdatedRewardNew), 0);
+
+        // Checking Cluster Commission
+        const rewardAddrNewBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress);
+        assert(rewardAddrOldBalance != rewardAddrNewBalance);
+
+        // the actual rewardAddrNewBalance is 166.65 but due to solidity uint, it'll only be 166
+        assert.equal(Number(rewardAddrNewBalance), Math.floor(Number(clusterUpdatedReward) / 100 * commission));
+
+        // Checking cluster Acc Reward
+        const accPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, PONDTokenId);
+        const accMPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, MPONDTokenId);
+        assert.equal(String(accPondRewardPerShareAfter), "791750000000000000000000000");
+        assert.equal(String(accMPondRewardPerShareAfter), "1583500000000000000000000000000000");
     });
 
     it("delegate to cluster", async () => {
@@ -225,48 +273,44 @@ contract("RewardDelegators contract", async function(accounts) {
         // assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
     });
 
-    it("", async () => {
+    it("withdraw reward", async () => {
+        const commission = 10;
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredCluster3RewardAddress, clientKey, {
+            from: registeredCluster3
+        });
 
+        await delegate(delegator3, [registeredCluster3], [4], [1000000]);
+        await feedData([registeredCluster3]);
+        const clusterReward = await clusterRewards.clusterRewards(registeredCluster3);
+        const clusterCommission = Math.floor(Number(clusterReward) / 100 * commission);
+
+        const delegatorOldBalance = await PONDInstance.balanceOf(delegator3);
+        assert.equal(Number(delegatorOldBalance), 0);
+
+        await rewardDelegators.withdrawRewards(delegator3, registeredCluster3, { from: delegator3 });
+
+        const delegatorNewBalance = await PONDInstance.balanceOf(delegator3);
+        assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission);
     });
 
-    it("", async () => {
+    it("update MPOND Token id", async () => {
+        // update MPOND token id and check if minMPOND requirements is happenning(is cluster  active) with the updated token
+        // cluster had minMPOND before and after change it doesn't
+        // cluster had minMPOND before and after change it does have in new tokenId as well
+        // update MPOND token to id that doesn't have an address mapped
+        const oldMPONDTokenId = await rewardDelegators.MPONDTokenId();
+        const oldClusterDelegation = await rewardDelegators.getClusterDelegation(registeredCluster1, oldMPONDTokenId);
 
-    });
+        const rewardDelegatorsOwner = await rewardDelegators.owner();
+        await rewardDelegators.updateMPONDTokenId(web3.utils.keccak256("dummyTokenId"),
+        {from: rewardDelegatorsOwner});
+        const newMPONDTokenId = await rewardDelegators.MPONDTokenId();
 
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
-    });
-
-    it("", async () => {
-
+        // should be zero
+        const newClusterDelegation = await rewardDelegators.getClusterDelegation(registeredCluster1, newMPONDTokenId);
+        const clusterTokenDelegation = await rewardDelegators.getClusterDelegation(registeredCluster1, oldMPONDTokenId);
+        assert(newClusterDelegation.toString() == 0);
+        assert(oldClusterDelegation.toString() == clusterTokenDelegation.toString());
     });
 
     async function getTokensAndApprove(user, tokens, spender) {
