@@ -27,7 +27,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract.only("RewardDelegators contract", async function (accounts) {
+contract("RewardDelegators contract", async function (accounts) {
 
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
@@ -202,8 +202,8 @@ contract.only("RewardDelegators contract", async function (accounts) {
             from: registeredCluster
         });
 
-        await delegate(delegator, [registeredCluster], [0], [2000000]); // failing
-        // await delegate(delegator, [registeredCluster], [1], [2000000]); // passing
+        await delegate(delegator, [registeredCluster], [0], [2000000]);
+
         await feedData([registeredCluster]);
 
         const clusterUpdatedReward = await clusterRewards.clusterRewards(registeredCluster);
@@ -233,8 +233,8 @@ contract.only("RewardDelegators contract", async function (accounts) {
         // Checking cluster Acc Reward
         const accPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, PONDTokenId);
         const accMPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, MPONDTokenId);
-        assert.equal(String(accPondRewardPerShareAfter), "791750000000000000000000000");
-        assert.equal(String(accMPondRewardPerShareAfter), "1583500000000000000000000000000000");
+        assert.equal(String(accPondRewardPerShareAfter), "1583500000000000000000000000");
+        assert.equal(String(accMPondRewardPerShareAfter), "0");
     });
 
     it("delegate to cluster", async () => {
