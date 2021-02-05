@@ -132,6 +132,14 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 delegatorReward = reward.sub(commissionReward);
         uint256 weightedStake = cluster.weightedStake;
         bytes32[] memory tokens = tokenList;
+        uint256[] memory delegations = new uint256[](tokens.length);
+        uint256 delegatedTokens = 0;
+        for(uint i=0; i < tokens.length; i++) {
+            delegations[i] = clusters[_cluster].totalDelegations[tokens[i]];
+            if(delegations[i] != 0) {
+                delegatedTokens++;
+            }
+        }
         for(uint i=0; i < tokens.length; i++) {
             // clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
             //                                                         delegatorReward
@@ -139,12 +147,14 @@ contract RewardDelegators is Initializable, Ownable {
             //                                                         .mul(10**30)
             //                                                         .div(weightedStake)
             //                                                     );
-            clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
+            if(delegations[i] != 0) {
+                clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
                                                                     delegatorReward
                                                                     .mul(10**30)
-                                                                    .div(tokens.length)
-                                                                    .div(clusters[_cluster].totalDelegations[tokens[i]])
+                                                                    .div(delegatedTokens)
+                                                                    .div(delegations[i])
                                                                 );
+            }
         }
         clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
         transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
