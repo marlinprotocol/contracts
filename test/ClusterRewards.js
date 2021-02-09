@@ -24,7 +24,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract("ClusterRewards contract", async function (accounts) {
+contract.only("ClusterRewards contract", async function (accounts) {
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
     const bridge = accounts[3];
@@ -38,6 +38,8 @@ contract("ClusterRewards contract", async function (accounts) {
 
     const registeredCluster = accounts[11];
     const registeredClusterRewardAddress = accounts[12];
+    const registeredCluster1 = accounts[15];
+    const registeredClusterRewardAddress1 = accounts[16];
     const clientKey = accounts[13];
     const delegator = accounts[14];
 
@@ -93,7 +95,8 @@ contract("ClusterRewards contract", async function (accounts) {
             stakeManagerOwner
         );
 
-        const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
+        const selectors = [web3.utils.keccak256("COMMISSION_LOCK"),
+        web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
         const lockWaitTimes = [commissionLockWaitTime, swtichNetworkLockTime, unregisterLockWaitTime];
 
         await clusterRegistry.initialize(selectors, lockWaitTimes, clusterRegistryOwner);
@@ -221,6 +224,53 @@ contract("ClusterRewards contract", async function (accounts) {
         await feedData([registeredCluster]);
 
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster)), 3125);
+    });
+
+    it("add new network then feed then remove network then feed again", async () => {
+        const networkId = web3.utils.keccak256("testnet");
+        const rewardWeight = 10;
+        let commission = 10;
+
+        await clusterRewards.addNetwork(networkId, rewardWeight, { from: clusterRewardsOwner });
+        await clusterRegistry.register(networkId, commission, registeredClusterRewardAddress1, clientKey, {
+            from: registeredCluster1
+        });
+
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 0);
+
+        await delegate(delegator, [registeredCluster1], [1], [2000000]);
+        await feedData([registeredCluster1]);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
+        await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
+
+        // feed again the cluster reward increases 
+        await delegate(delegator, [registeredCluster1], [1], [2000000]);
+        await feedData([registeredCluster1]);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
+    });
+
+    it("add new network then feed then update reward to 0 then feed again", async () => {
+        const networkId = web3.utils.keccak256("testnet");
+        const updateRewardWeight = 0;
+
+        await truffleAssert.reverts(
+            clusterRewards.changeNetworkReward(networkId, updateRewardWeight,
+                { from: clusterRewardsOwner }),
+            "ClusterRewards:changeNetworkRewards - Network doesn't exists");
+    });
+
+    it("delegate then claim reward", async () => {
+        await clusterRewards.clusterRewards(registeredCluster1);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
+        const oldBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
+        assert(oldBalance.toString() == 303);
+
+        await delegate(delegator, [registeredCluster1], [1], [2000000]);
+        await clusterRewards.updateRewardDelegatorAddress(accounts[0],
+            {from: clusterRewardsOwner});
+        await clusterRewards.claimReward(registeredCluster1);
+        const newBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
+        assert(newBalance.toString() == 615);
     });
 
     async function getTokensAndApprove(user, tokens, spender) {
