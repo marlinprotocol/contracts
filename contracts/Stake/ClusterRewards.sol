@@ -20,6 +20,9 @@ contract ClusterRewards is Initializable, Ownable {
     address rewardDelegatorsAddress;
     ERC20 POND;
     address public feeder;
+    mapping(uint256 => uint256) rewardDistributedPerEpoch;
+    uint256 latestNewEpochRewardAt;
+    uint256 public rewardDistributionWaitTime;
 
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
     event NetworkRemoved(bytes32 networkId);
@@ -44,7 +47,8 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 _totalRewardsPerEpoch, 
         address _PONDAddress,
         uint256 _payoutDenomination,
-        address _feeder) 
+        address _feeder,
+        uint256 _rewardDistributionWaitTime) 
         public
         initializer
     {
@@ -65,6 +69,7 @@ contract ClusterRewards is Initializable, Ownable {
         POND = ERC20(_PONDAddress);
         payoutDenomination = _payoutDenomination;
         feeder = _feeder;
+        rewardDistributionWaitTime = _rewardDistributionWaitTime;
     }
 
     function changeFeeder(address _newFeeder) public onlyOwner {
@@ -95,16 +100,24 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
     }
 
-    function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts) public onlyFeeder {
-        for(uint256 i=0; i < _clusters.length; i++) {
-            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(
-                                                totalRewardsPerEpoch
-                                                .mul(rewardWeight[_networkId])
-                                                .mul(_payouts[i])
-                                                .div(totalWeight)
-                                                .div(payoutDenomination)
-                                            );
+    function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts, uint256 _epoch) public onlyFeeder {
+        uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
+        if(rewardDistributed == 0) {
+            require(block.timestamp > latestNewEpochRewardAt.add(rewardDistributionWaitTime), 
+                "ClusterRewards:feed - Can't distribute reward for new epoch within such short interval, please wait and try again");
+            latestNewEpochRewardAt = block.timestamp;
         }
+        for(uint256 i=0; i < _clusters.length; i++) {
+            uint256 clusterReward = totalRewardsPerEpoch
+                                    .mul(rewardWeight[_networkId])
+                                    .mul(_payouts[i])
+                                    .div(totalWeight)
+                                    .div(payoutDenomination);
+            rewardDistributed = rewardDistributed.add(clusterReward);
+            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(clusterReward);
+        }
+        require(rewardDistributed <= totalRewardsPerEpoch, "ClusterRewards:feed - Reward Distributed  can't  be more  than totalRewardPerEpoch");
+        rewardDistributedPerEpoch[_epoch] = rewardDistributed;
         emit ClusterRewarded(_networkId);
     }
 
@@ -149,5 +162,9 @@ contract ClusterRewards is Initializable, Ownable {
 
     function changePayoutDenomination(uint256 _updatedPayoutDenomination) public onlyOwner {
         payoutDenomination = _updatedPayoutDenomination;
+    }
+
+    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) public onlyOwner {
+        rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
     }
 }
