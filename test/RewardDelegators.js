@@ -23,6 +23,7 @@ const appConfig = require("../app-config");
 
 const TestERC20 = artifacts.require("TestERC20.sol");
 
+let testTokenInstance
 let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegators, clusterRewards;
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
@@ -56,6 +57,7 @@ contract("RewardDelegators contract", async function (accounts) {
     const delegator1 = accounts[22];
     const delegator2 = accounts[23];
     const delegator3 = accounts[24];
+    const delegator4 = accounts[25];
 
     it("Initialize contract", async () => {
 
@@ -318,7 +320,7 @@ contract("RewardDelegators contract", async function (accounts) {
         assert(oldClusterDelegation.toString() == clusterTokenDelegation.toString());
     });
 
-    it("Reinitialize contract", async () => {
+    it("reinitialize contract then delegate and withdraw rewards for single token", async () => {
 
         // deploy pond and mpond tokens
         const PONDDeployment = await PONDToken.new();
@@ -364,7 +366,7 @@ contract("RewardDelegators contract", async function (accounts) {
         MPONDTokenId = web3.utils.keccak256(MPONDInstance.address);
         
         // deploy a test erc20 token
-        const testTokenInstance = await TestERC20.new(1000000000);
+        testTokenInstance = await TestERC20.new(1000000000);
         const testTokenId = web3.utils.keccak256(testTokenInstance.address);
         await stakeContract.initialize(
             [testTokenId],
@@ -435,6 +437,48 @@ contract("RewardDelegators contract", async function (accounts) {
         assert(delegator1AfterBalance.toString() == 3000);
     });
 
+    it("delegate tokens then update reward factor then delegate again", async () => {
+
+        const delegatorBalBefore = await PONDInstance.balanceOf(delegator3);
+        assert(delegatorBalBefore.toString() == 0);
+
+        await truffleAssert.reverts(rewardDelegators.updateRewardFactor(
+            web3.utils.keccak256(testTokenInstance.address), 0,
+            {from: rewardDelegatorsOwner}));
+
+        // update the reward factor then delegate then withdraw
+        await rewardDelegators.updateRewardFactor(
+            web3.utils.keccak256(testTokenInstance.address), 5,
+            {from: rewardDelegatorsOwner});
+        await delegateToken(delegator3, [registeredCluster4], [10], testTokenInstance);
+        await feedTokenData([registeredCluster4], testTokenInstance);
+        await rewardDelegators.withdrawRewards(delegator3, registeredCluster4,
+            { from: delegator3 });
+        
+        const delegatorBalAfter = await PONDInstance.balanceOf(delegator3);
+        assert(delegatorBalAfter.toString() == 2250);
+    });
+
+    it("delegate tokens then remove reward factor then delegate again", async () => {
+        const delegatorBalBefore = await PONDInstance.balanceOf(delegator4);
+        assert(delegatorBalBefore.toString() == 0);
+
+        await truffleAssert.reverts(rewardDelegators.updateRewardFactor(
+            web3.utils.keccak256(testTokenInstance.address), 0,
+            {from: rewardDelegatorsOwner}));
+
+        // update the reward factor then delegate then withdraw
+        await rewardDelegators.removeRewardFactor(
+            web3.utils.keccak256(testTokenInstance.address), {from: rewardDelegatorsOwner});
+        await delegateToken(delegator4, [registeredCluster4], [10], testTokenInstance);
+        await feedTokenData([registeredCluster4], testTokenInstance);
+        await rewardDelegators.withdrawRewards(delegator4, registeredCluster4,
+            { from: delegator4 });
+        
+        const delegatorBalAfter = await PONDInstance.balanceOf(delegator4);
+        assert(delegatorBalAfter.toString() == 0);
+    });
+
     async function getTokensAndApprove(user, tokens, spender) {
         if (tokens.pond > 0) {
             await PONDInstance.transfer(user, tokens.pond);
@@ -481,21 +525,21 @@ contract("RewardDelegators contract", async function (accounts) {
         return stashes;
     }
 
-    async function delegateToken(delegator, clusters, tokenAmounts, testTokenInstance) {
+    async function delegateToken(delegator, clusters, tokenAmounts, tokenInstance) {
         let totalToken = 0;
         for (let i = 0; i < tokenAmounts.length; i++) {
             totalToken += tokenAmounts[i];
         }
 
         if (totalToken > 0) {
-            await testTokenInstance.transfer(delegator, totalToken);
-            await testTokenInstance.approve(stakeContract.address, totalToken, {
+            await tokenInstance.transfer(delegator, totalToken);
+            await tokenInstance.approve(stakeContract.address, totalToken, {
                 from: delegator
             });
         }
 
         const stashes = [];
-        let testTokenId = web3.utils.keccak256(testTokenInstance.address);
+        let testTokenId = web3.utils.keccak256(tokenInstance.address);
         for (let i = 0; i < clusters.length; i++) {
             const tokens = [];
             const amounts = [];
@@ -511,13 +555,13 @@ contract("RewardDelegators contract", async function (accounts) {
         return stashes;
     }
 
-    async function feedTokenData(clusters, testTokenInstance) {
+    async function feedTokenData(clusters, tokenInstance) {
         const stakes = [];
         let totalStake = new web3.utils.BN(0);
         let pondPerToken = new web3.utils.BN(1000000);
         let payoutDenomination = new web3.utils.BN(appConfig.staking.payoutDenomination);
 
-        let testTokenId = await web3.utils.keccak256(testTokenInstance.address);
+        let testTokenId = await web3.utils.keccak256(tokenInstance.address);
         for (let i = 0; i < clusters.length; i++) {
             const tokenClusterStake = await rewardDelegators.getClusterDelegation(clusters[i], testTokenId);
             const clusterStake = tokenClusterStake.mul(pondPerToken);
