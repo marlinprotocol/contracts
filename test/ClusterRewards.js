@@ -40,6 +40,8 @@ contract("ClusterRewards contract", async function (accounts) {
     const registeredClusterRewardAddress = accounts[12];
     const registeredCluster1 = accounts[15];
     const registeredClusterRewardAddress1 = accounts[16];
+    const registeredCluster2 = accounts[17];
+    const registeredClusterRewardAddress2 = accounts[18];
     const clientKey = accounts[13];
     const delegator = accounts[14];
 
@@ -212,7 +214,7 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.rewardWeight(networkId)), updateRewardWeight);
     });
 
-    it("feed", async () => {
+    it("feed cluster reward", async () => {
         let commission = 10;
         let networkId = web3.utils.keccak256("BSC");
 
@@ -228,6 +230,27 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster)), 3125);
     });
 
+    it("should revert when cluster rewards are more than total rewards distributed per epoch", async () => {
+        
+        // change the reward per epoch then feed
+        await clusterRewards.changeRewardPerEpoch(1, {from: clusterRewardsOwner});
+        await delegate(delegator, [registeredCluster], [1], [2000000]);
+
+        // cluster reward more than total reward per epoch
+        await truffleAssert.reverts(feedData([registeredCluster], 0),
+        "ClusterRewards:feed - Reward Distributed  can't  be more  than totalRewardPerEpoch");
+
+        // change the epoch reward to 10000
+        await clusterRewards.changeRewardPerEpoch(appConfig.staking.rewardPerEpoch,
+            {from: clusterRewardsOwner});
+    });
+
+    it("feed rewards for epoch 1 & 2 simultaneously", async () => {
+        await feedData([registeredCluster], 1);
+        await truffleAssert.reverts(feedData([registeredCluster], 2),
+        "Can't distribute reward for new epoch within such short interval, please wait and try again");
+    });
+
     it("add new network then feed then remove network then feed again", async () => {
         const networkId = web3.utils.keccak256("testnet");
         const rewardWeight = 10;
@@ -241,13 +264,13 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 0);
 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1], 1);
+        await feedData([registeredCluster1], 3);
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
         await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
 
         // feed again the cluster reward increases 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1], 2);
+        await feedData([registeredCluster1], 4);
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
     });
 
@@ -274,6 +297,24 @@ contract("ClusterRewards contract", async function (accounts) {
         const newBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
         assert(newBalance.toString() == 615);
     });
+
+    // it("feed cluster reward for the epoch 3 & 4", async () => {
+
+    //     // register new cluster and delegate
+    //     await clusterRegistry.register(web3.utils.keccak256("testnet1"), 10, registeredClusterRewardAddress2, clientKey, {
+    //         from: registeredCluster2
+    //     });
+
+    //     let clusterReward = await clusterRewards.clusterRewards(registeredCluster2);
+    //     console.log("clusterReward before: ", clusterReward.toString());
+    //     await delegate(delegator, [registeredCluster2], [1], [2000000]);
+    //     await feedData([registeredCluster2], 3);
+    //     clusterReward = await clusterRewards.clusterRewards(registeredCluster2);
+    //     console.log("clusterReward: ", clusterReward.toString());
+    //     await feedData([registeredCluster], 4);
+    //     clusterReward = await clusterRewards.clusterRewards(registeredCluster);
+    //     console.log("clusterReward after: ", clusterReward.toString());
+    // });
 
     async function getTokensAndApprove(user, tokens, spender) {
         if (tokens.pond > 0) {

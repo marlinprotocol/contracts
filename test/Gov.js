@@ -107,8 +107,10 @@ contract("Governance", function (accounts, network) {
   });
 
   it("check current votes", function () {
+
+    // delegates 2k mPond
     return mPondInstance
-      .delegate(accounts[4], new web3Utils.BN("4000000000000000000"), {
+      .delegate(accounts[4], new web3Utils.BN("2000000000000000000000"), {
         from: accounts[4],
       })
       .then(function () {
@@ -131,7 +133,7 @@ contract("Governance", function (accounts, network) {
           })
           .then(async function () {
 
-            // delegate 7k mponds
+            // delegate 7k mponds from bridge
             await mPondInstance
             .delegate(accounts[11], new web3Utils.BN("7000000000000000000000"), {
               from: accounts[11] });
