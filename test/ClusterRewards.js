@@ -298,24 +298,6 @@ contract("ClusterRewards contract", async function (accounts) {
         assert(newBalance.toString() == 615);
     });
 
-    // it("feed cluster reward for the epoch 3 & 4", async () => {
-
-    //     // register new cluster and delegate
-    //     await clusterRegistry.register(web3.utils.keccak256("testnet1"), 10, registeredClusterRewardAddress2, clientKey, {
-    //         from: registeredCluster2
-    //     });
-
-    //     let clusterReward = await clusterRewards.clusterRewards(registeredCluster2);
-    //     console.log("clusterReward before: ", clusterReward.toString());
-    //     await delegate(delegator, [registeredCluster2], [1], [2000000]);
-    //     await feedData([registeredCluster2], 3);
-    //     clusterReward = await clusterRewards.clusterRewards(registeredCluster2);
-    //     console.log("clusterReward: ", clusterReward.toString());
-    //     await feedData([registeredCluster], 4);
-    //     clusterReward = await clusterRewards.clusterRewards(registeredCluster);
-    //     console.log("clusterReward after: ", clusterReward.toString());
-    // });
-
     async function getTokensAndApprove(user, tokens, spender) {
         if (tokens.pond > 0) {
             await PONDInstance.transfer(user, tokens.pond);
