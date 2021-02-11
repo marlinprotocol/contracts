@@ -100,6 +100,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
     }
 
+
     function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts, uint256 _epoch) public onlyFeeder {
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
@@ -107,12 +108,16 @@ contract ClusterRewards is Initializable, Ownable {
                 "ClusterRewards:feed - Can't distribute reward for new epoch within such short interval, please wait and try again");
             latestNewEpochRewardAt = block.timestamp;
         }
+        uint256 totalNetworkWeight = totalWeight;
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
+        uint256 currentPayoutDenomination = payoutDenomination;
+        uint256 networkRewardWeight = rewardWeight[_networkId]
         for(uint256 i=0; i < _clusters.length; i++) {
-            uint256 clusterReward = totalRewardsPerEpoch
-                                    .mul(rewardWeight[_networkId])
+          uint256 clusterReward = currentTotalRewardsPerEpoch
+                                    .mul(networkRewardWeight)
                                     .mul(_payouts[i])
-                                    .div(totalWeight)
-                                    .div(payoutDenomination);
+                                    .div(totalNetworkWeight)
+                                    .div(currentPayoutDenomination)
             rewardDistributed = rewardDistributed.add(clusterReward);
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(clusterReward);
         }
