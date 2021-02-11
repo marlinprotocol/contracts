@@ -126,7 +126,8 @@ contract("ClusterRewards contract", async function (accounts) {
             appConfig.staking.rewardPerEpoch,
             PONDInstance.address,
             appConfig.staking.payoutDenomination,
-            feeder
+            feeder,
+            1
         );
 
         await MPONDInstance.addWhiteListAddress(stakeContract.address, {
@@ -157,7 +158,8 @@ contract("ClusterRewards contract", async function (accounts) {
             appConfig.staking.rewardPerEpoch,
             PONDInstance.address,
             appConfig.staking.payoutDenomination,
-            feeder
+            feeder,
+            1
         ));
     });
 
@@ -221,7 +223,7 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster)), 0);
 
         await delegate(delegator, [registeredCluster], [1], [2000000]);
-        await feedData([registeredCluster]);
+        await feedData([registeredCluster], 0);
 
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster)), 3125);
     });
@@ -239,13 +241,13 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 0);
 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1]);
+        await feedData([registeredCluster1], 1);
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
         await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
 
         // feed again the cluster reward increases 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1]);
+        await feedData([registeredCluster1], 2);
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
     });
 
@@ -319,7 +321,7 @@ contract("ClusterRewards contract", async function (accounts) {
         return stashes;
     }
 
-    async function feedData(clusters) {
+    async function feedData(clusters, epoch) {
         const stakes = [];
         let totalStake = new web3.utils.BN(0);
         let pondPerMpond = new web3.utils.BN(1000000);
@@ -336,7 +338,7 @@ contract("ClusterRewards contract", async function (accounts) {
             const stake = stakes[i];
             payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
         }
-        await clusterRewards.feed(web3.utils.keccak256("DOT"), clusters, payouts, {
+        await clusterRewards.feed(web3.utils.keccak256("DOT"), clusters, payouts, epoch, {
             from: feeder
         });
     }
