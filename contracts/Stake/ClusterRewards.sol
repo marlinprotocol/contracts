@@ -111,13 +111,13 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 totalNetworkWeight = totalWeight;
         uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
         uint256 currentPayoutDenomination = payoutDenomination;
-        uint256 networkRewardWeight = rewardWeight[_networkId]
+        uint256 networkRewardWeight = rewardWeight[_networkId];
         for(uint256 i=0; i < _clusters.length; i++) {
           uint256 clusterReward = currentTotalRewardsPerEpoch
                                     .mul(networkRewardWeight)
                                     .mul(_payouts[i])
                                     .div(totalNetworkWeight)
-                                    .div(currentPayoutDenomination)
+                                    .div(currentPayoutDenomination);
             rewardDistributed = rewardDistributed.add(clusterReward);
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(clusterReward);
         }
