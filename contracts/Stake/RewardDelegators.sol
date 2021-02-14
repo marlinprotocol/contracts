@@ -15,10 +15,7 @@ contract RewardDelegators is Initializable, Ownable {
         mapping(bytes32 => uint256) totalDelegations;
         mapping(address => mapping(bytes32 => uint256)) delegators;
         mapping(address => mapping(bytes32 => uint256)) rewardDebt;
-        mapping(address => mapping(bytes32 => uint256)) lastDelegatorRewardDistNonce;
         mapping(bytes32 => uint256) accRewardPerShare;
-        uint256 lastRewardDistNonce;
-        uint256 weightedStake;
     }
 
     mapping(address => Cluster) clusters;
@@ -29,7 +26,7 @@ contract RewardDelegators is Initializable, Ownable {
     bytes32 public MPONDTokenId;
     mapping(bytes32 => uint256) rewardFactor;
     mapping(bytes32 => uint256) tokenIndex;
-    mapping(bytes32 => uint256) public totalDelegations;
+    mapping(bytes32 => bytes32) __unused_1;
     bytes32[] public tokenList;
     ClusterRewards clusterRewards;
     ClusterRegistry clusterRegistry;
@@ -50,12 +47,12 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function initialize(
-        uint256 _undelegationWaitTime, 
-        address _stakeAddress, 
+        uint256 _undelegationWaitTime,
+        address _stakeAddress,
         address _clusterRewardsAddress,
         address _clusterRegistry,
         address _rewardDelegatorsAdmin,
-        uint256 _minMPONDStake, 
+        uint256 _minMPONDStake,
         bytes32 _MPONDTokenId,
         address _PONDAddress,
         bytes32[] memory _tokenIds,
@@ -97,7 +94,7 @@ contract RewardDelegators is Initializable, Ownable {
         tokenList.push(_tokenId);
         emit AddReward(_tokenId, _rewardFactor);
     }
-    
+
     function removeRewardFactor(bytes32 _tokenId) public onlyOwner {
         require(rewardFactor[_tokenId] != 0, "RewardDelegators:addReward - Reward doesn't exist");
         bytes32 tokenToReplace = tokenList[tokenList.length - 1];
@@ -117,20 +114,14 @@ contract RewardDelegators is Initializable, Ownable {
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
 
-    function _updateRewards(address _cluster) public {
+    function _updateRewards(address _cluster) internal {
         uint256 reward = clusterRewards.claimReward(_cluster);
         if(reward == 0) {
             return;
         }
-        Cluster memory cluster = clusters[_cluster];
-        if(cluster.weightedStake == 0) {
-            clusters[_cluster].lastRewardDistNonce++; // probably not needed
-            return;
-        }
-        
+
         uint256 commissionReward = reward.mul(clusterRegistry.getCommission(_cluster)).div(100);
         uint256 delegatorReward = reward.sub(commissionReward);
-        uint256 weightedStake = cluster.weightedStake;
         bytes32[] memory tokens = tokenList;
         uint256[] memory delegations = new uint256[](tokens.length);
         uint256 delegatedTokens = 0;
@@ -156,122 +147,108 @@ contract RewardDelegators is Initializable, Ownable {
                                                                 );
             }
         }
-        clusters[_cluster].lastRewardDistNonce = cluster.lastRewardDistNonce.add(1);
         transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
         emit ClusterRewardDistributed(_cluster);
     }
 
     function delegate(
-        address _delegator, 
-        address _cluster, 
-        bytes32[] memory _tokens, 
+        address _delegator,
+        address _cluster,
+        bytes32[] memory _tokens,
         uint256[] memory _amounts
     ) public onlyStake {
         _updateRewards(_cluster);
-        Cluster memory clusterData = clusters[_cluster];
-        require(
-            clusterRegistry.isClusterValid(_cluster),
-            "ClusterRegistry:delegate - Cluster should be registered to delegate"
-        );
-        uint256 currentNonce = clusterData.lastRewardDistNonce;
-        uint256 totalRewards;
-        uint256 totalRewardDebt;
-        for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 tokenAccRewardPerShare = clusters[_cluster].accRewardPerShare[_tokens[i]];
-            uint256 delegatorTokens = clusters[_cluster].delegators[_delegator][_tokens[i]];
+
+        uint256 _pendingRewards;
+        for(uint256 i = 0; i < _tokens.length; i++) {
+            uint256 _amount = _amounts[i];
+            bytes32 _tokenId = _tokens[i];
+            if(_amount == 0) continue;
+
+            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
+            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
+            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
 
             // calculating pending rewards for the delegator if any
-            if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] < currentNonce) {
-                totalRewards = totalRewards.add(delegatorTokens.mul(tokenAccRewardPerShare));
-                totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][_tokens[i]]);
-                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] = currentNonce;
-            }
+            _pendingRewards = _pendingRewards.add(_accRewardPerShare.mul(_balance).div(10**30)).sub(_rewardDebt);
+
+            uint256 _newBalance = _balance.add(_amount);
 
             // update the debt for next reward calculation
-            uint256 totalRewardsForDebt = delegatorTokens.add(_amounts[i]).mul(tokenAccRewardPerShare);
-            clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
+            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
 
             // update balances
-            if(_amounts[i] != 0) {
-                clusters[_cluster].delegators[_delegator][_tokens[i]] = delegatorTokens.add(_amounts[i]);
-                clusters[_cluster].totalDelegations[_tokens[i]] = clusters[_cluster].totalDelegations[_tokens[i]]
-                                                                    .add(_amounts[i]);
-                clusters[_cluster].weightedStake = clusterData.weightedStake.add(_amounts[i].mul(rewardFactor[_tokens[i]]));
-                totalDelegations[_tokens[i]] = totalDelegations[_tokens[i]].add(_amounts[i]);
-            }
+            clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
+            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
+                                                                .add(_amount);
         }
-        if(totalRewards != 0) {
-            uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
-            if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
-                emit RewardsWithdrawn(_cluster, _delegator, _tokens, pendingRewards);
-            }
+        if(_pendingRewards != 0) {
+            transferRewards(_delegator, _pendingRewards);
+            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
         }
     }
 
     function undelegate(
-        address _delegator, 
-        address _cluster, 
-        bytes32[] memory _tokens, 
+        address _delegator,
+        address _cluster,
+        bytes32[] memory _tokens,
         uint256[] memory _amounts
     ) public onlyStake {
         _updateRewards(_cluster);
-        Cluster memory clusterData = clusters[_cluster];
-        uint256 currentNonce = clusterData.lastRewardDistNonce;
-        uint256 totalRewards;
-        uint256 totalRewardDebt;
-        for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 tokenAccRewardPerShare = clusters[_cluster].accRewardPerShare[_tokens[i]];
-            uint256 delegatorTokens = clusters[_cluster].delegators[_delegator][_tokens[i]];
-            if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] < currentNonce) {
-                totalRewards = totalRewards.add(delegatorTokens.mul(tokenAccRewardPerShare));
-                totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][_tokens[i]]);
-                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][_tokens[i]] = currentNonce;
-            }
-            uint256 totalRewardsForDebt = delegatorTokens.sub(_amounts[i]).mul(tokenAccRewardPerShare);
-            clusters[_cluster].rewardDebt[_delegator][_tokens[i]] = totalRewardsForDebt.div(10**30);
+
+        uint256 _pendingRewards;
+        for(uint256 i = 0; i < _tokens.length; i++) {
+            uint256 _amount = _amounts[i];
+            bytes32 _tokenId = _tokens[i];
+            if(_amount == 0) continue;
+
+            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
+            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
+            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
+
+            // calculating pending rewards for the delegator if any
+            _pendingRewards = _pendingRewards.add(_accRewardPerShare.mul(_balance).div(10**30)).sub(_rewardDebt);
+
+            uint256 _newBalance = _balance.sub(_amount);
+
+            // update the debt for next reward calculation
+            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
+
             // update balances
-            if(_amounts[i] != 0) {
-                clusters[_cluster].delegators[_delegator][_tokens[i]] = delegatorTokens.sub(_amounts[i]);
-                clusters[_cluster].totalDelegations[_tokens[i]] = clusters[_cluster].totalDelegations[_tokens[i]]
-                                                                    .sub(_amounts[i]);
-                clusters[_cluster].weightedStake = clusterData.weightedStake.sub(_amounts[i].mul(rewardFactor[_tokens[i]]));
-                totalDelegations[_tokens[i]] = totalDelegations[_tokens[i]].sub(_amounts[i]);
-            }
+            clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
+            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
+                                                                .sub(_amount);
         }
-        if(totalRewards != 0) {
-            uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
-            if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
-                emit RewardsWithdrawn(_cluster, _delegator, _tokens, pendingRewards);
-            }
+        if(_pendingRewards != 0) {
+            transferRewards(_delegator, _pendingRewards);
+            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
         }
     }
 
     function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
         _updateRewards(_cluster);
-        Cluster memory clusterData = clusters[_cluster];
-        uint256 currentNonce = clusterData.lastRewardDistNonce;
-        uint256 totalRewards;
-        uint256 totalRewardDebt;
-        bytes32[] memory tokens = tokenList;
-        for(uint256 i=0; i < tokens.length; i++) {
-            uint256 delegatorTokens = clusters[_cluster].delegators[_delegator][tokens[i]];
-            uint256 accReward = delegatorTokens.mul(clusters[_cluster].accRewardPerShare[tokens[i]]);
-            if(clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][tokens[i]] < currentNonce) {
-                totalRewards = totalRewards.add(accReward);
-                totalRewardDebt = totalRewardDebt.add(clusters[_cluster].rewardDebt[_delegator][tokens[i]]);
-                clusters[_cluster].lastDelegatorRewardDistNonce[_delegator][tokens[i]] = currentNonce;
-                clusters[_cluster].rewardDebt[_delegator][tokens[i]] = accReward.div(10**30);
-            }
+
+        uint256 _pendingRewards;
+        bytes32[] memory _tokenList = tokenList;
+        for(uint256 i = 0; i < _tokenList.length; i++) {
+            bytes32 _tokenId = _tokenList[i];
+            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
+            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
+            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
+
+            // calculating pending rewards for the delegator if any
+            uint256 _tokenPendingRewards = _accRewardPerShare.mul(_balance).div(10**30).sub(_rewardDebt);
+            if(_tokenPendingRewards == 0) continue;
+
+            _pendingRewards = _pendingRewards.add(_tokenPendingRewards);
+
+            // update the debt for next reward calculation
+            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_balance).div(10**30);
         }
-        if(totalRewards != 0) {
-            uint256 pendingRewards = totalRewards.div(10**30).sub(totalRewardDebt);
-            if(pendingRewards != 0) {
-                transferRewards(_delegator, pendingRewards);
-                emit RewardsWithdrawn(_cluster, _delegator, tokens, pendingRewards);
-            }
-            return pendingRewards;
+        if(_pendingRewards != 0) {
+            transferRewards(_delegator, _pendingRewards);
+            emit RewardsWithdrawn(_cluster, _delegator, _tokenList, _pendingRewards);
+            return _pendingRewards;
         }
         return 0;
     }
@@ -282,7 +259,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     function isClusterActive(address _cluster) public returns(bool) {
         if(
-            clusterRegistry.isClusterValid(_cluster) 
+            clusterRegistry.isClusterValid(_cluster)
             && clusters[_cluster].totalDelegations[MPONDTokenId] > minMPONDStake
         ) {
             return true;
@@ -290,18 +267,18 @@ contract RewardDelegators is Initializable, Ownable {
         return false;
     }
 
-    function getClusterDelegation(address _cluster, bytes32 _tokenId) 
-        public 
-        view 
-        returns(uint256) 
+    function getClusterDelegation(address _cluster, bytes32 _tokenId)
+        public
+        view
+        returns(uint256)
     {
         return clusters[_cluster].totalDelegations[_tokenId];
     }
 
-    function getDelegation(address _cluster, address _delegator, bytes32 _tokenId) 
-        public 
+    function getDelegation(address _cluster, address _delegator, bytes32 _tokenId)
+        public
         view
-        returns(uint256) 
+        returns(uint256)
     {
         return clusters[_cluster].delegators[_delegator][_tokenId];
     }
@@ -328,7 +305,7 @@ contract RewardDelegators is Initializable, Ownable {
         address _updatedClusterRewards
     ) public onlyOwner {
         require(
-            _updatedClusterRewards != address(0), 
+            _updatedClusterRewards != address(0),
             "RewardDelegators:updateClusterRewards - ClusterRewards address cannot be 0"
         );
         clusterRewards = ClusterRewards(_updatedClusterRewards);
@@ -352,9 +329,10 @@ contract RewardDelegators is Initializable, Ownable {
         PONDToken = ERC20(_updatedPOND);
     }
 
-    function getClustersWeightedStake(address _cluster) public view returns (uint256) {
-        return clusters[_cluster].weightedStake;
+    function getFullTokenList() public view returns (bytes32[] memory) {
+        return tokenList;
     }
+
     // ************************ IMPORTANT - TO REMOVE ***********************
     // TO remove - for testing only
     // ************************ IMPORTANT - TO REMOVE ***********************
