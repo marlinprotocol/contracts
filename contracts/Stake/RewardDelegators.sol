@@ -114,7 +114,7 @@ contract RewardDelegators is Initializable, Ownable {
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
 
-    function _updateRewards(address _cluster) internal {
+    function _updateRewards(address _cluster) public {
         uint256 reward = clusterRewards.claimReward(_cluster);
         if(reward == 0) {
             return;

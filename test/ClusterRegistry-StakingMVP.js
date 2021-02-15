@@ -22,7 +22,7 @@ const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 const { keccak256 } = require("web3-utils");
 
-contract("Stake contract", async function(accounts) {
+contract("Cluster Registry contract", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
@@ -141,7 +141,8 @@ contract("Stake contract", async function(accounts) {
             appConfig.staking.rewardPerEpoch,
             PONDInstance.address, 
             appConfig.staking.payoutDenomination,
-            feeder
+            feeder,
+            10
         );
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");
@@ -263,7 +264,8 @@ contract("Stake contract", async function(accounts) {
         let accMPondRewardPerShareBefore2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, MPONDTokenId);
 
         // data is fed to the oracle
-        await feedData([registeredCluster1, registeredCluster2]);
+        await skipBlocks(10);
+        await feedData([registeredCluster1, registeredCluster2], 1);
 
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
@@ -282,7 +284,8 @@ contract("Stake contract", async function(accounts) {
         assert(parseInt(PondBalance1After.sub(PondBalance1Before).toString()) == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2 + 1.0/3*19/20*1/2)));
 
         // feed data again to the oracle
-        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
+        await skipBlocks(10);
+        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4], 2);
 
         // do some delegations for both users to the cluster
         let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
@@ -304,7 +307,8 @@ contract("Stake contract", async function(accounts) {
         await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         await delegate(delegator4, [registeredCluster3, registeredCluster4], [10, 0], [0, 2000000]);
         // data is fed to the oracle
-        await feedData([registeredCluster3, registeredCluster4]);
+        await skipBlocks(10);
+        await feedData([registeredCluster3, registeredCluster4], 3);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let PondBalance3Before = await PONDInstance.balanceOf(delegator3);
@@ -317,7 +321,8 @@ contract("Stake contract", async function(accounts) {
 
         // feed data again to the oracle
         await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
-        await feedData([registeredCluster3, registeredCluster4]);
+        await skipBlocks(10);
+        await feedData([registeredCluster3, registeredCluster4], 4);
         // do some delegations for both users to the cluster
         let PondBalance4Before = await PONDInstance.balanceOf(delegator4);
         await delegate(delegator4, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
@@ -343,7 +348,8 @@ contract("Stake contract", async function(accounts) {
         const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
         // data is fed to the oracle
-        await feedData([registeredCluster1, registeredCluster2]);
+        await skipBlocks(10);
+        await feedData([registeredCluster1, registeredCluster2], 5);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
@@ -359,7 +365,8 @@ contract("Stake contract", async function(accounts) {
 
         // feed data again to the oracle
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 8], [4000000, 0]);
-        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
+        await skipBlocks(10);
+        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4], 6);
         // do some delegations for both users to the cluster
         let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
@@ -439,23 +446,33 @@ contract("Stake contract", async function(accounts) {
     //     });
     // }
 
-    async function feedData(clusters) {
+    async function feedData(clusters, epoch) {
         const stakes = [];
-        let totalStake = new BigNumber(0);
-        for(let i=0; i < clusters.length; i++) {
-            const clusterStake = await rewardDelegators.getClustersWeightedStake(clusters[i]);
+        let totalStake = new web3.utils.BN(0);
+        let pondPerMpond = new web3.utils.BN(1000000);
+        let payoutDenomination = new web3.utils.BN(appConfig.staking.payoutDenomination);
+        for (let i = 0; i < clusters.length; i++) {
+            const mpondClusterStake = await rewardDelegators.getClusterDelegation(clusters[i], MPONDTokenId);
+            const pondClusterStake = await rewardDelegators.getClusterDelegation(clusters[i], PONDTokenId);
+            const clusterStake = mpondClusterStake.mul(pondPerMpond).add(pondClusterStake);
             stakes.push(clusterStake);
-            totalStake = totalStake.add(clusterStake.toString());
+            totalStake = totalStake.add(clusterStake);
         }
         const payouts = [];
-        for(let i=0; i < clusters.length; i++) {
-            const stake = new BigNumber(stakes[i].toString());
-            payouts.push(stake.mul(100000).div(totalStake.toString()).toString())
+        for (let i = 0; i < clusters.length; i++) {
+            const stake = stakes[i];
+            payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
         }
-        console.log("Payouts: ", payouts);   
-        await perfOracle.feed(ethereumNetworkID, clusters, payouts, {
+        console.log(payouts);
+        await perfOracle.feed(web3.utils.keccak256("DOT"), clusters, payouts, epoch, {
             from: oracleOwner
         });
+    }
+
+    async function skipBlocks(noOfBlocks) {
+        for(let i=0; i < noOfBlocks; i++) {
+            await PONDInstance.transfer(accounts[0], 0);
+        }
     }
 
     async function redeploy() {
@@ -545,7 +562,8 @@ contract("Stake contract", async function(accounts) {
                 appConfig.staking.rewardPerEpoch,
                 PONDInstance.address, 
                 appConfig.staking.payoutDenomination,
-                feeder
+                feeder, 
+                10
             );
 
         assert((await perfOracle.owner()) == oracleOwner, "Owner not correctly set");

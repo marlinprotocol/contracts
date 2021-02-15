@@ -15,7 +15,7 @@ var governanceAddress;
 var mPondAddress;
 var timelockAddress;
 
-contract("Governance", function (accounts, network) {
+contract.skip("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   // console.log(network);
   it("deploy contracts", function () {
