@@ -21,8 +21,9 @@ const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 const { keccak256 } = require("web3-utils");
+const { advanceTime } = require("./utils");
 
-contract("Cluster Registry contract", async function(accounts) {
+contract("Stake contract", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
@@ -264,8 +265,9 @@ contract("Cluster Registry contract", async function(accounts) {
         let accMPondRewardPerShareBefore2 = await rewardDelegators.getAccRewardPerShare(registeredCluster2, MPONDTokenId);
 
         // data is fed to the oracle
-        await skipBlocks(10);
+        await advanceTime(web3, 10);
         await feedData([registeredCluster1, registeredCluster2], 1);
+        console.log((await perfOracle.clusterRewards(registeredCluster1).toString()), (await perfOracle.clusterRewards(registeredCluster1)).toString())
 
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
@@ -284,15 +286,15 @@ contract("Cluster Registry contract", async function(accounts) {
         assert(parseInt(PondBalance1After.sub(PondBalance1Before).toString()) == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2 + 1.0/3*19/20*1/2)));
 
         // feed data again to the oracle
-        await skipBlocks(10);
+        await advanceTime(web3, 10);
         await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4], 2);
 
         // do some delegations for both users to the cluster
         let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let PondBalance2After = await PONDInstance.balanceOf(delegator2);
-        // console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
-        assert(PondBalance2After.sub(PondBalance2Before).toString() == 0);
+        console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
+        assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2))));
     });
 
     it("Delegator withdraw rewards from a cluster", async () => {
@@ -307,8 +309,8 @@ contract("Cluster Registry contract", async function(accounts) {
         await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         await delegate(delegator4, [registeredCluster3, registeredCluster4], [10, 0], [0, 2000000]);
         // data is fed to the oracle
-        await skipBlocks(10);
-        await feedData([registeredCluster3, registeredCluster4], 3);
+        await advanceTime(web3, 10);
+        await feedData([registeredCluster3, registeredCluster4], 8);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let PondBalance3Before = await PONDInstance.balanceOf(delegator3);
@@ -321,15 +323,15 @@ contract("Cluster Registry contract", async function(accounts) {
 
         // feed data again to the oracle
         await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
-        await skipBlocks(10);
-        await feedData([registeredCluster3, registeredCluster4], 4);
+        await advanceTime(web3, 10);
+        await feedData([registeredCluster3, registeredCluster4], 3);
         // do some delegations for both users to the cluster
         let PondBalance4Before = await PONDInstance.balanceOf(delegator4);
         await delegate(delegator4, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
         let PondBalance4After = await PONDInstance.balanceOf(delegator4);
-        console.log(PondBalance4After.sub(PondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-        // assert(PondBalance4After.sub(PondBalance4Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
-        assert(PondBalance4After.sub(PondBalance4Before).toString() == 0);
+        console.log(PondBalance4After.sub(PondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
+        assert(PondBalance4After.sub(PondBalance4Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2))));
+        // assert(PondBalance4After.sub(PondBalance4Before).toString() == 0);
     });
 
     it("Delegator undelegate and get rewards from a cluster", async () => {
@@ -348,8 +350,8 @@ contract("Cluster Registry contract", async function(accounts) {
         const stashes = await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [10, 0], [0, 2000000]);
         // data is fed to the oracle
-        await skipBlocks(10);
-        await feedData([registeredCluster1, registeredCluster2], 5);
+        await advanceTime(web3, 10);
+        await feedData([registeredCluster1, registeredCluster2], 4);
         // do some delegations for both users to the cluster
         // rewards for one user is withdraw - this reward should be as per the time of oracle feed
         let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
@@ -365,16 +367,16 @@ contract("Cluster Registry contract", async function(accounts) {
 
         // feed data again to the oracle
         await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 8], [4000000, 0]);
-        await skipBlocks(10);
-        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4], 6);
+        await advanceTime(web3, 10);
+        await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4], 5);
         // do some delegations for both users to the cluster
         let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
         await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);
         let PondBalance2After = await PONDInstance.balanceOf(delegator2);
         console.log("PondBalance2After: ", PondBalance2After);
-        console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-        // assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
-        assert(PondBalance2After.sub(PondBalance2Before).toString() == 0);
+        console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
+        assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2))));
+        // assert(PondBalance2After.sub(PondBalance2Before).toString() == 0);
     });
 
     async function delegate(delegator, clusters, mpondAmounts, pondAmounts) {
@@ -464,15 +466,9 @@ contract("Cluster Registry contract", async function(accounts) {
             payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
         }
         console.log(payouts);
-        await perfOracle.feed(web3.utils.keccak256("DOT"), clusters, payouts, epoch, {
+        await perfOracle.feed(ethereumNetworkID, clusters, payouts, epoch, {
             from: oracleOwner
         });
-    }
-
-    async function skipBlocks(noOfBlocks) {
-        for(let i=0; i < noOfBlocks; i++) {
-            await PONDInstance.transfer(accounts[0], 0);
-        }
     }
 
     async function redeploy() {
@@ -562,7 +558,7 @@ contract("Cluster Registry contract", async function(accounts) {
                 appConfig.staking.rewardPerEpoch,
                 PONDInstance.address, 
                 appConfig.staking.payoutDenomination,
-                feeder, 
+                feeder,
                 10
             );
 
