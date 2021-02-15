@@ -159,9 +159,12 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyStake {
         _updateRewards(_cluster);
 
-        uint256 _pendingRewards;
+        uint256 _aggregateRewardDebt;
+        uint256 _aggregateReward;
         for(uint256 i = 0; i < _tokens.length; i++) {
             uint256 _amount = _amounts[i];
+            if(_amount == 0) continue;
+
             bytes32 _tokenId = _tokens[i];
 
             uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
@@ -169,19 +172,20 @@ contract RewardDelegators is Initializable, Ownable {
             uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
 
             // calculating pending rewards for the delegator if any
-            _pendingRewards = _pendingRewards.add(_accRewardPerShare.mul(_balance).div(10**30)).sub(_rewardDebt);
+            _aggregateReward = _aggregateReward.add(_accRewardPerShare.mul(_balance));
+            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
 
             uint256 _newBalance = _balance.add(_amount);
 
             // update the debt for next reward calculation
             clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
 
-            if(_amount == 0) continue;
             // update balances
             clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
             clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
                                                                 .add(_amount);
         }
+        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
         if(_pendingRewards != 0) {
             transferRewards(_delegator, _pendingRewards);
             emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
@@ -196,9 +200,12 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyStake {
         _updateRewards(_cluster);
 
-        uint256 _pendingRewards;
+        uint256 _aggregateRewardDebt;
+        uint256 _aggregateReward;
         for(uint256 i = 0; i < _tokens.length; i++) {
             uint256 _amount = _amounts[i];
+            if(_amount == 0) continue;
+
             bytes32 _tokenId = _tokens[i];
 
             uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
@@ -206,19 +213,20 @@ contract RewardDelegators is Initializable, Ownable {
             uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
 
             // calculating pending rewards for the delegator if any
-            _pendingRewards = _pendingRewards.add(_accRewardPerShare.mul(_balance).div(10**30)).sub(_rewardDebt);
+            _aggregateReward = _aggregateReward.add(_accRewardPerShare.mul(_balance));
+            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
 
             uint256 _newBalance = _balance.sub(_amount);
 
             // update the debt for next reward calculation
             clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
 
-            if(_amount == 0) continue;
             // update balances
             clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
             clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
                                                                 .sub(_amount);
         }
+        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
         if(_pendingRewards != 0) {
             transferRewards(_delegator, _pendingRewards);
             emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
@@ -228,7 +236,8 @@ contract RewardDelegators is Initializable, Ownable {
     function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
         _updateRewards(_cluster);
 
-        uint256 _pendingRewards;
+        uint256 _aggregateRewardDebt;
+        uint256 _aggregateReward;
         bytes32[] memory _tokenList = tokenList;
         for(uint256 i = 0; i < _tokenList.length; i++) {
             bytes32 _tokenId = _tokenList[i];
@@ -237,14 +246,16 @@ contract RewardDelegators is Initializable, Ownable {
             uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
 
             // calculating pending rewards for the delegator if any
-            uint256 _tokenPendingRewards = _accRewardPerShare.mul(_balance).div(10**30).sub(_rewardDebt);
-            if(_tokenPendingRewards == 0) continue;
+            uint256 _tokenPendingRewards = _accRewardPerShare.mul(_balance);
+            if(_tokenPendingRewards.div(10**30) == _rewardDebt) continue;
 
-            _pendingRewards = _pendingRewards.add(_tokenPendingRewards);
+            _aggregateReward = _aggregateReward.add(_tokenPendingRewards);
+            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
 
             // update the debt for next reward calculation
             clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_balance).div(10**30);
         }
+        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
         if(_pendingRewards != 0) {
             transferRewards(_delegator, _pendingRewards);
             emit RewardsWithdrawn(_cluster, _delegator, _tokenList, _pendingRewards);
@@ -333,9 +344,6 @@ contract RewardDelegators is Initializable, Ownable {
         return tokenList;
     }
 
-    // ************************ IMPORTANT - TO REMOVE ***********************
-    // TO remove - for testing only
-    // ************************ IMPORTANT - TO REMOVE ***********************
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) public view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }

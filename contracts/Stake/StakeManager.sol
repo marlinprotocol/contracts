@@ -231,7 +231,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        // TODO: If gas usage for emitting tokens and amount is high, then query using txHash and remove them from event
+        
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -325,7 +325,6 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:undelegateStash - stash is not delegated to any cluster"
         );
         uint256 _waitTime = rewardDelegators.undelegationWaitTime();
-        // use + for gas savings as overflow can't happen
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
