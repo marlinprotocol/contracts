@@ -88,13 +88,6 @@ contract StakeManager is Initializable, Ownable {
         super.initialize(_owner);
     }
 
-    // Only allow increment so previous stashes are not overwritten accidentally
-    // Only allow increment up to uint128, should be big enough for practical use cases (ref: ipv6)
-    // while making it practically impossible to overflow (would need 2^128 calls)
-    function incrementStashIndex(uint128 num) public onlyOwner {
-       stashIndex = stashIndex + num;
-    }
-
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
