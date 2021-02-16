@@ -4,9 +4,9 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "./RewardDelegators.sol";
+import "./IRewardDelegators.sol";
 import "../governance/mPondLogic.sol";
-import "./ClusterRegistry.sol";
+import "./IClusterRegistry.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -33,8 +33,8 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
     MPondLogic prevMPOND;
-    ClusterRegistry clusterRegistry;
-    RewardDelegators public rewardDelegators;
+    IClusterRegistry clusterRegistry;
+    IRewardDelegators public rewardDelegators;
     // new variables
     struct Lock {
         uint256 unlockBlock;
@@ -83,8 +83,8 @@ contract StakeManager is Initializable, Ownable {
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = ClusterRegistry(_clusterRegistryAddress);
-        rewardDelegators = RewardDelegators(_rewardDelegatorsAddress);
+        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
+        rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         super.initialize(_owner);
     }
 
@@ -108,7 +108,7 @@ contract StakeManager is Initializable, Ownable {
             _updatedRewardDelegator != address(0),
             "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
         );
-        rewardDelegators = RewardDelegators(_updatedRewardDelegator);
+        rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
     }
 
     function updateClusterRegistry(
@@ -118,7 +118,7 @@ contract StakeManager is Initializable, Ownable {
             _updatedClusterRegistry != address(0),
             "StakeManager:updateClusterRegistry - Cluster Registry address cannot be 0"
         );
-        clusterRegistry = ClusterRegistry(_updatedClusterRegistry);
+        clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
 
     function enableToken(

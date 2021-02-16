@@ -4,8 +4,8 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
-import "./ClusterRewards.sol";
-import "./ClusterRegistry.sol";
+import "./IClusterRewards.sol";
+import "./IClusterRegistry.sol";
 
 contract RewardDelegators is Initializable, Ownable {
 
@@ -27,9 +27,9 @@ contract RewardDelegators is Initializable, Ownable {
     mapping(bytes32 => uint256) rewardFactor;
     mapping(bytes32 => uint256) tokenIndex;
     mapping(bytes32 => bytes32) __unused_1;
-    bytes32[] public tokenList;
-    ClusterRewards clusterRewards;
-    ClusterRegistry clusterRegistry;
+    bytes32[] tokenList;
+    IClusterRewards clusterRewards;
+    IClusterRegistry clusterRegistry;
     ERC20 PONDToken;
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
@@ -65,8 +65,8 @@ contract RewardDelegators is Initializable, Ownable {
         undelegationWaitTime = _undelegationWaitTime;
         emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
         stakeAddress = _stakeAddress;
-        clusterRegistry = ClusterRegistry(_clusterRegistry);
-        clusterRewards = ClusterRewards(_clusterRewardsAddress);
+        clusterRegistry = IClusterRegistry(_clusterRegistry);
+        clusterRewards = IClusterRewards(_clusterRewardsAddress);
         PONDToken = ERC20(_PONDAddress);
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
@@ -319,7 +319,7 @@ contract RewardDelegators is Initializable, Ownable {
             _updatedClusterRewards != address(0),
             "RewardDelegators:updateClusterRewards - ClusterRewards address cannot be 0"
         );
-        clusterRewards = ClusterRewards(_updatedClusterRewards);
+        clusterRewards = IClusterRewards(_updatedClusterRewards);
     }
 
     function updateClusterRegistry(
@@ -329,7 +329,7 @@ contract RewardDelegators is Initializable, Ownable {
             _updatedClusterRegistry != address(0),
             "RewardDelegators:updateClusterRegistry - Cluster Registry address cannot be 0"
         );
-        clusterRegistry = ClusterRegistry(_updatedClusterRegistry);
+        clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
 
     function updatePONDAddress(address _updatedPOND) public onlyOwner {
