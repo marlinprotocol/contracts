@@ -133,7 +133,7 @@ contract ClusterRewards is Initializable, Ownable {
     // should be updated in the cluster registry against the cluster
     function claimReward(address _cluster) public onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
-        if(pendingRewards != 0) {
+        if(pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards.sub(1);
             transferRewards(rewardDelegatorsAddress, rewardsToTransfer);
             clusterRewards[_cluster] = 1;
