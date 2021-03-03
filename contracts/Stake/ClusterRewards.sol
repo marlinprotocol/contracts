@@ -134,9 +134,10 @@ contract ClusterRewards is Initializable, Ownable {
     function claimReward(address _cluster) public onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards != 0) {
-            transferRewards(rewardDelegatorsAddress, pendingRewards.sub(1));
+            uint256 rewardsToTransfer = pendingRewards.sub(1);
+            transferRewards(rewardDelegatorsAddress, rewardsToTransfer);
             clusterRewards[_cluster] = 1;
-            return pendingRewards.sub(1);
+            return rewardsToTransfer;
         }
         return 0;
     }
