@@ -267,7 +267,7 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "StakeManager:requestStashRedelegation - Stash not already delegated"
         );
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, msg.sender));
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock == 0,
@@ -284,7 +284,7 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "StakeManager:redelegateStash - Stash not already delegated"
         );
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stash.staker));
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock <= block.number,
@@ -321,7 +321,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, msg.sender));
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         if(locks[_lockId].unlockBlock != 0) {
             delete locks[_lockId];
         }
