@@ -16,7 +16,7 @@ contract VerifierReceiver is Initializable {
     using SafeMath for uint256;
 
     Receiver receiverManager;
-    ClusterRegistry clusterRegistry;
+    ClusterRegistryOld clusterRegistry;
     Pot pot;
     LuckManager luckManager;
     FundManager fundManager;
@@ -36,7 +36,7 @@ contract VerifierReceiver is Initializable {
         bytes32 _tokenId
     ) public initializer {
         receiverManager = Receiver(_receiverRegistry);
-        clusterRegistry = ClusterRegistry(_clusterRegistry);
+        clusterRegistry = ClusterRegistryOld(_clusterRegistry);
         luckManager = LuckManager(_luckManager);
         pot = Pot(_pot);
         fundManager = FundManager(_fundManager);

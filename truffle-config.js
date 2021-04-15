@@ -17,9 +17,9 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
-// const PrivateKeyProvider = require("truffle-privatekey-provider");
-// const privateKey =
-// "4b306d0ee52f310b23aafd093298b896755ac389fa169d99378f9becac5a6e71";
+const PrivateKeyProvider = require("truffle-privatekey-provider");
+const privateKey =
+"4b306d0ee52f310b23aafd093298b896755ac389fa169d99378f9becac5a6e71";
 // Address of the above private key: 0x0AE167943B6d5bD1a1763Cb64d014a08c4125FA1
 
 const privKeys = [
@@ -63,7 +63,11 @@ module.exports = {
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "*", // Any network (default: none)
     },
-
+    // mainnet: {
+    //   provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://mainnet.infura.io/v3/f69c3698961e47d7834969e8c4347c1b`),
+    //   port: 80,
+    //   network_id: "*"
+    // },
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -73,6 +77,13 @@ module.exports = {
     // from: <address>,        // Account to send txs from (default: accounts[0])
     // websockets: true        // Enable EventEmitter interface for web3 (default: false)
     // },
+    kovan: {
+      // provider: () => new PrivateKeyProvider(privateKey, "https://kovan.infura.io/v3/f69c3698961e47d7834969e8c4347c1b"),
+      provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://kovan.infura.io/v3/f69c3698961e47d7834969e8c4347c1b`),
+      network_id: 42,
+      gas: 8000000,
+      // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
+    },
 
     rinkeby: {
       host: "localhost", // Connect to geth on the specified

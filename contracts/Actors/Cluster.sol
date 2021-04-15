@@ -18,14 +18,14 @@ contract Cluster is Initializable, ICluster {
     mapping(address => bool) relayers;
     uint256 totalRelayers;
     TokenLogic LINToken;
-    ClusterRegistry clusterRegistry;
+    ClusterRegistryOld clusterRegistry;
 
     function initialize(address _LINToken, address _clusterRegistry)
         public
         initializer
     {
         LINToken = TokenLogic(_LINToken);
-        clusterRegistry = ClusterRegistry(_clusterRegistry);
+        clusterRegistry = ClusterRegistryOld(_clusterRegistry);
     }
 
     function joinCluster() public {

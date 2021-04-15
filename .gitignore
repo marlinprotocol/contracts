@@ -5,3 +5,4 @@ slither.log
 .env
 *merged.sol
 temp
+.DS_Store

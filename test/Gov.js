@@ -15,7 +15,7 @@ var governanceAddress;
 var MPondAddress;
 var timelockAddress;
 
-contract("Governance", function (accounts, network) {
+contract.skip("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
   console.log(network);
   var tempAddress = accounts[9];
@@ -257,6 +257,9 @@ contract("Governance", function (accounts, network) {
       .then(function () {
         return govInstance.castVote(proposalId, true, {from: accounts[9]});
       })
+      .then(async function () {
+        return govInstance.castVote(proposalId, true, {from: accounts[11]});
+      })
       .then(function () {
         return govInstance.castVote(proposalId, true, {from: accounts[4]});
       })
@@ -320,12 +323,6 @@ async function addBlocks(count, accounts) {
     await increaseBlocks(accounts);
   }
   return;
-  // await web3.currentProvider.send({
-  //   jsonrpc: "2.0",
-  //   method: "evm_mine",
-  //   id: 12345
-  // });
-  // return;
 }
 
 async function increaseTime(time) {

@@ -5,7 +5,7 @@ var tokenProxy;
 var tokenLogic;
 var web3Utils = require("web3-utils");
 
-contract("Pond Token", function (accounts) {
+contract("Marlin Token", function (accounts) {
   var tokenInstance;
   let totalSupplyBeforeMinting;
 

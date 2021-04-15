@@ -68,7 +68,7 @@ let MPONDData = {
 };
 
 let staking = {
-  undelegationWaitTime: 3,
+  undelegationWaitTime: 22,
   rewardPerEpoch: 10000,
   minMPONDStake: 2,
   payoutDenomination: 100000,
