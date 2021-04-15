@@ -42,10 +42,14 @@ contract("Marlin Token", function (accounts) {
       })
       .then(function (symbol) {
         assert.equal(symbol, "POND", "Incorrect symbol");
-        return tokenInstance.balanceOf(tempBridgeAddress)
+        return tokenInstance.balanceOf(tempBridgeAddress);
       })
-      .then(function(bridgeBalance){
-        assert.equal(bridgeBalance, 3000000000e18, "Wrong amount of tokens minted on bridge");
+      .then(function (bridgeBalance) {
+        assert.equal(
+          bridgeBalance,
+          1000000000e18,
+          "Wrong amount of tokens minted on bridge"
+        );
         return;
       });
   });

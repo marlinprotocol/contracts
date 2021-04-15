@@ -33,7 +33,8 @@
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^4.0.47",
     "rlp": "^2.2.6",
-    "solidity-bytes-utils": "^0.1.1",
+    "solidity-bytes-utils": "0.0.8",
+    "truffle": "^5.1.60",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-privatekey-provider": "^1.5.0",
     "web3": "^1.2.7",
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.10",
+    "chai-bn": "^0.2.1",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-alpha.52",
     "solhint": "^3.0.0",

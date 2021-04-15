@@ -11,7 +11,7 @@ contract StandardOracle {
     }
 
     function addSource(address _address) public onlySource {
-        require(!sources[msg.sender], "Should not be an existing source");
+        require(!sources[_address], "Should not be an existing source");
         sources[_address] = true;
         numberOfSources++;
     }

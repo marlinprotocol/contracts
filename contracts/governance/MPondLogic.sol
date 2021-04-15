@@ -1,20 +1,23 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.5.17;
 pragma experimental ABIEncoderV2;
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
-contract MPond {
+contract MPondLogic is Initializable {
     /// @notice EIP-20 token name for this token
-    string public constant name = "Marlin Governance Token";
+    string public name;
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "MPOND";
+    string public symbol;
 
     /// @notice EIP-20 token decimals for this token
-    uint8 public constant decimals = 18;
+    uint8 public decimals;
 
     /// @notice Total number of tokens in circulation
-    uint256 public constant totalSupply = 10000e18; // 10k mPond
-    uint256 public constant bridgeSupply = 7000e18; // 3k mPond
+    uint256 public totalSupply; // 10k MPond
+    uint256 public bridgeSupply; // 3k MPond
+
+    address public dropBridge;
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 
@@ -37,26 +40,21 @@ contract MPond {
     mapping(address => uint32) public numCheckpoints;
 
     /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
-    );
+    bytes32 public DOMAIN_TYPEHASH;
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256(
-        "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-    );
+    bytes32 public DELEGATION_TYPEHASH;
 
     /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant UNDELEGATION_TYPEHASH = keccak256(
-        "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-    );
+    bytes32 public UNDELEGATION_TYPEHASH;
+
     /// @notice A record of states for signing / validating signatures
     mapping(address => uint256) public nonces;
 
     /// customized params
     address public admin;
     mapping(address => bool) public isWhiteListed;
-    bool public enableAllTranfers = true;
+    bool public enableAllTranfers;
 
     /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(
@@ -83,13 +81,18 @@ contract MPond {
     );
 
     /**
-     * @notice Construct a new Comp token
+     * @notice Initializer a new MPond token
      * @param account The initial account to grant all the tokens
      */
-    constructor(address account, address bridge) public {
+    function initialize(
+        address account,
+        address bridge,
+        address dropBridgeAddress
+    ) public initializer {
+        createConstants();
         require(
             account != bridge,
-            "Bridge and accoutn should not be the same address"
+            "Bridge and account should not be the same address"
         );
         balances[bridge] = uint96(bridgeSupply);
         delegates[bridge][address(0)] = uint96(bridgeSupply);
@@ -99,24 +102,75 @@ contract MPond {
         uint96 remainingSupply = sub96(
             uint96(totalSupply),
             uint96(bridgeSupply),
-            "Comp: Subtraction overflow in the constructor"
+            "MPond: Subtraction overflow in the constructor"
         );
         balances[account] = remainingSupply;
         delegates[account][address(0)] = remainingSupply;
         isWhiteListed[account] = true;
+        dropBridge = dropBridgeAddress;
         emit Transfer(address(0), account, uint256(remainingSupply));
     }
 
-    function addWhiteListAddress(address _address) external returns (bool) {
-        require(msg.sender == admin, "Only admin can whitelist");
+    function createConstants() internal {
+        name = "Marlin";
+        symbol = "MPond";
+        decimals = 18;
+        totalSupply = 10000e18;
+        bridgeSupply = 7000e18;
+        DOMAIN_TYPEHASH = keccak256(
+            "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
+        );
+        DELEGATION_TYPEHASH = keccak256(
+            "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+        );
+        UNDELEGATION_TYPEHASH = keccak256(
+            "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+        );
+        admin = msg.sender;
+        // enableAllTranfers = true; //This is only for testing, will be false
+    }
+
+    function addWhiteListAddress(address _address)
+        external
+        onlyAdmin("Only admin can whitelist")
+        returns (bool)
+    {
         isWhiteListed[_address] = true;
         return true;
     }
 
-    function enableAllTransfers() external returns (bool) {
-        require(msg.sender == admin, "Only enable can enable all transfers");
+    function removeWhiteListAddress(address _address)
+        external
+        onlyAdmin("Only admin can remove from whitelist")
+        returns (bool)
+    {
+        isWhiteListed[_address] = false;
+        return true;
+    }
+
+    function enableAllTransfers()
+        external
+        onlyAdmin("Only admin can enable all transfers")
+        returns (bool)
+    {
         enableAllTranfers = true;
         return true;
+    }
+
+    function disableAllTransfers()
+        external
+        onlyAdmin("Only admin can disable all transfers")
+        returns (bool)
+    {
+        enableAllTranfers = false;
+        return true;
+    }
+
+    function changeDropBridge(address _updatedBridge)
+        public
+        onlyAdmin("Only admin can change drop bridge")
+    {
+        dropBridge = _updatedBridge;
     }
 
     function isWhiteListedTransfer(address _address1, address _address2)
@@ -124,9 +178,16 @@ contract MPond {
         view
         returns (bool)
     {
-        return
-            (isWhiteListed[_address1] || isWhiteListed[_address2]) ||
-            enableAllTranfers;
+        if (
+            enableAllTranfers ||
+            isWhiteListed[_address1] ||
+            isWhiteListed[_address2]
+        ) {
+            return true;
+        } else if (_address1 == dropBridge) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -159,12 +220,61 @@ contract MPond {
         if (rawAmount == uint256(-1)) {
             amount = uint96(-1);
         } else {
-            amount = safe96(rawAmount, "Comp::approve: amount exceeds 96 bits");
+            amount = safe96(
+                rawAmount,
+                "MPond::approve: amount exceeds 96 bits"
+            );
         }
 
         allowances[msg.sender][spender] = amount;
 
         emit Approval(msg.sender, spender, amount);
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedAmount)
+        external
+        returns (bool)
+    {
+        uint96 amount;
+        if (addedAmount == uint256(-1)) {
+            amount = uint96(-1);
+        } else {
+            amount = safe96(
+                addedAmount,
+                "MPond::approve: addedAmount exceeds 96 bits"
+            );
+        }
+
+        allowances[msg.sender][spender] = add96(
+            allowances[msg.sender][spender],
+            amount,
+            "MPond: increaseAllowance allowance value overflows"
+        );
+        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 removedAmount)
+        external
+        returns (bool)
+    {
+        uint96 amount;
+        if (removedAmount == uint256(-1)) {
+            amount = uint96(-1);
+        } else {
+            amount = safe96(
+                removedAmount,
+                "MPond::approve: removedAmount exceeds 96 bits"
+            );
+        }
+
+        allowances[msg.sender][spender] = sub96(
+            allowances[msg.sender][spender],
+            amount,
+            "MPond: decreaseAllowance allowance value underflows"
+        );
+        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
         return true;
     }
 
@@ -186,11 +296,11 @@ contract MPond {
     function transfer(address dst, uint256 rawAmount) external returns (bool) {
         require(
             isWhiteListedTransfer(msg.sender, dst),
-            "Atleast of the address (msg.sender or dst) should be whitelisted"
+            "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         uint96 amount = safe96(
             rawAmount,
-            "Comp::transfer: amount exceeds 96 bits"
+            "MPond::transfer: amount exceeds 96 bits"
         );
         _transferTokens(msg.sender, dst, amount);
         return true;
@@ -209,21 +319,21 @@ contract MPond {
         uint256 rawAmount
     ) external returns (bool) {
         require(
-            isWhiteListedTransfer(msg.sender, dst),
-            "Atleast of the address (src or dst) should be whitelisted"
+            isWhiteListedTransfer(src, dst),
+            "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         address spender = msg.sender;
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(
             rawAmount,
-            "Comp::approve: amount exceeds 96 bits"
+            "MPond::approve: amount exceeds 96 bits"
         );
 
         if (spender != src && spenderAllowance != uint96(-1)) {
             uint96 newAllowance = sub96(
                 spenderAllowance,
                 amount,
-                "Comp::transferFrom: transfer amount exceeds spender allowance"
+                "MPond::transferFrom: transfer amount exceeds spender allowance"
             );
             allowances[src][spender] = newAllowance;
 
@@ -281,13 +391,13 @@ contract MPond {
         address signatory = ecrecover(digest, v, r, s);
         require(
             signatory != address(0),
-            "Comp::delegateBySig: invalid signature"
+            "MPond::delegateBySig: invalid signature"
         );
         require(
             nonce == nonces[signatory]++,
-            "Comp::delegateBySig: invalid nonce"
+            "MPond::delegateBySig: invalid nonce"
         );
-        require(now <= expiry, "Comp::delegateBySig: signature expired");
+        require(now <= expiry, "MPond::delegateBySig: signature expired");
         return _delegate(signatory, delegatee, amount);
     }
 
@@ -317,13 +427,13 @@ contract MPond {
         address signatory = ecrecover(digest, v, r, s);
         require(
             signatory != address(0),
-            "Comp::undelegateBySig: invalid signature"
+            "MPond::undelegateBySig: invalid signature"
         );
         require(
             nonce == nonces[signatory]++,
-            "Comp::undelegateBySig: invalid nonce"
+            "MPond::undelegateBySig: invalid nonce"
         );
-        require(now <= expiry, "Comp::undelegateBySig: signature expired");
+        require(now <= expiry, "MPond::undelegateBySig: signature expired");
         return _undelegate(signatory, delegatee, amount);
     }
 
@@ -335,7 +445,9 @@ contract MPond {
     function getCurrentVotes(address account) external view returns (uint96) {
         uint32 nCheckpoints = numCheckpoints[account];
         return
-            nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
+            nCheckpoints != 0
+                ? checkpoints[account][nCheckpoints - 1].votes
+                : 0;
     }
 
     /**
@@ -352,7 +464,7 @@ contract MPond {
     {
         require(
             blockNumber < block.number,
-            "Comp::getPriorVotes: not yet determined"
+            "MPond::getPriorVotes: not yet determined"
         );
 
         uint32 nCheckpoints = numCheckpoints[account];
@@ -394,12 +506,12 @@ contract MPond {
         delegates[delegator][address(0)] = sub96(
             delegates[delegator][address(0)],
             amount,
-            "Comp: delegates underflow"
+            "MPond: delegates underflow"
         );
         delegates[delegator][delegatee] = add96(
             delegates[delegator][delegatee],
             amount,
-            "Comp: delegates overflow"
+            "MPond: delegates overflow"
         );
 
         emit DelegateChanged(delegator, address(0), delegatee);
@@ -415,12 +527,12 @@ contract MPond {
         delegates[delegator][delegatee] = sub96(
             delegates[delegator][delegatee],
             amount,
-            "Comp: undelegates underflow"
+            "MPond: undelegates underflow"
         );
         delegates[delegator][address(0)] = add96(
             delegates[delegator][address(0)],
             amount,
-            "Comp: delegates underflow"
+            "MPond: delegates underflow"
         );
         emit DelegateChanged(delegator, delegatee, address(0));
         _moveDelegates(delegatee, address(0), amount);
@@ -433,37 +545,37 @@ contract MPond {
     ) internal {
         require(
             src != address(0),
-            "Comp::_transferTokens: cannot transfer from the zero address"
+            "MPond::_transferTokens: cannot transfer from the zero address"
         );
         require(
             delegates[src][address(0)] >= amount,
-            "Comp: _transferTokens: undelegated amount should be greater than transfer amount"
+            "MPond: _transferTokens: undelegated amount should be greater than transfer amount"
         );
         require(
             dst != address(0),
-            "Comp::_transferTokens: cannot transfer to the zero address"
+            "MPond::_transferTokens: cannot transfer to the zero address"
         );
 
         balances[src] = sub96(
             balances[src],
             amount,
-            "Comp::_transferTokens: transfer amount exceeds balance"
+            "MPond::_transferTokens: transfer amount exceeds balance"
         );
         delegates[src][address(0)] = sub96(
             delegates[src][address(0)],
             amount,
-            "Comp: _tranferTokens: undelegate subtraction error"
+            "MPond: _tranferTokens: undelegate subtraction error"
         );
 
         balances[dst] = add96(
             balances[dst],
             amount,
-            "Comp::_transferTokens: transfer amount overflows"
+            "MPond::_transferTokens: transfer amount overflows"
         );
         delegates[dst][address(0)] = add96(
             delegates[dst][address(0)],
             amount,
-            "Comp: _transferTokens: undelegate addition error"
+            "MPond: _transferTokens: undelegate addition error"
         );
         emit Transfer(src, dst, amount);
 
@@ -475,29 +587,29 @@ contract MPond {
         address dstRep,
         uint96 amount
     ) internal {
-        if (srcRep != dstRep && amount > 0) {
+        if (srcRep != dstRep && amount != 0) {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
-                uint96 srcRepOld = srcRepNum > 0
+                uint96 srcRepOld = srcRepNum != 0
                     ? checkpoints[srcRep][srcRepNum - 1].votes
                     : 0;
                 uint96 srcRepNew = sub96(
                     srcRepOld,
                     amount,
-                    "Comp::_moveVotes: vote amount underflows"
+                    "MPond::_moveVotes: vote amount underflows"
                 );
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
-                uint96 dstRepOld = dstRepNum > 0
+                uint96 dstRepOld = dstRepNum != 0
                     ? checkpoints[dstRep][dstRepNum - 1].votes
                     : 0;
                 uint96 dstRepNew = add96(
                     dstRepOld,
                     amount,
-                    "Comp::_moveVotes: vote amount overflows"
+                    "MPond::_moveVotes: vote amount overflows"
                 );
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
@@ -512,11 +624,11 @@ contract MPond {
     ) internal {
         uint32 blockNumber = safe32(
             block.number,
-            "Comp::_writeCheckpoint: block number exceeds 32 bits"
+            "MPond::_writeCheckpoint: block number exceeds 32 bits"
         );
 
         if (
-            nCheckpoints > 0 &&
+            nCheckpoints != 0 &&
             checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber
         ) {
             checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
@@ -574,5 +686,10 @@ contract MPond {
             chainId := chainid()
         }
         return chainId;
+    }
+
+    modifier onlyAdmin(string memory _error) {
+        require(msg.sender == admin, _error);
+        _;
     }
 }

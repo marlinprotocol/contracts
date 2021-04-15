@@ -1,8 +1,8 @@
 const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
 const Timelock = artifacts.require("Timelock.sol");
-// const mPond = artifacts.require("mPond.sol");
-const mPondProxy = artifacts.require("MPondProxy.sol");
-const mPondLogic = artifacts.require("MPondLogic.sol");
+// const MPond = artifacts.require("MPond.sol");
+const MPondProxy = artifacts.require("MPondProxy.sol");
+const MPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
 const ethJsUtil = require("ethereumjs-util");
 const Web3 = require("web3");
@@ -13,7 +13,7 @@ module.exports = async function (deployer, network, accounts) {
     const web3 = new Web3("http://127.0.0.1:8545/");
 
     let guardianAddress = accounts[5];
-    let mPondAdmin = accounts[4];
+    let MPondAdmin = accounts[4];
     let bridge = accounts[11];
     let transactionCount = await web3.eth.getTransactionCount(guardianAddress);
     var futureAddress = ethJsUtil.bufferToHex(
@@ -27,19 +27,19 @@ module.exports = async function (deployer, network, accounts) {
     await deployer
       .deploy(Timelock, timelockAdmin, delay)
       .then(function () {
-        return deployer.deploy(mPondLogic);
+        return deployer.deploy(MPondLogic);
       })
-      .then(function (mPondLogic) {
-        return deployer.deploy(mPondProxy, mPondLogic.address, accounts[0]);
+      .then(function (MPondLogic) {
+        return deployer.deploy(MPondProxy, MPondLogic.address, accounts[0]);
       })
       // .then(function () {
-      //   return deployer.deploy(mPond, mPondAdmin, bridge);
+      //   return deployer.deploy(MPond, MPondAdmin, bridge);
       // })
       .then(function () {
         return deployer.deploy(
           GovernorAlpha,
           Timelock.address,
-          mPondProxy.address,
+          MPondProxy.address,
           guardianAddress,
           {from: guardianAddress}
         );
@@ -47,9 +47,9 @@ module.exports = async function (deployer, network, accounts) {
       .then(function () {
         console.log("*****************************************");
         console.log("Timelock.address", Timelock.address);
-        console.log("mPondProxy.address", mPondProxy.address);
+        console.log("MPondProxy.address", MPondProxy.address);
         console.log("GovernorAlpha.address", GovernorAlpha.address);
-        console.log("mPondAdmin", mPondAdmin);
+        console.log("MPondAdmin", MPondAdmin);
         console.log("guardianAddress", guardianAddress);
         console.log("timelockAdmin", timelockAdmin);
         console.log("delay", delay);
@@ -60,7 +60,7 @@ module.exports = async function (deployer, network, accounts) {
     // console.log(accounts);
     // const web3 = new Web3("http://68.183.87.16:8545/");
     // let guardianAddress = accounts[2];
-    // let mPondAdmin = accounts[1];
+    // let MPondAdmin = accounts[1];
     // let transactionCount = await web3.eth.getTransactionCount(guardianAddress);
     // var futureAddress = ethJsUtil.bufferToHex(
     //   ethJsUtil.generateAddress(guardianAddress, transactionCount)
@@ -71,13 +71,13 @@ module.exports = async function (deployer, network, accounts) {
     // await deployer
     //   .deploy(Timelock, timelockAdmin, delay)
     //   .then(function () {
-    //     return deployer.deploy(mPond, mPondAdmin);
+    //     return deployer.deploy(MPond, MPondAdmin);
     //   })
     //   .then(function () {
     //     return deployer.deploy(
     //       GovernorAlpha,
     //       Timelock.address,
-    //       mPond.address,
+    //       MPond.address,
     //       guardianAddress,
     //       {from: guardianAddress}
     //     );
@@ -91,7 +91,7 @@ module.exports = async function (deployer, network, accounts) {
     //     );
     //     console.log(
     //       "Pond.address",
-    //       mPond.address,
+    //       MPond.address,
     //       "(The erc20 token for governance)"
     //     );
     //     console.log(
@@ -101,7 +101,7 @@ module.exports = async function (deployer, network, accounts) {
     //     );
     //     console.log(
     //       "pondAdmin",
-    //       mPondAdmin,
+    //       MPondAdmin,
     //       "erc20 admin address. all the erc20 tokens are currently in this address"
     //     );
     //     console.log(

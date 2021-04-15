@@ -1,36 +1,51 @@
 const GovernorAlpha = artifacts.require("GovernorAlpha.sol");
 const Timelock = artifacts.require("Timelock.sol");
-const mPondLogic = artifacts.require("MPondLogic.sol");
-const { time } = require('@openzeppelin/test-helpers');
-const { web3 } = require('@openzeppelin/test-helpers/src/setup');
+const MPondProxy = artifacts.require("MPondProxy.sol");
+const MPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
-const ethers = require("ethers");
+const TestingContract = artifacts.require("GovernanceTester.sol");
 
 var govInstance;
-var mPondInstance;
+var MPondInstance;
 var timelockInstance;
 var proposalId;
+var testingInstance;
 
 var governanceAddress;
-var mPondAddress;
+var MPondAddress;
 var timelockAddress;
 
 contract.skip("Governance", function (accounts, network) {
   // address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description
-  // console.log(network);
+  console.log(network);
+  var tempAddress = accounts[9];
+  var targets = [];
+  const values = [0];
+  const signatures = ["update(uint256)"];
+  // const calldatas = [
+  //   "0x0000000000000000000000000000000000000000000000000000000000000045",
+  // ];
+  const calldatas = [
+    web3.eth.abi.encodeParameters(
+      ["uint256"],
+      ["0x0000000000000000000000000000000000000000000000000000000000000045"]
+    ),
+  ];
+  const description = "This is a sample description";
+
   it("deploy contracts", function () {
     return GovernorAlpha.deployed()
       .then(function (instance) {
         govInstance = instance;
         governanceAddress = instance.address;
-        return govInstance.mPond();
+        return govInstance.MPond();
       })
       .then(function (address) {
-        mPondAddress = address;
-        return mPondLogic.at(mPondAddress);
+        MPondAddress = address;
+        return MPondLogic.at(MPondAddress);
       })
       .then(function (instance) {
-        mPondInstance = instance;
+        MPondInstance = instance;
         return govInstance.timelock();
       })
       .then(function (address) {
@@ -39,67 +54,110 @@ contract.skip("Governance", function (accounts, network) {
       })
       .then(function (instance) {
         timelockInstance = instance;
-        return mPondInstance.initialize(
+        return MPondInstance.initialize(
           accounts[4],
           accounts[11],
           accounts[12]
         ); //accounts[12] is assumed to temp x-chain bridge address
       })
-      .then(async function () {
-        let valuesToCheck = {governanceAddress, mPondAddress, timelockAddress};
-        // console.log(valuesToCheck);
+      .then(function () {
+        let valuesToCheck = {governanceAddress, MPondAddress, timelockAddress};
+        console.log(valuesToCheck);
         return;
       });
   });
-
+  it("Deploy a tesing instance which can be updated by governance, value 5", function () {
+    return TestingContract.new(timelockInstance.address, 5)
+      .then(function (instance) {
+        testingInstance = instance;
+        targets.push(testingInstance.address);
+        return testingInstance.value();
+      })
+      .then(function (value) {
+        assert.equal(value, 5, "Should be 5");
+        return;
+      });
+  });
   it("check timelocks", function () {
     return timelockInstance.delay().then(function (delay) {
       // console.log("timelock delay", delay);
     });
   });
 
-  it("check balances of mPond token and transfer mPond to other accounts", function () {
-    return mPondInstance
-      .balanceOf(accounts[4])
+  it("check balances of MPond token and transfer MPond to other accounts", function () {
+    return MPondInstance.balanceOf(accounts[4])
       .then(function () {
-        return mPondInstance.transfer(accounts[6], new web3Utils.BN("3e23"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[6],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return mPondInstance.transfer(accounts[7], new web3Utils.BN("3e23"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[7],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return mPondInstance.transfer(accounts[8], new web3Utils.BN("3e23"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[8],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       })
       .then(function () {
-        return mPondInstance.transfer(accounts[9], new web3Utils.BN("3e23"), {
-          from: accounts[4],
-        });
+        return MPondInstance.transfer(
+          accounts[9],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[4],
+          }
+        );
       });
   });
 
   it("other users who have balances should also be able to delegate", function () {
-    return mPondInstance
-      .delegate(accounts[6], new web3Utils.BN("3e23"), {from: accounts[6]})
+    return MPondInstance.delegate(
+      accounts[6],
+      new web3Utils.BN("100000000000000000000"),
+      {
+        from: accounts[6],
+      }
+    )
       .then(function () {
-        return mPondInstance.delegate(accounts[7], new web3Utils.BN("3e23"), {
-          from: accounts[7],
-        });
+        return MPondInstance.delegate(
+          accounts[7],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[7],
+          }
+        );
       })
       .then(function () {
-        return mPondInstance.delegate(accounts[8], new web3Utils.BN("3e23"), {
-          from: accounts[8],
-        });
+        return MPondInstance.delegate(
+          accounts[8],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[8],
+          }
+        );
       })
       .then(function () {
-        return mPondInstance.delegate(accounts[9], new web3Utils.BN("3e23"), {
-          from: accounts[9],
-        });
+        return MPondInstance.delegate(
+          accounts[9],
+          new web3Utils.BN("100000000000000000000"),
+          {
+            from: accounts[9],
+          }
+        );
       })
       .then(function () {
         return addBlocks(2, accounts);
@@ -107,69 +165,45 @@ contract.skip("Governance", function (accounts, network) {
   });
 
   it("check current votes", function () {
-    return mPondInstance
-      .delegate(accounts[4], new web3Utils.BN("4000000000000000000"), {
+    return MPondInstance.delegate(
+      accounts[4],
+      new web3Utils.BN("400000000000000000000"),
+      {
         from: accounts[4],
-      })
-      .then(function () {
-        return mPondInstance
-          .getCurrentVotes(accounts[4])
-          .then(function (votes) {
-            // console.log({votes});
-            // assert latter
+      }
+    ).then(function () {
+      return MPondInstance.getCurrentVotes(accounts[4])
+        .then(function (votes) {
+          // console.log({votes});
+          // assert latter
 
-            // this transactions is only to increase the few block
-            return addBlocks(2, accounts);
-          })
-          .then(async function () {
-            let block = await web3.eth.getBlock("latest");
-            return mPondInstance.getPriorVotes(accounts[4], block.number - 1);
-          })
-          .then(function (priorVotes) {
-            // console.log(priorVotes);
-            return;
-          })
-          .then(async function () {
-
-            // delegate 7k mponds
-            await mPondInstance
-            .delegate(accounts[11], new web3Utils.BN("7000000000000000000000"), {
-              from: accounts[11] });
-
-            // check votes
-            const votesAcc11 = 
-            await mPondInstance.getCurrentVotes(accounts[11]);
-            console.log("votes for acc11: ", votesAcc11.toString());
-            
-            // helper function
-            function encodeParameters(types, values) {
-              const abi = new ethers.utils.AbiCoder();
-              return abi.encode(types, values);
-            }
-
-            // tx to execute via governance
-            const targets = [mPondAddress];
-            const values = ["0"];
-            const signatures = ["approve(address,uint256)"];
-            const calldatas = [encodeParameters(['address', 'uint256'],
-            [accounts[1], 1])];
-            const description = "approve 1 mpond for acc 1";
-
-            return govInstance.propose(
-              targets,
-              values,
-              signatures,
-              calldatas,
-              description,
-              {from: accounts[4]}
-            );
-          })
-          .then(function (transaction) {
-            // console.log(transaction.logs[0].args[0]);
-            proposalId = transaction.logs[0].args[0];
-            return;
-          });
-      });
+          // this transactions is only to increase the few block
+          return addBlocks(2, accounts);
+        })
+        .then(async function () {
+          let block = await web3.eth.getBlock("latest");
+          return MPondInstance.getPriorVotes(accounts[4], block.number - 1);
+        })
+        .then(function (priorVotes) {
+          // console.log(priorVotes);
+          return;
+        })
+        .then(function () {
+          return govInstance.propose(
+            targets,
+            values,
+            signatures,
+            calldatas,
+            description,
+            {from: accounts[4]}
+          );
+        })
+        .then(function (transaction) {
+          // console.log(transaction.logs[0].args[0]);
+          proposalId = transaction.logs[0].args[0];
+          return;
+        });
+    });
   });
 
   it.skip("change timelock admins", function () {
@@ -212,50 +246,65 @@ contract.skip("Governance", function (accounts, network) {
   it("caste different votes and check the proposal", function () {
     return addBlocks(2, accounts)
       .then(function () {
-        return govInstance.castVote(proposalId, true, {from: accounts[6]});
+        return govInstance.castVote(proposalId, false, {from: accounts[6]});
       })
       .then(function () {
         return govInstance.castVote(proposalId, true, {from: accounts[7]});
       })
-      .then(async function () {
-        const votesAcc4 = await mPondInstance.getCurrentVotes(accounts[4]);
-        console.log(votesAcc4.toString());
-        return govInstance.castVote(proposalId, true, {from: accounts[4]});
+      .then(function () {
+        return govInstance.castVote(proposalId, true, {from: accounts[8]});
+      })
+      .then(function () {
+        return govInstance.castVote(proposalId, true, {from: accounts[9]});
       })
       .then(async function () {
         return govInstance.castVote(proposalId, true, {from: accounts[11]});
       })
       .then(function () {
-        return govInstance.castVote(proposalId, false, {from: accounts[9]});
+        return govInstance.castVote(proposalId, true, {from: accounts[4]});
       })
       .then(function (transaction) {
         return govInstance.proposals(proposalId);
       })
       .then(async function (proposal) {
-        console.log("proposal, after cast vote by all accounts");
-        console.log(proposal);
-        console.log("Advancing 17210 blocks. Will take a while...");
-        for (let i = 0; i < 17210; ++i) {
-            await time.advanceBlock();
-        };
+        // console.log("proposal, after cast vote by all accounts");
+        // console.log(proposal);
+        await addBlocks(200, accounts);
         return govInstance.state(proposalId);
       })
       .then(async function (state) {
-        // console.log("state", state);
+        // console.log(
+        //   "state for proposal after casting all votes and adding 20 blocks",
+        //   state
+        // );
         await govInstance.queue(proposalId); //account-3 is timelock admin
         return govInstance.proposals(proposalId);
       })
       .then(function (proposal) {
-        console.log("proposal, after queuing the proposal");
-        console.log(proposal);
+        // console.log("proposal, after queuing the proposal");
+        // console.log(proposal);
         return govInstance.state(proposalId);
       })
       .then(function (state) {
-        console.log("state after queueing", state);
-        return time.increase(time.duration.days(3));
+        // console.log("state after queueing", state);
+        return addBlocks(200, accounts);
+      })
+      .then(function () {
+        return increaseTime(5 * 86400);
+      })
+      .then(function () {
+        return addBlocks(1, accounts);
       })
       .then(function () {
         return govInstance.execute(proposalId);
+      })
+      .then(function (tx) {
+        print(tx);
+        return testingInstance.value();
+      })
+      .then(function (value) {
+        assert.equal(value, 69, "Value should be 69");
+        return;
       });
   });
 });
@@ -274,4 +323,20 @@ async function addBlocks(count, accounts) {
     await increaseBlocks(accounts);
   }
   return;
+}
+
+async function increaseTime(time) {
+  await web3.currentProvider.send(
+    {
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [time],
+      id: 0,
+    },
+    () => {}
+  );
+}
+
+function print(data) {
+  console.log(JSON.stringify(data, null, 4));
 }

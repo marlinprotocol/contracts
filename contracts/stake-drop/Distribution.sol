@@ -3,7 +3,7 @@ pragma solidity 0.5.17;
 import "./AddressRegistry.sol";
 import "./StakeRegistry.sol";
 import "./ValidatorRegistry.sol";
-import "../governance/mPondLogic.sol";
+import "../governance/MPondLogic.sol";
 
 
 contract Distribution {
@@ -37,6 +37,15 @@ contract Distribution {
     function removeTokens(uint256 _amount) public returns (bool) {
         require(msg.sender == admin, "Only owner can remove tokens");
         mpond.transfer(msg.sender, _amount);
+        return true;
+    }
+
+    function changeTokenAddress(address _newTokenAddress)
+        public
+        returns (bool)
+    {
+        require(msg.sender == admin, "Only owner can change token address");
+        mpond = MPondLogic(_newTokenAddress);
         return true;
     }
 

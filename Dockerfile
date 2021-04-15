@@ -6,6 +6,7 @@ WORKDIR /home/app
 RUN npm i -g truffle
 RUN npm i -g ganache-cli
 RUN npm install @0x/sol-compiler --g
+RUN npm i -g sol-merge
 
 COPY package.json /home/app/package.json
 COPY package-lock.json /home/app/package-lock.json

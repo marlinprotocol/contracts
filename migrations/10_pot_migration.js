@@ -27,7 +27,7 @@ const PotProxy = artifacts.require("PotProxy.sol");
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
     await deployer.deploy(Pot).then(function () {
-      return deployer.deploy(PotProxy, Pot.address);
+      return deployer.deploy(PotProxy, Pot.address, accounts[20]); // assume that accounts-20 is the proxy-owner
     });
   }
 };

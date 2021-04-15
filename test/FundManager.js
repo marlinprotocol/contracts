@@ -10,8 +10,6 @@ const FundProxy = artifacts.require("FundManagerProxy.sol");
 
 const appConfig = require("../app-config");
 const truffleAssertions = require("truffle-assertions");
-const {BigNumber} = require("ethers/utils");
-const {utils} = require("ethers");
 
 contract.skip("Fund Manager", function (accounts) {
   let LINInstance;

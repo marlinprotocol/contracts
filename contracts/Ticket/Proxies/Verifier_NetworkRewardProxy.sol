@@ -5,7 +5,7 @@ pragma solidity >=0.4.21 <0.7.0;
 /// @author Marlin
 /// @notice Use this contract only for testing
 /// @dev Contract may or may not change in future (depending upon the new slots in proxy-store)
-contract Verifer_NetworkRewardProxy {
+contract Verifier_NetworkRewardProxy {
     bytes32 internal constant IMPLEMENTATION_SLOT = bytes32(
         uint256(keccak256("eip1967.proxy.implementation")) - 1
     );
@@ -13,7 +13,7 @@ contract Verifer_NetworkRewardProxy {
         uint256(keccak256("eip1967.proxy.admin")) - 1
     );
 
-    constructor(address contractLogic) public {
+    constructor(address contractLogic, address proxyAdmin) public {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
@@ -21,9 +21,20 @@ contract Verifer_NetworkRewardProxy {
         }
         // save the proxy admin
         slot = PROXY_ADMIN_SLOT;
-        address sender = msg.sender;
+        address sender = proxyAdmin;
         assembly {
             sstore(slot, sender)
+        }
+    }
+
+    function updateAdmin(address _newAdmin) public {
+        require(
+            msg.sender == getAdmin(),
+            "Only the current admin should be able to new admin"
+        );
+        bytes32 slot = PROXY_ADMIN_SLOT;
+        assembly {
+            sstore(slot, _newAdmin)
         }
     }
 
