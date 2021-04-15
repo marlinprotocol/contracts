@@ -63,6 +63,7 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -305,6 +306,44 @@ contract StakeManager is Initializable, Ownable {
         stashes[_stashId].delegatedCluster = _updatedCluster;
         delete locks[_lockId];
         emit Redelegated(_stashId, _updatedCluster);
+    }
+
+    function mergeStash(bytes32 _stashId1, bytes32 _stashId2) public {
+        require(_stashId1 != _stashId2, "SM:MS-Can't merge same stash");
+        Stash memory _stash1 = stashes[_stashId1];
+        Stash memory _stash2 = stashes[_stashId2];
+        require(
+            _stash1.staker == msg.sender && _stash2.staker == msg.sender,
+            "SM:MS-Sender should be staker for both stashes"
+        );
+        require(
+            _stash1.delegatedCluster == _stash2.delegatedCluster,
+            "SM:MS-Both stashes should be delegated to same cluster"
+        );
+        require(
+            (_stash1.undelegatesAt == 0 || _stash1.undelegatesAt >= block.number) &&
+            (_stash2.undelegatesAt == 0 || _stash2.undelegatesAt >= block.number),
+            "SM:MS-Both stashes should not be undelegating"
+        );
+        bytes32 _lockId1 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId1));
+        uint256 _unlockBlock1 = locks[_lockId1].unlockBlock;
+        bytes32 _lockId2 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId2));
+        uint256 _unlockBlock2 = locks[_lockId2].unlockBlock;
+        require(
+            _unlockBlock1 == 0 && _unlockBlock2 == 0,
+            "SM:MS-Redelegation request should not be active for both stashes"
+        );
+        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        for(uint256 i=0; i < _tokens.length; i++) {
+            uint256 _amount = stashes[_stashId2].amount[_tokens[i]];
+            if(_amount == 0) {
+                continue;
+            }
+            delete stashes[_stashId2].amount[_tokens[i]];
+            stashes[_stashId1].amount[_tokens[i]] = stashes[_stashId1].amount[_tokens[i]].add(_amount);
+        }
+        delete stashes[_stashId2];
+        emit StashesMerged(_stashId1, _stashId2);
     }
 
     function undelegateStash(bytes32 _stashId) public {
