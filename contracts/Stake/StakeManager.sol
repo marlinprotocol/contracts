@@ -63,6 +63,7 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event RedelegationCancelled(bytes32 indexed _stashId);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -282,7 +283,7 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.delegatedCluster != address(0),
-            "StakeManager:redelegateStash - Stash not already delegated"
+            "StakeManager:redelegateStash - Stash not already undelegated"
         );
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
@@ -307,6 +308,24 @@ contract StakeManager is Initializable, Ownable {
         emit Redelegated(_stashId, _updatedCluster);
     }
 
+    function cancelRedelegation(bytes32 _stashId) public {
+        require(
+            msg.sender == stashes[_stashId].staker,
+            "SM:CR - Only staker can cancel redelegation"
+        );
+        require(_cancelRedelegation(_stashId), "SM:CR - Redelegation doesnt exist for the stash");
+    }
+
+    function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
+        if(locks[_lockId].unlockBlock != 0) {
+            delete locks[_lockId];
+            emit RedelegationCancelled(_stashId);
+            return true;
+        }
+        return false;
+    }
+
     function undelegateStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
@@ -321,10 +340,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        if(locks[_lockId].unlockBlock != 0) {
-            delete locks[_lockId];
-        }
+        _cancelRedelegation(_stashId);
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
