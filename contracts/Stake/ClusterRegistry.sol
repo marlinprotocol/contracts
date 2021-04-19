@@ -35,21 +35,21 @@ contract ClusterRegistry is Initializable, Ownable {
     enum Status{NOT_REGISTERED, REGISTERED}
 
     event ClusterRegistered(
-        address cluster, 
-        bytes32 networkId, 
+        address indexed cluster, 
+        bytes32 indexed networkId, 
         uint256 commission, 
         address rewardAddress, 
         address clientKey
     );
-    event CommissionUpdateRequested(address cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
-    event CommissionUpdated(address cluster, uint256 updatedCommission, uint256 updatedAt);
-    event RewardAddressUpdated(address cluster, address updatedRewardAddress);
-    event NetworkSwitchRequested(address cluster, bytes32 networkId, uint256 effectiveBlock);
-    event NetworkSwitched(address cluster, bytes32 networkId, uint256 updatedAt);
-    event ClientKeyUpdated(address cluster, address clientKey);
-    event ClusterUnregisterRequested(address cluster, uint256 effectiveBlock);
-    event ClusterUnregistered(address cluster, uint256 updatedAt);
-    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event CommissionUpdateRequested(address indexed cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
+    event CommissionUpdated(address indexed cluster, uint256 updatedCommission, uint256 updatedAt);
+    event RewardAddressUpdated(address indexed cluster, address updatedRewardAddress);
+    event NetworkSwitchRequested(address indexed cluster, bytes32 indexed networkId, uint256 effectiveBlock);
+    event NetworkSwitched(address indexed cluster, bytes32 indexed networkId, uint256 updatedAt);
+    event ClientKeyUpdated(address indexed cluster, address clientKey);
+    event ClusterUnregisterRequested(address indexed cluster, uint256 effectiveBlock);
+    event ClusterUnregistered(address indexed cluster, uint256 updatedAt);
+    event LockTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
 
     function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner) 
         public 

@@ -52,18 +52,18 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] tokens,
         uint256[] amounts
     );
-    event StashDelegated(bytes32 stashId, address delegatedCluster);
-    event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
-    event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
-    event StashClosed(bytes32 stashId, address indexed staker);
-    event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
-    event TokenAdded(bytes32 tokenId, address tokenAddress);
-    event TokenRemoved(bytes32 tokenId);
-    event TokenUpdated(bytes32 tokenId, address tokenAddress);
-    event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
-    event Redelegated(bytes32 stashId, address updatedCluster);
-    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
-    event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
+    event StashDelegated(bytes32 indexed stashId, address indexed delegatedCluster);
+    event StashUndelegated(bytes32 indexed stashId, address indexed undelegatedCluster, uint256 undelegatesAt);
+    event StashWithdrawn(bytes32 indexed stashId, bytes32[] tokens, uint256[] amounts);
+    event StashClosed(bytes32 indexed stashId, address indexed staker);
+    event AddedToStash(bytes32 indexed stashId, address indexed delegatedCluster, bytes32[] tokens, uint256[] amounts);
+    event TokenAdded(bytes32 indexed tokenId, address indexed tokenAddress);
+    event TokenRemoved(bytes32 indexed tokenId);
+    event TokenUpdated(bytes32 indexed tokenId, address indexed tokenAddress);
+    event RedelegationRequested(bytes32 indexed stashId, address indexed currentCluster, address indexed updatedCluster, uint256 redelegatesAt);
+    event Redelegated(bytes32 indexed stashId, address indexed updatedCluster);
+    event LockTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event StashesMerged(bytes32 indexed _stashId1, bytes32 indexed _stashId2);
 
     function initialize(
         bytes32[] memory _tokenIds,
