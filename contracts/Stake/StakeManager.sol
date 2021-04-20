@@ -278,6 +278,13 @@ contract StakeManager is Initializable, Ownable {
         emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
     }
 
+    function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
+        require(_stashIds.length == _newClusters.length, "SM:RSRs - Invalid input data");
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            requestStashRedelegation(_stashIds[i], _newClusters[i]);
+        }
+    }
+
     function redelegateStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
@@ -305,6 +312,12 @@ contract StakeManager is Initializable, Ownable {
         stashes[_stashId].delegatedCluster = _updatedCluster;
         delete locks[_lockId];
         emit Redelegated(_stashId, _updatedCluster);
+    }
+
+    function redelegateStashes(bytes32[] memory _stashIds) public {
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            redelegateStash(_stashIds[i]);
+        }
     }
 
     function undelegateStash(bytes32 _stashId) public {
