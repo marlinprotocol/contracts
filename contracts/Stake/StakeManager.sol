@@ -88,14 +88,14 @@ contract StakeManager is Initializable, Ownable {
         super.initialize(_owner);
     }
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
     }
 
     function changeMPONDTokenAddress(
         address _MPONDTokenAddress
-    ) public onlyOwner {
+    ) external onlyOwner {
         prevMPOND = MPOND;
         MPOND = MPondLogic(_MPONDTokenAddress);
         emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
@@ -103,7 +103,7 @@ contract StakeManager is Initializable, Ownable {
 
     function updateRewardDelegators(
         address _updatedRewardDelegator
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _updatedRewardDelegator != address(0),
             "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
@@ -113,7 +113,7 @@ contract StakeManager is Initializable, Ownable {
 
     function updateClusterRegistry(
         address _updatedClusterRegistry
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
             "StakeManager:updateClusterRegistry - Cluster Registry address cannot be 0"
@@ -124,7 +124,7 @@ contract StakeManager is Initializable, Ownable {
     function enableToken(
         bytes32 _tokenId,
         address _address
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             !tokenAddresses[_tokenId].isActive,
             "StakeManager:enableToken - Token already enabled"
@@ -136,7 +136,7 @@ contract StakeManager is Initializable, Ownable {
 
     function disableToken(
         bytes32 _tokenId
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             tokenAddresses[_tokenId].isActive,
             "StakeManager:disableToken - Token already disabled"
@@ -146,10 +146,10 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function createStashAndDelegate(
-        bytes32[] memory _tokens,
-        uint256[] memory _amounts,
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts,
         address _delegatedCluster
-    ) public {
+    ) external {
         bytes32 stashId = createStash(_tokens, _amounts);
         delegateStash(stashId, _delegatedCluster);
     }
@@ -257,7 +257,7 @@ contract StakeManager is Initializable, Ownable {
         emit StashDelegated(_stashId, _delegatedCluster);
     }
 
-    function requestStashRedelegation(bytes32 _stashId, address _newCluster) public {
+    function requestStashRedelegation(bytes32 _stashId, address _newCluster) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -278,7 +278,7 @@ contract StakeManager is Initializable, Ownable {
         emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
     }
 
-    function redelegateStash(bytes32 _stashId) public {
+    function redelegateStash(bytes32 _stashId) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.delegatedCluster != address(0),
@@ -307,7 +307,7 @@ contract StakeManager is Initializable, Ownable {
         emit Redelegated(_stashId, _updatedCluster);
     }
 
-    function undelegateStash(bytes32 _stashId) public {
+    function undelegateStash(bytes32 _stashId) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -334,7 +334,7 @@ contract StakeManager is Initializable, Ownable {
         emit StashUndelegated(_stashId, _stash.delegatedCluster, _undelegationBlock);
     }
 
-    function withdrawStash(bytes32 _stashId) public {
+    function withdrawStash(bytes32 _stashId) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -365,9 +365,9 @@ contract StakeManager is Initializable, Ownable {
 
     function withdrawStash(
         bytes32 _stashId,
-        bytes32[] memory _tokens,
-        uint256[] memory _amounts
-    ) public {
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts
+    ) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -449,7 +449,7 @@ contract StakeManager is Initializable, Ownable {
         );
     }
 
-    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) public view returns(uint256) {
+    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
         return stashes[_stashId].amount[_tokenId];
     }
 }

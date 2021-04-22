@@ -71,11 +71,11 @@ contract ClusterRewards is Initializable, Ownable {
         rewardDistributionWaitTime = _rewardDistributionWaitTime;
     }
 
-    function changeFeeder(address _newFeeder) public onlyOwner {
+    function changeFeeder(address _newFeeder) external onlyOwner {
         feeder = _newFeeder;
     }
 
-    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) public onlyOwner {
+    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) external onlyOwner {
         require(rewardWeight[_networkId] == 0, "ClusterRewards:addNetwork - Network already exists");
         require(_rewardWeight != 0, "ClusterRewards:addNetwork - Reward can't be 0");
         rewardWeight[_networkId] = _rewardWeight;
@@ -83,7 +83,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkAdded(_networkId, _rewardWeight);
     }
 
-    function removeNetwork(bytes32 _networkId) public onlyOwner {
+    function removeNetwork(bytes32 _networkId) external onlyOwner {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "ClusterRewards:removeNetwork - Network doesn't exist");
         delete rewardWeight[_networkId];
@@ -91,7 +91,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkRemoved(_networkId);
     }
 
-    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) public onlyOwner {
+    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) external onlyOwner {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "ClusterRewards:changeNetworkRewards - Network doesn't exists");
         rewardWeight[_networkId] = _updatedRewardWeight;
@@ -100,11 +100,18 @@ contract ClusterRewards is Initializable, Ownable {
     }
 
 
-    function feed(bytes32 _networkId, address[] memory _clusters, uint256[] memory _payouts, uint256 _epoch) public onlyFeeder {
+    function feed(
+        bytes32 _networkId, 
+        address[] calldata _clusters, 
+        uint256[] calldata _payouts, 
+        uint256 _epoch
+    ) external onlyFeeder {
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
-            require(block.timestamp > latestNewEpochRewardAt.add(rewardDistributionWaitTime), 
-                "ClusterRewards:feed - Can't distribute reward for new epoch within such short interval, please wait and try again");
+            require(
+                block.timestamp > latestNewEpochRewardAt.add(rewardDistributionWaitTime), 
+                "ClusterRewards:feed - Can't distribute reward for new epoch within such short interval"
+            );
             latestNewEpochRewardAt = block.timestamp;
         }
         uint256 totalNetworkWeight = totalWeight;
@@ -120,18 +127,21 @@ contract ClusterRewards is Initializable, Ownable {
             rewardDistributed = rewardDistributed.add(clusterReward);
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(clusterReward);
         }
-        require(rewardDistributed <= totalRewardsPerEpoch, "ClusterRewards:feed - Reward Distributed  can't  be more  than totalRewardPerEpoch");
+        require(
+            rewardDistributed <= totalRewardsPerEpoch, 
+            "ClusterRewards:feed - Reward Distributed  can't  be more  than totalRewardPerEpoch"
+        );
         rewardDistributedPerEpoch[_epoch] = rewardDistributed;
         emit ClusterRewarded(_networkId);
     }
 
-    function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
+    function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256) {
         return totalRewardsPerEpoch.mul(rewardWeight[_networkId]).div(totalWeight);
     }
 
     // only cluster registry is necessary because the rewards 
     // should be updated in the cluster registry against the cluster
-    function claimReward(address _cluster) public onlyRewardDelegatorsContract returns(uint256) {
+    function claimReward(address _cluster) external onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards.sub(1);
@@ -146,7 +156,7 @@ contract ClusterRewards is Initializable, Ownable {
         POND.transfer(_to, _amount);
     }
 
-    function updateRewardDelegatorAddress(address _updatedRewardDelegator) public onlyOwner {
+    function updateRewardDelegatorAddress(address _updatedRewardDelegator) external onlyOwner {
         require(
             _updatedRewardDelegator != address(0),
             "ClusterRewards:updateRewardDelegatorAddress - Updated Reward delegator address cannot be 0"
@@ -154,7 +164,7 @@ contract ClusterRewards is Initializable, Ownable {
         rewardDelegatorsAddress = _updatedRewardDelegator;
     }
 
-    function updatePONDAddress(address _updatedPOND) public onlyOwner {
+    function updatePONDAddress(address _updatedPOND) external onlyOwner {
         require(
             _updatedPOND != address(0),
             "ClusterRewards:updatePONDAddress - Updated POND token address cannot be 0"
@@ -162,15 +172,15 @@ contract ClusterRewards is Initializable, Ownable {
         POND = ERC20(_updatedPOND);
     }
 
-    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) public onlyOwner {
+    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyOwner {
         totalRewardsPerEpoch = _updatedRewardPerEpoch;
     }
 
-    function changePayoutDenomination(uint256 _updatedPayoutDenomination) public onlyOwner {
+    function changePayoutDenomination(uint256 _updatedPayoutDenomination) external onlyOwner {
         payoutDenomination = _updatedPayoutDenomination;
     }
 
-    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) public onlyOwner {
+    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) external onlyOwner {
         rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
     }
 }

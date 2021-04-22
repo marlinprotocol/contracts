@@ -66,7 +66,7 @@ contract ClusterRegistry is Initializable, Ownable {
         super.initialize(_owner);
     }
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime; 
     }
@@ -76,7 +76,7 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 _commission, 
         address _rewardAddress, 
         address _clientKey
-    ) public returns(bool) {
+    ) external returns(bool) {
         // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
             !isClusterValid(msg.sender), 
@@ -92,7 +92,12 @@ contract ClusterRegistry is Initializable, Ownable {
         emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
     }
 
-    function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
+    function updateCluster(
+        uint256 _commission, 
+        bytes32 _networkId, 
+        address _rewardAddress, 
+        address _clientKey
+    ) external {
         require(
             isClusterValid(msg.sender),
             "ClusterRegistry:updateCluster - Cluster not registered"
@@ -175,7 +180,7 @@ contract ClusterRegistry is Initializable, Ownable {
         emit ClientKeyUpdated(msg.sender, _clientKey);
     }
 
-    function unregister() public {
+    function unregister() external {
         require(
             clusters[msg.sender].status != Status.NOT_REGISTERED,
             "ClusterRegistry:updateCommission - Cluster not registered"
@@ -239,15 +244,15 @@ contract ClusterRegistry is Initializable, Ownable {
         return clusters[_cluster].networkId;
     }
 
-    function getRewardAddress(address _cluster) public view returns(address) {
+    function getRewardAddress(address _cluster) external view returns(address) {
         return clusters[_cluster].rewardAddress;
     }
 
-    function getClientKey(address _cluster) public view returns(address) {
+    function getClientKey(address _cluster) external view returns(address) {
         return clusters[_cluster].clientKey;
     }
 
-    function getCluster(address _cluster) public returns(
+    function getCluster(address _cluster) external returns(
         uint256 commission, 
         address rewardAddress, 
         address clientKey, 
