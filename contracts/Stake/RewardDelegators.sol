@@ -182,7 +182,14 @@ contract RewardDelegators is Initializable, Ownable {
 
             bytes32 _tokenId = _tokens[i];
 
-            (uint256 _reward, uint256 _newBalance) = _updateRewardForToken(_cluster, _delegator, _tokenId, _amount, isWithdrawal, isDelegation);
+            (uint256 _reward, uint256 _newBalance) = _updateRewardForToken(
+                _cluster, 
+                _delegator, 
+                _tokenId, 
+                _amount, 
+                isWithdrawal, 
+                isDelegation
+            );
             
             _aggregateReward = _aggregateReward.add(_reward);
 
