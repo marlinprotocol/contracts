@@ -262,4 +262,8 @@ contract ClusterRegistry is Initializable, Ownable {
             isClusterValid(_cluster)
         );
     }
+
+    function getRewardInfo(address _cluster) external returns(uint256, address) {
+        return (getCommission(_cluster), clusters[_cluster].rewardAddress);
+    }
 }
