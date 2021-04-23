@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
 import "../governance/mPondLogic.sol";
-import "./IClusterRegistry.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -33,7 +32,6 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
     MPondLogic prevMPOND;
-    IClusterRegistry clusterRegistry;
     IRewardDelegators public rewardDelegators;
     // new variables
     struct Lock {
@@ -68,7 +66,6 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
         address _MPONDTokenAddress,
-        address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
         address _owner)
         initializer
@@ -83,7 +80,6 @@ contract StakeManager is Initializable, Ownable {
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         super.initialize(_owner);
     }
@@ -109,16 +105,6 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
-    }
-
-    function updateClusterRegistry(
-        address _updatedClusterRegistry
-    ) public onlyOwner {
-        require(
-            _updatedClusterRegistry != address(0),
-            "StakeManager:updateClusterRegistry - Cluster Registry address cannot be 0"
-        );
-        clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
 
     function enableToken(
@@ -235,7 +221,8 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
         );
         require(
-            clusterRegistry.isClusterValid(_delegatedCluster),
+            _delegatedCluster != address(0) && 
+            _delegatedCluster != address(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF),
             "StakeManager:delegateStash - delegated cluster address is not valid"
         );
         require(
@@ -267,6 +254,11 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "StakeManager:requestStashRedelegation - Stash not already delegated"
         );
+        require(
+            _newCluster != address(0) &&
+            _newCluster != address(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF),
+            "SM:RSR-Invalid cluster to redelegate"
+        );
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
@@ -291,10 +283,6 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:redelegateStash - Redelegation period is not yet complete"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
-        require(
-            clusterRegistry.isClusterValid(_updatedCluster),
-            "StakeManager:redelegateStash - can't delegate to invalid cluster"
-        );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
