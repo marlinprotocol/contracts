@@ -42,6 +42,7 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
+    uint256 public undelegationWaitTime;
 
     event StashCreated(
         address indexed creator,
@@ -61,6 +62,7 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -105,6 +107,11 @@ contract StakeManager is Initializable, Ownable {
             "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
+    }
+
+    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
+        undelegationWaitTime = _undelegationWaitTime;
+        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function enableToken(
@@ -305,7 +312,7 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "StakeManager:undelegateStash - stash is not delegated to any cluster"
         );
-        uint256 _waitTime = rewardDelegators.undelegationWaitTime();
+        uint256 _waitTime = undelegationWaitTime;
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
