@@ -145,7 +145,9 @@ contract RewardDelegators is Initializable, Ownable {
                                                                 );
             }
         }
-        transferRewards(_rewardAddress, commissionReward);
+        if(commissionReward != 0) {
+            transferRewards(_rewardAddress, commissionReward);
+        }
         emit ClusterRewardDistributed(_cluster);
     }
 
