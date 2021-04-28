@@ -993,6 +993,29 @@ contract("Stake contract", async function(accounts) {
         
     });
 
+    it("Create POND stash and split", async () => {
+        const amount = 12000000;
+        await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+        await PONDInstance.approve(stakeContract.address, amount);
+        
+        let createStashTx = await stakeContract.createStash([PONDTokenId], [amount]);
+        let stashIndex = await stakeContract.stashIndex();
+        let splitTx = await stakeContract.splitStash(createStashTx.logs[0].args.stashId, [PONDTokenId], [amount-100]);
+        
+        // new stash id must be equal to keccak256(abi.encodePacked(stashIndex))
+        let newStashID = await web3.utils.keccak256(web3.eth.abi.encodeParameters(
+            ["uint256"],
+            [stashIndex]
+        ));
+        assert.equal(splitTx.logs[0].args._newStashId, newStashID);
+
+        // new stash should have amount = amount-100
+        let newStashTokenAmt = await stakeContract.getTokenAmountInStash(
+            splitTx.logs[0].args._newStashId, PONDTokenId
+        );
+        assert.equal(newStashTokenAmt.toString(), amount-100);
+    });
+
     async function createStash(mpondAmount, pondAmount) {
         const tokens = [];
         const amounts = [];
