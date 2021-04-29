@@ -21,7 +21,7 @@ const appConfig = require("../../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 
-contract.only("Stake contract - testing storage upgrade", async function(accounts) {
+contract("Stake contract - testing storage upgrade", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
@@ -87,8 +87,7 @@ contract.only("Stake contract - testing storage upgrade", async function(account
         const stakeDeployment = await Stake.new();
         stakeProxyInstance = await StakeProxy.new(stakeDeployment.address, proxyAdmin);
         stakeContract = await Stake.at(stakeProxyInstance.address);
-        console.log("stakeProxyInstance.address: ", stakeProxyInstance.address);
-        console.log("stakeContract.address: ", stakeContract.address);
+
         const clusterRegistryDeployment = await ClusterRegistry.new();
         const clusterRegistryProxy = await ClusterRegistryProxy.new(clusterRegistryDeployment.address, proxyAdmin);
         clusterRegistry = await ClusterRegistry.at(clusterRegistryProxy.address);
