@@ -178,7 +178,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([PONDTokenId], [amount - 100]);
         const postBalLowStash = await PONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await PONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId));
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100, `StakeManager balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
         assert(prevUserBalance.sub(postUserBalance) == amount-100, `User balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
 
@@ -232,7 +231,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([MPONDTokenId], [amount - 100]);
         const postBalLowStash = await MPONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await MPONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId))
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100);
         assert(prevUserBalance.sub(postUserBalance) == amount-100);
 
@@ -991,6 +989,45 @@ contract("Stake contract", async function(accounts) {
 
     it("Redelegate MPOND stash", async () => {
         
+    });
+
+    it("Redelegate stash and then cancel redeledation", async () => {
+        const amount = 1000000;
+
+        // register and delegate
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, clientKey, {
+                from: registeredCluster1
+            });
+        }
+        const stashId = await createStash(amount, amount);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+
+        // Redelegate to cluster that was valid when placing request then has unregistered(hence invalid) when applying redelegation
+        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+        const redeledationLockSelector =  web3.utils.keccak256("REDELEGATION_LOCK");
+
+        const lockID = await web3.utils.keccak256(web3.eth.abi.encodeParameters(
+            ["bytes32", "bytes32"],
+            [redeledationLockSelector, stashId]
+        ));
+        let lock = await stakeContract.locks(lockID);
+
+        // fail if unlock block is 0
+        if (!lock.unlockBlock.toString()) {
+            assert.fail(1, 0, "wrong unlock block");
+        }
+
+        // cancel redelegation
+        const cancelTx = await stakeContract.cancelRedelegation(stashId);
+        assert.equal(cancelTx.logs[0].event, "RedelegationCancelled", "Wrong event emitted");
+        lock = await stakeContract.locks(lockID);
+        assert.equal(lock.unlockBlock.toString(), 0, "lock not deleted");
     });
 
     async function createStash(mpondAmount, pondAmount) {
