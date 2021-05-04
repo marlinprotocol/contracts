@@ -4,9 +4,9 @@ const ValidatorRegistry = artifacts.require("ValidatorRegistry.sol");
 const Distribution = artifacts.require("Distribution.sol");
 const MPondProxy = artifacts.require("MPondProxy.sol");
 const MPondLogic = artifacts.require("MPondLogic.sol");
-const DistributionDeployerAndAdmin = artifacts.require(
-  "DistributionDeployerAndAdmin.sol"
-);
+// const DistributionDeployerAndAdmin = artifacts.require(
+//   "DistributionDeployerAndAdmin.sol"
+// );
 
 const web3Utils = require("web3-utils");
 
