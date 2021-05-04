@@ -3,7 +3,7 @@ const Timelock = artifacts.require("Timelock.sol");
 const MPondProxy = artifacts.require("MPondProxy.sol");
 const MPondLogic = artifacts.require("MPondLogic.sol");
 const web3Utils = require("web3-utils");
-const TestingContract = artifacts.require("GovernanceTester.sol");
+// const TestingContract = artifacts.require("GovernanceTester.sol");
 
 var govInstance;
 var MPondInstance;

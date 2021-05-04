@@ -19,7 +19,6 @@ const PerfOracleProxy = artifacts.require("ClusterRewardsProxy.sol");
 const { BigNumber } = require("ethers/utils");
 const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
-const { AddressZero } = require("ethers/constants");
 
 contract("Stake contract", async function(accounts) {
 
@@ -178,7 +177,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([PONDTokenId], [amount - 100]);
         const postBalLowStash = await PONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await PONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId));
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100, `StakeManager balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
         assert(prevUserBalance.sub(postUserBalance) == amount-100, `User balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
 
@@ -232,7 +230,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([MPONDTokenId], [amount - 100]);
         const postBalLowStash = await MPONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await MPONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId))
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100);
         assert(prevUserBalance.sub(postUserBalance) == amount-100);
 
