@@ -147,7 +147,7 @@ contract RewardDelegators is Initializable, Ownable {
                                                                 );
             }
         }
-        // transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
+        transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
         emit ClusterRewardDistributed(_cluster);
     }
 
@@ -187,7 +187,7 @@ contract RewardDelegators is Initializable, Ownable {
         }
         uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
         if(_pendingRewards != 0) {
-            // transferRewards(_delegator, _pendingRewards);
+            transferRewards(_delegator, _pendingRewards);
             emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
         }
     }

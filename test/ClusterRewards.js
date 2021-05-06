@@ -24,7 +24,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract.only("ClusterRewards contract", async function (accounts) {
+contract("ClusterRewards contract", async function (accounts) {
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
     const bridge = accounts[3];
@@ -245,10 +245,13 @@ contract.only("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
         await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
 
+        // transfer some rewards to rewardDelegators
+        await PONDInstance.transfer(rewardDelegators.address, 1000000);
+
         // feed again the cluster reward increases 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
         await feedData([registeredCluster1], 2);
-        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3126);
     });
 
     it("add new network then feed then update reward to 0 then feed again", async () => {
@@ -263,16 +266,16 @@ contract.only("ClusterRewards contract", async function (accounts) {
 
     it("delegate then claim reward", async () => {
         await clusterRewards.clusterRewards(registeredCluster1);
-        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3126);
         const oldBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
-        assert(oldBalance.toString() == 303);
+        assert.equal(oldBalance.toString(), 302);
 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
         await clusterRewards.updateRewardDelegatorAddress(accounts[0],
             {from: clusterRewardsOwner});
         await clusterRewards.claimReward(registeredCluster1);
         const newBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
-        assert(newBalance.toString() == 615);
+        assert.equal(newBalance.toString(), 614);
     });
 
     async function getTokensAndApprove(user, tokens, spender) {
