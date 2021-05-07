@@ -273,9 +273,17 @@ contract("ClusterRewards contract", async function (accounts) {
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
         await clusterRewards.updateRewardDelegatorAddress(accounts[0],
             {from: clusterRewardsOwner});
+
+        const PondBalBefore = await PONDInstance.balanceOf(clusterRewards.address);
+    
         await clusterRewards.claimReward(registeredCluster1);
         const newBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
         assert.equal(newBalance.toString(), 614);
+
+        // check the balance of clusterRewards
+        const PondBalAfter = await PONDInstance.balanceOf(clusterRewards.address);
+        assert.equal(PondBalBefore.toString(), PondBalAfter.toString(),
+        "The rewards are transferred from the clusterRewards contract");
     });
 
     async function getTokensAndApprove(user, tokens, spender) {
