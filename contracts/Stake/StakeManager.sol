@@ -78,7 +78,7 @@ contract StakeManager is Initializable, Ownable {
     {
         require(
             _tokenIds.length == _tokenAddresses.length,
-            "StakeManager:initialize - each tokenId should have a corresponding tokenAddress and vice versa"
+            "SM:I-each tokenId should have a corresponding tokenAddress and vice versa"
         );
         for(uint256 i=0; i < _tokenIds.length; i++) {
             tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
@@ -108,7 +108,7 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedRewardDelegator != address(0),
-            "StakeManager:updateRewardDelegators - RewardDelegators address cannot be 0"
+            "SM:URD-RewardDelegators address cant be 0"
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
     }
@@ -118,7 +118,7 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
-            "StakeManager:updateClusterRegistry - Cluster Registry address cannot be 0"
+            "SM:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
@@ -129,9 +129,9 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             !tokenAddresses[_tokenId].isActive,
-            "StakeManager:enableToken - Token already enabled"
+            "SM:ET-Token already enabled"
         );
-        require(_address != address(0), "StakeManager:enableToken - Zero address not allowed");
+        require(_address != address(0), "SM:ET-0 address not allowed");
         tokenAddresses[_tokenId] = Token(_address, true);
         emit TokenAdded(_tokenId, _address);
     }
@@ -141,7 +141,7 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             tokenAddresses[_tokenId].isActive,
-            "StakeManager:disableToken - Token already disabled"
+            "SM:DT-Token already disabled"
         );
         tokenAddresses[_tokenId].isActive = false;
         emit TokenRemoved(_tokenId);
@@ -162,11 +162,11 @@ contract StakeManager is Initializable, Ownable {
     ) public returns(bytes32) {
         require(
             _tokens.length == _amounts.length,
-            "StakeManager:createStash - each tokenId should have a corresponding amount and vice versa"
+            "SM:CS-each tokenId should have a corresponding amount and vice versa"
         );
         require(
             _tokens.length != 0,
-            "StakeManager:createStash - stash must have atleast one token"
+            "SM:CS-stash must have atleast 1 token"
         );
         uint256 _stashIndex = stashIndex;
         bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
@@ -175,15 +175,15 @@ contract StakeManager is Initializable, Ownable {
             uint256 _amount = _amounts[_index];
             require(
                 tokenAddresses[_tokenId].isActive,
-                "StakeManager:createStash - Invalid tokenId"
+                "SM:CS-Invalid tokenId"
             );
             require(
                 stashes[_stashId].amount[_tokenId] == 0,
-                "StakeManager:createStash - Can't add the same token twice while creating stash"
+                "SM:CS-Cant add the same token twice while creating stash"
             );
             require(
                 _amount != 0,
-                "StakeManager:createStash - Can't add tokens with 0 amount"
+                "SM:CS-Cant add tokens with 0 amount"
             );
             stashes[_stashId].amount[_tokenId] = _amount;
             _lockTokens(_tokenId, _amount, msg.sender);
@@ -202,15 +202,15 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:addToStash - Only staker can delegate stash to a cluster"
+            "SM:ATS-Only staker can delegate stash to a cluster"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "StakeManager:addToStash - Can't add to stash during undelegation"
+            "SM:ATS-Cant add to stash during undelegation"
         );
         require(
             _tokens.length == _amounts.length,
-            "StakeManager:addToStash - Each tokenId should have a corresponding amount and vice versa"
+            "SM:ATS-Each tokenId should have a corresponding amount and vice versa"
         );
         if(_stash.delegatedCluster != address(0)) {
             rewardDelegators.delegate(msg.sender, _stash.delegatedCluster, _tokens, _amounts);
@@ -219,7 +219,7 @@ contract StakeManager is Initializable, Ownable {
             bytes32 _tokenId = _tokens[i];
             require(
                 tokenAddresses[_tokenId].isActive,
-                "StakeManager:addToStash - Invalid tokenId"
+                "SM:ATS-Invalid tokenId"
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId].add(_amounts[i]);
@@ -234,19 +234,19 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:delegateStash - Only staker can delegate stash to a cluster"
+            "SM:DS-Only staker can delegate stash to a cluster"
         );
         require(
             clusterRegistry.isClusterValid(_delegatedCluster),
-            "StakeManager:delegateStash - delegated cluster address is not valid"
+            "SM:DS-delegated cluster address is not valid"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "StakeManager:delegateStash - stash already delegated to another cluster. Please undelegate from delegating"
+            "SM:DS-stash already delegated to another cluster. Please undelegate from delegating"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "StakeManager:delegateStash - stash is not yet undelegated"
+            "SM:DS-stash is not yet undelegated"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
         delete stashes[_stashId].undelegatesAt;
@@ -263,17 +263,17 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:requestStashRedelegation - Only staker can redelegate stash to another cluster"
+            "SM:RSR-Only staker can redelegate stash to another cluster"
         );
         require(
             _stash.delegatedCluster != address(0),
-            "StakeManager:requestStashRedelegation - Stash not already delegated"
+            "SM:RSR-Stash not already delegated"
         );
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock == 0,
-            "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one"
+            "SM:RSR-Please close the existing redelegation request before placing a new one"
         );
         uint256 _redelegationBlock = block.number.add(lockWaitTime[REDELEGATION_LOCK_SELECTOR]);
         locks[_lockId] = Lock(_redelegationBlock, uint256(_newCluster));
@@ -284,18 +284,18 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.delegatedCluster != address(0),
-            "StakeManager:redelegateStash - Stash not already delegated"
+            "SM:RS-Stash not already delegated"
         );
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock <= block.number,
-            "StakeManager:redelegateStash - Redelegation period is not yet complete"
+            "SM:RS-Redelegation period incomplete"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
         require(
             clusterRegistry.isClusterValid(_updatedCluster),
-            "StakeManager:redelegateStash - can't delegate to invalid cluster"
+            "SM:RS-invalid cluster"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
@@ -391,11 +391,11 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:undelegateStash - Only staker can undelegate stash"
+            "SM:UDS-Only staker can undelegate stash"
         );
         require(
             _stash.delegatedCluster != address(0),
-            "StakeManager:undelegateStash - stash is not delegated to any cluster"
+            "SM:UDS-stash is not delegated to any cluster"
         );
         uint256 _waitTime = rewardDelegators.undelegationWaitTime();
         uint256 _undelegationBlock = block.number.add(_waitTime);
@@ -418,15 +418,15 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:withdrawStash - Only staker can withdraw stash"
+            "SM:WS-Only staker can withdraw stash"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "StakeManager:withdrawStash - Stash is delegated. Please undelegate before withdrawal"
+            "SM:WS-Please undelegate before withdrawal"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "StakeManager:withdrawStash - stash is not yet undelegated"
+            "SM:WS-stash isnt undelegated"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
@@ -451,25 +451,25 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "StakeManager:withdrawStash - Only staker can withdraw stash"
+            "SM:WS-Only staker can withdraw stash"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "StakeManager:withdrawStash - Stash is delegated. Please undelegate before withdrawal"
+            "SM:WS-Please undelegate before withdrawal"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "StakeManager:withdrawStash - stash is not yet undelegated"
+            "SM:WS-stash isnt yet undelegated"
         );
         require(
             _tokens.length == _amounts.length,
-            "StakeManager:withdrawStash - Each tokenId should have a corresponding amount and vice versa"
+            "SM:WS-Each tokenId should have a corresponding amount and vice versa"
         );
         for(uint256 i=0; i < _tokens.length; i++) {
             uint256 _balance = stashes[_stashId].amount[_tokens[i]];
             require(
                 _balance >= _amounts[i],
-                "StakeManager:withdrawStash - balance not sufficient"
+                "SM:WS-balance not sufficient"
             );
             if(_balance == _amounts[i]) {
                 delete stashes[_stashId].amount[_tokens[i]];
@@ -493,7 +493,7 @@ contract StakeManager is Initializable, Ownable {
                 _delegator,
                 address(this),
                 _amount
-            ), "StakeManager: ERC20 transfer failed"
+            ), "SM:LT-ERC20 transfer failed"
         );
         if (tokenAddress == address(MPOND)) {
             // send a request to delegate governance rights for the amount to delegator
@@ -525,7 +525,7 @@ contract StakeManager is Initializable, Ownable {
             ERC20(tokenAddress).transfer(
                 _delegator,
                 _amount
-            )
+            ), "SM:ULT-ERC20 transfer failed"
         );
     }
 
