@@ -225,7 +225,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        
+
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -311,7 +311,7 @@ contract StakeManager is Initializable, Ownable {
     function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external {
         Stash memory _stash = stashes[_stashId];
         require(
-            _stash.staker == msg.sender, 
+            _stash.staker == msg.sender,
             "SM:SS - Only staker of stash can split"
         );
         require(
@@ -336,7 +336,7 @@ contract StakeManager is Initializable, Ownable {
                 "SM:SS - Can't add tokens with 0 amount"
             );
             stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId].sub(
-                _amount, 
+                _amount,
                 "SM:SS-Insufficient Balance"
             );
             stashes[_newStashId].amount[_tokenId] = _amount;
