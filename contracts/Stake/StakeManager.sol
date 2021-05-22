@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
-import "../governance/mPondLogic.sol";
+import "../governance/MPondLogic.sol";
 import "./IClusterRegistry.sol";
 
 
@@ -64,6 +64,7 @@ contract StakeManager is Initializable, Ownable {
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
     event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
+    event StashSplit(bytes32 _newStashId, bytes32 _stashId, uint256 _stashIndex, bytes32[] _splitTokens, uint256[] _splitAmounts);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -225,7 +226,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        
+
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -306,6 +307,46 @@ contract StakeManager is Initializable, Ownable {
         stashes[_stashId].delegatedCluster = _updatedCluster;
         delete locks[_lockId];
         emit Redelegated(_stashId, _updatedCluster);
+    }
+
+    function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external {
+        Stash memory _stash = stashes[_stashId];
+        require(
+            _stash.staker == msg.sender,
+            "SM:SS - Only staker of stash can split"
+        );
+        require(
+            _tokens.length != 0,
+            "SM:SS - split stash must have atleast one token"
+        );
+        require(
+            _tokens.length == _amounts.length,
+            "SM:SS - Token data invalid"
+        );
+        uint256 _stashIndex = stashIndex;
+        bytes32 _newStashId = keccak256(abi.encodePacked(_stashIndex));
+        for(uint256 _index=0; _index < _tokens.length; _index++) {
+            bytes32 _tokenId = _tokens[_index];
+            uint256 _amount = _amounts[_index];
+            require(
+                stashes[_newStashId].amount[_tokenId] == 0,
+                "SM:SS - Can't add the same token twice while splitting stash"
+            );
+            require(
+                _amount != 0,
+                "SM:SS - Can't add tokens with 0 amount"
+            );
+            stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId].sub(
+                _amount,
+                "SM:SS-Insufficient Balance"
+            );
+            stashes[_newStashId].amount[_tokenId] = _amount;
+        }
+        stashes[_newStashId].staker = msg.sender;
+        stashes[_newStashId].delegatedCluster = _stash.delegatedCluster;
+        stashes[_newStashId].undelegatesAt = _stash.undelegatesAt;
+        emit StashSplit(_newStashId, _stashId, _stashIndex, _tokens, _amounts);
+        stashIndex = _stashIndex + 1;
     }
 
     function mergeStash(bytes32 _stashId1, bytes32 _stashId2) public {
