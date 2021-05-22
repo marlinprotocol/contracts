@@ -1023,10 +1023,10 @@ contract("Stake contract", async function(accounts) {
     it("Create two stashes and then merge them", async () => {
         const amount = 1200;
         await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
-        await PONDInstance.approve(stakeContract.address, 2*amount);
+        await PONDInstance.approve(stakeContract.address, 10*amount);
 
-        const createStash1 = await stakeContract.createStash([PONDTokenId], [amount]);
-        const createStash2 = await stakeContract.createStash([PONDTokenId], [amount]);
+        const createStash1 = await stakeContract.createStash([PONDTokenId], [3*amount]);
+        const createStash2 = await stakeContract.createStash([PONDTokenId], [7*amount]);
 
         // merge these two stashes
         await stakeContract.mergeStash(
@@ -1039,7 +1039,14 @@ contract("Stake contract", async function(accounts) {
             createStash1.logs[0].args.stashId,
             PONDTokenId
         );
-        assert.equal(mergedAmount.toString(), 2*amount);
+        assert.equal(mergedAmount.toString(), 10*amount);
+
+        // check if old stash has nothing
+        const oldAmount = await stakeContract.getTokenAmountInStash(
+            createStash2.logs[0].args.stashId,
+            PONDTokenId
+        );
+        assert.equal(oldAmount.toString(), 0);
     });
 
     async function createStash(mpondAmount, pondAmount) {
