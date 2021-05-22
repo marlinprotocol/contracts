@@ -178,7 +178,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([PONDTokenId], [amount - 100]);
         const postBalLowStash = await PONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await PONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId));
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100, `StakeManager balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
         assert(prevUserBalance.sub(postUserBalance) == amount-100, `User balance not matching: Prev: ${prevUserBalance.toString()}, Post: ${postUserBalance.toString()}, Amount: ${amount-100}`);
 
@@ -232,7 +231,6 @@ contract("Stake contract", async function(accounts) {
         let tx = await stakeContract.createStash([MPONDTokenId], [amount - 100]);
         const postBalLowStash = await MPONDInstance.balanceOf(stakeContract.address);
         const postUserBalance = await MPONDInstance.balanceOf(accounts[0]);
-        console.log("stash created with id:", (tx.logs[0].args.stashId))
         assert(postBalLowStash.sub(prevBalLowStash) == amount-100);
         assert(prevUserBalance.sub(postUserBalance) == amount-100);
 
@@ -1020,6 +1018,28 @@ contract("Stake contract", async function(accounts) {
             createStashTx.logs[0].args.stashId, PONDTokenId
         );
         assert.equal(oldStashTokenAmt.toString(), amount-100);
+    });
+
+    it("Create two stashes and then merge them", async () => {
+        const amount = 1200;
+        await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+        await PONDInstance.approve(stakeContract.address, 2*amount);
+
+        const createStash1 = await stakeContract.createStash([PONDTokenId], [amount]);
+        const createStash2 = await stakeContract.createStash([PONDTokenId], [amount]);
+
+        // merge these two stashes
+        await stakeContract.mergeStash(
+            createStash1.logs[0].args.stashId,
+            createStash2.logs[0].args.stashId
+        );
+
+        // check if the amount is added
+        const mergedAmount = await stakeContract.getTokenAmountInStash(
+            createStash1.logs[0].args.stashId,
+            PONDTokenId
+        );
+        assert.equal(mergedAmount.toString(), 2*amount);
     });
 
     async function createStash(mpondAmount, pondAmount) {
