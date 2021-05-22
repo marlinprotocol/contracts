@@ -63,8 +63,8 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
-    event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
     event StashSplit(bytes32 _newStashId, bytes32 _stashId, uint256 _stashIndex, bytes32[] _splitTokens, uint256[] _splitAmounts);
+    event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
 
     function initialize(
         bytes32[] memory _tokenIds,
