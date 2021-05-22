@@ -1017,7 +1017,7 @@ contract("Stake contract", async function(accounts) {
         let oldStashTokenAmt = await stakeContract.getTokenAmountInStash(
             createStashTx.logs[0].args.stashId, PONDTokenId
         );
-        assert.equal(oldStashTokenAmt.toString(), amount-100);
+        assert.equal(oldStashTokenAmt.toString(), 100);
     });
 
     it("Create two stashes and then merge them", async () => {
