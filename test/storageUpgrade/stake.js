@@ -17,7 +17,7 @@ const PerfOracle = artifacts.require("ClusterRewards.sol");
 const PerfOracleProxy = artifacts.require("ClusterRewardsProxy.sol");
 
 const { BigNumber } = require("ethers/utils");
-const appConfig = require("../app-config");
+const appConfig = require("../../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 
@@ -58,6 +58,7 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
 
     let PONDTokenId;
     let MPONDTokenId;
+    let stakeProxyInstance;
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
@@ -84,7 +85,7 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         );
 
         const stakeDeployment = await Stake.new();
-        const stakeProxyInstance = await StakeProxy.new(stakeDeployment.address, proxyAdmin);
+        stakeProxyInstance = await StakeProxy.new(stakeDeployment.address, proxyAdmin);
         stakeContract = await Stake.at(stakeProxyInstance.address);
 
         const clusterRegistryDeployment = await ClusterRegistry.new();
@@ -156,7 +157,17 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         assert((await stakeContract.lockWaitTime(web3.utils.keccak256("REDELEGATION_LOCK"))) == 5, "Waittime not set correctly");
     });
 
-    it("",() => {
-
+    it("Store a stash then update the stakeManager implementation and check the storage again", async () => {
+        const amount = 12000000;
+        await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+        await PONDInstance.approve(stakeContract.address, amount);
+        const createStashTx = await stakeContract.createStash([PONDTokenId], [amount]);
+        const stashId = createStashTx.logs[0].args.stashId;
+        
+        // update the implementation
+        const stakeNewDeployment = await Stake.new();
+        await stakeProxyInstance.updateLogic(stakeNewDeployment.address, {from: proxyAdmin});
+        const stashTokenAmt = await stakeContract.getTokenAmountInStash(stashId, PONDTokenId);
+        assert.equal(amount, stashTokenAmt);
     });
 });
