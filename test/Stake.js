@@ -386,9 +386,9 @@ contract("Stake contract", async function(accounts) {
         assert(prevClusterDelegationBeforeRedelegateRequest.eq(prevClusterDelegationAfterRedelegateRequest));
         assert(stakeContractBalanceBeforeRedelegateRequest.eq(stakeContractBalanceAfterRedelegateRequest));
         await skipBlocks(2);
-        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one")
+        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "SM:RSR-Please close the existing redelegation request before placing a new one")
         await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
-        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one")
+        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "SM:RSR-Please close the existing redelegation request before placing a new one")
         await stakeContract.redelegateStash(stashId);
         const delegationAfterRedelegate = (await rewardDelegators.getClusterDelegation(registeredCluster1, PONDTokenId));
         const prevClusterDelegationAfterRedelegate = (await rewardDelegators.getClusterDelegation(registeredCluster, PONDTokenId));
@@ -430,10 +430,10 @@ contract("Stake contract", async function(accounts) {
         assert(delegationBeforeRedelegateRequest.eq(delegationAfterRedelegateRequest));
         assert(prevClusterDelegationBeforeRedelegateRequest.eq(prevClusterDelegationAfterRedelegateRequest));
         assert(stakeContractBalanceBeforeRedelegateRequest.eq(stakeContractBalanceAfterRedelegateRequest));
-        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one")
+        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "SM:RSR-Please close the existing redelegation request before placing a new one")
         await skipBlocks(2);
         await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
-        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "Stakemanager:requestStashRedelegation - Please close the existing redelegation request before placing a new one")
+        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster1), "SM:RSR-Please close the existing redelegation request before placing a new one")
         await stakeContract.redelegateStash(stashId);
         const delegationAfterRedelegate = (await rewardDelegators.getClusterDelegation(registeredCluster1, MPONDTokenId));
         const prevClusterDelegationAfterRedelegate = (await rewardDelegators.getClusterDelegation(registeredCluster, MPONDTokenId));
