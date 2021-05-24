@@ -261,7 +261,7 @@ contract("ClusterRewards contract", async function (accounts) {
         await truffleAssert.reverts(
             clusterRewards.changeNetworkReward(networkId, updateRewardWeight,
                 { from: clusterRewardsOwner }),
-            "ClusterRewards:changeNetworkRewards - Network doesn't exists");
+            "CRW:CNR-Network doesnt exist");
     });
 
     it("delegate then claim reward", async () => {

@@ -6,3 +6,4 @@ slither.log
 *merged.sol
 temp
 .DS_Store
+accounts.json
