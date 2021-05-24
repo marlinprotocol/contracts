@@ -17,7 +17,7 @@ const PerfOracle = artifacts.require("ClusterRewards.sol");
 const PerfOracleProxy = artifacts.require("ClusterRewardsProxy.sol");
 
 const { BigNumber } = require("ethers/utils");
-const appConfig = require("../app-config");
+const appConfig = require("../../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 
@@ -58,6 +58,7 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
 
     let PONDTokenId;
     let MPONDTokenId;
+    let stakeProxyInstance;
 
     it("deploy stake contract and initialize tokens and whitelist stake contract", async () => {
         const PONDDeployment = await PONDToken.new();
@@ -84,7 +85,7 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         );
 
         const stakeDeployment = await Stake.new();
-        const stakeProxyInstance = await StakeProxy.new(stakeDeployment.address, proxyAdmin);
+        stakeProxyInstance = await StakeProxy.new(stakeDeployment.address, proxyAdmin);
         stakeContract = await Stake.at(stakeProxyInstance.address);
 
         const clusterRegistryDeployment = await ClusterRegistry.new();
@@ -105,12 +106,12 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         await stakeContract.initialize(
             [PONDTokenId, MPONDTokenId],
             [PONDInstance.address, MPONDInstance.address],
-            MPONDInstance.address, 
+            MPONDInstance.address,
             clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner
         );
-        
+
         const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
         const lockWaitTimes = [4, 10, 22];
 
@@ -135,7 +136,7 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
             ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
             [100, 100, 100],
             appConfig.staking.rewardPerEpoch,
-            MPONDInstance.address, 
+            MPONDInstance.address,
             appConfig.staking.payoutDenomination,
             feeder,
             10
@@ -156,7 +157,17 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         assert((await stakeContract.lockWaitTime(web3.utils.keccak256("REDELEGATION_LOCK"))) == 5, "Waittime not set correctly");
     });
 
-    it("",() => {
+    it("Store a stash then update the stakeManager implementation and check the storage again", async () => {
+        const amount = 12000000;
+        await PONDInstance.mint(accounts[0], new BigNumber("100000000000000000000"));
+        await PONDInstance.approve(stakeContract.address, amount);
+        const createStashTx = await stakeContract.createStash([PONDTokenId], [amount]);
+        const stashId = createStashTx.logs[0].args.stashId;
 
+        // update the implementation
+        const stakeNewDeployment = await Stake.new();
+        await stakeProxyInstance.updateLogic(stakeNewDeployment.address, {from: proxyAdmin});
+        const stashTokenAmt = await stakeContract.getTokenAmountInStash(stashId, PONDTokenId);
+        assert.equal(amount, stashTokenAmt);
     });
 });
