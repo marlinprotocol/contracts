@@ -410,7 +410,7 @@ contract("Staking Flow", async function (accounts) {
             });
         }
         const stashes = [];
-    
+
         for(let i=0; i < clusters.length; i++) {
             // console.log(tokenType[i], amounts[i], clusters[i]);
 
@@ -531,13 +531,13 @@ contract("Staking Flow", async function (accounts) {
             proxyAdmin
         );
 
-        const selectors = [keccak256("COMMISSION_LOCK"), 
+        const selectors = [keccak256("COMMISSION_LOCK"),
         keccak256("SWITCH_NETWORK_LOCK"),
         keccak256("UNREGISTER_LOCK")];
         const lockWaitTimes = [1, 1, 1];
-        
+
         await clusterRegistry.initialize(selectors, lockWaitTimes, proxyAdmin);
-    
+
         const mpondTokenID = keccak256('mpond');
         const rewardFactors = [1000000, 1];
 
@@ -549,7 +549,7 @@ contract("Staking Flow", async function (accounts) {
             rewardDelegatorsAdmin,
             appConfig.staking.minMPONDStake,
             mpondTokenID,
-            PONDInstance.address, 
+            PONDInstance.address,
             tokenIDs,
             rewardFactors
             );
@@ -557,14 +557,14 @@ contract("Staking Flow", async function (accounts) {
             const networkIDs = [ethereumNetworkID];
             const rewardWeight = [1];
             const feeder = oracleOwner;
-    
+
             await perfOracle.initialize(
                 oracleOwner,
                 rewardDelegators.address,
                 networkIDs,
                 rewardWeight,
                 appConfig.staking.rewardPerEpoch,
-                PONDInstance.address, 
+                PONDInstance.address,
                 appConfig.staking.payoutDenomination,
                 feeder,
                 10
