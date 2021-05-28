@@ -119,7 +119,7 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
-            "SM:URD-RewardDelegators address cant be 0"
+            "SM:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
@@ -410,11 +410,11 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SSM:UDS-Only staker can undelegate stash"
+            "SM:UDS-Only staker can undelegate stash"
         );
         require(
             _stash.delegatedCluster != address(0),
-            "SSM:UDS-stash is not delegated to any cluster"
+            "SM:UDS-stash is not delegated to any cluster"
         );
         uint256 _waitTime = rewardDelegators.undelegationWaitTime();
         uint256 _undelegationBlock = block.number.add(_waitTime);
@@ -438,7 +438,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _stash.delegatedCluster == address(0),
-            "SM:WS-Stash is delegated. Please undelegate before withdrawal"
+            "SM:WS-Please undelegate before withdrawal"
         );
         require(
             _stash.undelegatesAt <= block.number,
@@ -475,7 +475,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "SM:WS-stash yet undelegated"
+            "SM:WS-stash isnt yet undelegated"
         );
         require(
             _tokens.length == _amounts.length,
