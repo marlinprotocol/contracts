@@ -206,8 +206,7 @@ contract StakeManager is Initializable, Ownable {
             "SM:ATS-Each tokenId should have a corresponding amount and vice versa"
         );
         if(
-            _stash.delegatedCluster != address(0) && 
-            _stash.delegatedCluster != address(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF)
+            _stash.delegatedCluster != address(0)
         ) {
             rewardDelegators.delegate(msg.sender, _stash.delegatedCluster, _tokens, _amounts);
         }
@@ -406,8 +405,7 @@ contract StakeManager is Initializable, Ownable {
             "SM:UDS-Only staker can undelegate stash"
         );
         require(
-            _stash.delegatedCluster != address(0) && 
-            _stash.delegatedCluster != address(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF),
+            _stash.delegatedCluster != address(0),
             "SM:UDS-stash is not delegated to any cluster"
         );
         uint256 _waitTime = undelegationWaitTime;
