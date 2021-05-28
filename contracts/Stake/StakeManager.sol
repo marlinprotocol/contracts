@@ -70,30 +70,6 @@ contract StakeManager is Initializable, Ownable {
     event StashUndelegationCancelled(bytes32 _stashId);
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
 
-    function initialize(
-        bytes32[] memory _tokenIds,
-        address[] memory _tokenAddresses,
-        address _MPONDTokenAddress,
-        address _clusterRegistryAddress,
-        address _rewardDelegatorsAddress,
-        address _owner)
-        initializer
-        public
-    {
-        require(
-            _tokenIds.length == _tokenAddresses.length,
-            "SM:I-each tokenId should have a corresponding tokenAddress and vice versa"
-        );
-        for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
-            emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
-        }
-        MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
-        rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
-        super.initialize(_owner);
-    }
-
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;

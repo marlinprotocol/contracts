@@ -45,38 +45,6 @@ contract RewardDelegators is Initializable, Ownable {
         _;
     }
 
-    function initialize(
-        address _stakeAddress,
-        address _clusterRewardsAddress,
-        address _clusterRegistry,
-        address _rewardDelegatorsAdmin,
-        uint256 _minMPONDStake,
-        bytes32 _MPONDTokenId,
-        address _PONDAddress,
-        bytes32[] memory _tokenIds,
-        uint256[] memory _rewardFactors
-    ) public initializer {
-        require(
-            _tokenIds.length == _rewardFactors.length,
-            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
-        );
-        stakeAddress = _stakeAddress;
-        clusterRegistry = IClusterRegistry(_clusterRegistry);
-        clusterRewards = IClusterRewards(_clusterRewardsAddress);
-        PONDToken = ERC20(_PONDAddress);
-        minMPONDStake = _minMPONDStake;
-        emit MinMPONDStakeUpdated(_minMPONDStake);
-        MPONDTokenId = _MPONDTokenId;
-        emit MPONDTokenIdUpdated(_MPONDTokenId);
-        for(uint256 i=0; i < _tokenIds.length; i++) {
-            rewardFactor[_tokenIds[i]] = _rewardFactors[i];
-            tokenIndex[_tokenIds[i]] = tokenList.length;
-            tokenList.push(_tokenIds[i]);
-            emit AddReward(_tokenIds[i], _rewardFactors[i]);
-        }
-        super.initialize(_rewardDelegatorsAdmin);
-    }
-
     function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) public onlyOwner {
         MPONDTokenId = _updatedMPONDTokenId;
         emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
