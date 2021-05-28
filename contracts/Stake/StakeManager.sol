@@ -118,7 +118,7 @@ contract StakeManager is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
-            "SM:URD-RewardDelegators address cant be 0"
+            "SM:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
@@ -297,12 +297,12 @@ contract StakeManager is Initializable, Ownable {
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock <= block.number,
-            "SM:RS-Redelegation period is not yet complete"
+            "SM:RS-Redelegation period incomplete"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
         require(
             clusterRegistry.isClusterValid(_updatedCluster),
-            "SM:RS-can't delegate to invalid cluster"
+            "SM:RS-invalid cluster"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
