@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
-import "../governance/MPondLogic.sol";
+import "../governance/mPondLogic.sol";
 import "./IClusterRegistry.sol";
 
 
