@@ -167,7 +167,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _tokens.length != 0,
-            "SM:CS-stash must have atleast one token"
+            "SM:CS-stash must have atleast 1 token"
         );
         uint256 _stashIndex = stashIndex;
         bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
