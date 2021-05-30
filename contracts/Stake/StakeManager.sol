@@ -66,15 +66,16 @@ contract StakeManager is Initializable, Ownable {
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
     event StashSplit(
-        bytes32 _newStashId, 
-        bytes32 _stashId, 
-        uint256 _stashIndex, 
-        bytes32[] _splitTokens, 
+        bytes32 _newStashId,
+        bytes32 _stashId,
+        uint256 _stashIndex,
+        bytes32[] _splitTokens,
         uint256[] _splitAmounts
     );
     event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
     event StashUndelegationCancelled(bytes32 _stashId);
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
+    event RedelegationCancelled(bytes32 indexed _stashId);
 
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
@@ -221,7 +222,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        
+
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -298,9 +299,9 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function _redelegateStash(
-        bytes32 _stashId, 
-        address _staker, 
-        address _delegatedCluster, 
+        bytes32 _stashId,
+        address _staker,
+        address _delegatedCluster,
         address _updatedCluster
     ) internal {
         require(
@@ -398,6 +399,24 @@ contract StakeManager is Initializable, Ownable {
         emit StashesMerged(_stashId1, _stashId2);
     }
 
+    function cancelRedelegation(bytes32 _stashId) public {
+        require(
+            msg.sender == stashes[_stashId].staker,
+            "SM:CR - Only staker can cancel redelegation"
+        );
+        require(_cancelRedelegation(_stashId), "SM:CR - Redelegation doesnt exist for the stash");
+    }
+
+    function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
+        if(locks[_lockId].unlockBlock != 0) {
+            delete locks[_lockId];
+            emit RedelegationCancelled(_stashId);
+            return true;
+        }
+        return false;
+    }
+
     function undelegateStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
@@ -412,10 +431,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        if(locks[_lockId].unlockBlock != 0) {
-            delete locks[_lockId];
-        }
+        _cancelRedelegation(_stashId);
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {

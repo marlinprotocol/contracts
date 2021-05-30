@@ -1049,6 +1049,40 @@ contract("Stake contract", async function(accounts) {
         assert.equal(oldAmount.toString(), 0);
     });
 
+    it("Redelegate stash and then cancel redeledation", async () => {
+        const amount = 1000000;
+
+        // register and delegate
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, clientKey, {
+                from: registeredCluster1
+            });
+        }
+        const stashId = await createStash(amount, amount);
+        await stakeContract.delegateStash(stashId, registeredCluster);
+
+        // Redelegate to cluster that was valid when placing request then has unregistered(hence invalid) when applying redelegation
+        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+        const redeledationLockSelector =  web3.utils.keccak256("REDELEGATION_LOCK");
+
+        const lockID = await web3.utils.keccak256(web3.eth.abi.encodeParameters(
+            ["bytes32", "bytes32"],
+            [redeledationLockSelector, stashId]
+        ));
+        let lock = await stakeContract.locks(lockID);
+
+        // fail if unlock block is 0
+        if (!lock.unlockBlock.toString()) {
+            assert.fail(1, 0, "wrong unlock block");
+        }
+
+        // cancel redelegation
+        const cancelTx = await stakeContract.cancelRedelegation(stashId);
+        assert.equal(cancelTx.logs[0].event, "RedelegationCancelled", "Wrong event emitted");
+        lock = await stakeContract.locks(lockID);
+        assert.equal(lock.unlockBlock.toString(), 0, "lock not deleted");
+    });
+
     it("cancel stash undelegation", async () => {
         if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
             await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
@@ -1066,7 +1100,7 @@ contract("Stake contract", async function(accounts) {
         const cancelTx = await stakeContract.cancelUndelegation(stashId, registeredCluster);
         assert.equal(cancelTx.logs[0].event, "StashUndelegationCancelled", "Wrong event emitted");
         const stash = await stakeContract.stashes(stashId);
-        assert.equal(stash.delegatedCluster.toString(),"0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF", 
+        assert.equal(stash.delegatedCluster.toString(),"0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
         "Temp address not set");
         assert.equal(stash.undelegatesAt.toString(), 0, "stash.undelegatesAt not deleted");
     });
