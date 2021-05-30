@@ -112,15 +112,14 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards.sub(1);
-            transferRewards(rewardDelegatorsAddress, rewardsToTransfer);
             clusterRewards[_cluster] = 1;
             return rewardsToTransfer;
         }
         return 0;
     }
 
-    function transferRewards(address _to, uint256 _amount) internal {
-        POND.transfer(_to, _amount);
+    function transferRewardsToRewardDelegators() public onlyOwner returns(uint256) {
+        POND.transfer(rewardDelegatorsAddress, POND.balanceOf(address(this)));
     }
 
     function updateRewardDelegatorAddress(address _updatedRewardDelegator) public onlyOwner {
