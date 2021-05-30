@@ -38,39 +38,6 @@ contract ClusterRewards is Initializable, Ownable {
         _;
     }
 
-    function initialize(
-        address _owner, 
-        address _rewardDelegatorsAddress, 
-        bytes32[] memory _networkIds,
-        uint256[] memory _rewardWeight,
-        uint256 _totalRewardsPerEpoch, 
-        address _PONDAddress,
-        uint256 _payoutDenomination,
-        address _feeder,
-        uint256 _rewardDistributionWaitTime) 
-        public
-        initializer
-    {
-        require(
-            _networkIds.length == _rewardWeight.length, 
-            "CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa"
-        );
-        super.initialize(_owner);
-        uint256 weight = 0;
-        rewardDelegatorsAddress = _rewardDelegatorsAddress;
-        for(uint256 i=0; i < _networkIds.length; i++) {
-            rewardWeight[_networkIds[i]] = _rewardWeight[i];
-            weight = weight.add(_rewardWeight[i]);
-            emit NetworkAdded(_networkIds[i], _rewardWeight[i]);
-        }
-        totalWeight = weight;
-        totalRewardsPerEpoch = _totalRewardsPerEpoch;
-        POND = ERC20(_PONDAddress);
-        payoutDenomination = _payoutDenomination;
-        feeder = _feeder;
-        rewardDistributionWaitTime = _rewardDistributionWaitTime;
-    }
-
     function changeFeeder(address _newFeeder) public onlyOwner {
         feeder = _newFeeder;
     }

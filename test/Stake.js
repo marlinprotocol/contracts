@@ -1053,11 +1053,6 @@ contract("Stake contract", async function(accounts) {
         const amount = 1000000;
 
         // register and delegate
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
-            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
-                from: registeredCluster
-            });
-        }
         if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
             await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, clientKey, {
                 from: registeredCluster1
@@ -1086,6 +1081,28 @@ contract("Stake contract", async function(accounts) {
         assert.equal(cancelTx.logs[0].event, "RedelegationCancelled", "Wrong event emitted");
         lock = await stakeContract.locks(lockID);
         assert.equal(lock.unlockBlock.toString(), 0, "lock not deleted");
+    });
+
+    it("cancel stash undelegation", async () => {
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+
+        const amount = 730000;
+        await PONDInstance.approve(stakeContract.address, amount);
+        const receipt = await stakeContract.createStashAndDelegate([PONDTokenId], [amount], registeredCluster);
+        const stashId = receipt.logs[0].args.stashId;
+        await stakeContract.undelegateStash(stashId);
+
+        // cancel undelegation
+        const cancelTx = await stakeContract.cancelUndelegation(stashId, registeredCluster);
+        assert.equal(cancelTx.logs[0].event, "StashUndelegationCancelled", "Wrong event emitted");
+        const stash = await stakeContract.stashes(stashId);
+        assert.equal(stash.delegatedCluster.toString(),"0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
+        "Temp address not set");
+        assert.equal(stash.undelegatesAt.toString(), 0, "stash.undelegatesAt not deleted");
     });
 
     async function createStash(mpondAmount, pondAmount) {
