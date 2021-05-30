@@ -1049,6 +1049,28 @@ contract("Stake contract", async function(accounts) {
         assert.equal(oldAmount.toString(), 0);
     });
 
+    it("cancel stash undelegation", async () => {
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+
+        const amount = 730000;
+        await PONDInstance.approve(stakeContract.address, amount);
+        const receipt = await stakeContract.createStashAndDelegate([PONDTokenId], [amount], registeredCluster);
+        const stashId = receipt.logs[0].args.stashId;
+        await stakeContract.undelegateStash(stashId);
+
+        // cancel undelegation
+        const cancelTx = await stakeContract.cancelUndelegation(stashId, registeredCluster);
+        assert.equal(cancelTx.logs[0].event, "StashUndelegationCancelled", "Wrong event emitted");
+        const stash = await stakeContract.stashes(stashId);
+        assert.equal(stash.delegatedCluster.toString(),"0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF", 
+        "Temp address not set");
+        assert.equal(stash.undelegatesAt.toString(), 0, "stash.undelegatesAt not deleted");
+    });
+
     async function createStash(mpondAmount, pondAmount) {
         const tokens = [];
         const amounts = [];

@@ -20,7 +20,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     mapping(address => Cluster) clusters;
 
-    uint256 public undelegationWaitTime;
+    uint256 __unused_2;
     address stakeAddress;
     uint256 public minMPONDStake;
     bytes32 public MPONDTokenId;
@@ -38,47 +38,11 @@ contract RewardDelegators is Initializable, Ownable {
     event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
-    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
 
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
-    }
-
-    function initialize(
-        uint256 _undelegationWaitTime,
-        address _stakeAddress,
-        address _clusterRewardsAddress,
-        address _clusterRegistry,
-        address _rewardDelegatorsAdmin,
-        uint256 _minMPONDStake,
-        bytes32 _MPONDTokenId,
-        address _PONDAddress,
-        bytes32[] memory _tokenIds,
-        uint256[] memory _rewardFactors
-    ) public initializer {
-        require(
-            _tokenIds.length == _rewardFactors.length,
-            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
-        );
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
-        stakeAddress = _stakeAddress;
-        clusterRegistry = IClusterRegistry(_clusterRegistry);
-        clusterRewards = IClusterRewards(_clusterRewardsAddress);
-        PONDToken = ERC20(_PONDAddress);
-        minMPONDStake = _minMPONDStake;
-        emit MinMPONDStakeUpdated(_minMPONDStake);
-        MPONDTokenId = _MPONDTokenId;
-        emit MPONDTokenIdUpdated(_MPONDTokenId);
-        for(uint256 i=0; i < _tokenIds.length; i++) {
-            rewardFactor[_tokenIds[i]] = _rewardFactors[i];
-            tokenIndex[_tokenIds[i]] = tokenList.length;
-            tokenList.push(_tokenIds[i]);
-            emit AddReward(_tokenIds[i], _rewardFactors[i]);
-        }
-        super.initialize(_rewardDelegatorsAdmin);
     }
 
     function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) public onlyOwner {
@@ -292,11 +256,6 @@ contract RewardDelegators is Initializable, Ownable {
         returns(uint256)
     {
         return clusters[_cluster].delegators[_delegator][_tokenId];
-    }
-
-    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {

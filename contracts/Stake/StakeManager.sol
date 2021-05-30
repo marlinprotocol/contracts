@@ -45,6 +45,8 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
 
+    uint256 public undelegationWaitTime;
+
     event StashCreated(
         address indexed creator,
         bytes32 stashId,
@@ -63,32 +65,16 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
-    event StashSplit(bytes32 _newStashId, bytes32 _stashId, uint256 _stashIndex, bytes32[] _splitTokens, uint256[] _splitAmounts);
+    event StashSplit(
+        bytes32 _newStashId, 
+        bytes32 _stashId, 
+        uint256 _stashIndex, 
+        bytes32[] _splitTokens, 
+        uint256[] _splitAmounts
+    );
     event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
-
-    function initialize(
-        bytes32[] memory _tokenIds,
-        address[] memory _tokenAddresses,
-        address _MPONDTokenAddress,
-        address _clusterRegistryAddress,
-        address _rewardDelegatorsAddress,
-        address _owner)
-        initializer
-        public
-    {
-        require(
-            _tokenIds.length == _tokenAddresses.length,
-            "SM:I-each tokenId should have a corresponding tokenAddress and vice versa"
-        );
-        for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
-            emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
-        }
-        MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
-        rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
-        super.initialize(_owner);
-    }
+    event StashUndelegationCancelled(bytes32 _stashId);
+    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
 
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
@@ -121,6 +107,13 @@ contract StakeManager is Initializable, Ownable {
             "SM:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
+    }
+
+    function updateUndelegationWaitTime(
+        uint256 _undelegationWaitTime
+    ) public onlyOwner {
+        undelegationWaitTime = _undelegationWaitTime;
+        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function enableToken(
@@ -212,7 +205,9 @@ contract StakeManager is Initializable, Ownable {
             _tokens.length == _amounts.length,
             "SM:ATS-Each tokenId should have a corresponding amount and vice versa"
         );
-        if(_stash.delegatedCluster != address(0)) {
+        if(
+            _stash.delegatedCluster != address(0)
+        ) {
             rewardDelegators.delegate(msg.sender, _stash.delegatedCluster, _tokens, _amounts);
         }
         for(uint256 i = 0; i < _tokens.length; i++) {
@@ -226,7 +221,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-
+        
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -269,6 +264,11 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "SM:RSR-Stash not already delegated"
         );
+        uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
+        emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
+    }
+
+    function _requestStashRedelegation(bytes32 _stashId, address _newCluster) internal returns(uint256) {
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
@@ -277,7 +277,7 @@ contract StakeManager is Initializable, Ownable {
         );
         uint256 _redelegationBlock = block.number.add(lockWaitTime[REDELEGATION_LOCK_SELECTOR]);
         locks[_lockId] = Lock(_redelegationBlock, uint256(_newCluster));
-        emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
+        return _redelegationBlock;
     }
 
     function redelegateStash(bytes32 _stashId) public {
@@ -293,19 +293,30 @@ contract StakeManager is Initializable, Ownable {
             "SM:RS-Redelegation period incomplete"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
+        _redelegateStash(_stashId, _stash.staker, _stash.delegatedCluster, _updatedCluster);
+        delete locks[_lockId];
+    }
+
+    function _redelegateStash(
+        bytes32 _stashId, 
+        address _staker, 
+        address _delegatedCluster, 
+        address _updatedCluster
+    ) internal {
         require(
             clusterRegistry.isClusterValid(_updatedCluster),
-            "SM:RS-invalid cluster"
+            "SM:RS-can't delegate to invalid cluster"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amount[_tokens[i]];
         }
-        rewardDelegators.undelegate(_stash.staker, _stash.delegatedCluster, _tokens, _amounts);
-        rewardDelegators.delegate(_stash.staker, _updatedCluster, _tokens, _amounts);
+        if(_delegatedCluster != address(0)) {
+            rewardDelegators.undelegate(_staker, _delegatedCluster, _tokens, _amounts);
+        }
+        rewardDelegators.delegate(_staker, _updatedCluster, _tokens, _amounts);
         stashes[_stashId].delegatedCluster = _updatedCluster;
-        delete locks[_lockId];
         emit Redelegated(_stashId, _updatedCluster);
     }
 
@@ -397,7 +408,7 @@ contract StakeManager is Initializable, Ownable {
             _stash.delegatedCluster != address(0),
             "SM:UDS-stash is not delegated to any cluster"
         );
-        uint256 _waitTime = rewardDelegators.undelegationWaitTime();
+        uint256 _waitTime = undelegationWaitTime;
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
@@ -414,6 +425,28 @@ contract StakeManager is Initializable, Ownable {
         emit StashUndelegated(_stashId, _stash.delegatedCluster, _undelegationBlock);
     }
 
+    function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
+        address _staker = stashes[_stashId].staker;
+        uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
+        require(
+            _staker == msg.sender,
+            "SM:CU - Only staker can undelegate stash"
+        );
+        require(
+            _undelegatesAt > block.number,
+            "SM:CU - undelegation not in progress"
+        );
+        require(
+            _undelegatesAt < block.number
+                            .add(undelegationWaitTime)
+                            .sub(lockWaitTime[REDELEGATION_LOCK_SELECTOR]),
+            "SM:CU - can't cancel before redegation wait time"
+        );
+        delete stashes[_stashId].undelegatesAt;
+        emit StashUndelegationCancelled(_stashId);
+        _redelegateStash(_stashId, _staker, address(0), _delegatedCluster);
+    }
+
     function withdrawStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
@@ -422,7 +455,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _stash.delegatedCluster == address(0),
-            "SM:WS-Please undelegate before withdrawal"
+            "SM:WS-Stash is delegated. Please undelegate before withdrawal"
         );
         require(
             _stash.undelegatesAt <= block.number,
