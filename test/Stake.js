@@ -19,7 +19,6 @@ const PerfOracleProxy = artifacts.require("ClusterRewardsProxy.sol");
 const { BigNumber } = require("ethers/utils");
 const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
-const { AddressZero } = require("ethers/constants");
 
 contract("Stake contract", async function(accounts) {
 
