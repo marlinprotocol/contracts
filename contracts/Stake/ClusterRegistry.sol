@@ -53,6 +53,21 @@ contract ClusterRegistry is Initializable, Ownable {
     event ClusterUnregistered(address cluster, uint256 updatedAt);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
 
+    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner) 
+        public 
+        initializer
+    {
+        require(
+            _selectors.length == _lockWaitTimes.length,
+            "CR:I-Invalid params"
+        );
+        for(uint256 i=0; i < _selectors.length; i++) {
+            lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
+            emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
+        }
+        super.initialize(_owner);
+    }
+
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime; 
