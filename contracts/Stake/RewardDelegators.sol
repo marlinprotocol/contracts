@@ -41,7 +41,7 @@ contract RewardDelegators is Initializable, Ownable {
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
 
     modifier onlyStake() {
-        require(msg.sender == stakeAddress, "ClusterRegistry:onlyStake: only stake contract can invoke this function");
+        require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
     }
 
@@ -58,7 +58,7 @@ contract RewardDelegators is Initializable, Ownable {
     ) public initializer {
         require(
             _tokenIds.length == _rewardFactors.length,
-            "RewardDelegators:initalize - Each TokenId should have a corresponding Reward Factor and vice versa"
+            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
         );
         stakeAddress = _stakeAddress;
         clusterRegistry = IClusterRegistry(_clusterRegistry);
@@ -83,8 +83,8 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
-        require(rewardFactor[_tokenId] == 0, "RewardDelegators:addReward - Reward already exists");
-        require(_rewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
+        require(rewardFactor[_tokenId] == 0, "RD:AR-Reward already exists");
+        require(_rewardFactor != 0, "RD:AR-Reward cant be 0");
         rewardFactor[_tokenId] = _rewardFactor;
         tokenIndex[_tokenId] = tokenList.length;
         tokenList.push(_tokenId);
@@ -92,7 +92,7 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function removeRewardFactor(bytes32 _tokenId) public onlyOwner {
-        require(rewardFactor[_tokenId] != 0, "RewardDelegators:addReward - Reward doesn't exist");
+        require(rewardFactor[_tokenId] != 0, "RD:RR-Reward doesnt exist");
         bytes32 tokenToReplace = tokenList[tokenList.length - 1];
         uint256 originalTokenIndex = tokenIndex[_tokenId];
         tokenList[originalTokenIndex] = tokenToReplace;
@@ -104,8 +104,8 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
-        require(rewardFactor[_tokenId] != 0, "RewardDelegators:updateReward - Can't update reward that doesn't exist");
-        require(_updatedRewardFactor != 0, "RewardDelegators:updateReward - Reward can't be 0");
+        require(rewardFactor[_tokenId] != 0, "RD:UR-Cant update reward that doesnt exist");
+        require(_updatedRewardFactor != 0, "RD:UR-Reward cant be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
@@ -302,7 +302,7 @@ contract RewardDelegators is Initializable, Ownable {
     function updateStakeAddress(address _updatedStakeAddress) public onlyOwner {
         require(
             _updatedStakeAddress != address(0),
-            "RewardDelegators:updateStakeAddress - Updated Stake contract address cannot be 0"
+            "RD:USA-Stake contract address cant be 0"
         );
         stakeAddress = _updatedStakeAddress;
     }
@@ -312,7 +312,7 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRewards != address(0),
-            "RewardDelegators:updateClusterRewards - ClusterRewards address cannot be 0"
+            "RD:UCR-ClusterRewards address cant be 0"
         );
         clusterRewards = IClusterRewards(_updatedClusterRewards);
     }
@@ -322,7 +322,7 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
-            "RewardDelegators:updateClusterRegistry - Cluster Registry address cannot be 0"
+            "RD:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
@@ -330,7 +330,7 @@ contract RewardDelegators is Initializable, Ownable {
     function updatePONDAddress(address _updatedPOND) public onlyOwner {
         require(
             _updatedPOND != address(0),
-            "RewardDelegators:updatePONDAddress - Updated POND token address cannot be 0"
+            "RD:UPA-Updated POND token address cant be 0"
         );
         PONDToken = ERC20(_updatedPOND);
     }
