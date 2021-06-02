@@ -23,10 +23,10 @@ contract ClusterRewards is Initializable, Ownable {
     uint256 latestNewEpochRewardAt;
     uint256 public rewardDistributionWaitTime;
 
-    event NetworkAdded(bytes32 indexed networkId, uint256 rewardPerEpoch);
-    event NetworkRemoved(bytes32 indexed networkId);
-    event NetworkRewardUpdated(bytes32 indexed networkId, uint256 updatedRewardPerEpoch);
-    event ClusterRewarded(bytes32 indexed networkId);
+    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
+    event NetworkRemoved(bytes32 networkId);
+    event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
+    event ClusterRewarded(bytes32 networkId);
     event FeederChanged(address _newFeeder);
     event RewardDelegatorAddressUpdated(address _updatedRewardDelegator);
     event PONDAddressUpdated(address _updatedPOND);

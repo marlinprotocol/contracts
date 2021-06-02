@@ -32,12 +32,12 @@ contract RewardDelegators is Initializable, Ownable {
     IClusterRegistry clusterRegistry;
     ERC20 PONDToken;
 
-    event AddReward(bytes32 indexed tokenId, uint256 rewardFactor);
-    event RemoveReward(bytes32 indexed tokenId);
+    event AddReward(bytes32 tokenId, uint256 rewardFactor);
+    event RemoveReward(bytes32 tokenId);
     event MPONDTokenIdUpdated(bytes32 MPONDTokenId);
-    event RewardsUpdated(bytes32 indexed tokenId, uint256 rewardFactor);
-    event ClusterRewardDistributed(address indexed cluster);
-    event RewardsWithdrawn(address indexed cluster, address indexed delegator, bytes32[] tokenIds, uint256 rewards);
+    event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
+    event ClusterRewardDistributed(address cluster);
+    event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
     event StakeAddressUpdated(address _updatedStakeAddress);
