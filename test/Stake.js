@@ -1097,8 +1097,7 @@ contract("Stake contract", async function(accounts) {
         assert.equal(stash2.delegatedCluster.toString(), registeredCluster, "wrong delegated cluster");
 
 
-        await truffleAssert.reverts(stakeContract.redelegateStashes([stashId1, stashId2]),
-        "StakeManager:redelegateStash - Redelegation period is not yet complete");
+        await truffleAssert.reverts(stakeContract.redelegateStashes([stashId1, stashId2]), "RS2");
         await skipBlocks(4);
         const redelTX = await stakeContract.redelegateStashes([stashId1, stashId2]);
         
