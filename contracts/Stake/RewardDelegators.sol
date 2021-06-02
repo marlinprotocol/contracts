@@ -20,7 +20,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     mapping(address => Cluster) clusters;
 
-    uint256 public undelegationWaitTime;
+    uint256 __unused_2;
     address stakeAddress;
     uint256 public minMPONDStake;
     bytes32 public MPONDTokenId;
@@ -38,7 +38,6 @@ contract RewardDelegators is Initializable, Ownable {
     event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
-    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
 
     modifier onlyStake() {
@@ -47,7 +46,6 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function initialize(
-        uint256 _undelegationWaitTime,
         address _stakeAddress,
         address _clusterRewardsAddress,
         address _clusterRegistry,
@@ -62,8 +60,6 @@ contract RewardDelegators is Initializable, Ownable {
             _tokenIds.length == _rewardFactors.length,
             "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
         );
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
         stakeAddress = _stakeAddress;
         clusterRegistry = IClusterRegistry(_clusterRegistry);
         clusterRewards = IClusterRewards(_clusterRewardsAddress);
@@ -292,11 +288,6 @@ contract RewardDelegators is Initializable, Ownable {
         returns(uint256)
     {
         return clusters[_cluster].delegators[_delegator][_tokenId];
-    }
-
-    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
