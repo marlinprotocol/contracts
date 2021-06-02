@@ -46,7 +46,7 @@ contract StakeManager is Initializable, Ownable {
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
 
     event StashCreated(
-        address creator,
+        address indexed creator,
         bytes32 stashId,
         uint256 stashIndex,
         bytes32[] tokens,
@@ -55,7 +55,7 @@ contract StakeManager is Initializable, Ownable {
     event StashDelegated(bytes32 stashId, address delegatedCluster);
     event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
-    event StashClosed(bytes32 stashId, address staker);
+    event StashClosed(bytes32 stashId, address indexed staker);
     event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
     event TokenAdded(bytes32 tokenId, address tokenAddress);
     event TokenRemoved(bytes32 tokenId);
