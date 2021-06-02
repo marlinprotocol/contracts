@@ -34,6 +34,8 @@ contract ClusterRegistry is Initializable, Ownable {
 
     enum Status{NOT_REGISTERED, REGISTERED}
 
+    mapping(address => address) public clientKeys;
+
     event ClusterRegistered(
         address cluster, 
         bytes32 networkId, 
@@ -83,30 +85,27 @@ contract ClusterRegistry is Initializable, Ownable {
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
+        require(clientKeys[_clientKey] ==  address(0), "CR:R - Client key is already used");
         clusters[msg.sender].commission = _commission;
         clusters[msg.sender].rewardAddress = _rewardAddress;
         clusters[msg.sender].clientKey = _clientKey;
         clusters[msg.sender].networkId = _networkId;
         clusters[msg.sender].status = Status.REGISTERED;
+
+        clientKeys[_clientKey] = msg.sender;
         
         emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
     }
 
     function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
-        require(
-            isClusterValid(msg.sender),
-            "CR:UC-Cluster not registered"
-        );
         if(_networkId != bytes32(0)) {
             switchNetwork(_networkId);
         }
         if(_rewardAddress != address(0)) {
-            clusters[msg.sender].rewardAddress = _rewardAddress;
-            emit RewardAddressUpdated(msg.sender, _rewardAddress);
+            updateRewardAddress(_rewardAddress);
         }
         if(_clientKey != address(0)) {
-            clusters[msg.sender].clientKey = _clientKey;
-            emit ClientKeyUpdated(msg.sender, _clientKey);
+            updateClientKey(_clientKey);
         }
         if(_commission != UINT256_MAX) {
             updateCommission(_commission);
@@ -171,7 +170,10 @@ contract ClusterRegistry is Initializable, Ownable {
             isClusterValid(msg.sender),
             "CR:UCK-Cluster not registered"
         );
+        require(clientKeys[_clientKey] ==  address(0), "CR:UCK - Client key is already used");
+        delete clientKeys[clusters[msg.sender].clientKey];
         clusters[msg.sender].clientKey = _clientKey;
+        clientKeys[_clientKey] = msg.sender;
         emit ClientKeyUpdated(msg.sender, _clientKey);
     }
 
@@ -189,6 +191,7 @@ contract ClusterRegistry is Initializable, Ownable {
         if(unlockBlock != 0) {
             clusters[msg.sender].status = Status.NOT_REGISTERED;
             emit ClusterUnregistered(msg.sender, unlockBlock);
+            delete clientKeys[clusters[msg.sender].clientKey];
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
             delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
@@ -204,6 +207,7 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 unlockBlock = locks[lockId].unlockBlock;
         if(unlockBlock != 0 && unlockBlock < block.number) {
             clusters[_cluster].status = Status.NOT_REGISTERED;
+            delete clientKeys[clusters[_cluster].clientKey];
             emit ClusterUnregistered(_cluster, unlockBlock);
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
@@ -261,5 +265,13 @@ contract ClusterRegistry is Initializable, Ownable {
             getNetwork(_cluster), 
             isClusterValid(_cluster)
         );
+    }
+
+    function addClientKeys(address[] memory _clusters) public onlyOwner {
+        for(uint256 i=0; i < _clusters.length; i++) {
+            address _clientKey = clusters[_clusters[i]].clientKey;
+            require(_clientKey != address(0), "CR:ACK - Cluster has invalid client key");
+            clientKeys[_clientKey] = _clusters[i];
+        }
     }
 }

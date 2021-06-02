@@ -45,6 +45,8 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
 
+    uint256 public undelegationWaitTime;
+
     event StashCreated(
         address indexed creator,
         bytes32 stashId,
@@ -63,8 +65,17 @@ contract StakeManager is Initializable, Ownable {
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
-    event StashSplit(bytes32 _newStashId, bytes32 _stashId, uint256 _stashIndex, bytes32[] _splitTokens, uint256[] _splitAmounts);
+    event StashSplit(
+        bytes32 _newStashId,
+        bytes32 _stashId,
+        uint256 _stashIndex,
+        bytes32[] _splitTokens,
+        uint256[] _splitAmounts
+    );
     event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
+    event StashUndelegationCancelled(bytes32 _stashId);
+    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
+    event RedelegationCancelled(bytes32 indexed _stashId);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -72,13 +83,13 @@ contract StakeManager is Initializable, Ownable {
         address _MPONDTokenAddress,
         address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
-        address _owner)
+        address _owner,
+        uint256 _undelegationWaitTime)
         initializer
         public
     {
         require(
-            _tokenIds.length == _tokenAddresses.length,
-            "SM:I-each tokenId should have a corresponding tokenAddress and vice versa"
+            _tokenIds.length == _tokenAddresses.length
         );
         for(uint256 i=0; i < _tokenIds.length; i++) {
             tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
@@ -87,6 +98,7 @@ contract StakeManager is Initializable, Ownable {
         MPOND = MPondLogic(_MPONDTokenAddress);
         clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
+        undelegationWaitTime = _undelegationWaitTime;
         super.initialize(_owner);
     }
 
@@ -107,8 +119,7 @@ contract StakeManager is Initializable, Ownable {
         address _updatedRewardDelegator
     ) public onlyOwner {
         require(
-            _updatedRewardDelegator != address(0),
-            "SM:URD-RewardDelegators address cant be 0"
+            _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
     }
@@ -117,10 +128,16 @@ contract StakeManager is Initializable, Ownable {
         address _updatedClusterRegistry
     ) public onlyOwner {
         require(
-            _updatedClusterRegistry != address(0),
-            "SM:UCR-Cluster Registry address cant be 0"
+            _updatedClusterRegistry != address(0)
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
+    }
+
+    function updateUndelegationWaitTime(
+        uint256 _undelegationWaitTime
+    ) public onlyOwner {
+        undelegationWaitTime = _undelegationWaitTime;
+        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function enableToken(
@@ -128,10 +145,9 @@ contract StakeManager is Initializable, Ownable {
         address _address
     ) public onlyOwner {
         require(
-            !tokenAddresses[_tokenId].isActive,
-            "SM:ET-Token already enabled"
+            !tokenAddresses[_tokenId].isActive
         );
-        require(_address != address(0), "SM:ET-0 address not allowed");
+        require(_address != address(0));
         tokenAddresses[_tokenId] = Token(_address, true);
         emit TokenAdded(_tokenId, _address);
     }
@@ -140,8 +156,7 @@ contract StakeManager is Initializable, Ownable {
         bytes32 _tokenId
     ) public onlyOwner {
         require(
-            tokenAddresses[_tokenId].isActive,
-            "SM:DT-Token already disabled"
+            tokenAddresses[_tokenId].isActive
         );
         tokenAddresses[_tokenId].isActive = false;
         emit TokenRemoved(_tokenId);
@@ -162,11 +177,11 @@ contract StakeManager is Initializable, Ownable {
     ) public returns(bytes32) {
         require(
             _tokens.length == _amounts.length,
-            "SM:CS-each tokenId should have a corresponding amount and vice versa"
+            "CS1"
         );
         require(
             _tokens.length != 0,
-            "SM:CS-stash must have atleast 1 token"
+            "CS2"
         );
         uint256 _stashIndex = stashIndex;
         bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
@@ -175,15 +190,15 @@ contract StakeManager is Initializable, Ownable {
             uint256 _amount = _amounts[_index];
             require(
                 tokenAddresses[_tokenId].isActive,
-                "SM:CS-Invalid tokenId"
+                "CS3"
             );
             require(
                 stashes[_stashId].amount[_tokenId] == 0,
-                "SM:CS-Cant add the same token twice while creating stash"
+                "CS4"
             );
             require(
                 _amount != 0,
-                "SM:CS-Cant add tokens with 0 amount"
+                "CS5"
             );
             stashes[_stashId].amount[_tokenId] = _amount;
             _lockTokens(_tokenId, _amount, msg.sender);
@@ -202,24 +217,26 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:ATS-Only staker can delegate stash to a cluster"
+            "AS1"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "SM:ATS-Cant add to stash during undelegation"
+            "AS2"
         );
         require(
             _tokens.length == _amounts.length,
-            "SM:ATS-Each tokenId should have a corresponding amount and vice versa"
+            "AS3"
         );
-        if(_stash.delegatedCluster != address(0)) {
+        if(
+            _stash.delegatedCluster != address(0)
+        ) {
             rewardDelegators.delegate(msg.sender, _stash.delegatedCluster, _tokens, _amounts);
         }
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
             require(
                 tokenAddresses[_tokenId].isActive,
-                "SM:ATS-Invalid tokenId"
+                "AS4"
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId].add(_amounts[i]);
@@ -234,19 +251,19 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:DS-Only staker can delegate stash to a cluster"
+            "DS1"
         );
         require(
             clusterRegistry.isClusterValid(_delegatedCluster),
-            "SM:DS-delegated cluster address is not valid"
+            "DS2"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "SM:DS-stash already delegated to another cluster. Please undelegate from delegating"
+            "DS3"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "SM:DS-stash is not yet undelegated"
+            "DS4"
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
         delete stashes[_stashId].undelegatesAt;
@@ -263,21 +280,26 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:RSR-Only staker can redelegate stash to another cluster"
+            "RSR1"
         );
         require(
             _stash.delegatedCluster != address(0),
-            "SM:RSR-Stash not already delegated"
+            "RSR2"
         );
+        uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
+        emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
+    }
+
+    function _requestStashRedelegation(bytes32 _stashId, address _newCluster) internal returns(uint256) {
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock == 0,
-            "SM:RSR-Please close the existing redelegation request before placing a new one"
+            "IRSR1"
         );
         uint256 _redelegationBlock = block.number.add(lockWaitTime[REDELEGATION_LOCK_SELECTOR]);
         locks[_lockId] = Lock(_redelegationBlock, uint256(_newCluster));
-        emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
+        return _redelegationBlock;
     }
 
     function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
@@ -291,28 +313,39 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.delegatedCluster != address(0),
-            "SM:RS-Stash not already delegated"
+            "RS1"
         );
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
             _unlockBlock <= block.number,
-            "SM:RS-Redelegation period incomplete"
+            "RS2"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
+        _redelegateStash(_stashId, _stash.staker, _stash.delegatedCluster, _updatedCluster);
+        delete locks[_lockId];
+    }
+
+    function _redelegateStash(
+        bytes32 _stashId,
+        address _staker,
+        address _delegatedCluster,
+        address _updatedCluster
+    ) internal {
         require(
             clusterRegistry.isClusterValid(_updatedCluster),
-            "SM:RS-invalid cluster"
+            "IRS1"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amount[_tokens[i]];
         }
-        rewardDelegators.undelegate(_stash.staker, _stash.delegatedCluster, _tokens, _amounts);
-        rewardDelegators.delegate(_stash.staker, _updatedCluster, _tokens, _amounts);
+        if(_delegatedCluster != address(0)) {
+            rewardDelegators.undelegate(_staker, _delegatedCluster, _tokens, _amounts);
+        }
+        rewardDelegators.delegate(_staker, _updatedCluster, _tokens, _amounts);
         stashes[_stashId].delegatedCluster = _updatedCluster;
-        delete locks[_lockId];
         emit Redelegated(_stashId, _updatedCluster);
     }
 
@@ -320,15 +353,15 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:SS - Only staker of stash can split"
+            "SS1"
         );
         require(
             _tokens.length != 0,
-            "SM:SS - split stash must have atleast one token"
+            "SS2"
         );
         require(
             _tokens.length == _amounts.length,
-            "SM:SS - Token data invalid"
+            "SS3"
         );
         uint256 _stashIndex = stashIndex;
         bytes32 _newStashId = keccak256(abi.encodePacked(_stashIndex));
@@ -337,15 +370,15 @@ contract StakeManager is Initializable, Ownable {
             uint256 _amount = _amounts[_index];
             require(
                 stashes[_newStashId].amount[_tokenId] == 0,
-                "SM:SS - Can't add the same token twice while splitting stash"
+                "SS4"
             );
             require(
                 _amount != 0,
-                "SM:SS - Can't add tokens with 0 amount"
+                "SS5"
             );
             stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId].sub(
                 _amount,
-                "SM:SS-Insufficient Balance"
+                "SS6"
             );
             stashes[_newStashId].amount[_tokenId] = _amount;
         }
@@ -357,21 +390,21 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function mergeStash(bytes32 _stashId1, bytes32 _stashId2) public {
-        require(_stashId1 != _stashId2, "SM:MS-Can't merge same stash");
+        require(_stashId1 != _stashId2, "MS1");
         Stash memory _stash1 = stashes[_stashId1];
         Stash memory _stash2 = stashes[_stashId2];
         require(
             _stash1.staker == msg.sender && _stash2.staker == msg.sender,
-            "SM:MS-Sender should be staker for both stashes"
+            "MS2"
         );
         require(
             _stash1.delegatedCluster == _stash2.delegatedCluster,
-            "SM:MS-Both stashes should be delegated to same cluster"
+            "MS3"
         );
         require(
             (_stash1.undelegatesAt == 0 || _stash1.undelegatesAt >= block.number) &&
             (_stash2.undelegatesAt == 0 || _stash2.undelegatesAt >= block.number),
-            "SM:MS-Both stashes should not be undelegating"
+            "MS4"
         );
         bytes32 _lockId1 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId1));
         uint256 _unlockBlock1 = locks[_lockId1].unlockBlock;
@@ -379,7 +412,7 @@ contract StakeManager is Initializable, Ownable {
         uint256 _unlockBlock2 = locks[_lockId2].unlockBlock;
         require(
             _unlockBlock1 == 0 && _unlockBlock2 == 0,
-            "SM:MS-Redelegation request should not be active for both stashes"
+            "MS5"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         for(uint256 i=0; i < _tokens.length; i++) {
@@ -399,25 +432,40 @@ contract StakeManager is Initializable, Ownable {
             redelegateStash(_stashIds[i]);
         }
     }
+    
+    function cancelRedelegation(bytes32 _stashId) public {
+        require(
+            msg.sender == stashes[_stashId].staker,
+            "CR1"
+        );
+        require(_cancelRedelegation(_stashId), "CR2");
+    }
+
+    function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
+        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
+        if(locks[_lockId].unlockBlock != 0) {
+            delete locks[_lockId];
+            emit RedelegationCancelled(_stashId);
+            return true;
+        }
+        return false;
+    }
 
     function undelegateStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:UDS-Only staker can undelegate stash"
+            "US1"
         );
         require(
             _stash.delegatedCluster != address(0),
-            "SM:UDS-stash is not delegated to any cluster"
+            "US2"
         );
-        uint256 _waitTime = rewardDelegators.undelegationWaitTime();
+        uint256 _waitTime = undelegationWaitTime;
         uint256 _undelegationBlock = block.number.add(_waitTime);
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        if(locks[_lockId].unlockBlock != 0) {
-            delete locks[_lockId];
-        }
+        _cancelRedelegation(_stashId);
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
@@ -427,19 +475,41 @@ contract StakeManager is Initializable, Ownable {
         emit StashUndelegated(_stashId, _stash.delegatedCluster, _undelegationBlock);
     }
 
+    function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
+        address _staker = stashes[_stashId].staker;
+        uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
+        require(
+            _staker == msg.sender,
+            "CU1"
+        );
+        require(
+            _undelegatesAt > block.number,
+            "CU2"
+        );
+        require(
+            _undelegatesAt < block.number
+                            .add(undelegationWaitTime)
+                            .sub(lockWaitTime[REDELEGATION_LOCK_SELECTOR]),
+            "CU3"
+        );
+        delete stashes[_stashId].undelegatesAt;
+        emit StashUndelegationCancelled(_stashId);
+        _redelegateStash(_stashId, _staker, address(0), _delegatedCluster);
+    }
+
     function withdrawStash(bytes32 _stashId) public {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:WS-Only staker can withdraw stash"
+            "WS1"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "SM:WS-Please undelegate before withdrawal"
+            "WS2"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "SM:WS-stash isnt undelegated"
+            "WS3"
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
@@ -464,25 +534,25 @@ contract StakeManager is Initializable, Ownable {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
-            "SM:WS-Only staker can withdraw stash"
+            "WSC1"
         );
         require(
             _stash.delegatedCluster == address(0),
-            "SM:WS-Please undelegate before withdrawal"
+            "WSC2"
         );
         require(
             _stash.undelegatesAt <= block.number,
-            "SM:WS-stash isnt yet undelegated"
+            "WSC3"
         );
         require(
             _tokens.length == _amounts.length,
-            "SM:WS-Each tokenId should have a corresponding amount and vice versa"
+            "WSC4"
         );
         for(uint256 i=0; i < _tokens.length; i++) {
             uint256 _balance = stashes[_stashId].amount[_tokens[i]];
             require(
                 _balance >= _amounts[i],
-                "SM:WS-balance not sufficient"
+                "WSC5"
             );
             if(_balance == _amounts[i]) {
                 delete stashes[_stashId].amount[_tokens[i]];
@@ -506,7 +576,7 @@ contract StakeManager is Initializable, Ownable {
                 _delegator,
                 address(this),
                 _amount
-            ), "SM:LT-ERC20 transfer failed"
+            ), "LT1"
         );
         if (tokenAddress == address(MPOND)) {
             // send a request to delegate governance rights for the amount to delegator
@@ -538,7 +608,7 @@ contract StakeManager is Initializable, Ownable {
             ERC20(tokenAddress).transfer(
                 _delegator,
                 _amount
-            ), "SM:ULT-ERC20 transfer failed"
+            ), "UT1"
         );
     }
 
