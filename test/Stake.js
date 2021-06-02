@@ -21,6 +21,8 @@ const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const { advanceBlock } = require("./utils");
 
+const AddressZero = "0x0000000000000000000000000000000000000000";
+
 contract("Stake contract", async function(accounts) {
 
     let PONDInstance;
@@ -1082,7 +1084,7 @@ contract("Stake contract", async function(accounts) {
         assert.equal(stash1.delegatedCluster.toString(), AddressZero, "wrong delegated cluster");
         assert.equal(stash2.delegatedCluster.toString(), AddressZero, "wrong delegated cluster");
     });
-    
+
     it("Redelegate stash and then cancel redeledation", async () => {
         const amount = 1000000;
 
