@@ -163,10 +163,10 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function createStashAndDelegate(
-        bytes32[] calldata _tokens,
-        uint256[] calldata _amounts,
+        bytes32[] memory _tokens,
+        uint256[] memory _amounts,
         address _delegatedCluster
-    ) external {
+    ) public {
         bytes32 stashId = createStash(_tokens, _amounts);
         delegateStash(stashId, _delegatedCluster);
     }

@@ -150,9 +150,9 @@ contract RewardDelegators is Initializable, Ownable {
     function delegate(
         address _delegator,
         address _cluster,
-        bytes32[] calldata _tokens,
-        uint256[] calldata _amounts
-    ) external onlyStake {
+        bytes32[] memory _tokens,
+        uint256[] memory _amounts
+    ) public onlyStake {
         _updateTokens(_delegator, _cluster, _tokens, _amounts, true);
     }
 
@@ -242,9 +242,9 @@ contract RewardDelegators is Initializable, Ownable {
     function undelegate(
         address _delegator,
         address _cluster,
-        bytes32[] calldata _tokens,
-        uint256[] calldata _amounts
-    ) external onlyStake {
+        bytes32[] memory _tokens,
+        uint256[] memory _amounts
+    ) public onlyStake {
         _updateTokens(_delegator, _cluster, _tokens, _amounts, false);
     }
 
