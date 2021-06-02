@@ -241,7 +241,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _delegatedCluster != address(0),
-            "StakeManager:delegateStash - delegated cluster address is not valid"
+            "DS2"
         );
         require(
             _stash.delegatedCluster == address(0),
@@ -274,7 +274,7 @@ contract StakeManager is Initializable, Ownable {
         );
         require(
             _newCluster != address(0),
-            "SM:RSR-Invalid cluster to redelegate"
+            "RSR3"
         );
         uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
         emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
