@@ -20,7 +20,7 @@ contract RewardDelegators is Initializable, Ownable {
 
     mapping(address => Cluster) clusters;
 
-    uint256 public undelegationWaitTime;
+    uint256 __unused_2;
     address stakeAddress;
     uint256 public minMPONDStake;
     bytes32 public MPONDTokenId;
@@ -38,7 +38,6 @@ contract RewardDelegators is Initializable, Ownable {
     event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
-    event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
     event StakeAddressUpdated(address _updatedStakeAddress);
     event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
@@ -46,12 +45,11 @@ contract RewardDelegators is Initializable, Ownable {
     event PONDAddressUpdated(address _updatedPOND);
 
     modifier onlyStake() {
-        require(msg.sender == stakeAddress, "ClusterRegistry:onlyStake: only stake contract can invoke this function");
+        require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
     }
 
     function initialize(
-        uint256 _undelegationWaitTime,
         address _stakeAddress,
         address _clusterRewardsAddress,
         address _clusterRegistry,
@@ -64,10 +62,8 @@ contract RewardDelegators is Initializable, Ownable {
     ) public initializer {
         require(
             _tokenIds.length == _rewardFactors.length,
-            "RewardDelegators:initalize - Each TokenId should have a corresponding Reward Factor and vice versa"
+            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
         );
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
         stakeAddress = _stakeAddress;
         clusterRegistry = IClusterRegistry(_clusterRegistry);
         clusterRewards = IClusterRewards(_clusterRewardsAddress);
@@ -91,8 +87,8 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
-        require(rewardFactor[_tokenId] == 0, "RewardDelegators:addReward - Reward already exists");
-        require(_rewardFactor != 0, "RewardDelegators:addReward - Reward can't be 0");
+        require(rewardFactor[_tokenId] == 0, "RD:AR-Reward already exists");
+        require(_rewardFactor != 0, "RD:AR-Reward cant be 0");
         rewardFactor[_tokenId] = _rewardFactor;
         tokenIndex[_tokenId] = tokenList.length;
         tokenList.push(_tokenId);
@@ -100,7 +96,7 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function removeRewardFactor(bytes32 _tokenId) public onlyOwner {
-        require(rewardFactor[_tokenId] != 0, "RewardDelegators:addReward - Reward doesn't exist");
+        require(rewardFactor[_tokenId] != 0, "RD:RR-Reward doesnt exist");
         bytes32 tokenToReplace = tokenList[tokenList.length - 1];
         uint256 originalTokenIndex = tokenIndex[_tokenId];
         tokenList[originalTokenIndex] = tokenToReplace;
@@ -112,8 +108,8 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
-        require(rewardFactor[_tokenId] != 0, "RewardDelegators:updateReward - Can't update reward that doesn't exist");
-        require(_updatedRewardFactor != 0, "RewardDelegators:updateReward - Reward can't be 0");
+        require(rewardFactor[_tokenId] != 0, "RD:UR-Cant update reward that doesnt exist");
+        require(_updatedRewardFactor != 0, "RD:UR-Reward cant be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
     }
@@ -298,11 +294,6 @@ contract RewardDelegators is Initializable, Ownable {
         return clusters[_cluster].delegators[_delegator][_tokenId];
     }
 
-    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
-    }
-
     function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
@@ -311,7 +302,7 @@ contract RewardDelegators is Initializable, Ownable {
     function updateStakeAddress(address _updatedStakeAddress) public onlyOwner {
         require(
             _updatedStakeAddress != address(0),
-            "RewardDelegators:updateStakeAddress - Updated Stake contract address cannot be 0"
+            "RD:USA-Stake contract address cant be 0"
         );
         stakeAddress = _updatedStakeAddress;
         emit StakeAddressUpdated(_updatedStakeAddress);
@@ -322,7 +313,7 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRewards != address(0),
-            "RewardDelegators:updateClusterRewards - ClusterRewards address cannot be 0"
+            "RD:UCR-ClusterRewards address cant be 0"
         );
         clusterRewards = IClusterRewards(_updatedClusterRewards);
         emit ClusterRewardsAddressUpdated(_updatedClusterRewards);
@@ -333,7 +324,7 @@ contract RewardDelegators is Initializable, Ownable {
     ) public onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
-            "RewardDelegators:updateClusterRegistry - Cluster Registry address cannot be 0"
+            "RD:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
         emit ClusterRegistryUpdated(_updatedClusterRegistry);
@@ -342,7 +333,7 @@ contract RewardDelegators is Initializable, Ownable {
     function updatePONDAddress(address _updatedPOND) public onlyOwner {
         require(
             _updatedPOND != address(0),
-            "RewardDelegators:updatePONDAddress - Updated POND token address cannot be 0"
+            "RD:UPA-Updated POND token address cant be 0"
         );
         PONDToken = ERC20(_updatedPOND);
         emit PONDAddressUpdated(_updatedPOND);
