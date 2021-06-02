@@ -12,6 +12,7 @@ contract("ClusterRegistry contract", async function(accounts) {
     const clientKey = accounts[4];
 
     const registeredCluster = accounts[5];
+    const registeredCluster1 = accounts[9];
     const unregisteredCluster = accounts[6];
 
     const updatedRewardAddress = accounts[7];
@@ -45,6 +46,12 @@ contract("ClusterRegistry contract", async function(accounts) {
         assert(clusterData.networkId == web3.utils.keccak256("DOT"), "NetworkId not correctly set");
         assert(clusterData.rewardAddress == rewardAddress, "Reward address not correctly set");
         assert(clusterData.isValidCluster, "Cluster not registered correctly");
+    });
+
+    it("Register cluster with same client key twice", async () => {
+        await truffleAssert.reverts(clusterRegistry.register(web3.utils.keccak256("DOT"), 7, rewardAddress, clientKey, {
+            from: registeredCluster1
+        }), "CR:R - Client key is already used");
     });
 
     it("update commission", async () => {
