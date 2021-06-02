@@ -44,8 +44,6 @@ contract StakeManager is Initializable, Ownable {
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     uint256 public undelegationWaitTime;
 
-    uint256 public undelegationWaitTime;
-
     event StashCreated(
         address indexed creator,
         bytes32 stashId,
@@ -119,11 +117,6 @@ contract StakeManager is Initializable, Ownable {
             _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
-    }
-
-    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) public onlyOwner {
-        undelegationWaitTime = _undelegationWaitTime;
-        emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
 
     function updateUndelegationWaitTime(
@@ -322,10 +315,6 @@ contract StakeManager is Initializable, Ownable {
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
-        require(
-            clusterRegistry.isClusterValid(_updatedCluster),
-            "IRS1"
-        );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
