@@ -462,6 +462,12 @@ contract StakeManager is Initializable, Ownable {
         emit StashUndelegated(_stashId, _stash.delegatedCluster, _undelegationBlock);
     }
 
+    function undelegateStashes(bytes32[] memory _stashIds) public {
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            undelegateStash(_stashIds[i]);
+        }
+    }
+    
     function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
         address _staker = stashes[_stashId].staker;
         uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
