@@ -260,6 +260,12 @@ contract RewardDelegators is Initializable, Ownable {
         return 0;
     }
 
+    function withdrawRewards(address _delegator, address[] memory _clusters) public returns(uint256) {
+        for(uint256 i=0; i < _clusters.length; i++) {
+            withdrawRewards(_delegator, _clusters[i]);
+        }
+    }
+
     function transferRewards(address _to, uint256 _amount) internal {
         PONDToken.transfer(_to, _amount);
     }
