@@ -260,7 +260,7 @@ contract RewardDelegators is Initializable, Ownable {
         return 0;
     }
 
-    function withdrawRewards(address _delegator, address[] memory _clusters) public returns(uint256) {
+    function withdrawRewards(address _delegator, address[] calldata _clusters) external {
         for(uint256 i=0; i < _clusters.length; i++) {
             withdrawRewards(_delegator, _clusters[i]);
         }
