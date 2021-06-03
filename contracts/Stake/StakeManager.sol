@@ -302,14 +302,10 @@ contract StakeManager is Initializable, Ownable {
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
-            _unlockBlock <= block.number,
+            _unlockBlock != 0 && _unlockBlock <= block.number,
             "RS2"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
-        require(
-            _updatedCluster != address(0),
-            "RS3"
-        );
         _redelegateStash(_stashId, _stash.staker, _stash.delegatedCluster, _updatedCluster);
         delete locks[_lockId];
     }
