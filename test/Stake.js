@@ -21,6 +21,8 @@ const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const { advanceBlock } = require("./utils");
 
+const AddressZero = "0x0000000000000000000000000000000000000000";
+
 contract("Stake contract", async function(accounts) {
 
     let PONDInstance;
@@ -1055,12 +1057,6 @@ contract("Stake contract", async function(accounts) {
     });
 
     it("Request multiple stash redelegations", async () => {
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
-            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
-                from: registeredCluster
-            });
-        }
-
         const amount = 1000;
         await PONDInstance.approve(stakeContract.address, amount);
         const receipt = await stakeContract.createStashAndDelegate([PONDTokenId], [amount], registeredCluster);
@@ -1100,7 +1096,7 @@ contract("Stake contract", async function(accounts) {
         await truffleAssert.reverts(stakeContract.redelegateStashes([stashId1, stashId2]), "RS2");
         await skipBlocks(4);
         const redelTX = await stakeContract.redelegateStashes([stashId1, stashId2]);
-        
+
         stash1 = await stakeContract.stashes(stashId1);
         stash2 = await stakeContract.stashes(stashId2);
 
@@ -1110,7 +1106,36 @@ contract("Stake contract", async function(accounts) {
         assert.equal(stash1.delegatedCluster.toString(), registeredCluster1, "wrong delegated cluster");
         assert.equal(stash2.delegatedCluster.toString(), registeredCluster1, "wrong delegated cluster");
     });
-    
+
+    it("Multiple undelegation", async () => {
+        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, clientKey, {
+                from: registeredCluster
+            });
+        }
+        const amount = 1000;
+        await PONDInstance.approve(stakeContract.address, amount);
+        const receipt1 = await stakeContract.createStashAndDelegate([PONDTokenId], [amount], registeredCluster);
+        const stashId1 = receipt1.logs[0].args.stashId;
+        await PONDInstance.approve(stakeContract.address, amount);
+        const receipt2 = await stakeContract.createStashAndDelegate([PONDTokenId], [amount], registeredCluster);
+        const stashId2 = receipt2.logs[0].args.stashId;
+        let stash1 = await stakeContract.stashes(stashId1);
+        let stash2 = await stakeContract.stashes(stashId2);
+        assert.equal(stash1.delegatedCluster.toString(), registeredCluster, "wrong delegated cluster");
+        assert.equal(stash1.delegatedCluster.toString(), registeredCluster, "wrong delegated cluster");
+
+        // undel all the stashes
+        undelTx = await stakeContract.undelegateStashes([stashId1, stashId2]);
+        assert.equal(undelTx.logs.length, 2);
+        assert.equal(undelTx.logs[0].event, "StashUndelegated");
+        assert.equal(undelTx.logs[1].event, "StashUndelegated");
+        stash1 = await stakeContract.stashes(stashId1);
+        stash2 = await stakeContract.stashes(stashId2);
+        assert.equal(stash1.delegatedCluster.toString(), AddressZero, "wrong delegated cluster");
+        assert.equal(stash2.delegatedCluster.toString(), AddressZero, "wrong delegated cluster");
+    });
+
     it("Redelegate stash and then cancel redeledation", async () => {
         const amount = 1000000;
 
