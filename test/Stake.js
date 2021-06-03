@@ -111,7 +111,6 @@ contract("Stake contract", async function(accounts) {
             [PONDTokenId, MPONDTokenId],
             [PONDInstance.address, MPONDInstance.address],
             MPONDInstance.address,
-            clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner,
             appConfig.staking.undelegationWaitTime
@@ -330,33 +329,33 @@ contract("Stake contract", async function(accounts) {
     //     await truffleAssert.fails(stakeContract.createStash(2, amount));
     // });
 
-    it("Delegate POND to invalid cluster", async () => {
-        const amount = 900000;
-        const stashId = await createStash(0, amount);
-        await truffleAssert.reverts(stakeContract.delegateStash(stashId, unregisteredCluster));
-    });
+    // it("Delegate POND to invalid cluster", async () => {
+    //     const amount = 900000;
+    //     const stashId = await createStash(0, amount);
+    //     await truffleAssert.reverts(stakeContract.delegateStash(stashId, unregisteredCluster));
+    // });
 
-    it("Delegate MPOND to invalid cluster", async () => {
-        const amount = 800000;
-        const stashId = await createStash(amount, 0);
-        await truffleAssert.reverts(stakeContract.delegateStash(stashId, unregisteredCluster));
-    });
+    // it("Delegate MPOND to invalid cluster", async () => {
+    //     const amount = 800000;
+    //     const stashId = await createStash(amount, 0);
+    //     await truffleAssert.reverts(stakeContract.delegateStash(stashId, unregisteredCluster));
+    // });
 
-    it("Delegate MPOND to deregistered cluster", async () => {
-        await clusterRegistry.register(web3.utils.keccak256("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey, {
-            from: deregisteredCluster
-        });
-        await clusterRegistry.unregister({
-            from: deregisteredCluster
-        })
+    // it("Delegate MPOND to deregistered cluster", async () => {
+    //     await clusterRegistry.register(web3.utils.keccak256("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey, {
+    //         from: deregisteredCluster
+    //     });
+    //     await clusterRegistry.unregister({
+    //         from: deregisteredCluster
+    //     })
 
-        await skipBlocks(23);
+    //     await skipBlocks(23);
 
-        const amount = 700000;
-        const stashId = await createStash(amount, 0);
+    //     const amount = 700000;
+    //     const stashId = await createStash(amount, 0);
 
-        await truffleAssert.reverts(stakeContract.delegateStash(stashId, deregisteredCluster));
-    });
+    //     await truffleAssert.reverts(stakeContract.delegateStash(stashId, deregisteredCluster));
+    // });
 
     it("Redelegate a undelegated POND stash", async () => {
         const amount = 1000000;
@@ -447,65 +446,65 @@ contract("Stake contract", async function(accounts) {
         assert(stakeContractBalanceAfterRedelegateRequest.eq(stakeContractBalanceAfterRedelegate));
     });
 
-    it("Redelegate to unregistered cluster", async () => {
-        const amount = 1000000;
-        // register and delegate
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
-            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
-                from: registeredCluster
-            });
-        }
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
-            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
-                from: registeredCluster1
-            });
-        }
-        // Redelegate to invalid cluster
-        const stashId = await createStash(amount, amount);
-        await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster));
-        await stakeContract.delegateStash(stashId, registeredCluster);
-        await stakeContract.requestStashRedelegation(stashId, registeredCluster2);
-        await skipBlocks(5);
-        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
-        // cleanup  the redelegation
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster2))) {
-            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster2RewardAddress, registeredCluster2ClientKey, {
-                from: registeredCluster2
-            });
-        }
-        await skipBlocks(20);
-        await stakeContract.redelegateStash(stashId);
-    });
+    // it("Redelegate to unregistered cluster", async () => {
+    //     const amount = 1000000;
+    //     // register and delegate
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
+    //             from: registeredCluster
+    //         });
+    //     }
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
+    //             from: registeredCluster1
+    //         });
+    //     }
+    //     // Redelegate to invalid cluster
+    //     const stashId = await createStash(amount, amount);
+    //     await truffleAssert.reverts(stakeContract.requestStashRedelegation(stashId, registeredCluster));
+    //     await stakeContract.delegateStash(stashId, registeredCluster);
+    //     await stakeContract.requestStashRedelegation(stashId, registeredCluster2);
+    //     await skipBlocks(5);
+    //     await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
+    //     // cleanup  the redelegation
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster2))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster2RewardAddress, registeredCluster2ClientKey, {
+    //             from: registeredCluster2
+    //         });
+    //     }
+    //     await skipBlocks(20);
+    //     await stakeContract.redelegateStash(stashId);
+    // });
 
-    it("Redelegate to cluster that became invalid after request", async () => {
-        const amount = 1000000;
-        // register and delegate
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
-            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
-                from: registeredCluster
-            });
-        }
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
-            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
-                from: registeredCluster1
-            });
-        }
-        const stashId = await createStash(amount, amount);
-        await stakeContract.delegateStash(stashId, registeredCluster);
-        // Redelegate to cluster that was valid when placing request then has unregistered(hence invalid) when applying redelegation
-        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
-        await clusterRegistry.unregister({
-            from: registeredCluster1
-        });
-        await skipBlocks(23);
-        assert(!(await clusterRegistry.isClusterValid.call(registeredCluster1)));
-        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
-        // cleanup the redelegation
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredCluster1ClientKey, {
-            from: registeredCluster1
-        });
-        await stakeContract.redelegateStash(stashId);
-    });
+    // it("Redelegate to cluster that became invalid after request", async () => {
+    //     const amount = 1000000;
+    //     // register and delegate
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
+    //             from: registeredCluster
+    //         });
+    //     }
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
+    //             from: registeredCluster1
+    //         });
+    //     }
+    //     const stashId = await createStash(amount, amount);
+    //     await stakeContract.delegateStash(stashId, registeredCluster);
+    //     // Redelegate to cluster that was valid when placing request then has unregistered(hence invalid) when applying redelegation
+    //     await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+    //     await clusterRegistry.unregister({
+    //         from: registeredCluster1
+    //     });
+    //     await skipBlocks(23);
+    //     assert(!(await clusterRegistry.isClusterValid.call(registeredCluster1)));
+    //     await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
+    //     // cleanup the redelegation
+    //     await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredCluster1ClientKey, {
+    //         from: registeredCluster1
+    //     });
+    //     await stakeContract.redelegateStash(stashId);
+    // });
 
     it("Redelegate a stash to a unregistering cluster", async () => {
         const amount = 1000000;
@@ -543,35 +542,35 @@ contract("Stake contract", async function(accounts) {
         assert(!(await clusterRegistry.isClusterValid.call(registeredCluster)));
     });
 
-    it("Redelegate a stash to a unregistered cluster", async () => {
-        const amount = 1000000;
-        // register and delegate
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
-            await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
-                from: registeredCluster
-            });
-        }
-        if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
-            await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
-                from: registeredCluster1
-            });
-        }
-        const stashId = await createStash(amount, amount);
-        await stakeContract.delegateStash(stashId, registeredCluster);
-        await clusterRegistry.unregister({
-            from: registeredCluster1
-        });
-        // Register redelegate when cluster is undelegating and apply it when undelegated
-        await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
-        await skipBlocks(23);
-        assert(!(await clusterRegistry.isClusterValid.call(registeredCluster1)));
-        await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
-        // cleanup redelegation
-        await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
-            from: registeredCluster1
-        });
-        await stakeContract.redelegateStash(stashId);
-    });
+    // it("Redelegate a stash to a unregistered cluster", async () => {
+    //     const amount = 1000000;
+    //     // register and delegate
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey, {
+    //             from: registeredCluster
+    //         });
+    //     }
+    //     if(!(await clusterRegistry.isClusterValid.call(registeredCluster1))) {
+    //         await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
+    //             from: registeredCluster1
+    //         });
+    //     }
+    //     const stashId = await createStash(amount, amount);
+    //     await stakeContract.delegateStash(stashId, registeredCluster);
+    //     await clusterRegistry.unregister({
+    //         from: registeredCluster1
+    //     });
+    //     // Register redelegate when cluster is undelegating and apply it when undelegated
+    //     await stakeContract.requestStashRedelegation(stashId, registeredCluster1);
+    //     await skipBlocks(23);
+    //     assert(!(await clusterRegistry.isClusterValid.call(registeredCluster1)));
+    //     await truffleAssert.reverts(stakeContract.redelegateStash(stashId));
+    //     // cleanup redelegation
+    //     await clusterRegistry.register(web3.utils.keccak256("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey, {
+    //         from: registeredCluster1
+    //     });
+    //     await stakeContract.redelegateStash(stashId);
+    // });
 
     it("Redelegate stash from an unregistered cluster", async () => {
         const amount = 1000000;

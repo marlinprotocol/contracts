@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
-import "../governance/mPondLogic.sol";
+import "../governance/MPondLogic.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -32,6 +32,7 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
     MPondLogic prevMPOND;
+    address _unused_1;
     IRewardDelegators public rewardDelegators;
     // new variables
     struct Lock {
@@ -305,6 +306,10 @@ contract StakeManager is Initializable, Ownable {
             "RS2"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
+        require(
+            _updatedCluster != address(0),
+            "RS3"
+        );
         _redelegateStash(_stashId, _stash.staker, _stash.delegatedCluster, _updatedCluster);
         delete locks[_lockId];
     }
