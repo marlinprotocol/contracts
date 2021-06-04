@@ -7,3 +7,4 @@ slither.log
 temp
 .DS_Store
 accounts.json
+.vscode
