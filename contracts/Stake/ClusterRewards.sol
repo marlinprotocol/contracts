@@ -27,6 +27,12 @@ contract ClusterRewards is Initializable, Ownable {
     event NetworkRemoved(bytes32 networkId);
     event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
     event ClusterRewarded(bytes32 networkId);
+    event FeederChanged(address _newFeeder);
+    event RewardDelegatorAddressUpdated(address _updatedRewardDelegator);
+    event PONDAddressUpdated(address _updatedPOND);
+    event RewardPerEpochChanged(uint256 _updatedRewardPerEpoch);
+    event PayoutDenominationChanged(uint256 _updatedPayoutDenomination);
+    event RewardDistributionWaitTimeUpdated(uint256 _updatedRewardDistributionWaitTime);
 
     modifier onlyRewardDelegatorsContract() {
         require(msg.sender == rewardDelegatorsAddress, "Sender not Reward Delegators contract");
@@ -73,6 +79,7 @@ contract ClusterRewards is Initializable, Ownable {
 
     function changeFeeder(address _newFeeder) public onlyOwner {
         feeder = _newFeeder;
+        emit FeederChanged(_newFeeder);
     }
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight) public onlyOwner {
@@ -161,6 +168,7 @@ contract ClusterRewards is Initializable, Ownable {
             "CRW:URDA-Updated Reward delegator address cant be 0"
         );
         rewardDelegatorsAddress = _updatedRewardDelegator;
+        emit RewardDelegatorAddressUpdated(_updatedRewardDelegator);
     }
 
     function updatePONDAddress(address _updatedPOND) public onlyOwner {
@@ -169,17 +177,21 @@ contract ClusterRewards is Initializable, Ownable {
             "CRW:UPA-POND token address cant be 0"
         );
         POND = ERC20(_updatedPOND);
+        emit PONDAddressUpdated(_updatedPOND);
     }
 
     function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) public onlyOwner {
         totalRewardsPerEpoch = _updatedRewardPerEpoch;
+        emit RewardPerEpochChanged(_updatedRewardPerEpoch);
     }
 
     function changePayoutDenomination(uint256 _updatedPayoutDenomination) public onlyOwner {
         payoutDenomination = _updatedPayoutDenomination;
+        emit PayoutDenominationChanged(_updatedPayoutDenomination);
     }
 
     function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) public onlyOwner {
         rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
+        emit RewardDistributionWaitTimeUpdated(_updatedRewardDistributionWaitTime);
     }
 }

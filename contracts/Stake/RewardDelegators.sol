@@ -39,6 +39,10 @@ contract RewardDelegators is Initializable, Ownable {
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
+    event StakeAddressUpdated(address _updatedStakeAddress);
+    event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
+    event ClusterRegistryUpdated(address _updatedClusterRegistry);
+    event PONDAddressUpdated(address _updatedPOND);
 
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
@@ -301,6 +305,7 @@ contract RewardDelegators is Initializable, Ownable {
             "RD:USA-Stake contract address cant be 0"
         );
         stakeAddress = _updatedStakeAddress;
+        emit StakeAddressUpdated(_updatedStakeAddress);
     }
 
     function updateClusterRewards(
@@ -311,6 +316,7 @@ contract RewardDelegators is Initializable, Ownable {
             "RD:UCR-ClusterRewards address cant be 0"
         );
         clusterRewards = IClusterRewards(_updatedClusterRewards);
+        emit ClusterRewardsAddressUpdated(_updatedClusterRewards);
     }
 
     function updateClusterRegistry(
@@ -321,6 +327,7 @@ contract RewardDelegators is Initializable, Ownable {
             "RD:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
+        emit ClusterRegistryUpdated(_updatedClusterRegistry);
     }
 
     function updatePONDAddress(address _updatedPOND) public onlyOwner {
@@ -329,6 +336,7 @@ contract RewardDelegators is Initializable, Ownable {
             "RD:UPA-Updated POND token address cant be 0"
         );
         PONDToken = ERC20(_updatedPOND);
+        emit PONDAddressUpdated(_updatedPOND);
     }
 
     function getFullTokenList() public view returns (bytes32[] memory) {
