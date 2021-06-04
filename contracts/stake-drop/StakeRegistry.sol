@@ -9,6 +9,7 @@ contract StakeRegistry is StandardOracle {
     using SafeMath for uint256;
 
     mapping(uint256 => uint256) public totalStake;
+    mapping(uint256 => uint256) public rewardedStake;
     mapping(bytes32 => uint256) public rewardPerAddress;
     ValidatorRegistry public validatorRegistry;
 
@@ -77,6 +78,13 @@ contract StakeRegistry is StandardOracle {
         require(
             validatorRegistry.validators(_epoch, _validatorAddressHash),
             "Stake delegated to only whitelisted validator can be added"
+        );
+        uint256 _newTotal = rewardedStake[_epoch].add(_amount);
+        rewardedStake[_epoch] = _newTotal;
+
+        require(
+            _newTotal <= totalStake[_epoch],
+            "Stake should be rewarded for tokens less than or equal to the total"
         );
         rewardPerAddress[_stakingAddressHash] = rewardPerAddress[_stakingAddressHash]
             .add(rewardPerEpoch.mul(_amount).div(totalStake[_epoch]));

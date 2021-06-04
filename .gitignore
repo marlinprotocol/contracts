@@ -2,7 +2,8 @@ node_modules
 vendor
 build
 slither.log
-temp
 .env
+*merged.sol
+temp
 .DS_Store
 accounts.json

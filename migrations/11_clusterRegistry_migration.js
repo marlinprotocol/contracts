@@ -22,10 +22,18 @@ const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
     await deployer.deploy(ClusterDefault).then(function () {
-      return deployer.deploy(ClusterDefaultProxy, ClusterDefault.address);
+      return deployer.deploy(
+        ClusterDefaultProxy,
+        ClusterDefault.address,
+        accounts[20]
+      ); // assume that accounts-20 is proxy-owner
     });
     await deployer.deploy(ClusterRegistry).then(function () {
-      return deployer.deploy(ClusterRegistryProxy, ClusterRegistry.address, accounts[20]); // accounts[20] is proxy admin
+      return deployer.deploy(
+        ClusterRegistryProxy,
+        ClusterRegistry.address,
+        accounts[20]
+      ); // assume that accounts-20 is proxy-owner
     });
   }
 };

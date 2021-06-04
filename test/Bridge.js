@@ -1,321 +1,409 @@
 const TokenLogic = artifacts.require("TokenLogic.sol");
 const TokenProxy = artifacts.require("TokenProxy.sol");
-const mPondProxy = artifacts.require("MPondProxy.sol");
-const mPondLogic = artifacts.require("MPondLogic.sol");
+const MPondProxy = artifacts.require("MPondProxy.sol");
+const MPondLogic = artifacts.require("MPondLogic.sol");
 const BridgeLogic = artifacts.require("BridgeLogic.sol");
 const BridgeProxy = artifacts.require("BridgeProxy.sol");
 const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
+const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
 
-contract.skip("Bridge", function (accounts) {
-  var token;
-  var mPond;
-  var bridge;
 
-  it("deploy contracts and instantiate", function () {
-    return TokenLogic.new({from: accounts[1]})
-      .then(function (logic) {
-        return TokenProxy.new(logic.address, accounts[20], {from: accounts[1]}); //accounts[20] is the proxy admin
-      })
-      .then(function (instance) {
-        return TokenLogic.at(instance.address);
-      })
-      .then(function (instance) {
-        token = instance;
-        return mPondProxy.new(mPondLogic.address, accounts[20], {
-          from: accounts[1],
-        }); //accounts[20] is the proxy admin
-      })
-      .then(function (proxyContract) {
-        let mPondAdmin = accounts[0];
-        return mPondLogic.at(proxyContract.address);
-      })
-      .then(function (instance) {
-        mPond = instance;
-        let admin = accounts[0];
-        let governanceProxy = accounts[0];
-        // return Bridge.new(mPond.address, token.address, admin, governanceProxy);
-        return BridgeProxy.new(BridgeLogic.address, accounts[20], {
-          from: accounts[1],
-        }); //accounts[20] is the proxy admin
-      })
-      .then(function (proxyContract) {
-        return BridgeLogic.at(proxyContract.address);
-      })
-      .then(function (instance) {
-        bridge = instance;
-        return token.initialize("Marlin Protocol", "POND", 18, bridge.address);
-      })
-      .then(function () {
-        return token.name();
-      })
-      .then(function (name) {
-        console.table({name});
-        return mPond.initialize(accounts[4], accounts[11], accounts[12]); // accounts[12] is assumed to temp x-chain bridge address
-      })
-      .then(function () {
-        return mPond.name();
-      })
-      .then(function (name) {
-        console.table({name});
-        return bridge.initialize(
-          mPond.address,
-          token.address,
-          accounts[0],
-          accounts[0]
-        );
-      })
-      .then(function () {
-        return bridge.pondPerMpond();
-      })
-      .then(function (pondPerMpond) {
-        console.table({pondPerMpond});
-        return mPond.changeDropBridge(bridge.address);
-      });
-  });
+const z6 = "000000"
+const z18 = z6+z6+z6
 
-  it("check balances", function () {
-    let admin = accounts[0];
-    return mPond
-      .transfer(accounts[0], new web3Utils.BN("1000"), {from: accounts[4]})
-      .then(function () {
-        return mPond.balanceOf(admin);
-      })
-      .then(function (balance) {
-        console.log({balance});
-        assert.equal(
-          balance > 0,
-          true,
-          "mPond balance should be greater than 0"
-        );
-        return token.mint(admin, new web3Utils.BN("1000000000"));
-        // return;
-      })
-      .then(function () {
-        let admin = accounts[0];
-        return token.balanceOf(admin);
-      })
-      .then(function (balance) {
-        assert.equal(
-          balance > 0,
-          true,
-          "Token balance should be greater than 0"
-        );
-      });
-  });
+contract("Bridge", async (accounts) => {
+  it("should initialize", async () => {
+    let bridge = await BridgeLogic.at((await BridgeProxy.deployed()).address);
+    let mpond = await MPondLogic.at((await MPondProxy.deployed()).address);
+    let pond = await TokenLogic.at((await TokenProxy.deployed()).address);
 
-  it("bridge add liquidity", function () {
-    var admin = accounts[0];
-    return mPond
-      .approve(bridge.address, new web3Utils.BN("1000"))
-      .then(function () {
-        return mPond.transfer(accounts[0], new web3Utils.BN("1000"), {
-          from: accounts[4],
-        });
-      })
-      .then(function () {
-        return token.approve(bridge.address, new web3Utils.BN("10000000"));
-      })
-      .then(function () {
-        return bridge.addLiquidity(
-          new web3Utils.BN("1000"),
-          new web3Utils.BN("10000000")
-        );
-      })
-      .then(function () {
-        return bridge.getLiquidity();
-      })
-      .then(function (liquidity) {
-        assert(
-          liquidity[0] > 0,
-          true,
-          "mpond liquidity should be greated than 0"
-        );
-        assert(
-          liquidity[1] > 0,
-          true,
-          "pond liquidity should be greated than 0"
-        );
-        return mPond.addWhiteListAddress(accounts[0]);
-      });
-  });
-  it("pond to mPond conversion (i.e get mpond)", function () {
-    let testingAccount = accounts[9];
-    return token
-      .mint(testingAccount, new web3Utils.BN("1000000"))
-      .then(function () {
-        return token.approve(bridge.address, new web3Utils.BN("1000000"), {
-          from: testingAccount,
-        });
-      })
-      .then(function () {
-        return bridge.getMpond(new web3Utils.BN("1"), {from: testingAccount});
-      })
-      .then(function () {
-        return mPond.balanceOf(testingAccount);
-      })
-      .then(function (balance) {
-        assert(
-          balance > 0,
-          true,
-          "mpond balance should be available in testing account"
-        );
-      });
-  });
+    await bridge.initialize(
+      mpond.address,
+      pond.address,
+      accounts[5],
+      accounts[6],
+      { from: accounts[2] },
+    )
 
-  it.skip("mPond to pond conversion (i.e get pond) (old one)", function () {
-    let testingAccount = accounts[8];
-    return mPond
-      .transfer(testingAccount, new web3Utils.BN("100"))
-      .then(function () {
-        return mPond.approve(bridge.address, new web3Utils.BN("100"), {
-          from: testingAccount,
-        });
-      })
-      .then(function () {
-        return bridge.getPond(new web3Utils.BN("1000000"), {
-          from: testingAccount,
-        });
-      })
-      .then(function (transaction) {
-        // console.log(JSON.stringify(transaction, null, 4));
-        return increaseTime(180 * 86400);
-      })
-      .then(function () {
-        return addBlocks(1, accounts);
-      })
-      .then(function () {
-        return bridge.getClaim(testingAccount, new web3Utils.BN("1"));
-      })
-      .then(function (claim) {
-        // console.log(claim);
-        // claimNumber 1 default in params
-        return bridge.getPondWithClaimNumber(new web3Utils.BN("1"), {
-          from: testingAccount,
-        });
-        // return;
-      })
-      .then(function (data) {
-        // console.log(data);
-        return token.balanceOf(testingAccount);
-      })
-      .then(function (balance) {
-        assert.equal(balance, 1000000, "1000000 pond should be released");
-        return;
-      });
-  });
-
-  it("Check mPond to conversion and locks", function () {
-    let testingAccount = accounts[8];
-    return mPond
-      .transfer(testingAccount, new web3Utils.BN("1000"))
-      .then(function () {
-        return mPond.approve(bridge.address, new web3Utils.BN("1000"), {
-          from: testingAccount,
-        });
-      })
-      .then(function () {
-        return increaseTime(0.5 * 86400);
-      })
-      .then(function () {
-        return addBlocks(2, accounts);
-      })
-      .then(function (epoch) {
-        return bridge.placeRequest(500, {from: testingAccount});
-      })
-      .then(function () {
-        // above will create request on 0th epoch.
-        return bridge.requests(testingAccount, 0);
-      })
-      .then(function (request) {
-        console.log({request});
-        return bridge.effectiveLiquidity();
-      })
-      .then(function (liquidityBp) {
-        console.log(`effective liquidity at ${liquidityBp} at start`);
-        return increaseTime(191.5 * 86400);
-      })
-      .then(function () {
-        return addBlocks(2, accounts);
-      })
-      .then(function () {
-        return bridge.getConvertableAmount(testingAccount, 0);
-      })
-      .then(function (convertableAmount) {
-        console.log({convertableAmount});
-        return;
-      })
-      .then(function () {
-        return bridge.effectiveLiquidity();
-      })
-      .then(function (liquidityBp) {
-        console.log(`effective liquidity at ${liquidityBp} at end`);
-        return mPond.addWhiteListAddress(testingAccount);
-      })
-      .then(function () {
-        return bridge.convert(0, 2, {from: testingAccount});
-      })
-      .then(function () {
-        return token.balanceOf(testingAccount);
-      })
-      .then(function (balance) {
-        console.log(`Balance obtained via mPond conversion ${balance}`);
-        assert(balance > 0, true, "Balance should be non-zero");
-        return bridge.getClaimedAmount(testingAccount, 0);
-      })
-      .then(function (claimedAmount) {
-        console.log({claimedAmount});
-        return bridge.getConvertableAmount(testingAccount, 0);
-      })
-      .then(function (convertableAmount) {
-        console.log({convertableAmount});
-        //check convertable amount afet 500 days
-        return increaseTime(500 * 86400);
-      })
-      .then(function () {
-        return addBlocks(2, accounts);
-      })
-      .then(function () {
-        return bridge.getConvertableAmount(testingAccount, 0);
-      })
-      .then(function (convertableAmount) {
-        console.log({convertableAmount});
-        return;
-      });
+    assert.equal(
+      await bridge.mpond(),
+      mpond.address,
+      "MPOND not initialized correctly",
+    )
+    assert.equal(
+      await bridge.pond(),
+      pond.address,
+      "POND not initialized correctly",
+    )
+    assert.equal(
+      await bridge.owner(),
+      accounts[5],
+      "Owner not initialized correctly",
+    )
+    assert.equal(
+      await bridge.governanceProxy(),
+      accounts[6],
+      "Governance proxy not initialized correctly",
+    )
   });
 });
 
-function induceDelay(delay) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, delay);
-  });
-}
+contract("Bridge", async (accounts) => {
+    it("should convert pond to mpond", async () => {
+        let bridge = await BridgeLogic.at((await BridgeProxy.deployed()).address);
+        let mpond = await MPondLogic.at((await MPondProxy.deployed()).address);
+        let pond = await TokenLogic.at((await TokenProxy.deployed()).address);
+
+        await bridge.initialize(
+            mpond.address,
+            pond.address,
+            accounts[5],
+            accounts[6],
+            { from: accounts[2] },
+        );
+
+        await mpond.initialize(
+            accounts[0],
+            bridge.address,
+            bridge.address,
+            { from: accounts[2] },
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7000"+z18,
+            "Wrong MPOND balance of bridge after mpond init"
+        )
+
+        await pond.initialize(
+            "POND",
+            "POND",
+            18,
+            bridge.address,
+            // { from: accounts[2] },
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "1000"+z6+z18,
+            "Wrong POND balance of bridge after pond init"
+        )
+
+        await pond.mint(accounts[1], "10"+z6+z18);
+        await pond.approve(bridge.address, "10"+z6+z18, { from: accounts[1] });
+
+        await bridge.getMpond("5"+z18, { from: accounts[1] });
+
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "5"+z6+z18,
+            "Wrong POND balance of user"
+        )
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "5"+z18,
+            "Wrong MPOND balance of user"
+        )
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "1005"+z6+z18,
+            "Wrong POND balance of bridge"
+        )
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "6995"+z18,
+            "Wrong MPOND balance of bridge"
+        )
+    });
+});
+
+
+contract("Bridge", async (accounts) => {
+    it("should convert mpond to pond as per table", async () => {
+        let bridge = await BridgeLogic.at((await BridgeProxy.deployed()).address);
+        let mpond = await MPondLogic.at((await MPondProxy.deployed()).address);
+        let pond = await TokenLogic.at((await TokenProxy.deployed()).address);
+
+        await bridge.initialize(
+            mpond.address,
+            pond.address,
+            accounts[5],
+            accounts[6],
+            { from: accounts[2] },
+        );
+
+        await mpond.initialize(
+            accounts[0],
+            bridge.address,
+            bridge.address,
+            { from: accounts[2] },
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7000"+z18,
+            "Wrong MPOND balance of bridge after mpond init"
+        )
+
+        await pond.initialize(
+            "POND",
+            "POND",
+            18,
+            bridge.address,
+            // { from: accounts[2] },
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "1000"+z6+z18,
+            "Wrong POND balance of bridge after pond init"
+        );
+
+        await bridge.changeLiquidityBp(0, { from: accounts[5] });
+
+        // Day -1
+
+        await mpond.transfer(accounts[1], "1000"+z18, { from: accounts[0] })
+        await mpond.approve(bridge.address, "1000"+z18, { from: accounts[1] })
+
+        // Day 0
+
+        await expectRevert(
+            bridge.placeRequest("1100"+z18, { from: accounts[1] }),
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
+        )
+
+        await bridge.placeRequest("900"+z18, { from: accounts[1] })
+
+        // Day 30
+        await increaseTime(30*86400);
+
+        await bridge.placeRequest("50"+z18, { from: accounts[1] })
+
+        // Day 31
+        await increaseTime(1*86400);
+
+        await expectRevert(
+            bridge.placeRequest("100"+z18, { from: accounts[1] }),
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
+        )
+
+        // Day 180
+        await increaseTime(149*86400);
+
+        await expectRevert(
+            bridge.convert(0, "950"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await bridge.convert(0, "85"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "915"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "85"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7085"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "915"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(500, { from: accounts[5] });
+        await expectRevert(
+            bridge.convert(0, "2"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await bridge.convert(0, "2"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "913"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "87"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7087"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "913"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        // Day 210
+        await increaseTime(30*86400);
+
+        await expectRevert(
+            bridge.convert(0, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(30, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(2000, { from: accounts[5] });
+
+        await bridge.convert(30, "10"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "903"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "97"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7097"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "903"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(30, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(0, "100"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.convert(0, "93"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "810"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "190"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7190"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "810"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        // Day 360
+        await increaseTime(150*86400);
+
+        await expectRevert(
+            bridge.convert(0, "200"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(2000, { from: accounts[5] });
+
+        await bridge.convert(0, "180"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await mpond.balanceOf(accounts[1]),
+            "630"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(accounts[1]),
+            "370"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await mpond.balanceOf(bridge.address),
+            "7370"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await pond.balanceOf(bridge.address),
+            "630"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+   });
+});
 
 async function increaseTime(time) {
-  await web3.currentProvider.send(
-    {
-      jsonrpc: "2.0",
-      method: "evm_increaseTime",
-      params: [time],
-      id: 0,
-    },
-    () => {}
-  );
-}
-
-async function increaseBlocks(accounts) {
-  // this transactions is only to increase the few block
-  return web3.eth.sendTransaction({
-    from: accounts[1],
-    to: accounts[2],
-    value: 1,
-  });
-}
-
-async function addBlocks(count, accounts) {
-  for (let index = 0; index < count; index++) {
-    await increaseBlocks(accounts);
-  }
-  return;
+    return new Promise ((resolve, reject) => {
+        web3.currentProvider.send({
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [time],
+            id: 0,
+        }, (err, res) => {
+            if(err) {
+                reject(err)
+            } else {
+                web3.currentProvider.send({
+                    jsonrpc: '2.0',
+                    method: 'evm_mine',
+                    params: [],
+                    id: 0
+                }, (err, res) => {
+                    if(err) {
+                        reject(err)
+                    } else {
+                        resolve()
+                    }
+                });
+            }
+        })
+    });
 }

@@ -268,6 +268,9 @@ contract("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
         await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
 
+        // transfer some rewards to rewardDelegators
+        await PONDInstance.transfer(rewardDelegators.address, 1000000);
+
         // feed again the cluster reward increases 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
         await feedData([registeredCluster1], 4);
@@ -281,21 +284,29 @@ contract("ClusterRewards contract", async function (accounts) {
         await truffleAssert.reverts(
             clusterRewards.changeNetworkReward(networkId, updateRewardWeight,
                 { from: clusterRewardsOwner }),
-            "ClusterRewards:changeNetworkRewards - Network doesn't exists");
+            "CRW:CNR-Network doesnt exist");
     });
 
     it("delegate then claim reward", async () => {
         await clusterRewards.clusterRewards(registeredCluster1);
-        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3125);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3126);
         const oldBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
-        assert(oldBalance.toString() == 303);
+        assert.equal(oldBalance.toString(), 302);
 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
         await clusterRewards.updateRewardDelegatorAddress(accounts[0],
             {from: clusterRewardsOwner});
+
+        const PondBalBefore = await PONDInstance.balanceOf(clusterRewards.address);
+    
         await clusterRewards.claimReward(registeredCluster1);
         const newBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress1);
-        assert(newBalance.toString() == 615);
+        assert.equal(newBalance.toString(), 614);
+
+        // check the balance of clusterRewards
+        const PondBalAfter = await PONDInstance.balanceOf(clusterRewards.address);
+        assert.equal(PondBalBefore.toString(), PondBalAfter.toString(),
+        "The rewards are transferred from the clusterRewards contract");
     });
 
     async function getTokensAndApprove(user, tokens, spender) {

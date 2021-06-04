@@ -29,7 +29,7 @@ if (!process.env.PROXY_ADMIN) {
 const config = {
   deploymentConfig: {
     gas: 2000000,
-    gasPrice: 57000000000,
+    gasPrice: 54000000000,
     from: web3.eth.accounts.wallet[0].address,
   },
 };
@@ -70,7 +70,6 @@ deploy().then(console.table).catch(console.log);
 // │ TokenLogicAddress │ '0xe01571d3063d39998bd97F7d74c6b90215C7caaf' │
 // │ TokenProxyAddress │ '0x92A583dB9F7cBA4847b290A0B5e9E8e28030643c' │
 // └───────────────────┴──────────────────────────────────────────────┘
-
 
 // Deploying contracts on https://mainnet.infura.io/v3/9dc997986f8840daa0e6ccb1d8d0d757
 // 0xec452a57179ca048d3b27436daaf5f2f5250eb014d63b217eb4fbea655691f07

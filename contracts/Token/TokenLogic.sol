@@ -25,6 +25,6 @@ contract TokenLogic is
         ERC20Detailed.initialize(_name, _symbol, _decimal);
         // ERC20Mintable.initialize(msg.sender);
         ERC20Capped.initialize(10000000000e18, msg.sender);
-        mint(_bridge, 3000000000e18);
+        mint(_bridge, 1000000000e18);
     }
 }

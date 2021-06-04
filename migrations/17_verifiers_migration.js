@@ -21,10 +21,18 @@ let Verifier_ReceiverProxy = artifacts.require("Verifier_ProducerProxy.sol");
 module.exports = async function (deployer, network, accounts) {
   if (network == "development") {
     await deployer.deploy(Verifier_Producer).then(function () {
-      return deployer.deploy(Verifier_ProducerProxy, Verifier_Producer.address);
+      return deployer.deploy(
+        Verifier_ProducerProxy,
+        Verifier_Producer.address,
+        accounts[20]
+      ); // assume that accounts-20 is the proxy owner
     });
     await deployer.deploy(Verifier_Receiver).then(function () {
-      return deployer.deploy(Verifier_ReceiverProxy, Verifier_Receiver.address);
+      return deployer.deploy(
+        Verifier_ReceiverProxy,
+        Verifier_Receiver.address,
+        accounts[20]
+      ); // assume that accounts-20 is the proxy owner
     });
   }
 };
