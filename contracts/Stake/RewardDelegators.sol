@@ -39,6 +39,10 @@ contract RewardDelegators is Initializable, Ownable {
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
     event MinMPONDStakeUpdated(uint256 minMPONDStake);
+    event StakeAddressUpdated(address _updatedStakeAddress);
+    event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
+    event ClusterRegistryUpdated(address _updatedClusterRegistry);
+    event PONDAddressUpdated(address _updatedPOND);
 
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
@@ -77,12 +81,12 @@ contract RewardDelegators is Initializable, Ownable {
         super.initialize(_rewardDelegatorsAdmin);
     }
 
-    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) public onlyOwner {
+    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external onlyOwner {
         MPONDTokenId = _updatedMPONDTokenId;
         emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
     }
 
-    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) public onlyOwner {
+    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external onlyOwner {
         require(rewardFactor[_tokenId] == 0, "RD:AR-Reward already exists");
         require(_rewardFactor != 0, "RD:AR-Reward cant be 0");
         rewardFactor[_tokenId] = _rewardFactor;
@@ -91,7 +95,7 @@ contract RewardDelegators is Initializable, Ownable {
         emit AddReward(_tokenId, _rewardFactor);
     }
 
-    function removeRewardFactor(bytes32 _tokenId) public onlyOwner {
+    function removeRewardFactor(bytes32 _tokenId) external onlyOwner {
         require(rewardFactor[_tokenId] != 0, "RD:RR-Reward doesnt exist");
         bytes32 tokenToReplace = tokenList[tokenList.length - 1];
         uint256 originalTokenIndex = tokenIndex[_tokenId];
@@ -103,7 +107,7 @@ contract RewardDelegators is Initializable, Ownable {
         emit RemoveReward(_tokenId);
     }
 
-    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) public onlyOwner {
+    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external onlyOwner {
         require(rewardFactor[_tokenId] != 0, "RD:UR-Cant update reward that doesnt exist");
         require(_updatedRewardFactor != 0, "RD:UR-Reward cant be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
@@ -264,11 +268,17 @@ contract RewardDelegators is Initializable, Ownable {
         return 0;
     }
 
+    function withdrawRewards(address _delegator, address[] calldata _clusters) external {
+        for(uint256 i=0; i < _clusters.length; i++) {
+            withdrawRewards(_delegator, _clusters[i]);
+        }
+    }
+
     function transferRewards(address _to, uint256 _amount) internal {
         PONDToken.transfer(_to, _amount);
     }
 
-    function isClusterActive(address _cluster) public returns(bool) {
+    function isClusterActive(address _cluster) external returns(bool) {
         if(
             clusterRegistry.isClusterValid(_cluster)
             && clusters[_cluster].totalDelegations[MPONDTokenId] > minMPONDStake
@@ -279,7 +289,7 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function getClusterDelegation(address _cluster, bytes32 _tokenId)
-        public
+        external
         view
         returns(uint256)
     {
@@ -287,59 +297,63 @@ contract RewardDelegators is Initializable, Ownable {
     }
 
     function getDelegation(address _cluster, address _delegator, bytes32 _tokenId)
-        public
+        external
         view
         returns(uint256)
     {
         return clusters[_cluster].delegators[_delegator][_tokenId];
     }
 
-    function updateMinMPONDStake(uint256 _minMPONDStake) public onlyOwner {
+    function updateMinMPONDStake(uint256 _minMPONDStake) external onlyOwner {
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
     }
 
-    function updateStakeAddress(address _updatedStakeAddress) public onlyOwner {
+    function updateStakeAddress(address _updatedStakeAddress) external onlyOwner {
         require(
             _updatedStakeAddress != address(0),
             "RD:USA-Stake contract address cant be 0"
         );
         stakeAddress = _updatedStakeAddress;
+        emit StakeAddressUpdated(_updatedStakeAddress);
     }
 
     function updateClusterRewards(
         address _updatedClusterRewards
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _updatedClusterRewards != address(0),
             "RD:UCR-ClusterRewards address cant be 0"
         );
         clusterRewards = IClusterRewards(_updatedClusterRewards);
+        emit ClusterRewardsAddressUpdated(_updatedClusterRewards);
     }
 
     function updateClusterRegistry(
         address _updatedClusterRegistry
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _updatedClusterRegistry != address(0),
             "RD:UCR-Cluster Registry address cant be 0"
         );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
+        emit ClusterRegistryUpdated(_updatedClusterRegistry);
     }
 
-    function updatePONDAddress(address _updatedPOND) public onlyOwner {
+    function updatePONDAddress(address _updatedPOND) external onlyOwner {
         require(
             _updatedPOND != address(0),
             "RD:UPA-Updated POND token address cant be 0"
         );
         PONDToken = ERC20(_updatedPOND);
+        emit PONDAddressUpdated(_updatedPOND);
     }
 
-    function getFullTokenList() public view returns (bytes32[] memory) {
+    function getFullTokenList() external view returns (bytes32[] memory) {
         return tokenList;
     }
 
-    function getAccRewardPerShare(address _cluster, bytes32 _tokenId) public view returns(uint256) {
+    function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
 }

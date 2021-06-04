@@ -68,7 +68,7 @@ contract ClusterRegistry is Initializable, Ownable {
         super.initialize(_owner);
     }
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime; 
     }
@@ -78,7 +78,7 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 _commission, 
         address _rewardAddress, 
         address _clientKey
-    ) public returns(bool) {
+    ) external returns(bool) {
         // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
             !isClusterValid(msg.sender), 
@@ -177,7 +177,7 @@ contract ClusterRegistry is Initializable, Ownable {
         emit ClientKeyUpdated(msg.sender, _clientKey);
     }
 
-    function unregister() public {
+    function unregister() external {
         require(
             clusters[msg.sender].status != Status.NOT_REGISTERED,
             "CR:UR-Cluster not registered"
@@ -243,15 +243,15 @@ contract ClusterRegistry is Initializable, Ownable {
         return clusters[_cluster].networkId;
     }
 
-    function getRewardAddress(address _cluster) public view returns(address) {
+    function getRewardAddress(address _cluster) external view returns(address) {
         return clusters[_cluster].rewardAddress;
     }
 
-    function getClientKey(address _cluster) public view returns(address) {
+    function getClientKey(address _cluster) external view returns(address) {
         return clusters[_cluster].clientKey;
     }
 
-    function getCluster(address _cluster) public returns(
+    function getCluster(address _cluster) external returns(
         uint256 commission, 
         address rewardAddress, 
         address clientKey, 
@@ -271,7 +271,7 @@ contract ClusterRegistry is Initializable, Ownable {
         return (getCommission(_cluster), clusters[_cluster].rewardAddress);
     }
     
-    function addClientKeys(address[] memory _clusters) public onlyOwner {
+    function addClientKeys(address[] calldata _clusters) external onlyOwner {
         for(uint256 i=0; i < _clusters.length; i++) {
             address _clientKey = clusters[_clusters[i]].clientKey;
             require(_clientKey != address(0), "CR:ACK - Cluster has invalid client key");
