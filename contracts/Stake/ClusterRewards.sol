@@ -77,12 +77,12 @@ contract ClusterRewards is Initializable, Ownable {
         rewardDistributionWaitTime = _rewardDistributionWaitTime;
     }
 
-    function changeFeeder(address _newFeeder) public onlyOwner {
+    function changeFeeder(address _newFeeder) external onlyOwner {
         feeder = _newFeeder;
         emit FeederChanged(_newFeeder);
     }
 
-    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) public onlyOwner {
+    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) external onlyOwner {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
         require(_rewardWeight != 0, "CRW:AN-Reward cant be 0");
         rewardWeight[_networkId] = _rewardWeight;
@@ -90,7 +90,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkAdded(_networkId, _rewardWeight);
     }
 
-    function removeNetwork(bytes32 _networkId) public onlyOwner {
+    function removeNetwork(bytes32 _networkId) external onlyOwner {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
@@ -98,7 +98,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit NetworkRemoved(_networkId);
     }
 
-    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) public onlyOwner {
+    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) external onlyOwner {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:CNR-Network doesnt exist");
         rewardWeight[_networkId] = _updatedRewardWeight;
@@ -109,10 +109,10 @@ contract ClusterRewards is Initializable, Ownable {
 
     function feed(
         bytes32 _networkId, 
-        address[] memory _clusters, 
-        uint256[] memory _payouts, 
+        address[] calldata _clusters, 
+        uint256[] calldata _payouts, 
         uint256 _epoch
-    ) public onlyFeeder {
+    ) external onlyFeeder {
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
             require(
@@ -142,13 +142,13 @@ contract ClusterRewards is Initializable, Ownable {
         emit ClusterRewarded(_networkId);
     }
 
-    function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
+    function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256) {
         return totalRewardsPerEpoch.mul(rewardWeight[_networkId]).div(totalWeight);
     }
 
     // only cluster registry is necessary because the rewards 
     // should be updated in the cluster registry against the cluster
-    function claimReward(address _cluster) public onlyRewardDelegatorsContract returns(uint256) {
+    function claimReward(address _cluster) external onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards.sub(1);
@@ -158,11 +158,11 @@ contract ClusterRewards is Initializable, Ownable {
         return 0;
     }
 
-    function transferRewardsToRewardDelegators() public onlyOwner returns(uint256) {
+    function transferRewardsToRewardDelegators() external onlyOwner returns(uint256) {
         POND.transfer(rewardDelegatorsAddress, POND.balanceOf(address(this)));
     }
 
-    function updateRewardDelegatorAddress(address _updatedRewardDelegator) public onlyOwner {
+    function updateRewardDelegatorAddress(address _updatedRewardDelegator) external onlyOwner {
         require(
             _updatedRewardDelegator != address(0),
             "CRW:URDA-Updated Reward delegator address cant be 0"
@@ -171,7 +171,7 @@ contract ClusterRewards is Initializable, Ownable {
         emit RewardDelegatorAddressUpdated(_updatedRewardDelegator);
     }
 
-    function updatePONDAddress(address _updatedPOND) public onlyOwner {
+    function updatePONDAddress(address _updatedPOND) external onlyOwner {
         require(
             _updatedPOND != address(0),
             "CRW:UPA-POND token address cant be 0"
@@ -180,17 +180,17 @@ contract ClusterRewards is Initializable, Ownable {
         emit PONDAddressUpdated(_updatedPOND);
     }
 
-    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) public onlyOwner {
+    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyOwner {
         totalRewardsPerEpoch = _updatedRewardPerEpoch;
         emit RewardPerEpochChanged(_updatedRewardPerEpoch);
     }
 
-    function changePayoutDenomination(uint256 _updatedPayoutDenomination) public onlyOwner {
+    function changePayoutDenomination(uint256 _updatedPayoutDenomination) external onlyOwner {
         payoutDenomination = _updatedPayoutDenomination;
         emit PayoutDenominationChanged(_updatedPayoutDenomination);
     }
 
-    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) public onlyOwner {
+    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) external onlyOwner {
         rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
         emit RewardDistributionWaitTimeUpdated(_updatedRewardDistributionWaitTime);
     }
