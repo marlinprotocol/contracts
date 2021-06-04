@@ -267,6 +267,10 @@ contract ClusterRegistry is Initializable, Ownable {
         );
     }
 
+    function getRewardInfo(address _cluster) external returns(uint256, address) {
+        return (getCommission(_cluster), clusters[_cluster].rewardAddress);
+    }
+    
     function addClientKeys(address[] calldata _clusters) external onlyOwner {
         for(uint256 i=0; i < _clusters.length; i++) {
             address _clientKey = clusters[_clusters[i]].clientKey;

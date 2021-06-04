@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
 import "../governance/MPondLogic.sol";
-import "./IClusterRegistry.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -33,7 +32,7 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
     MPondLogic prevMPOND;
-    IClusterRegistry clusterRegistry;
+    address _unused_1;
     IRewardDelegators public rewardDelegators;
     // new variables
     struct Lock {
@@ -44,7 +43,6 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
-
     uint256 public undelegationWaitTime;
 
     event StashCreated(
@@ -81,7 +79,6 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
         address _MPONDTokenAddress,
-        address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
         address _owner,
         uint256 _undelegationWaitTime)
@@ -96,7 +93,6 @@ contract StakeManager is Initializable, Ownable {
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         undelegationWaitTime = _undelegationWaitTime;
         super.initialize(_owner);
@@ -122,15 +118,6 @@ contract StakeManager is Initializable, Ownable {
             _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
-    }
-
-    function updateClusterRegistry(
-        address _updatedClusterRegistry
-    ) external onlyOwner {
-        require(
-            _updatedClusterRegistry != address(0)
-        );
-        clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
     }
 
     function updateUndelegationWaitTime(
@@ -254,7 +241,7 @@ contract StakeManager is Initializable, Ownable {
             "DS1"
         );
         require(
-            clusterRegistry.isClusterValid(_delegatedCluster),
+            _delegatedCluster != address(0),
             "DS2"
         );
         require(
@@ -285,6 +272,10 @@ contract StakeManager is Initializable, Ownable {
         require(
             _stash.delegatedCluster != address(0),
             "RSR2"
+        );
+        require(
+            _newCluster != address(0),
+            "RSR3"
         );
         uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
         emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
@@ -318,7 +309,7 @@ contract StakeManager is Initializable, Ownable {
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
-            _unlockBlock <= block.number,
+            _unlockBlock != 0 && _unlockBlock <= block.number,
             "RS2"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
@@ -332,10 +323,6 @@ contract StakeManager is Initializable, Ownable {
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
-        require(
-            clusterRegistry.isClusterValid(_updatedCluster),
-            "IRS1"
-        );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {

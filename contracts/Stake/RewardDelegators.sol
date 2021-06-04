@@ -120,7 +120,9 @@ contract RewardDelegators is Initializable, Ownable {
             return;
         }
 
-        uint256 commissionReward = reward.mul(clusterRegistry.getCommission(_cluster)).div(100);
+        (uint256 _commission, address _rewardAddress) = clusterRegistry.getRewardInfo(_cluster);
+
+        uint256 commissionReward = reward.mul(_commission).div(100);
         uint256 delegatorReward = reward.sub(commissionReward);
         bytes32[] memory tokens = tokenList;
         uint256[] memory delegations = new uint256[](tokens.length);
@@ -147,7 +149,9 @@ contract RewardDelegators is Initializable, Ownable {
                                                                 );
             }
         }
-        transferRewards(clusterRegistry.getRewardAddress(_cluster), commissionReward);
+        if(commissionReward != 0) {
+            transferRewards(_rewardAddress, commissionReward);
+        }
         emit ClusterRewardDistributed(_cluster);
     }
 
