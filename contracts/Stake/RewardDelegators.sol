@@ -153,39 +153,90 @@ contract RewardDelegators is Initializable, Ownable {
         bytes32[] memory _tokens,
         uint256[] memory _amounts
     ) public onlyStake {
-        _updateRewards(_cluster);
+        _updateTokens(_delegator, _cluster, _tokens, _amounts, true);
+    }
 
-        uint256 _aggregateRewardDebt;
-        uint256 _aggregateReward;
+    function _updateTokens(
+        address _delegator, 
+        address _cluster, 
+        bytes32[] memory _tokens, 
+        uint256[] memory _amounts, 
+        bool isDelegation
+    ) internal returns(uint256 _aggregateReward) {
+        _updateRewards(_cluster);
+        bool isWithdrawal;
+        if(_amounts.length == 0) {
+            isWithdrawal = true;
+        }
+
         for(uint256 i = 0; i < _tokens.length; i++) {
-            uint256 _amount = _amounts[i];
-            if(_amount == 0) continue;
+            uint256 _amount;
+            if(!isWithdrawal) {
+                _amount = _amounts[i];
+                if(_amount ==  0) continue;
+            }
 
             bytes32 _tokenId = _tokens[i];
 
-            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
-            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
-            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
+            (uint256 _reward, uint256 _newBalance) = _updateRewardForToken(
+                _cluster, 
+                _delegator, 
+                _tokenId, 
+                _amount, 
+                isWithdrawal, 
+                isDelegation
+            );
+            
+            _aggregateReward = _aggregateReward.add(_reward);
 
-            // calculating pending rewards for the delegator if any
-            _aggregateReward = _aggregateReward.add(_accRewardPerShare.mul(_balance));
-            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
-
-            uint256 _newBalance = _balance.add(_amount);
-
-            // update the debt for next reward calculation
-            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
-
-            // update balances
-            clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
-            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
-                                                                .add(_amount);
+            if(!isWithdrawal) {
+                // update balances
+                clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
+                if(isDelegation) {
+                    clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
+                                                                    .add(_amount);
+                } else {
+                    clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
+                                                                    .sub(_amount);
+                }
+            }
         }
-        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
-        if(_pendingRewards != 0) {
-            transferRewards(_delegator, _pendingRewards);
-            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
+        
+        if(_aggregateReward != 0) {
+            transferRewards(_delegator, _aggregateReward);
+            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _aggregateReward);
         }
+    }
+
+    function _updateRewardForToken(
+        address _cluster, 
+        address _delegator, 
+        bytes32 _tokenId, 
+        uint256 _amount, 
+        bool isWithdrawal, 
+        bool isDelegation
+    ) internal returns(uint256 _reward, uint256 _newBalance) {
+        uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
+        uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
+        uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
+
+        uint256 _tokenPendingRewards =  _accRewardPerShare.mul(_balance);
+
+        // calculating pending rewards for the delegator if any
+        _reward = _tokenPendingRewards.div(10**30).sub(_rewardDebt);
+
+        if(isWithdrawal && (_reward == 0)) return (0, _balance);
+
+        if(isDelegation) {
+            _newBalance =  _balance.add(_amount);
+        } else {
+            _newBalance =  _balance.sub(_amount);
+        }
+        
+        // update the debt for next reward calculation
+        clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
+        
+        return (_reward, _newBalance);
     }
 
     function undelegate(
@@ -194,70 +245,11 @@ contract RewardDelegators is Initializable, Ownable {
         bytes32[] memory _tokens,
         uint256[] memory _amounts
     ) public onlyStake {
-        _updateRewards(_cluster);
-
-        uint256 _aggregateRewardDebt;
-        uint256 _aggregateReward;
-        for(uint256 i = 0; i < _tokens.length; i++) {
-            uint256 _amount = _amounts[i];
-            if(_amount == 0) continue;
-
-            bytes32 _tokenId = _tokens[i];
-
-            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
-            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
-            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
-
-            // calculating pending rewards for the delegator if any
-            _aggregateReward = _aggregateReward.add(_accRewardPerShare.mul(_balance));
-            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
-
-            uint256 _newBalance = _balance.sub(_amount);
-
-            // update the debt for next reward calculation
-            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
-
-            // update balances
-            clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
-            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
-                                                                .sub(_amount);
-        }
-        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
-        if(_pendingRewards != 0) {
-            transferRewards(_delegator, _pendingRewards);
-            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _pendingRewards);
-        }
+        _updateTokens(_delegator, _cluster, _tokens, _amounts, false);
     }
 
-    function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
-        _updateRewards(_cluster);
-
-        uint256 _aggregateRewardDebt;
-        uint256 _aggregateReward;
-        bytes32[] memory _tokenList = tokenList;
-        for(uint256 i = 0; i < _tokenList.length; i++) {
-            bytes32 _tokenId = _tokenList[i];
-            uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
-            uint256 _balance = clusters[_cluster].delegators[_delegator][_tokenId];
-            uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
-
-            // calculating pending rewards for the delegator if any
-            uint256 _tokenPendingRewards = _accRewardPerShare.mul(_balance);
-            if(_tokenPendingRewards.div(10**30) == _rewardDebt) continue;
-
-            _aggregateReward = _aggregateReward.add(_tokenPendingRewards);
-            _aggregateRewardDebt = _aggregateRewardDebt.add(_rewardDebt);
-
-            // update the debt for next reward calculation
-            clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_balance).div(10**30);
-        }
-        uint256 _pendingRewards = _aggregateReward.div(10**30).sub(_aggregateRewardDebt);
-        if(_pendingRewards != 0) {
-            transferRewards(_delegator, _pendingRewards);
-            emit RewardsWithdrawn(_cluster, _delegator, _tokenList, _pendingRewards);
-            return _pendingRewards;
-        }
-        return 0;
+    function withdrawRewards(address _delegator, address _cluster) external returns(uint256) {
+        return _updateTokens(_delegator, _cluster, tokenList, new uint256[](0), true);
     }
 
     function transferRewards(address _to, uint256 _amount) internal {
