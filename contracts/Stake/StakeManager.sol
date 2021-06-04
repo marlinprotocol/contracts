@@ -230,7 +230,7 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-
+        
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
@@ -291,6 +291,13 @@ contract StakeManager is Initializable, Ownable {
         uint256 _redelegationBlock = block.number.add(lockWaitTime[REDELEGATION_LOCK_SELECTOR]);
         locks[_lockId] = Lock(_redelegationBlock, uint256(_newCluster));
         return _redelegationBlock;
+    }
+
+    function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
+        require(_stashIds.length == _newClusters.length, "SM:RSRs - Invalid input data");
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            requestStashRedelegation(_stashIds[i], _newClusters[i]);
+        }
     }
 
     function redelegateStash(bytes32 _stashId) public {
@@ -407,6 +414,12 @@ contract StakeManager is Initializable, Ownable {
         emit StashesMerged(_stashId1, _stashId2);
     }
 
+    function redelegateStashes(bytes32[] memory _stashIds) public {
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            redelegateStash(_stashIds[i]);
+        }
+    }
+    
     function cancelRedelegation(bytes32 _stashId) public {
         require(
             msg.sender == stashes[_stashId].staker,
@@ -449,6 +462,12 @@ contract StakeManager is Initializable, Ownable {
         emit StashUndelegated(_stashId, _stash.delegatedCluster, _undelegationBlock);
     }
 
+    function undelegateStashes(bytes32[] memory _stashIds) public {
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            undelegateStash(_stashIds[i]);
+        }
+    }
+    
     function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
         address _staker = stashes[_stashId].staker;
         uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
