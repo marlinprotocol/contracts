@@ -5,3 +5,4 @@ slither.log
 temp
 .env
 .DS_Store
+accounts.json
