@@ -177,7 +177,7 @@ contract RewardDelegators is Initializable, Ownable {
                 _isDelegation
             );
 
-            uint256 _reward = _updateRewards(
+            uint256 _reward = _updateDelegatorRewards(
                 _cluster,
                 _delegator,
                 _tokenId,
@@ -222,7 +222,7 @@ contract RewardDelegators is Initializable, Ownable {
         clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
     }
 
-    function _updateRewards(
+    function _updateDelegatorRewards(
         address _cluster,
         address _delegator,
         bytes32 _tokenId,
@@ -239,7 +239,7 @@ contract RewardDelegators is Initializable, Ownable {
         _reward = _tokenPendingRewards.sub(_rewardDebt);
 
         // short circuit
-        if(_oldBalance == _newBalance) {
+        if(_oldBalance == _newBalance && _reward == 0) {
             return _reward;
         }
 
