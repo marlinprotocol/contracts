@@ -1,6 +1,7 @@
 pragma solidity ^0.5.17;
 
 interface IRewardDelegators {
+    // there's no undelegationWaitTime in rewardDelegators contract
     function undelegationWaitTime() external returns(uint256);
     function minMPONDStake() external returns(uint256);
     function MPONDTokenId() external returns(bytes32);
