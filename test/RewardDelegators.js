@@ -306,7 +306,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         await increaseTime(1*86400);
         await feedData([registeredCluster3], 3);
         const clusterReward = await clusterRewards.clusterRewards(registeredCluster3);
-        const clusterCommission = Math.floor(Number(clusterReward) / 100 * commission);
+        const clusterCommission = Math.ceil(Number(clusterReward) / 100 * commission);
 
         const delegatorOldBalance = await PONDInstance.balanceOf(delegator3);
         assert.equal(Number(delegatorOldBalance), 0);
@@ -314,7 +314,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster3, { from: delegator3 });
 
         const delegatorNewBalance = await PONDInstance.balanceOf(delegator3);
-        assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission);
+        assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission -1);
     });
 
     it("update MPOND Token id", async () => {

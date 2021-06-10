@@ -278,27 +278,31 @@ contract.only("Staking Flow", async function (accounts) {
     );
     // data is fed to the oracle
     await feedData([registeredCluster1, registeredCluster2], 1);
+    const cluster1Reward = await perfOracle.clusterRewards(registeredCluster1);
+    const cluster2Reward = await perfOracle.clusterRewards(registeredCluster2);
+    console.log("================ cluster rewards: ", cluster1Reward.toString(), cluster2Reward.toString());
 
     // do some delegations for both users to the cluster
     // rewards for one user is withdraw - this reward should be as per the time of oracle feed
-    let MPondBalance1Before = await MPONDInstance.balanceOf(delegator1);
+    let PondBalance1Before = await PONDInstance.balanceOf(delegator1);
     await delegate(
       delegator1,
       [registeredCluster1, registeredCluster2],
       [0, 4],
       [2000000, 0]
     );
-    let MPondBalance1After = await MPONDInstance.balanceOf(delegator1);
-    console.log(
-      MPondBalance1After.sub(MPondBalance1Before).toString(),
+    let PondBalance1After = await PONDInstance.balanceOf(delegator1);
+    console.log("======================= PondBalance1After: ", PondBalance1After.toString());
+    console.log("======================== PondBalance1After.sub(PondBalance1Before).toString()",
+      PondBalance1After.sub(PondBalance1Before).toString(),
       appConfig.staking.rewardPerEpoch / 3
     );
     assert.equal(
-      MPondBalance1After.sub(MPondBalance1Before).toString(),
+      PondBalance1After.sub(PondBalance1Before).toString(),
         parseInt(
           appConfig.staking.rewardPerEpoch *
             (((((2.0 / 3) * 9) / 10) * 1) / 6 +
-              ((((1.0 / 3) * 19) / 20) * 2) / 3)
+              ((((1.0 / 3) * 19) / 20) * 2) / 3) - 1
         )
     );
     // feed data again to the oracle
@@ -308,32 +312,32 @@ contract.only("Staking Flow", async function (accounts) {
       registeredCluster2,
       registeredCluster3,
       registeredCluster4,
-    ], 1);
+    ], 2);
     // do some delegations for both users to the cluster
-    let MPondBalance2Before = await MPONDInstance.balanceOf(delegator2);
+    let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
     await delegate(
       delegator2,
       [registeredCluster1, registeredCluster2],
       [0, 4],
       [2000000, 0]
     );
-    let MPondBalance2After = await MPONDInstance.balanceOf(delegator2);
+    let PondBalance2After = await PONDInstance.balanceOf(delegator2);
     console.log(
-      MPondBalance2After.sub(MPondBalance2Before).toString(),
+      PondBalance2After.sub(PondBalance2Before).toString(),
       appConfig.staking.rewardPerEpoch *
         (((((2.0 / 3) * 9) / 10) * 5) / 6 +
           ((((1.0 / 3) * 19) / 20) * 1) / 3 +
           (((((7.0 / 12) * 9) / 10) * 5) / 7 +
-            ((((5.0 / 12) * 19) / 20) * 1) / 5))
+            ((((5.0 / 12) * 19) / 20) * 1) / 5)) - 1
     );
     assert(
-      MPondBalance2After.sub(MPondBalance2Before).toString() ==
+      PondBalance2After.sub(PondBalance2Before).toString() ==
         parseInt(
           appConfig.staking.rewardPerEpoch *
             (((((2.0 / 3) * 9) / 10) * 5) / 6 +
               ((((1.0 / 3) * 19) / 20) * 1) / 3 +
               (((((7.0 / 12) * 9) / 10) * 5) / 7 +
-                ((((5.0 / 12) * 19) / 20) * 1) / 5))
+                ((((5.0 / 12) * 19) / 20) * 1) / 5)) - 1
         )
     );
   });
@@ -469,9 +473,6 @@ contract.only("Staking Flow", async function (accounts) {
             tokenIDs = [web3.utils.keccak256('MPOND'), web3.utils.keccak256('POND')];
             amounts = [mpondAmounts[i], pondAmounts[i]];
         }
-      
-        // // transfer some rewards to rewardDelegators
-        // await PONDInstance.transfer(rewardDelegators.address, 100000000);
 
         const allowance = await PONDInstance.allowance(delegator, stakeContract.address);
         const receipt = await stakeContract.createStashAndDelegate(
