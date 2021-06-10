@@ -11,7 +11,7 @@ sh start.sh
 4. Use the following commands to compile and test the contracts.
 ```
 truffle compile;
-ganache-cli -a 51 -b 1;
+ganache-cli -a 51;
 truffle test;
 ```
 
