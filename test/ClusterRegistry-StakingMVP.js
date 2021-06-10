@@ -367,7 +367,7 @@ contract.only("Staking Flow", async function (accounts) {
       console.log(PondBalance3After.sub(PondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
       // assert(PondBalance3After.sub(PondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
       // substract 1 from the reward calculation?
-      assert.equal(PondBalance3After.sub(PondBalance3Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2+1.0/3*19/20*1/2)));
+      assert.equal(PondBalance3After.sub(PondBalance3Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2+1.0/3*19/20*1/2))-1);
 
       // feed data again to the oracle
       await delegate(delegator3, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
@@ -378,7 +378,7 @@ contract.only("Staking Flow", async function (accounts) {
       await delegate(delegator4, [registeredCluster3, registeredCluster4], [0, 4], [2000000, 0]);
       let PondBalance4After = await PONDInstance.balanceOf(delegator4);
       console.log(PondBalance4After.sub(PondBalance4Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
-      assert.equal(PondBalance4After.sub(PondBalance4Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2))));
+      assert.equal(PondBalance4After.sub(PondBalance4Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)))-1);
       // assert(PondBalance4After.sub(PondBalance4Before).toString() == 0);
   });
 
@@ -415,7 +415,7 @@ contract.only("Staking Flow", async function (accounts) {
       });
       let PondBalance1After = await PONDInstance.balanceOf(delegator1);
       console.log(PondBalance1After.sub(PondBalance1Before).toString(), appConfig.staking.rewardPerEpoch/3);
-      assert.equal(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2+1.0/3*19/20*1/2)));
+      assert.equal(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/2+1.0/3*19/20*1/2))-1);
 
       // feed data again to the oracle
       await delegate(delegator1, [registeredCluster1, registeredCluster2], [0, 8], [4000000, 0]);
@@ -427,7 +427,7 @@ contract.only("Staking Flow", async function (accounts) {
       let PondBalance2After = await PONDInstance.balanceOf(delegator2);
       console.log("PondBalance2After: ", PondBalance2After);
       console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)));
-      assert.equal(PondBalance2After.sub(PondBalance2Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2))));
+      assert.equal(PondBalance2After.sub(PondBalance2Before).toString(), parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*1/2+1.0/3*19/20*1/2)+(7.0/12*9/10*1/2+5.0/12*19/20*1/2)))-1);
       // assert(PondBalance2After.sub(PondBalance2Before).toString() == 0);
   });
 

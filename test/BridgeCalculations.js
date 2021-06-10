@@ -432,7 +432,7 @@ contract.only("BridgeCalculations", function (accounts) {
       })
       .then(function (effectiveLiquidity) {
         assert.equal(
-          effectiveLiquidity,
+          parseInt(effectiveLiquidity.toString()),
           4000,
           "effective liquidity should be 4000 basis points"
         );
@@ -456,7 +456,7 @@ contract.only("BridgeCalculations", function (accounts) {
       })
       .then(function (effectiveLiquidity) {
         assert.equal(
-          effectiveLiquidity,
+          parseInt(effectiveLiquidity.toString()),
           3000,
           "effective liquidity should be equal to 3000 basis points"
         );

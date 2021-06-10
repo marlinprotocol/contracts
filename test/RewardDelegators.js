@@ -281,7 +281,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         console.log(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)), appConfig.staking.rewardPerEpoch / 3);
         
         // substract 1 from the delegator rewards according to contract changes?
-        assert.equal(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)));
+        assert.equal(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2))-1);
         // feed data again to the oracle
         // await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // // do some delegations for both users to the cluster
