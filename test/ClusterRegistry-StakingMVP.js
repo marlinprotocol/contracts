@@ -276,11 +276,9 @@ contract.only("Staking Flow", async function (accounts) {
       [10, 0],
       [0, 2000000]
     );
-    console.log("=========================== 1");
     // data is fed to the oracle
     await feedData([registeredCluster1, registeredCluster2], 1);
 
-    console.log("=========================== 2");
     // do some delegations for both users to the cluster
     // rewards for one user is withdraw - this reward should be as per the time of oracle feed
     let MPondBalance1Before = await MPONDInstance.balanceOf(delegator1);
@@ -511,7 +509,6 @@ contract.only("Staking Flow", async function (accounts) {
       let totalStake = new web3.utils.BN(0);
       let pondPerMpond = new web3.utils.BN(1000000);
       let payoutDenomination = new web3.utils.BN(appConfig.staking.payoutDenomination);
-      console.log("======================== 2");
       for (let i = 0; i < clusters.length; i++) {
           const mpondClusterStake = await rewardDelegators.getClusterDelegation(clusters[i], MPONDTokenId);
           const pondClusterStake = await rewardDelegators.getClusterDelegation(clusters[i], PONDTokenId);
@@ -520,21 +517,18 @@ contract.only("Staking Flow", async function (accounts) {
           totalStake = totalStake.add(clusterStake);
       }
       
-      console.log("======================== 3");
       const payouts = [];
       for (let i = 0; i < clusters.length; i++) {
           const stake = stakes[i];
           payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
       }
 
-      console.log("======================== 4");
       console.log("clusters, epoch: ", clusters, epoch);
       console.log(payouts);
       const feeder = await perfOracle.feeder();
       await perfOracle.feed(ethereumNetworkID, clusters, payouts, epoch, {
           from: feeder
       });
-      console.log("=============================== 5");
   }
 
   async function redeploy() {

@@ -263,7 +263,9 @@ contract.only("RewardDelegators contract", async function (accounts) {
         let accPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
         let accMPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
         // data is fed to the oracle
-        await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // wait for 1 day
+        await increaseTime(1*86400);
         await feedData([registeredCluster1, registeredCluster2], 2);
         const cluster1Reward = await clusterRewards.clusterRewards(registeredCluster1);
         const cluster2Reward = await clusterRewards.clusterRewards(registeredCluster2);
@@ -299,7 +301,9 @@ contract.only("RewardDelegators contract", async function (accounts) {
         });
 
         await delegate(delegator3, [registeredCluster3], [4], [1000000]);
-        await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // wait 1 day
+        await increaseTime(1*86400);
         await feedData([registeredCluster3], 3);
         const clusterReward = await clusterRewards.clusterRewards(registeredCluster3);
         const clusterCommission = Math.floor(Number(clusterReward) / 100 * commission);
@@ -469,7 +473,9 @@ contract.only("RewardDelegators contract", async function (accounts) {
             web3.utils.keccak256(testTokenInstance.address), 5,
             {from: rewardDelegatorsOwner});
         await delegateToken(delegator3, [registeredCluster4], [10], testTokenInstance);
-        await skipBlocks(10);
+        // await skipBlocks(10);
+        // wait 1 day
+        await increaseTime(1*86400);
         await feedTokenData([registeredCluster4], testTokenInstance, 2);
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster4,
             { from: delegator3 });
@@ -491,7 +497,10 @@ contract.only("RewardDelegators contract", async function (accounts) {
         await rewardDelegators.removeRewardFactor(
             web3.utils.keccak256(testTokenInstance.address), {from: rewardDelegatorsOwner});
         await delegateToken(delegator4, [registeredCluster4], [10], testTokenInstance);
-        await skipBlocks(10);
+        // await skipBlocks(10);
+        // wait for 1 day
+        await increaseTime(1*86400);
+
         await feedTokenData([registeredCluster4], testTokenInstance, 3);
         await rewardDelegators.withdrawRewards(delegator4, registeredCluster4,
             { from: delegator4 });
@@ -629,3 +638,31 @@ contract.only("RewardDelegators contract", async function (accounts) {
         }
     }
 });
+
+async function increaseTime(time) {
+    return new Promise ((resolve, reject) => {
+        web3.currentProvider.send({
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [time],
+            id: 0,
+        }, (err, res) => {
+            if(err) {
+                reject(err)
+            } else {
+                web3.currentProvider.send({
+                    jsonrpc: '2.0',
+                    method: 'evm_mine',
+                    params: [],
+                    id: 0
+                }, (err, res) => {
+                    if(err) {
+                        reject(err)
+                    } else {
+                        resolve()
+                    }
+                });
+            }
+        })
+    });
+}
