@@ -20,6 +20,7 @@ const {BigNumber} = require("ethers/utils");
 const appConfig = require("../app-config");
 const truffleAssert = require("truffle-assertions");
 const {AddressZero} = require("ethers/constants");
+const {advanceTime} = require("./utils");
 
 let clusterRegistry;
 
@@ -152,7 +153,7 @@ contract.only("Staking Flow", async function (accounts) {
     await perfOracle.initialize(
       oracleOwner, // oracleOwner,
       rewardDelegators.address,
-      ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533",
+      [ethereumNetworkID,
       "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701",
       "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
       [100, 100, 100],
@@ -192,11 +193,11 @@ contract.only("Staking Flow", async function (accounts) {
       "StakeManager contract not whitelisted")
     );
 
-    await MPONDInstance.transfer(
-      perfOracle.address,
+    await PONDInstance.transfer(
+      rewardDelegators.address,
       appConfig.staking.rewardPerEpoch * 100,
       {
-        from: MPONDAccount,
+        from: bridge,
       }
     );
 
@@ -247,7 +248,7 @@ contract.only("Staking Flow", async function (accounts) {
   it("Delegator delegate and get rewards from a cluster", async () => {
     await clusterRegistry.register(
       ethereumNetworkID,
-      10,
+      0,
       registeredClusterRewardAddress,
       clientKey1,
       {
@@ -256,7 +257,7 @@ contract.only("Staking Flow", async function (accounts) {
     );
     await clusterRegistry.register(
       ethereumNetworkID,
-      5,
+      0,
       registeredClusterRewardAddress,
       clientKey2,
       {
@@ -295,16 +296,15 @@ contract.only("Staking Flow", async function (accounts) {
     console.log("======================= PondBalance1After: ", PondBalance1After.toString());
     console.log("======================== PondBalance1After.sub(PondBalance1Before).toString()",
       PondBalance1After.sub(PondBalance1Before).toString(),
-      appConfig.staking.rewardPerEpoch / 3
+      appConfig.staking.rewardPerEpoch / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)
     );
     assert.equal(
       PondBalance1After.sub(PondBalance1Before).toString(),
         parseInt(
-          appConfig.staking.rewardPerEpoch *
-            (((((2.0 / 3) * 9) / 10) * 1) / 6 +
-              ((((1.0 / 3) * 19) / 20) * 2) / 3) - 1
+          appConfig.staking.rewardPerEpoch / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1
         )
     );
+    await advanceTime(web3, 10000);
     // feed data again to the oracle
     await feedData([
       registeredCluster,
@@ -324,20 +324,14 @@ contract.only("Staking Flow", async function (accounts) {
     let PondBalance2After = await PONDInstance.balanceOf(delegator2);
     console.log(
       PondBalance2After.sub(PondBalance2Before).toString(),
-      appConfig.staking.rewardPerEpoch *
-        (((((2.0 / 3) * 9) / 10) * 5) / 6 +
-          ((((1.0 / 3) * 19) / 20) * 1) / 3 +
-          (((((7.0 / 12) * 9) / 10) * 5) / 7 +
-            ((((5.0 / 12) * 19) / 20) * 1) / 5)) - 1
+      appConfig.staking.rewardPerEpoch / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1 +
+      appConfig.staking.rewardPerEpoch / 3 * (14/24*1/2 + 10/24*1/2) - 1
     );
     assert(
       PondBalance2After.sub(PondBalance2Before).toString() ==
         parseInt(
-          appConfig.staking.rewardPerEpoch *
-            (((((2.0 / 3) * 9) / 10) * 5) / 6 +
-              ((((1.0 / 3) * 19) / 20) * 1) / 3 +
-              (((((7.0 / 12) * 9) / 10) * 5) / 7 +
-                ((((5.0 / 12) * 19) / 20) * 1) / 5)) - 1
+          appConfig.staking.rewardPerEpoch / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1 +
+          appConfig.staking.rewardPerEpoch / 3 * (14/24*1/2 + 10/24*1/2) - 1
         )
     );
   });
@@ -527,7 +521,7 @@ contract.only("Staking Flow", async function (accounts) {
       console.log("clusters, epoch: ", clusters, epoch);
       console.log(payouts);
       const feeder = await perfOracle.feeder();
-      await perfOracle.feed(ethereumNetworkID, clusters, payouts, epoch, {
+      const txHash = await perfOracle.feed(ethereumNetworkID, clusters, payouts, epoch, {
           from: feeder
       });
   }
