@@ -21,7 +21,7 @@ const appConfig = require("../../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 
-contract("Stake contract - testing storage upgrade", async function(accounts) {
+contract.only("Stake contract - testing storage upgrade", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
@@ -109,7 +109,8 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
             MPONDInstance.address,
             clusterRegistry.address,
             rewardDelegators.address,
-            stakeManagerOwner
+            stakeManagerOwner,
+            appConfig.staking.undelegationWaitTime
         );
 
         const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
@@ -118,7 +119,6 @@ contract("Stake contract - testing storage upgrade", async function(accounts) {
         await clusterRegistry.initialize(selectors, lockWaitTimes, clusterRegistryOwner);
 
         await rewardDelegators.initialize(
-            appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             perfOracle.address,
             clusterRegistry.address,

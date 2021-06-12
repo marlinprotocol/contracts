@@ -8,7 +8,7 @@ const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
-contract("BridgeCalculations2", function (accounts) {
+contract.only("BridgeCalculations2", function (accounts) {
   var token;
   var MPond;
   var bridge;
@@ -104,7 +104,7 @@ contract("BridgeCalculations2", function (accounts) {
         return token.balanceOf(bridge.address);
       })
       .then(function (bridgeBalance) {
-        assert(
+        assert.equal(
           bridgeBalance > 0,
           true,
           "Bridge balance should be not be zero for swaps"
@@ -136,14 +136,17 @@ contract("BridgeCalculations2", function (accounts) {
         return bridge.placeRequest(new web3Utils.BN("50"));
       })
       .then(async function () {
-        let effectiveLiquidity = await bridge.effectiveLiquidity();
-        let liquidityEpoch = await bridge.getLiquidityEpoch();
-        assert(
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        let effectiveLiquidity = await bridge.effectiveLiquidity(timestamp);
+        let liquidityEpoch = await bridge.getLiquidityEpoch(timestamp);
+        assert.equal(
           effectiveLiquidity == 0,
           true,
           "Effective liquidity should be 0 within 180 days"
         );
-        assert(
+        assert.equal(
           liquidityEpoch == 0,
           true,
           "liquidity epoch should be 0 within 180 days"
@@ -178,12 +181,18 @@ contract("BridgeCalculations2", function (accounts) {
       .then(function () {
         return addBlocks(2, accounts);
       })
-      .then(function () {
-        return bridge.effectiveLiquidity();
+      .then(async function () {
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.effectiveLiquidity(timestamp);
       })
-      .then(function (data) {
+      .then(async function (data) {
         effectiveLiquidity = data;
-        return bridge.getLiquidityEpoch();
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.getLiquidityEpoch(timestamp);
       })
       .then(function (data) {
         liquidityEpoch = data;
@@ -221,12 +230,18 @@ contract("BridgeCalculations2", function (accounts) {
     let liquidityEpoch;
     return bridge
       .changeLiquidityBp(new web3Utils.BN("1000"))
-      .then(function () {
-        return bridge.effectiveLiquidity();
+      .then(async function () {
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.effectiveLiquidity(timestamp);
       })
-      .then(function (data) {
+      .then(async function (data) {
         effectiveLiquidity = data;
-        return bridge.getLiquidityEpoch();
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.getLiquidityEpoch(timestamp);
       })
       .then(function (data) {
         liquidityEpoch = data;
@@ -403,8 +418,11 @@ contract("BridgeCalculations2", function (accounts) {
       .then(function () {
         return addBlocks(2, accounts);
       })
-      .then(function () {
-        return bridge.effectiveLiquidity();
+      .then(async function () {
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.effectiveLiquidity(timestamp);
       })
       .then(function (data) {
         assert.equal(data, 2000, "Effective liquidity should be 2000");
@@ -416,8 +434,11 @@ contract("BridgeCalculations2", function (accounts) {
       .then(function () {
         return addBlocks(2, accounts);
       })
-      .then(function () {
-        return bridge.effectiveLiquidity();
+      .then(async function () {
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.effectiveLiquidity(timestamp);
       })
       .then(function (data) {
         assert.equal(data, 4000, "Effective liquidity should be 4000");
@@ -432,8 +453,11 @@ contract("BridgeCalculations2", function (accounts) {
       .then(function () {
         return bridge.changeLiquidityBp(new web3Utils.BN("1500"));
       })
-      .then(function () {
-        return bridge.effectiveLiquidity();
+      .then(async function () {
+        let blockNum = await web3.eth.getBlockNumber()
+        let block = await web3.eth.getBlock(blockNum)
+        let timestamp = block['timestamp']
+        return bridge.effectiveLiquidity(timestamp);
       })
       .then(function (data) {
         assert.equal(data, 3000, "Effective liquidity should be 3000");

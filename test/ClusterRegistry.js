@@ -3,7 +3,7 @@ const truffleAssert = require("truffle-assertions");
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
-contract("ClusterRegistry contract", async function(accounts) {
+contract.only("ClusterRegistry contract", async function(accounts) {
     let clusterRegistry;
 
     const proxyAdmin = accounts[1];
@@ -153,9 +153,9 @@ contract("ClusterRegistry contract", async function(accounts) {
             from: registeredCluster
         });
         assert((await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster shouldn't be unregistered instantly");
-        await skipBlocks(22);
+        await skipBlocks(21);
         assert((await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster shouldn't be unregistered before wait time");
-        await skipBlocks(1);
+        await skipBlocks(2);
         assert(!(await clusterRegistry.isClusterValid.call(registeredCluster)), "Cluster should get unregistered after wait time");
     });
 
