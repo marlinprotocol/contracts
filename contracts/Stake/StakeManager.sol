@@ -6,7 +6,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "./IRewardDelegators.sol";
 import "../governance/MPondLogic.sol";
-import "./IClusterRegistry.sol";
 
 
 contract StakeManager is Initializable, Ownable {
@@ -33,7 +32,7 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Token) tokenAddresses;
     MPondLogic MPOND;
     MPondLogic prevMPOND;
-    IClusterRegistry clusterRegistry;
+    address _unused_1;
     IRewardDelegators public rewardDelegators;
     // new variables
     struct Lock {
@@ -44,7 +43,6 @@ contract StakeManager is Initializable, Ownable {
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
-
     uint256 public undelegationWaitTime;
 
     event StashCreated(
@@ -81,7 +79,6 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
         address _MPONDTokenAddress,
-        address _clusterRegistryAddress,
         address _rewardDelegatorsAddress,
         address _owner,
         uint256 _undelegationWaitTime)
@@ -96,20 +93,19 @@ contract StakeManager is Initializable, Ownable {
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPondLogic(_MPONDTokenAddress);
-        clusterRegistry = IClusterRegistry(_clusterRegistryAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         undelegationWaitTime = _undelegationWaitTime;
         super.initialize(_owner);
     }
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) public onlyOwner {
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
     }
 
     function changeMPONDTokenAddress(
         address _MPONDTokenAddress
-    ) public onlyOwner {
+    ) external onlyOwner {
         prevMPOND = MPOND;
         MPOND = MPondLogic(_MPONDTokenAddress);
         emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
@@ -117,25 +113,16 @@ contract StakeManager is Initializable, Ownable {
 
     function updateRewardDelegators(
         address _updatedRewardDelegator
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
     }
 
-    function updateClusterRegistry(
-        address _updatedClusterRegistry
-    ) public onlyOwner {
-        require(
-            _updatedClusterRegistry != address(0)
-        );
-        clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
-    }
-
     function updateUndelegationWaitTime(
         uint256 _undelegationWaitTime
-    ) public onlyOwner {
+    ) external onlyOwner {
         undelegationWaitTime = _undelegationWaitTime;
         emit UndelegationWaitTimeUpdated(_undelegationWaitTime);
     }
@@ -143,7 +130,7 @@ contract StakeManager is Initializable, Ownable {
     function enableToken(
         bytes32 _tokenId,
         address _address
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             !tokenAddresses[_tokenId].isActive
         );
@@ -154,7 +141,7 @@ contract StakeManager is Initializable, Ownable {
 
     function disableToken(
         bytes32 _tokenId
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(
             tokenAddresses[_tokenId].isActive
         );
@@ -211,9 +198,9 @@ contract StakeManager is Initializable, Ownable {
 
     function addToStash(
         bytes32 _stashId,
-        bytes32[] memory _tokens,
-        uint256[] memory _amounts
-    ) public {
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts
+    ) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -254,7 +241,7 @@ contract StakeManager is Initializable, Ownable {
             "DS1"
         );
         require(
-            clusterRegistry.isClusterValid(_delegatedCluster),
+            _delegatedCluster != address(0),
             "DS2"
         );
         require(
@@ -285,6 +272,10 @@ contract StakeManager is Initializable, Ownable {
         require(
             _stash.delegatedCluster != address(0),
             "RSR2"
+        );
+        require(
+            _newCluster != address(0),
+            "RSR3"
         );
         uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
         emit RedelegationRequested(_stashId, _stash.delegatedCluster, _newCluster, _redelegationBlock);
@@ -318,7 +309,7 @@ contract StakeManager is Initializable, Ownable {
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
-            _unlockBlock <= block.number,
+            _unlockBlock != 0 && _unlockBlock <= block.number,
             "RS2"
         );
         address _updatedCluster = address(locks[_lockId].iValue);
@@ -332,10 +323,6 @@ contract StakeManager is Initializable, Ownable {
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
-        require(
-            clusterRegistry.isClusterValid(_updatedCluster),
-            "IRS1"
-        );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
@@ -389,7 +376,7 @@ contract StakeManager is Initializable, Ownable {
         stashIndex = _stashIndex + 1;
     }
 
-    function mergeStash(bytes32 _stashId1, bytes32 _stashId2) public {
+    function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external {
         require(_stashId1 != _stashId2, "MS1");
         Stash memory _stash1 = stashes[_stashId1];
         Stash memory _stash2 = stashes[_stashId2];
@@ -503,7 +490,7 @@ contract StakeManager is Initializable, Ownable {
         _redelegateStash(_stashId, _staker, address(0), _delegatedCluster);
     }
 
-    function withdrawStash(bytes32 _stashId) public {
+    function withdrawStash(bytes32 _stashId) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -534,9 +521,9 @@ contract StakeManager is Initializable, Ownable {
 
     function withdrawStash(
         bytes32 _stashId,
-        bytes32[] memory _tokens,
-        uint256[] memory _amounts
-    ) public {
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts
+    ) external {
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -618,7 +605,7 @@ contract StakeManager is Initializable, Ownable {
         );
     }
 
-    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) public view returns(uint256) {
+    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
         return stashes[_stashId].amount[_tokenId];
     }
 }

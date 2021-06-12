@@ -19,6 +19,7 @@ const ClusterRewards = artifacts.require("ClusterRewards.sol");
 const ClusterRewardsProxy = artifacts.require("ClusterRewardsProxy.sol");
 
 const appConfig = require("../app-config");
+const utils = require("./utils");
 
 let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegators, clusterRewards;
 let PONDTokenId, MPONDTokenId;
@@ -38,6 +39,7 @@ contract.only("ClusterRewards contract", async function (accounts) {
 
     const registeredCluster = accounts[11];
     const registeredClusterRewardAddress = accounts[12];
+    const registeredClusterClientKey = accounts[19];
     const registeredCluster1 = accounts[15];
     const registeredClusterRewardAddress1 = accounts[16];
     const clientKey1 = accounts[13];
@@ -138,7 +140,7 @@ contract.only("ClusterRewards contract", async function (accounts) {
 
         await PONDInstance.mint(accounts[0], new web3.utils.BN("100000000000000000000"));
 
-        await PONDInstance.transfer(clusterRewards.address, appConfig.staking.rewardPerEpoch * 100);
+        await PONDInstance.transfer(rewardDelegators.address, appConfig.staking.rewardPerEpoch * 100);
 
         // initialize contract and check if all variables are correctly set
         assert((await clusterRewards.feeder()) == feeder, "feeder not initalized correctly");
@@ -213,7 +215,7 @@ contract.only("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.rewardWeight(networkId)), updateRewardWeight);
     });
 
-    it("feed", async () => {
+    it("feed cluster reward", async () => {
         let commission = 10;
         let networkId = web3.utils.keccak256("BSC");
 
@@ -229,7 +231,31 @@ contract.only("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster)), 3125);
     });
 
+    it("should revert when cluster rewards are more than total rewards distributed per epoch", async () => {
+        await utils.advanceTime(web3, 24*60*60);
+        // change the reward per epoch then feed
+        await clusterRewards.changeRewardPerEpoch(1, {from: clusterRewardsOwner});
+        await delegate(delegator, [registeredCluster], [1], [2000000]);
+
+        // cluster reward more than total reward per epoch
+        await truffleAssert.reverts(feedData([registeredCluster], 0),
+        "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
+
+        // change the epoch reward to 10000
+        await clusterRewards.changeRewardPerEpoch(appConfig.staking.rewardPerEpoch,
+            {from: clusterRewardsOwner});
+        await utils.advanceTime(web3, 24*60*60);
+    });
+
+    it("feed rewards for epoch 1 & 2 simultaneously", async () => {
+        await utils.advanceTime(web3, 24*60*60);
+        await feedData([registeredCluster], 1);
+        await truffleAssert.reverts(feedData([registeredCluster], 2),
+        "CRW:F-Cant distribute reward for new epoch within such short interva");
+    });
+
     it("add new network then feed then remove network then feed again", async () => {
+        await utils.advanceTime(web3, 24*60*60);
         const networkId = web3.utils.keccak256("testnet");
         const rewardWeight = 10;
         let commission = 10;
@@ -243,17 +269,17 @@ contract.only("ClusterRewards contract", async function (accounts) {
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 0);
 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1], 1);
+        await feedData([registeredCluster1], 3);
         assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3030);
         await clusterRewards.removeNetwork(networkId, { from: clusterRewardsOwner });
-
+        await utils.advanceTime(web3, 24*60*60);
         // transfer some rewards to rewardDelegators
         await PONDInstance.transfer(rewardDelegators.address, 1000000);
 
         // feed again the cluster reward increases 
         await delegate(delegator, [registeredCluster1], [1], [2000000]);
-        await feedData([registeredCluster1], 2);
-        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3126);
+        await feedData([registeredCluster1], 4);
+        assert.equal(Number(await clusterRewards.clusterRewards(registeredCluster1)), 3126  );
     });
 
     it("add new network then feed then update reward to 0 then feed again", async () => {
@@ -261,9 +287,13 @@ contract.only("ClusterRewards contract", async function (accounts) {
         const updateRewardWeight = 0;
 
         await truffleAssert.reverts(
-            clusterRewards.changeNetworkReward(networkId, updateRewardWeight,
-                { from: clusterRewardsOwner }),
-            "CRW:CNR-Network doesnt exist");
+            clusterRewards.changeNetworkReward(
+                networkId, 
+                updateRewardWeight,
+                { from: clusterRewardsOwner }
+            ),
+            "CRW:CNR-Network doesnt exist"
+        );
     });
 
     it("delegate then claim reward", async () => {
