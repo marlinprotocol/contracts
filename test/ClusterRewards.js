@@ -25,7 +25,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract("ClusterRewards contract", async function (accounts) {
+contract.only("ClusterRewards contract", async function (accounts) {
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
     const bridge = accounts[3];
@@ -42,10 +42,8 @@ contract("ClusterRewards contract", async function (accounts) {
     const registeredClusterClientKey = accounts[19];
     const registeredCluster1 = accounts[15];
     const registeredClusterRewardAddress1 = accounts[16];
-    const registeredClusterClientKey1 = accounts[20];
-    const registeredCluster2 = accounts[17];
-    const registeredClusterRewardAddress2 = accounts[18];
-    const registeredClusterClientKey2 = accounts[21];
+    const clientKey1 = accounts[13];
+    const clientKey2 = accounts[17];
     const delegator = accounts[14];
 
     it("Initialize contract", async () => {
@@ -113,11 +111,11 @@ contract("ClusterRewards contract", async function (accounts) {
             clusterRegistry.address,
             rewardDelegatorsOwner,
             appConfig.staking.minMPONDStake,
-            web3.utils.keccak256(MPONDInstance.address),
+            web3.utils.keccak256("MPOND"),
             PONDInstance.address,
             [PONDTokenId, MPONDTokenId],
             [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
-        );
+        )
 
         await clusterRewards.initialize(
             clusterRewardsOwner, // oracleOwner,
@@ -221,7 +219,7 @@ contract("ClusterRewards contract", async function (accounts) {
         let commission = 10;
         let networkId = web3.utils.keccak256("BSC");
 
-        await clusterRegistry.register(networkId, commission, registeredClusterRewardAddress, registeredClusterClientKey, {
+        await clusterRegistry.register(networkId, commission, registeredClusterRewardAddress, clientKey1, {
             from: registeredCluster
         });
 
@@ -263,7 +261,8 @@ contract("ClusterRewards contract", async function (accounts) {
         let commission = 10;
 
         await clusterRewards.addNetwork(networkId, rewardWeight, { from: clusterRewardsOwner });
-        await clusterRegistry.register(networkId, commission, registeredClusterRewardAddress1, registeredClusterClientKey1, {
+        await clusterRegistry.register(networkId,
+            commission, registeredClusterRewardAddress1, clientKey2, {
             from: registeredCluster1
         });
 

@@ -28,7 +28,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract("RewardDelegators contract", async function (accounts) {
+contract.only("RewardDelegators contract", async function (accounts) {
 
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
@@ -52,7 +52,11 @@ contract("RewardDelegators contract", async function (accounts) {
     const registeredCluster4 = accounts[25];
     const registeredCluster4RewardAddress = accounts[26];
     const unregisteredCluster = accounts[19];
-    const clientKey = accounts[20];
+    const clientKey1 = accounts[20];
+    const clientKey2 = accounts[30];
+    const clientKey3 = accounts[27];
+    const clientKey4 = accounts[28];
+    const clientKey5 = accounts[29];
     const delegator = accounts[21];
     const delegator1 = accounts[22];
     const delegator2 = accounts[23];
@@ -110,7 +114,8 @@ contract("RewardDelegators contract", async function (accounts) {
             MPONDInstance.address,
             clusterRegistry.address,
             rewardDelegators.address,
-            stakeManagerOwner
+            stakeManagerOwner,
+            appConfig.staking.undelegationWaitTime
         );
 
         const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
@@ -119,22 +124,21 @@ contract("RewardDelegators contract", async function (accounts) {
         await clusterRegistry.initialize(selectors, lockWaitTimes, clusterRegistryOwner);
 
         await rewardDelegators.initialize(
-            appConfig.staking.undelegationWaitTime,
             stakeContract.address,
-            clusterRewards.address,
+            clusterRewards.address, // oracle
             clusterRegistry.address,
             rewardDelegatorsOwner,
             appConfig.staking.minMPONDStake,
-            web3.utils.keccak256(MPONDInstance.address),
+            MPONDTokenId,
             PONDInstance.address,
             [PONDTokenId, MPONDTokenId],
             [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
-        );
+        )
 
         await clusterRewards.initialize(
             clusterRewardsOwner, // oracleOwner,
             rewardDelegators.address,
-            ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
+            ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533","0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701","0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
             [100, 100, 100],
             appConfig.staking.rewardPerEpoch,
             PONDInstance.address,
@@ -152,11 +156,10 @@ contract("RewardDelegators contract", async function (accounts) {
 
         await PONDInstance.transfer(clusterRewards.address, appConfig.staking.rewardPerEpoch * 100);
         // initialize contract and check if all variables are correctly set(including admin)
-        assert((await rewardDelegators.undelegationWaitTime()) == appConfig.staking.undelegationWaitTime, "Undelegation wait time not initalized correctly");
+        assert((await stakeContract.undelegationWaitTime()) == appConfig.staking.undelegationWaitTime, "Undelegation wait time not initalized correctly");
         assert((await rewardDelegators.minMPONDStake()) == appConfig.staking.minMPONDStake, "minMPONDStake not initalized correctly");
         // reverts if initialized again
         await truffleAssert.reverts(rewardDelegators.initialize(
-            appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             clusterRewards.address,
             clusterRegistry.address,
@@ -169,15 +172,15 @@ contract("RewardDelegators contract", async function (accounts) {
         ));
     });
 
-    it("Add reward factor", async () => {
+    it.skip("Add reward factor", async () => {
         // TODO: Not being used as of now, but add test cases later
     });
 
-    it("remove reward factor", async () => {
+    it.skip("remove reward factor", async () => {
         // TODO: Not being used as of now, but add test cases later
     });
 
-    it("update reward factor", async () => {
+    it.skip("update reward factor", async () => {
         // TODO: Not being used as of now, but add test cases later
     });
 
@@ -201,7 +204,7 @@ contract("RewardDelegators contract", async function (accounts) {
 
         // Check For Correct Update Case
         const commission = 5;
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredClusterRewardAddress, clientKey, {
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredClusterRewardAddress, clientKey1, {
             from: registeredCluster
         });
 
@@ -221,33 +224,37 @@ contract("RewardDelegators contract", async function (accounts) {
         assert.equal(Number(accPondRewardPerShareBefore), 0);
         assert.equal(Number(accMPondRewardPerShareBefore), 0);
 
+        const rewardDelegatorsBal = await PONDInstance.balanceOf(rewardDelegators.address);
+
+        // transfer POND for rewards
+        await PONDInstance.transfer(rewardDelegators.address, appConfig.staking.rewardPerEpoch*100);
         await rewardDelegators._updateRewards(registeredCluster, { from: rewardDelegatorsOwner });
 
         // Checking Cluster Reward
         const cluster1UpdatedRewardNew = await clusterRewards.clusterRewards(registeredCluster);
-        assert.equal(Number(cluster1UpdatedRewardNew), 0);
+        assert.equal(Number(cluster1UpdatedRewardNew), 1);
 
         // Checking Cluster Commission
         const rewardAddrNewBalance = await PONDInstance.balanceOf(registeredClusterRewardAddress);
         assert(rewardAddrOldBalance != rewardAddrNewBalance);
 
-        // the actual rewardAddrNewBalance is 166.65 but due to solidity uint, it'll only be 166
+        // the actual rewardAddrNewBalance is 166.65 but due to solidity uint, it'll be 166
         assert.equal(Number(rewardAddrNewBalance), Math.floor(Number(clusterUpdatedReward) / 100 * commission));
 
         // Checking cluster Acc Reward
         const accPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, PONDTokenId);
         const accMPondRewardPerShareAfter = await rewardDelegators.getAccRewardPerShare(registeredCluster, MPONDTokenId);
-        assert.equal(String(accPondRewardPerShareAfter), "1583500000000000000000000000");
+        assert.equal(String(accPondRewardPerShareAfter), "1583000000000000000000000000");
         assert.equal(String(accMPondRewardPerShareAfter), "0");
     });
 
     it("delegate to cluster", async () => {
         // delegate to an  invalid cluster
         // delegate to a 
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), 0, registeredCluster1RewardAddress, clientKey, {
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), 0, registeredCluster1RewardAddress, clientKey2, {
             from: registeredCluster1
         });
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), 0, registeredCluster2RewardAddress, clientKey, {
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), 0, registeredCluster2RewardAddress, clientKey3, {
             from: registeredCluster2
         });
         // 2 users delegate tokens to a cluster - one twice the other
@@ -256,7 +263,9 @@ contract("RewardDelegators contract", async function (accounts) {
         let accPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, PONDTokenId);
         let accMPondRewardPerShareBefore = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
         // data is fed to the oracle
-        await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // wait for 1 day
+        await increaseTime(1*86400);
         await feedData([registeredCluster1, registeredCluster2], 2);
         const cluster1Reward = await clusterRewards.clusterRewards(registeredCluster1);
         const cluster2Reward = await clusterRewards.clusterRewards(registeredCluster2);
@@ -272,7 +281,9 @@ contract("RewardDelegators contract", async function (accounts) {
         let accMPondRewardPerShare = await rewardDelegators.getAccRewardPerShare(registeredCluster1, MPONDTokenId);
         console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
         console.log(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)), appConfig.staking.rewardPerEpoch / 3);
-        assert(PondBalance1After.sub(PondBalance1Before).toString() == parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)));
+        
+        // substract 1 from the delegator rewards according to contract changes?
+        assert.equal(PondBalance1After.sub(PondBalance1Before).toString(), parseInt(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2))-1);
         // feed data again to the oracle
         // await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
         // // do some delegations for both users to the cluster
@@ -285,15 +296,17 @@ contract("RewardDelegators contract", async function (accounts) {
 
     it("withdraw reward", async () => {
         const commission = 10;
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredCluster3RewardAddress, clientKey, {
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), commission, registeredCluster3RewardAddress, clientKey4, {
             from: registeredCluster3
         });
 
         await delegate(delegator3, [registeredCluster3], [4], [1000000]);
-        await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+        // wait 1 day
+        await increaseTime(1*86400);
         await feedData([registeredCluster3], 3);
         const clusterReward = await clusterRewards.clusterRewards(registeredCluster3);
-        const clusterCommission = Math.floor(Number(clusterReward) / 100 * commission);
+        const clusterCommission = Math.ceil(Number(clusterReward) / 100 * commission);
 
         const delegatorOldBalance = await PONDInstance.balanceOf(delegator3);
         assert.equal(Number(delegatorOldBalance), 0);
@@ -301,7 +314,7 @@ contract("RewardDelegators contract", async function (accounts) {
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster3, { from: delegator3 });
 
         const delegatorNewBalance = await PONDInstance.balanceOf(delegator3);
-        assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission);
+        assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission -1);
     });
 
     it("update MPOND Token id", async () => {
@@ -378,7 +391,8 @@ contract("RewardDelegators contract", async function (accounts) {
             MPONDInstance.address,
             clusterRegistry.address,
             rewardDelegators.address,
-            stakeManagerOwner
+            stakeManagerOwner,
+            appConfig.staking.undelegationWaitTime
         );
 
         const selectors = [web3.utils.keccak256("COMMISSION_LOCK"), web3.utils.keccak256("SWITCH_NETWORK_LOCK"), web3.utils.keccak256("UNREGISTER_LOCK")];
@@ -387,7 +401,6 @@ contract("RewardDelegators contract", async function (accounts) {
         await clusterRegistry.initialize(selectors, lockWaitTimes, clusterRegistryOwner);
 
         await rewardDelegators.initialize(
-            appConfig.staking.undelegationWaitTime,
             stakeContract.address,
             clusterRewards.address,
             clusterRegistry.address,
@@ -421,7 +434,7 @@ contract("RewardDelegators contract", async function (accounts) {
         await PONDInstance.transfer(clusterRewards.address, appConfig.staking.rewardPerEpoch * 100);
 
         // register cluster
-        await clusterRegistry.register(web3.utils.keccak256("DOT"), 10, registeredCluster4RewardAddress, clientKey, {
+        await clusterRegistry.register(web3.utils.keccak256("DOT"), 10, registeredCluster4RewardAddress, clientKey5, {
             from: registeredCluster4
         });
 
@@ -436,6 +449,9 @@ contract("RewardDelegators contract", async function (accounts) {
         // cluster reward
         const cluster4Reward = await clusterRewards.clusterRewards(registeredCluster4);
         assert(cluster4Reward.toString() == 10000);
+
+        // transfer POND for rewards
+        await PONDInstance.transfer(rewardDelegators.address, appConfig.staking.rewardPerEpoch*100);
         await rewardDelegators.withdrawRewards(delegator1, registeredCluster4, { from: delegator1 });
 
         // delegator reward
@@ -444,7 +460,7 @@ contract("RewardDelegators contract", async function (accounts) {
     });
 
     it("delegate tokens then update reward factor then delegate again", async () => {
-
+        const rewardDelegatorsOwner = await rewardDelegators.owner();
         const delegatorBalBefore = await PONDInstance.balanceOf(delegator3);
         assert(delegatorBalBefore.toString() == 0);
 
@@ -457,7 +473,9 @@ contract("RewardDelegators contract", async function (accounts) {
             web3.utils.keccak256(testTokenInstance.address), 5,
             {from: rewardDelegatorsOwner});
         await delegateToken(delegator3, [registeredCluster4], [10], testTokenInstance);
-        await skipBlocks(10);
+        // await skipBlocks(10);
+        // wait 1 day
+        await increaseTime(1*86400);
         await feedTokenData([registeredCluster4], testTokenInstance, 2);
         await rewardDelegators.withdrawRewards(delegator3, registeredCluster4,
             { from: delegator3 });
@@ -467,6 +485,7 @@ contract("RewardDelegators contract", async function (accounts) {
     });
 
     it("delegate tokens then remove reward factor then delegate again", async () => {
+        const rewardDelegatorsOwner = await rewardDelegators.owner();
         const delegatorBalBefore = await PONDInstance.balanceOf(delegator4);
         assert(delegatorBalBefore.toString() == 0);
 
@@ -478,7 +497,10 @@ contract("RewardDelegators contract", async function (accounts) {
         await rewardDelegators.removeRewardFactor(
             web3.utils.keccak256(testTokenInstance.address), {from: rewardDelegatorsOwner});
         await delegateToken(delegator4, [registeredCluster4], [10], testTokenInstance);
-        await skipBlocks(10);
+        // await skipBlocks(10);
+        // wait for 1 day
+        await increaseTime(1*86400);
+
         await feedTokenData([registeredCluster4], testTokenInstance, 3);
         await rewardDelegators.withdrawRewards(delegator4, registeredCluster4,
             { from: delegator4 });
@@ -616,3 +638,31 @@ contract("RewardDelegators contract", async function (accounts) {
         }
     }
 });
+
+async function increaseTime(time) {
+    return new Promise ((resolve, reject) => {
+        web3.currentProvider.send({
+            jsonrpc: "2.0",
+            method: "evm_increaseTime",
+            params: [time],
+            id: 0,
+        }, (err, res) => {
+            if(err) {
+                reject(err)
+            } else {
+                web3.currentProvider.send({
+                    jsonrpc: '2.0',
+                    method: 'evm_mine',
+                    params: [],
+                    id: 0
+                }, (err, res) => {
+                    if(err) {
+                        reject(err)
+                    } else {
+                        resolve()
+                    }
+                });
+            }
+        })
+    });
+}
