@@ -264,7 +264,7 @@ contract RewardDelegators is Initializable, Ownable {
         _updateTokens(_delegator, _cluster, _tokens, _amounts, false);
     }
 
-    function withdrawRewards(address _delegator, address _cluster) external returns(uint256) {
+    function withdrawRewards(address _delegator, address _cluster) public returns(uint256) {
         return _updateTokens(_delegator, _cluster, tokenList, new uint256[](tokenList.length), true);
     }
 
