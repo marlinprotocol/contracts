@@ -93,7 +93,6 @@ contract.only("ClusterRewards contract", async function (accounts) {
             [PONDTokenId, MPONDTokenId],
             [PONDInstance.address, MPONDInstance.address],
             MPONDInstance.address,
-            clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner,
             appConfig.staking.undelegationWaitTime

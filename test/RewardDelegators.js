@@ -112,7 +112,6 @@ contract.only("RewardDelegators contract", async function (accounts) {
             [PONDTokenId, MPONDTokenId],
             [PONDInstance.address, MPONDInstance.address],
             MPONDInstance.address,
-            clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner,
             appConfig.staking.undelegationWaitTime
@@ -311,7 +310,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         const delegatorOldBalance = await PONDInstance.balanceOf(delegator3);
         assert.equal(Number(delegatorOldBalance), 0);
 
-        await rewardDelegators.withdrawRewards(delegator3, registeredCluster3, { from: delegator3 });
+        await rewardDelegators.withdrawRewards(delegator3, [registeredCluster3], { from: delegator3 });
 
         const delegatorNewBalance = await PONDInstance.balanceOf(delegator3);
         assert.equal(Number(delegatorNewBalance), Number(clusterReward) - clusterCommission -1);
@@ -389,7 +388,6 @@ contract.only("RewardDelegators contract", async function (accounts) {
             [testTokenId],
             [testTokenInstance.address],
             MPONDInstance.address,
-            clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner,
             appConfig.staking.undelegationWaitTime
@@ -452,7 +450,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
 
         // transfer POND for rewards
         await PONDInstance.transfer(rewardDelegators.address, appConfig.staking.rewardPerEpoch*100);
-        await rewardDelegators.withdrawRewards(delegator1, registeredCluster4, { from: delegator1 });
+        await rewardDelegators.withdrawRewards(delegator1, [registeredCluster4], { from: delegator1 });
 
         // delegator reward
         const delegator1AfterBalance = await PONDInstance.balanceOf(delegator1);
@@ -477,7 +475,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         // wait 1 day
         await increaseTime(1*86400);
         await feedTokenData([registeredCluster4], testTokenInstance, 2);
-        await rewardDelegators.withdrawRewards(delegator3, registeredCluster4,
+        await rewardDelegators.withdrawRewards(delegator3, [registeredCluster4],
             { from: delegator3 });
         
         const delegatorBalAfter = await PONDInstance.balanceOf(delegator3);
@@ -502,7 +500,7 @@ contract.only("RewardDelegators contract", async function (accounts) {
         await increaseTime(1*86400);
 
         await feedTokenData([registeredCluster4], testTokenInstance, 3);
-        await rewardDelegators.withdrawRewards(delegator4, registeredCluster4,
+        await rewardDelegators.withdrawRewards(delegator4, [registeredCluster4],
             { from: delegator4 });
         
         const delegatorBalAfter = await PONDInstance.balanceOf(delegator4);

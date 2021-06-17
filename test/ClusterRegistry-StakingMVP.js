@@ -123,7 +123,6 @@ contract.only("Staking Flow", async function (accounts) {
       [PONDTokenId, MPONDTokenId],
       [PONDInstance.address, MPONDInstance.address],
       MPONDInstance.address,
-      clusterRegistry.address,
       rewardDelegators.address,
       stakeManagerOwner,
       appConfig.staking.undelegationWaitTime
@@ -357,8 +356,8 @@ contract.only("Staking Flow", async function (accounts) {
       // transfer POND for rewards
       await PONDInstance.transfer(rewardDelegators.address, appConfig.staking.rewardPerEpoch*100);
 
-      await rewardDelegators.withdrawRewards(delegator3, registeredCluster3);
-      await rewardDelegators.withdrawRewards(delegator3, registeredCluster4);
+      await rewardDelegators.withdrawRewards(delegator3, [registeredCluster3]);
+      await rewardDelegators.withdrawRewards(delegator3, [registeredCluster4]);
       let PondBalance3After = await PONDInstance.balanceOf(delegator3);
       console.log(PondBalance3After.sub(PondBalance3Before).toString(), appConfig.staking.rewardPerEpoch/3);
       // assert(PondBalance3After.sub(PondBalance3Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*(2.0/3*9/10*1/6+1.0/3*19/20*2/3)));
@@ -574,7 +573,6 @@ contract.only("Staking Flow", async function (accounts) {
         [PONDTokenId, MPONDTokenId],
         [PONDInstance.address, MPONDInstance.address],
         MPONDInstance.address,
-        clusterRegistry.address,
         rewardDelegators.address,
         stakeManagerOwner,
         appConfig.staking.undelegationWaitTime

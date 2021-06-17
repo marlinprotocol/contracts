@@ -107,7 +107,6 @@ contract.only("Stake contract - testing storage upgrade", async function(account
             [PONDTokenId, MPONDTokenId],
             [PONDInstance.address, MPONDInstance.address],
             MPONDInstance.address,
-            clusterRegistry.address,
             rewardDelegators.address,
             stakeManagerOwner,
             appConfig.staking.undelegationWaitTime
