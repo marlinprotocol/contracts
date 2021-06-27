@@ -164,6 +164,7 @@ contract BridgeLogic is Initializable {
         uint256 amountInRequests = totalAmountPlacedInRequests[msg.sender];
         uint256 amountOnWhichRequestCanBePlaced = mpond
             .balanceOf(msg.sender)
+            .add(mpond.delegates(0xCBB94D13fB90C28368E4358f3EccE248ae4B6c82, msg.sender))
             .sub(amountInRequests);
         require(
             amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
