@@ -26,6 +26,8 @@ contract BridgeLogic is Initializable {
     uint256 public startTime;
     uint256 public liquidityStartTime;
 
+    address public stakingContract;
+
     struct Requests {
         uint256 amount;
         uint256 releaseEpoch;
@@ -62,6 +64,14 @@ contract BridgeLogic is Initializable {
         liquidityBp = 1000;
         lockTimeEpochs = 180;
         liquidityEpochLength = 180 days;
+    }
+
+    function changeStakingContract(address _newAddr) external {
+        require(
+            msg.sender == owner || msg.sender == governanceProxy,
+            "Liquidity can be only changed by governance or owner"
+        );
+        stakingContract = _newAddr;
     }
 
     function changeLiquidityBp(uint256 _newLbp) external {
@@ -164,7 +174,7 @@ contract BridgeLogic is Initializable {
         uint256 amountInRequests = totalAmountPlacedInRequests[msg.sender];
         uint256 amountOnWhichRequestCanBePlaced = mpond
             .balanceOf(msg.sender)
-            .add(mpond.delegates(0xCBB94D13fB90C28368E4358f3EccE248ae4B6c82, msg.sender))
+            .add(mpond.delegates(stakingContract, msg.sender))
             .sub(amountInRequests);
         require(
             amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
