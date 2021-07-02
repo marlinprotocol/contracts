@@ -25,7 +25,7 @@ let PONDInstance, MPONDInstance, stakeContract, clusterRegistry, rewardDelegator
 let PONDTokenId, MPONDTokenId;
 const commissionLockWaitTime = 20, swtichNetworkLockTime = 21, unregisterLockWaitTime = 22;
 
-contract.only("ClusterRewards contract", async function (accounts) {
+contract("ClusterRewards contract", async function (accounts) {
     const proxyAdmin = accounts[1];
     const MPONDAccount = accounts[2];
     const bridge = accounts[3];
