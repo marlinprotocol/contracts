@@ -131,7 +131,7 @@ contract("Bridge", async (accounts) => {
 });
 
 
-contract("Bridge", async (accounts) => {
+contract.only("Bridge", async (accounts) => {
     it("should convert mpond to pond as per table", async () => {
         let bridge = await BridgeLogic.at((await BridgeProxy.deployed()).address);
         let mpond = await MPondLogic.at((await MPondProxy.deployed()).address);
@@ -504,6 +504,7 @@ contract.only("Bridge", async (accounts) => {
         });
 
         await bridge.changeLiquidityBp(0, { from: accounts[5] });
+        await bridge.changeStakingContract(stakeContract.address, { from: accounts[5] });
         const amount = "1000"+z18;
         
         await MPONDInstance.transfer(accounts[1], amount, {
@@ -511,10 +512,224 @@ contract.only("Bridge", async (accounts) => {
         });
         await MPONDInstance.approve(stakeContract.address, amount, { from: accounts[1] });
         await stakeContract.createStash([MPONDTokenId], [amount], { from: accounts[1] });
+        // const deleAmt = await MPONDInstance.delegates(stakeContract.address, accounts[1]);
 
         // Day -1
-        await MPONDInstance.approve(bridge.address, amount, { from: accounts[1] })
+        await MPONDInstance.approve(bridge.address, amount, { from: accounts[1] });
+
+        // Day 0
+
+        await expectRevert(
+            bridge.placeRequest("1100"+z18, { from: accounts[1] }),
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
+        )
+
         await bridge.placeRequest("900"+z18, { from: accounts[1] })
+
+        // Day 30
+        await increaseTime(30*86400);
+
+        await bridge.placeRequest("50"+z18, { from: accounts[1] })
+
+        // Day 31
+        await increaseTime(1*86400);
+
+        await expectRevert(
+            bridge.placeRequest("100"+z18, { from: accounts[1] }),
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
+        )
+
+        // Day 180
+        await increaseTime(149*86400);
+
+        await expectRevert(
+            bridge.convert(0, "950"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await bridge.convert(0, "85"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await MPONDInstance.balanceOf(accounts[1]),
+            "915"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(accounts[1]),
+            "85"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await MPONDInstance.balanceOf(bridge.address),
+            "7085"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(bridge.address),
+            "915"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(500, { from: accounts[5] });
+        await expectRevert(
+            bridge.convert(0, "2"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await bridge.convert(0, "2"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await MPONDInstance.balanceOf(accounts[1]),
+            "913"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(accounts[1]),
+            "87"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await MPONDInstance.balanceOf(bridge.address),
+            "7087"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(bridge.address),
+            "913"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        // Day 210
+        await increaseTime(30*86400);
+
+        await expectRevert(
+            bridge.convert(0, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(30, "10"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(2000, { from: accounts[5] });
+
+        await bridge.convert(30, "10"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await MPONDInstance.balanceOf(accounts[1]),
+            "903"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(accounts[1]),
+            "97"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await MPONDInstance.balanceOf(bridge.address),
+            "7097"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(bridge.address),
+            "903"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(30, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+        await expectRevert(
+            bridge.convert(0, "100"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.convert(0, "93"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await MPONDInstance.balanceOf(accounts[1]),
+            "810"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(accounts[1]),
+            "190"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await MPONDInstance.balanceOf(bridge.address),
+            "7190"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(bridge.address),
+            "810"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        // Day 360
+        await increaseTime(150*86400);
+
+        await expectRevert(
+            bridge.convert(0, "200"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(1000, { from: accounts[5] });
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
+
+        await bridge.changeLiquidityBp(2000, { from: accounts[5] });
+
+        await bridge.convert(0, "180"+z18, { from: accounts[1] })
+
+        assert.equal(
+            await MPONDInstance.balanceOf(accounts[1]),
+            "630"+z18,
+            "Wrong MPOND balance of user after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(accounts[1]),
+            "370"+z6+z18,
+            "Wrong POND balance of user after day 180"
+        );
+        assert.equal(
+            await MPONDInstance.balanceOf(bridge.address),
+            "7370"+z18,
+            "Wrong MPOND balance of bridge after day 180"
+        );
+        assert.equal(
+            await PONDInstance.balanceOf(bridge.address),
+            "630"+z6+z18,
+            "Wrong POND balance of bridge after day 180"
+        );
+
+        await expectRevert(
+            bridge.convert(0, "1"+z18, { from: accounts[1] }),
+            "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
+        )
     });
 });
 async function increaseTime(time) {
