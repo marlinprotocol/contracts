@@ -3,7 +3,7 @@ const truffleAssert = require("truffle-assertions");
 const ClusterRegistry = artifacts.require("ClusterRegistry.sol");
 const ClusterRegistryProxy = artifacts.require("ClusterRegistryProxy.sol");
 
-contract.only("ClusterRegistry contract", async function(accounts) {
+contract("ClusterRegistry contract", async function(accounts) {
     let clusterRegistry;
 
     const proxyAdmin = accounts[1];
