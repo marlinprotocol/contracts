@@ -24,7 +24,7 @@ const {advanceTime} = require("./utils");
 
 let clusterRegistry;
 
-contract.only("Staking Flow", async function (accounts) {
+contract("Staking Flow", async function (accounts) {
   let PONDInstance;
   let MPONDInstance;
   let stakeContract;
@@ -281,7 +281,6 @@ contract.only("Staking Flow", async function (accounts) {
     await feedData([registeredCluster1, registeredCluster2], 1);
     const cluster1Reward = await perfOracle.clusterRewards(registeredCluster1);
     const cluster2Reward = await perfOracle.clusterRewards(registeredCluster2);
-    console.log("================ cluster rewards: ", cluster1Reward.toString(), cluster2Reward.toString());
 
     // do some delegations for both users to the cluster
     // rewards for one user is withdraw - this reward should be as per the time of oracle feed
@@ -293,11 +292,6 @@ contract.only("Staking Flow", async function (accounts) {
       [2000000, 0]
     );
     let PondBalance1After = await PONDInstance.balanceOf(delegator1);
-    console.log("======================= PondBalance1After: ", PondBalance1After.toString());
-    console.log("======================== PondBalance1After.sub(PondBalance1Before).toString()",
-      PondBalance1After.sub(PondBalance1Before).toString(),
-      appConfig.staking.rewardPerEpoch / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)
-    );
     assert.equal(
       PondBalance1After.sub(PondBalance1Before).toString(),
         parseInt(

@@ -21,7 +21,7 @@ const appConfig = require("../../app-config");
 const truffleAssert = require("truffle-assertions");
 const { AddressZero } = require("ethers/constants");
 
-contract.only("Stake contract - testing storage upgrade", async function(accounts) {
+contract("Stake contract - testing storage upgrade", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;
