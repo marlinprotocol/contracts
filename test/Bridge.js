@@ -131,7 +131,7 @@ contract("Bridge", async (accounts) => {
 });
 
 
-contract.only("Bridge", async (accounts) => {
+contract("Bridge", async (accounts) => {
     it("should convert mpond to pond as per table", async () => {
         let bridge = await BridgeLogic.at((await BridgeProxy.deployed()).address);
         let mpond = await MPondLogic.at((await MPondProxy.deployed()).address);
@@ -511,7 +511,7 @@ contract.only("Bridge", async (accounts) => {
             from: MPONDAccount
         });
         await MPONDInstance.approve(stakeContract.address, amount, { from: accounts[1] });
-        await stakeContract.createStash([MPONDTokenId], [amount], { from: accounts[1] });
+        const stashId = await stakeContract.createStash([MPONDTokenId], [amount], { from: accounts[1] });
         // const deleAmt = await MPONDInstance.delegates(stakeContract.address, accounts[1]);
 
         // Day -1
@@ -541,6 +541,9 @@ contract.only("Bridge", async (accounts) => {
 
         // Day 180
         await increaseTime(149*86400);
+
+        // withdraw the mpond from stash
+        await stakeContract.withdrawStash(stashId.logs[0].args.stashId, { from: accounts[1] });
 
         await expectRevert(
             bridge.convert(0, "950"+z18, { from: accounts[1] }),
