@@ -26,8 +26,6 @@ contract BridgeLogic is Initializable {
     uint256 public startTime;
     uint256 public liquidityStartTime;
 
-    address public stakingContract;
-
     struct Requests {
         uint256 amount;
         uint256 releaseEpoch;
@@ -48,6 +46,8 @@ contract BridgeLogic is Initializable {
     mapping(address => mapping(uint256 => Requests)) public requests; //address->epoch->Request(amount, lockTime)
     mapping(address => mapping(uint256 => uint256)) public claimedAmounts; //address->epoch->amount
     mapping(address => uint256) public totalAmountPlacedInRequests; //address -> amount
+
+    address public stakingContract;
 
     function initialize(
         address _mpond,
