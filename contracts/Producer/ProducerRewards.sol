@@ -71,7 +71,7 @@ contract ProducerRewards is Initializable, Ownable {
             emit RewardDistributed(_addresses[i], reward);
         }
         require(
-            currentTotalRewardsPerEpoch <= totalRewardPerEpoch, 
+            rewardDistributed <= currentTotalRewardsPerEpoch, 
             "PR:DRW-Reward Distributed  cant  be more  than totalRewardPerEpoch"
         );
         rewardDistributedPerEpoch[_epoch] = rewardDistributed;
