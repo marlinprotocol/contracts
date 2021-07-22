@@ -9,17 +9,18 @@ contract ProducerRewards is Initializable, Ownable {
     
     using SafeMath for uint256;
 
-    mapping(uint256 => uint256) rewardDistributedPerEpoch;
+    mapping(uint256 => uint256) public rewardDistributedPerEpoch;
     uint256 public rewardDistributionWaitTime;
-    uint256 latestNewEpochRewardAt;
-    uint256 totalRewardPerEpoch;
-    uint256 maxTotalWeight;
+    uint256 public latestNewEpochRewardAt;
+    uint256 public totalRewardPerEpoch;
+    uint256 public maxTotalWeight;
     address public feeder;
     ERC20 POND;
     
     event EmergencyWithdraw(address indexed _token, uint256 _amount, address indexed _to);
     event RewardDistributed(address indexed producerAddress, uint256 reward);
     event TotalRewardsPerEpochUpdated(uint256 totalRewardPerEpoch);
+    event MaxTotalWeightUpdated(uint256 maxTotalWeight);
     event PONDAddressUpdated(address indexed newPOND);
     event FeederUpdated(address indexed feeder);
 
@@ -93,6 +94,11 @@ contract ProducerRewards is Initializable, Ownable {
         );
         POND = ERC20(_newPOND);
         emit PONDAddressUpdated(_newPOND);
+    }
+
+    function updatemaxTotalWeight(uint256 _maxTotalWeight) external onlyOwner {
+        maxTotalWeight = _maxTotalWeight;
+        emit MaxTotalWeightUpdated(_maxTotalWeight);
     }
 
     function updatetotalRewardPerEpoch(uint256 _totalRewardPerEpoch) external onlyOwner {

@@ -23,7 +23,7 @@ const { advanceBlock } = require("./utils");
 
 const AddressZero = "0x0000000000000000000000000000000000000000";
 
-contract.only("Stake contract", async function(accounts) {
+contract("Stake contract", async function(accounts) {
 
     let PONDInstance;
     let MPONDInstance;

@@ -24,7 +24,7 @@ const {advanceTime} = require("./utils");
 
 let clusterRegistry;
 
-contract.only("Staking Flow", async function (accounts) {
+contract("Staking Flow", async function (accounts) {
   let PONDInstance;
   let MPONDInstance;
   let stakeContract;
