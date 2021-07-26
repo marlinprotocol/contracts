@@ -1,15 +1,16 @@
 pragma solidity >=0.4.21 <0.7.0;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 contract ProducerRewards is Initializable, Ownable {
     
     using SafeMath for uint256;
 
     mapping(uint256 => uint256) public rewardDistributedPerEpoch;
+    mapping (address => uint256) public accuredRewards;
     uint256 public rewardDistributionWaitTime;
     uint256 public latestNewEpochRewardAt;
     uint256 public totalRewardPerEpoch;
@@ -67,8 +68,8 @@ contract ProducerRewards is Initializable, Ownable {
         // calculate producer reward and transfer
         for (uint256 i = 0; i < _weights.length; i++) {
             uint256 reward = currentTotalRewardsPerEpoch.mul(_weights[i]).div(maxTotalWeight);
+            accuredRewards[_addresses[i]] = accuredRewards[_addresses[i]].add(reward);
             rewardDistributed = rewardDistributed.add(reward);
-            POND.transfer(_addresses[i], reward);
             emit RewardDistributed(_addresses[i], reward);
         }
         require(
@@ -76,6 +77,12 @@ contract ProducerRewards is Initializable, Ownable {
             "PR:DRW-Reward Distributed  cant  be more  than totalRewardPerEpoch"
         );
         rewardDistributedPerEpoch[_epoch] = rewardDistributed;
+    }
+
+    function claimReward(uint256 _amount) external {
+        require(accuredRewards[msg.sender] >= _amount, "PR:CR-Can't withdraw more than accured");
+        accuredRewards[msg.sender] = accuredRewards[msg.sender].sub(_amount);
+        POND.transfer(msg.sender, _amount);
     }
 
     function emergencyWithdraw(

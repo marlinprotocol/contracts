@@ -65,7 +65,19 @@ contract.only("ProducerRewards contract", async function (accounts) {
         ));
     });
 
-    it("Access control", async () => {
+    it("Access control: distributeRewards", async () => {
+        let producerAddresses = [producer1, producer2, producer3, producer4];
+        let weights = [25, 25, 25, 25];
+        let epoch = 1;
+
+        await truffleAssert.reverts(producerRewards.distributeRewards(
+            producerAddresses,
+            weights,
+            epoch
+        ),"Sender not feeder");
+    });
+
+    it("Access control: emergencyWithdraw", async () => {
         let alice = accounts[9];
         await truffleAssert.reverts(producerRewards.emergencyWithdraw(
             PONDInstance.address,
@@ -83,7 +95,39 @@ contract.only("ProducerRewards contract", async function (accounts) {
         );
     });
 
-    it("Distribute Rewards: Equal weights", async () => {
+    it("Access control: updatePONDAddress", async () => {
+        let alice = accounts[9];
+        await truffleAssert.reverts(producerRewards.updatePONDAddress(
+            PONDInstance.address,
+            {from: alice}
+        ),"Ownable: caller is not the owner");
+    });
+
+    it("Access control: updatemaxTotalWeight", async () => {
+        let alice = accounts[9];
+        await truffleAssert.reverts(producerRewards.updatemaxTotalWeight(
+            MAX_WEIGHT,
+            {from: alice}
+        ),"Ownable: caller is not the owner");
+    });
+
+    it("Access control: updatetotalRewardPerEpoch", async () => {
+        let alice = accounts[9];
+        await truffleAssert.reverts(producerRewards.updatetotalRewardPerEpoch(
+            appConfig.staking.rewardPerEpoch,
+            {from: alice}
+        ),"Ownable: caller is not the owner");
+    });
+
+    it("Access control: updateFeeder", async () => {
+        let alice = accounts[9];
+        await truffleAssert.reverts(producerRewards.updateFeeder(
+            alice,
+            {from: alice}
+        ),"Ownable: caller is not the owner");
+    });
+
+    it("Distribute Rewards: Equal weights (epoch 1)", async () => {
         let producerAddresses = [producer1, producer2, producer3, producer4];
         let weights = [25, 25, 25, 25];
         let epoch = 1;
@@ -104,6 +148,13 @@ contract.only("ProducerRewards contract", async function (accounts) {
             epoch,
             {from: feeder}
         );
+
+        // claim rewards from all producers
+        for (let i=0; i< producerAddresses.length; i++) {
+            const totalReward = await producerRewards.accuredRewards(producerAddresses[i]);
+            await producerRewards.claimReward(totalReward, 
+                {from: producerAddresses[i]});
+        }
         
         for (let i=0; i< producerAddresses.length; i++) {
             let producerBalAfter = await PONDInstance.balanceOf(producerAddresses[i]);
@@ -112,7 +163,7 @@ contract.only("ProducerRewards contract", async function (accounts) {
         }
     });
 
-    it("Distribute Rewards: 1:2 weights", async () => {
+    it("Distribute Rewards: 1:2 weights (epoch 2)", async () => {
         let producerAddresses = [producer1, producer2];
         let weights = [25, 50];
         let epoch = 2;
@@ -135,7 +186,7 @@ contract.only("ProducerRewards contract", async function (accounts) {
             {from: feeder}
         ), "PR:DRW-Cant distribute reward for new epoch within such short interval");
         
-        // advence blocks
+        // advance blocks
         await utils.advanceTime(web3, 24*60*60);
 
         await producerRewards.distributeRewards(
@@ -144,6 +195,13 @@ contract.only("ProducerRewards contract", async function (accounts) {
             epoch,
             {from: feeder}
         );
+        
+        // claim rewards from all producers
+        for (let i=0; i< producerAddresses.length; i++) {
+            const totalReward = await producerRewards.accuredRewards(producerAddresses[i]);
+            await producerRewards.claimReward(totalReward, 
+                {from: producerAddresses[i]});
+        }
 
         for (let i=0; i< producerAddresses.length; i++) {
             let producerBalAfter = await PONDInstance.balanceOf(producerAddresses[i]);
@@ -152,8 +210,63 @@ contract.only("ProducerRewards contract", async function (accounts) {
         }
     });
 
-    it("upgrade contract and check storage", async () => {
+    it("Distribute Rewards: revert if rewards for epoch 1 > totalRewardPerEpoch", async () => {
+        let producerAddresses = [producer1, producer2, producer3, producer4];
+        let weights = [25, 25, 25, 25];
         let epoch = 1;
+
+        // const rewardsDistributed = await producerRewards.rewardDistributedPerEpoch(epoch);
+        // const TotalRewardsPerEpoch = await producerRewards.totalRewardPerEpoch();
+        // console.log("rewardsDistributed: ", rewardsDistributed, "TotalRewardsPerEpoch: ", TotalRewardsPerEpoch);
+        await PONDInstance.transfer(
+            producerRewards.address,
+            2*appConfig.staking.rewardPerEpoch
+        );
+        await truffleAssert.reverts(producerRewards.distributeRewards(
+            producerAddresses,
+            weights,
+            epoch,
+            {from: feeder}
+        ), "PR:DRW-Reward Distributed  cant  be more  than totalRewardPerEpoch");
+    });
+
+    it("Distribute Rewards: revert if weight is more than max weight", async () => {
+        let producerAddresses = [producer1, producer2];
+        let weights = [35, 50];
+        let epoch = 3;
+
+        // advance blocks
+        await utils.advanceTime(web3, 24*60*60);
+
+        await truffleAssert.reverts(producerRewards.distributeRewards(
+            producerAddresses,
+            weights,
+            epoch,
+            {from: feeder}
+        ), "PR:DRW-Reward Distributed  cant  be more  than totalRewardPerEpoch");
+    });
+
+    it("Claim Reward: revert if claim amount more than accured", async () => {
+        let producerAddresses = [producer1, producer2];
+        let weights = [25, 50];
+        let epoch = 3;
+
+        // advance blocks
+        await utils.advanceTime(web3, 24*60*60);
+
+        await producerRewards.distributeRewards(
+            producerAddresses,
+            weights,
+            epoch,
+            {from: feeder}
+        );
+        let producer1AccReward = await producerRewards.accuredRewards(producer1);
+        // console.log("producer1AccReward: ", producer1AccReward.toString());
+        await truffleAssert.reverts(producerRewards.claimReward(producer1AccReward.toString()+1), 
+        "PR:CR-Can't withdraw more than accured");
+    });
+
+    it("upgrade contract and check storage", async () => {
         const preUpgradeStorage = await producerRewards.rewardDistributedPerEpoch(1);
         const producerRewardsNewDeployment = await ProducerRewards.new();
         await producerRewardsProxyInstance.updateLogic(
