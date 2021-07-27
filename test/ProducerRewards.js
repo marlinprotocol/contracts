@@ -151,7 +151,7 @@ contract.only("ProducerRewards contract", async function (accounts) {
 
         // claim rewards from all producers
         for (let i=0; i< producerAddresses.length; i++) {
-            const totalReward = await producerRewards.accuredRewards(producerAddresses[i]);
+            const totalReward = await producerRewards.accruedRewards(producerAddresses[i]);
             await producerRewards.claimReward(totalReward, 
                 {from: producerAddresses[i]});
         }
@@ -198,7 +198,7 @@ contract.only("ProducerRewards contract", async function (accounts) {
         
         // claim rewards from all producers
         for (let i=0; i< producerAddresses.length; i++) {
-            const totalReward = await producerRewards.accuredRewards(producerAddresses[i]);
+            const totalReward = await producerRewards.accruedRewards(producerAddresses[i]);
             await producerRewards.claimReward(totalReward, 
                 {from: producerAddresses[i]});
         }
@@ -251,19 +251,29 @@ contract.only("ProducerRewards contract", async function (accounts) {
         let weights = [25, 50];
         let epoch = 3;
 
-        // advance blocks
-        await utils.advanceTime(web3, 24*60*60);
-
         await producerRewards.distributeRewards(
             producerAddresses,
             weights,
             epoch,
             {from: feeder}
         );
-        let producer1AccReward = await producerRewards.accuredRewards(producer1);
+        let producer1AccReward = await producerRewards.accruedRewards(producer1);
         // console.log("producer1AccReward: ", producer1AccReward.toString());
         await truffleAssert.reverts(producerRewards.claimReward(producer1AccReward.toString()+1), 
         "PR:CR-Can't withdraw more than accured");
+    });
+
+    it("Can't add rewards to future blocks", async () => {
+        let producerAddresses = [producer1, producer2];
+        let weights = [25, 50];
+        let epoch = 15;
+
+        await truffleAssert.reverts(producerRewards.distributeRewards(
+            producerAddresses,
+            weights,
+            epoch,
+            {from: feeder}
+        ), "PR:DRW-Cant distribute reward for new epoch within such short interval");
     });
 
     it("upgrade contract and check storage", async () => {

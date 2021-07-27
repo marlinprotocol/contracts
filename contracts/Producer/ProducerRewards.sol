@@ -10,7 +10,7 @@ contract ProducerRewards is Initializable, Ownable {
     using SafeMath for uint256;
 
     mapping(uint256 => uint256) public rewardDistributedPerEpoch;
-    mapping (address => uint256) public accuredRewards;
+    mapping (address => uint256) public accruedRewards;
     uint256 public rewardDistributionWaitTime;
     uint256 public latestNewEpochRewardAt;
     uint256 public totalRewardPerEpoch;
@@ -19,11 +19,11 @@ contract ProducerRewards is Initializable, Ownable {
     ERC20 POND;
     
     event EmergencyWithdraw(address indexed _token, uint256 _amount, address indexed _to);
-    event RewardDistributed(address indexed producerAddress, uint256 reward);
     event TotalRewardsPerEpochUpdated(uint256 totalRewardPerEpoch);
     event MaxTotalWeightUpdated(uint256 maxTotalWeight);
     event PONDAddressUpdated(address indexed newPOND);
     event FeederUpdated(address indexed feeder);
+    event RewardDistributed(uint256 reward);
 
     modifier onlyFeeder() {
         require(msg.sender == feeder, "Sender not feeder");
@@ -68,9 +68,9 @@ contract ProducerRewards is Initializable, Ownable {
         // calculate producer reward and transfer
         for (uint256 i = 0; i < _weights.length; i++) {
             uint256 reward = currentTotalRewardsPerEpoch.mul(_weights[i]).div(maxTotalWeight);
-            accuredRewards[_addresses[i]] = accuredRewards[_addresses[i]].add(reward);
+            accruedRewards[_addresses[i]] = accruedRewards[_addresses[i]].add(reward);
             rewardDistributed = rewardDistributed.add(reward);
-            emit RewardDistributed(_addresses[i], reward);
+            emit RewardDistributed(reward);
         }
         require(
             rewardDistributed <= currentTotalRewardsPerEpoch, 
@@ -80,8 +80,8 @@ contract ProducerRewards is Initializable, Ownable {
     }
 
     function claimReward(uint256 _amount) external {
-        require(accuredRewards[msg.sender] >= _amount, "PR:CR-Can't withdraw more than accured");
-        accuredRewards[msg.sender] = accuredRewards[msg.sender].sub(_amount);
+        require(accruedRewards[msg.sender] >= _amount, "PR:CR-Can't withdraw more than accured");
+        accruedRewards[msg.sender] = accruedRewards[msg.sender].sub(_amount);
         POND.transfer(msg.sender, _amount);
     }
 
