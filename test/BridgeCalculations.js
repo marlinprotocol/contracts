@@ -8,7 +8,7 @@ const web3Utils = require("web3-utils");
 const Web3 = require("web3");
 const web3 = new Web3(Web3.givenProvider || "http://127.0.0.1:8545");
 
-contract.only("BridgeCalculations", function (accounts) {
+contract("BridgeCalculations", function (accounts) {
   var token;
   var MPond;
   var bridge;

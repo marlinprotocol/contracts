@@ -47,6 +47,8 @@ contract BridgeLogic is Initializable {
     mapping(address => mapping(uint256 => uint256)) public claimedAmounts; //address->epoch->amount
     mapping(address => uint256) public totalAmountPlacedInRequests; //address -> amount
 
+    address public stakingContract;
+
     function initialize(
         address _mpond,
         address _pond,
@@ -62,6 +64,14 @@ contract BridgeLogic is Initializable {
         liquidityBp = 1000;
         lockTimeEpochs = 180;
         liquidityEpochLength = 180 days;
+    }
+
+    function changeStakingContract(address _newAddr) external {
+        require(
+            msg.sender == owner || msg.sender == governanceProxy,
+            "Liquidity can be only changed by governance or owner"
+        );
+        stakingContract = _newAddr;
     }
 
     function changeLiquidityBp(uint256 _newLbp) external {
@@ -164,6 +174,7 @@ contract BridgeLogic is Initializable {
         uint256 amountInRequests = totalAmountPlacedInRequests[msg.sender];
         uint256 amountOnWhichRequestCanBePlaced = mpond
             .balanceOf(msg.sender)
+            .add(mpond.delegates(stakingContract, msg.sender))
             .sub(amountInRequests);
         require(
             amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
