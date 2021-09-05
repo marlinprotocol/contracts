@@ -36,6 +36,10 @@ contract BridgeLogic is Initializable {
         uint256 requestCreateEpoch,
         uint256 unlockRequestEpoch
     );
+    event CancelledRequest(
+        address indexed sender,
+        uint256 requestCreateEpoch
+    );
     event MPondToPond(
         address indexed sender,
         uint256 indexed requestCreateEpoch,
@@ -193,6 +197,17 @@ contract BridgeLogic is Initializable {
         totalAmountPlacedInRequests[msg.sender] = amountInRequests.add(amount);
         emit PlacedRequest(msg.sender, epoch, _req.releaseEpoch);
         return (epoch, _req.releaseEpoch);
+    }
+
+    function cancelRequest(uint256 _epoch) external {
+        uint256 _epochAmount = requests[msg.sender][_epoch].amount;
+        uint256 _amountInRequests = totalAmountPlacedInRequests[msg.sender];
+
+        delete requests[msg.sender][_epoch];
+        delete claimedAmounts[msg.sender][_epoch];
+        totalAmountPlacedInRequests[msg.sender] = _amountInRequests.sub(_epochAmount);
+
+        emit CancelledRequest(msg.sender, _epoch);
     }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
