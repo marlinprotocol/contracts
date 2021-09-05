@@ -201,11 +201,12 @@ contract BridgeLogic is Initializable {
 
     function cancelRequest(uint256 _epoch) external {
         uint256 _epochAmount = requests[msg.sender][_epoch].amount;
+        uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
         uint256 _amountInRequests = totalAmountPlacedInRequests[msg.sender];
 
         delete requests[msg.sender][_epoch];
         delete claimedAmounts[msg.sender][_epoch];
-        totalAmountPlacedInRequests[msg.sender] = _amountInRequests.sub(_epochAmount);
+        totalAmountPlacedInRequests[msg.sender] = _amountInRequests.add(_claimedAmount).sub(_epochAmount);
 
         emit CancelledRequest(msg.sender, _epoch);
     }
