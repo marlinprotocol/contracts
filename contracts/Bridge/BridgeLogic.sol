@@ -38,7 +38,7 @@ contract BridgeLogic is Initializable {
     );
     event CancelledRequest(
         address indexed sender,
-        uint256 requestCreateEpoch
+        uint256 indexed requestCreateEpoch
     );
     event MPondToPond(
         address indexed sender,
