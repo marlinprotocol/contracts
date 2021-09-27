@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity 0.8.7;
 
 
 /// @title Contract to reward overlapping stakes
@@ -13,7 +13,7 @@ contract TokenProxy {
         uint256(keccak256("eip1967.proxy.admin")) - 1
     );
 
-    constructor(address contractLogic, address proxyAdmin) public {
+    constructor(address contractLogic, address proxyAdmin) {
         // save the code address
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
@@ -38,7 +38,6 @@ contract TokenProxy {
         }
     }
 
-    /// @author Marlin
     /// @dev Only admin can update the contract
     /// @param _newLogic address is the address of the contract that has to updated to
     function updateLogic(address _newLogic) public {
@@ -52,7 +51,6 @@ contract TokenProxy {
         }
     }
 
-    /// @author Marlin
     /// @dev use assembly as contract store slot is manually decided
     function getAdmin() internal view returns (address result) {
         bytes32 slot = PROXY_ADMIN_SLOT;
@@ -61,9 +59,8 @@ contract TokenProxy {
         }
     }
 
-    /// @author Marlin
     /// @dev add functionality to forward the balance as well.
-    function() external payable {
+    fallback() external payable {
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
             let contractLogic := sload(slot)
