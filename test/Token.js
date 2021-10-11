@@ -15,7 +15,8 @@ contract("TokenTestContract", function (accounts) {
         // proxy admin is a different account
         return TokenLogic.new()
             .then(function (logic) {
-                return TokenProxy.new(logic.address, accounts[1]);
+                tokenLogic = logic;
+                return TokenProxy.new(logic.address);
             })
             .then(function (instance) {
                 tokenProxy = instance;
@@ -271,5 +272,23 @@ contract("TokenTestContract", function (accounts) {
           .then(function (allow) {
             assert.equal(allow, 200, "Incorrect allowance after transferFrom");
           });
+      });
+
+      it("check upgrade", function() {
+        let logic2Instance;
+        return TokenLogic.new()
+            .then(function(logic2) {
+              logic2Instance = logic2;
+                return tokenInstance.upgradeTo(logic2.address);
+            })
+            .then(function(upgrade) {
+                console.log(upgrade.logs);
+                assert.equal(upgrade.logs[0].event, 'Upgraded', "implementation not upgraded");
+                return upgrade;
+            })
+            .then(function (upgrade) {
+                assert.equal(upgrade.logs[0].args.implementation, logic2Instance.address, "Incorrect address");
+                return;
+              })     
       });
 });
