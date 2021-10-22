@@ -40,6 +40,8 @@ contract TokenLogic is
         __Pausable_init_unchained();
         __ERC20Pausable_init_unchained();
         __ERC20PresetMinterPauser_init_unchained(_name, _symbol);
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
         __Ownable_init_unchained();
 
         ERC20PresetMinterPauserUpgradeable.mint(_bridge, 1000000000e18);
