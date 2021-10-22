@@ -389,8 +389,8 @@ contract StakeManager is Initializable, Ownable {
             "MS3"
         );
         require(
-            (_stash1.undelegatesAt == 0 || _stash1.undelegatesAt <= block.number) &&
-            (_stash2.undelegatesAt == 0 || _stash2.undelegatesAt <= block.number),
+            (_stash1.undelegatesAt <= block.number) &&
+            (_stash2.undelegatesAt <= block.number),
             "MS4"
         );
         bytes32 _lockId1 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId1));
