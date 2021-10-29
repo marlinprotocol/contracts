@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.0;
 
 interface IStakeManager {
     function stashes(bytes32 _stashId) external returns(address, address, uint256);
