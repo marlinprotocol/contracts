@@ -1,4 +1,4 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.0;
 
 interface IClusterRewards {
     function clusterRewards(address _cluster) external returns(uint256);
@@ -13,6 +13,7 @@ interface IClusterRewards {
     function feed(bytes32 _networkId, address[] calldata _clusters, uint256[] calldata _payouts, uint256 _epoch) external;
     function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256);
     function claimReward(address _cluster) external returns(uint256);
+    function transferRewardsToRewardDelegators() external returns(bool);
     function updateRewardDelegatorAddress(address _updatedRewardDelegator) external;
     function updatePONDAddress(address _updatedPOND) external;
     function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external;

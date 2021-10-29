@@ -1,14 +1,17 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
-contract ClusterRewards is Initializable, Ownable {
-
-    using SafeMath for uint256;
-
+contract ClusterRewards is
+    Initializable,
+    ContextUpgradeable,
+    ERC1967UpgradeUpgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable 
+{
     mapping(address => uint256) public clusterRewards;
 
     mapping(bytes32 => uint256) public rewardWeight;
@@ -17,7 +20,7 @@ contract ClusterRewards is Initializable, Ownable {
     uint256 payoutDenomination;
 
     address rewardDelegatorsAddress;
-    ERC20 POND;
+    IERC20Upgradeable POND;
     address public feeder;
     mapping(uint256 => uint256) rewardDistributedPerEpoch;
     uint256 latestNewEpochRewardAt;
@@ -61,20 +64,26 @@ contract ClusterRewards is Initializable, Ownable {
             _networkIds.length == _rewardWeight.length, 
             "CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa"
         );
-        super.initialize(_owner);
+        
         uint256 weight = 0;
         rewardDelegatorsAddress = _rewardDelegatorsAddress;
         for(uint256 i=0; i < _networkIds.length; i++) {
             rewardWeight[_networkIds[i]] = _rewardWeight[i];
-            weight = weight.add(_rewardWeight[i]);
+            weight = weight + _rewardWeight[i];
             emit NetworkAdded(_networkIds[i], _rewardWeight[i]);
         }
         totalWeight = weight;
         totalRewardsPerEpoch = _totalRewardsPerEpoch;
-        POND = ERC20(_PONDAddress);
+        POND = IERC20Upgradeable(_PONDAddress);
         payoutDenomination = _payoutDenomination;
         feeder = _feeder;
         rewardDistributionWaitTime = _rewardDistributionWaitTime;
+        
+        __Context_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+        __Ownable_init_unchained();
+        transferOwnership(_owner);
     }
 
     function changeFeeder(address _newFeeder) external onlyOwner {
@@ -86,7 +95,7 @@ contract ClusterRewards is Initializable, Ownable {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
         require(_rewardWeight != 0, "CRW:AN-Reward cant be 0");
         rewardWeight[_networkId] = _rewardWeight;
-        totalWeight = totalWeight.add(_rewardWeight);
+        totalWeight = totalWeight + _rewardWeight;
         emit NetworkAdded(_networkId, _rewardWeight);
     }
 
@@ -94,7 +103,7 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
-        totalWeight = totalWeight.sub(networkWeight);
+        totalWeight = totalWeight - networkWeight;
         emit NetworkRemoved(_networkId);
     }
 
@@ -102,7 +111,7 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:CNR-Network doesnt exist");
         rewardWeight[_networkId] = _updatedRewardWeight;
-        totalWeight = totalWeight.sub(networkWeight).add(_updatedRewardWeight);
+        totalWeight = totalWeight - networkWeight + _updatedRewardWeight;
         emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
     }
 
@@ -116,7 +125,7 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
             require(
-                block.timestamp > latestNewEpochRewardAt.add(rewardDistributionWaitTime), 
+                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime, 
                 "CRW:F-Cant distribute reward for new epoch within such short interval"
             );
             latestNewEpochRewardAt = block.timestamp;
@@ -126,13 +135,9 @@ contract ClusterRewards is Initializable, Ownable {
         uint256 currentPayoutDenomination = payoutDenomination;
         uint256 networkRewardWeight = rewardWeight[_networkId];
         for(uint256 i=0; i < _clusters.length; i++) {
-          uint256 clusterReward = currentTotalRewardsPerEpoch
-                                    .mul(networkRewardWeight)
-                                    .mul(_payouts[i])
-                                    .div(totalNetworkWeight)
-                                    .div(currentPayoutDenomination);
-            rewardDistributed = rewardDistributed.add(clusterReward);
-            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]].add(clusterReward);
+            uint256 clusterReward = ((currentTotalRewardsPerEpoch * networkRewardWeight * _payouts[i]) / totalNetworkWeight) / currentPayoutDenomination;
+            rewardDistributed = rewardDistributed + clusterReward;
+            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
         }
         require(
             rewardDistributed <= totalRewardsPerEpoch, 
@@ -143,7 +148,7 @@ contract ClusterRewards is Initializable, Ownable {
     }
 
     function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256) {
-        return totalRewardsPerEpoch.mul(rewardWeight[_networkId]).div(totalWeight);
+        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
     }
 
     // only cluster registry is necessary because the rewards 
@@ -151,15 +156,15 @@ contract ClusterRewards is Initializable, Ownable {
     function claimReward(address _cluster) external onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 1) {
-            uint256 rewardsToTransfer = pendingRewards.sub(1);
+            uint256 rewardsToTransfer = pendingRewards - 1;
             clusterRewards[_cluster] = 1;
             return rewardsToTransfer;
         }
         return 0;
     }
 
-    function transferRewardsToRewardDelegators() external onlyOwner returns(uint256) {
-        POND.transfer(rewardDelegatorsAddress, POND.balanceOf(address(this)));
+    function transferRewardsToRewardDelegators() external onlyOwner returns(bool) {
+        return POND.transfer(rewardDelegatorsAddress, POND.balanceOf(address(this)));
     }
 
     function updateRewardDelegatorAddress(address _updatedRewardDelegator) external onlyOwner {
@@ -176,7 +181,7 @@ contract ClusterRewards is Initializable, Ownable {
             _updatedPOND != address(0),
             "CRW:UPA-POND token address cant be 0"
         );
-        POND = ERC20(_updatedPOND);
+        POND = IERC20Upgradeable(_updatedPOND);
         emit PONDAddressUpdated(_updatedPOND);
     }
 
@@ -194,4 +199,6 @@ contract ClusterRewards is Initializable, Ownable {
         rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
         emit RewardDistributionWaitTimeUpdated(_updatedRewardDistributionWaitTime);
     }
+    
+    function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
