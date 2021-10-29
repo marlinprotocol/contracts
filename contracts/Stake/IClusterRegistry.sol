@@ -1,4 +1,5 @@
-pragma solidity ^0.5.17;
+pragma solidity ^0.8.0;
+
 interface IClusterRegistry {
     function locks(bytes32 _lockId) external returns(uint256, uint256);
     function lockWaitTime(bytes32 _selectorId) external returns(uint256);
@@ -8,7 +9,7 @@ interface IClusterRegistry {
         uint256 _commission, 
         address _rewardAddress, 
         address _clientKey
-    ) external returns(bool);
+    ) external;
     function updateCluster(
         uint256 _commission, 
         bytes32 _networkId, 
@@ -27,4 +28,5 @@ interface IClusterRegistry {
     function getClientKey(address _cluster) external view returns(address);
     function getCluster(address _cluster) external;
     function getRewardInfo(address _cluster) external returns(uint256, address);
+    function addClientKeys(address[] calldata _clusters) external;
 }

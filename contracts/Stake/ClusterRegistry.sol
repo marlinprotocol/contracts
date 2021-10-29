@@ -1,15 +1,17 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract ClusterRegistry is Initializable, Ownable {
-
-    using SafeMath for uint256;
-
-    uint256 constant UINT256_MAX = ~uint256(0);
+contract ClusterRegistry is
+    Initializable,
+    ContextUpgradeable,
+    ERC1967UpgradeUpgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable 
+{
+    uint256 constant UINT256_MAX = type(uint256).max;
 
     struct Cluster {
         uint256 commission;
@@ -65,7 +67,11 @@ contract ClusterRegistry is Initializable, Ownable {
             lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
             emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
         }
-        super.initialize(_owner);
+        __Context_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+        __Ownable_init_unchained();
+        transferOwnership(_owner);
     }
 
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
@@ -78,7 +84,7 @@ contract ClusterRegistry is Initializable, Ownable {
         uint256 _commission, 
         address _rewardAddress, 
         address _clientKey
-    ) external returns(bool) {
+    ) external {
         // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
             !isClusterValid(msg.sender), 
@@ -129,7 +135,7 @@ contract ClusterRegistry is Initializable, Ownable {
             clusters[msg.sender].commission = currentCommission;
             emit CommissionUpdated(msg.sender, currentCommission, unlockBlock);
         }
-        uint256 updatedUnlockBlock = block.number.add(lockWaitTime[COMMISSION_LOCK_SELECTOR]);
+        uint256 updatedUnlockBlock = block.number + lockWaitTime[COMMISSION_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, _commission);
         emit CommissionUpdateRequested(msg.sender, _commission, updatedUnlockBlock);
     }
@@ -150,7 +156,7 @@ contract ClusterRegistry is Initializable, Ownable {
             clusters[msg.sender].networkId = currentNetwork;
             emit NetworkSwitched(msg.sender, currentNetwork, unlockBlock);
         }
-        uint256 updatedUnlockBlock = block.number.add(lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR]);
+        uint256 updatedUnlockBlock = block.number + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, uint256(_networkId));
         emit NetworkSwitchRequested(msg.sender, _networkId, updatedUnlockBlock);
     }
@@ -197,7 +203,7 @@ contract ClusterRegistry is Initializable, Ownable {
             delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
             return;
         }
-        uint256 updatedUnlockBlock = block.number.add(lockWaitTime[UNREGISTER_LOCK_SELECTOR]);
+        uint256 updatedUnlockBlock = block.number + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, 0);
         emit ClusterUnregisterRequested(msg.sender, updatedUnlockBlock);
     }
@@ -278,4 +284,6 @@ contract ClusterRegistry is Initializable, Ownable {
             clientKeys[_clientKey] = _clusters[i];
         }
     }
+    
+    function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
