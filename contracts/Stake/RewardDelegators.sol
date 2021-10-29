@@ -1,15 +1,19 @@
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IClusterRewards.sol";
 import "./IClusterRegistry.sol";
 
-contract RewardDelegators is Initializable, Ownable {
-
-    using SafeMath for uint256;
+contract RewardDelegators is
+    Initializable,
+    ContextUpgradeable,
+    ERC1967UpgradeUpgradeable,
+    UUPSUpgradeable,
+    OwnableUpgradeable 
+{
 
     struct Cluster {
         mapping(bytes32 => uint256) totalDelegations;
@@ -30,7 +34,7 @@ contract RewardDelegators is Initializable, Ownable {
     bytes32[] tokenList;
     IClusterRewards clusterRewards;
     IClusterRegistry clusterRegistry;
-    ERC20 PONDToken;
+    IERC20Upgradeable PONDToken;
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -67,7 +71,7 @@ contract RewardDelegators is Initializable, Ownable {
         stakeAddress = _stakeAddress;
         clusterRegistry = IClusterRegistry(_clusterRegistry);
         clusterRewards = IClusterRewards(_clusterRewardsAddress);
-        PONDToken = ERC20(_PONDAddress);
+        PONDToken = IERC20Upgradeable(_PONDAddress);
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
         MPONDTokenId = _MPONDTokenId;
@@ -78,7 +82,12 @@ contract RewardDelegators is Initializable, Ownable {
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
-        super.initialize(_rewardDelegatorsAdmin);
+        
+        __Context_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+        __Ownable_init_unchained();
+        transferOwnership(_rewardDelegatorsAdmin);
     }
 
     function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external onlyOwner {
@@ -122,8 +131,8 @@ contract RewardDelegators is Initializable, Ownable {
 
         (uint256 _commission, address _rewardAddress) = clusterRegistry.getRewardInfo(_cluster);
 
-        uint256 commissionReward = reward.mul(_commission).div(100);
-        uint256 delegatorReward = reward.sub(commissionReward);
+        uint256 commissionReward = (reward * _commission) / 100;
+        uint256 delegatorReward = reward - commissionReward;
         bytes32[] memory tokens = tokenList;
         uint256[] memory delegations = new uint256[](tokens.length);
         uint256 delegatedTokens = 0;
@@ -141,12 +150,9 @@ contract RewardDelegators is Initializable, Ownable {
             //                                                         .div(weightedStake)
             //                                                     );
             if(delegations[i] != 0) {
-                clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]].add(
-                                                                    delegatorReward
-                                                                    .mul(10**30)
-                                                                    .div(delegatedTokens)
-                                                                    .div(delegations[i])
-                                                                );
+                clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]] + 
+                                                                   (((delegatorReward * (10**30)) / delegatedTokens) / delegations[i]);
+                                                                    
             }
         }
         if(commissionReward != 0) {
@@ -193,7 +199,7 @@ contract RewardDelegators is Initializable, Ownable {
                 _newBalance
             );
 
-            _aggregateReward = _aggregateReward.add(_reward);
+            _aggregateReward = _aggregateReward + _reward;
         }
 
         if(_aggregateReward != 0) {
@@ -219,13 +225,13 @@ contract RewardDelegators is Initializable, Ownable {
 
         // update balances
         if(_isDelegation) {
-            _newBalance =  _oldBalance.add(_amount);
+            _newBalance =  _oldBalance + _amount;
             clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
-                                                            .add(_amount);
+                                                             + _amount;
         } else {
-            _newBalance =  _oldBalance.sub(_amount);
+            _newBalance =  _oldBalance - _amount;
             clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId]
-                                                            .sub(_amount);
+                                                             - _amount;
         }
         clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
     }
@@ -241,10 +247,10 @@ contract RewardDelegators is Initializable, Ownable {
         uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
 
         // pending rewards
-        uint256 _tokenPendingRewards =  _accRewardPerShare.mul(_oldBalance).div(10**30);
+        uint256 _tokenPendingRewards = (_accRewardPerShare * _oldBalance) / (10**30);
 
         // calculating pending rewards for the delegator if any
-        _reward = _tokenPendingRewards.sub(_rewardDebt);
+        _reward = _tokenPendingRewards - _rewardDebt;
 
         // short circuit
         if(_oldBalance == _newBalance && _reward == 0) {
@@ -252,7 +258,7 @@ contract RewardDelegators is Initializable, Ownable {
         }
 
         // update the debt for next reward calculation
-        clusters[_cluster].rewardDebt[_delegator][_tokenId] = _accRewardPerShare.mul(_newBalance).div(10**30);
+        clusters[_cluster].rewardDebt[_delegator][_tokenId] = (_accRewardPerShare * _newBalance) / (10**30);
     }
 
     function undelegate(
@@ -345,7 +351,7 @@ contract RewardDelegators is Initializable, Ownable {
             _updatedPOND != address(0),
             "RD:UPA-Updated POND token address cant be 0"
         );
-        PONDToken = ERC20(_updatedPOND);
+        PONDToken = IERC20Upgradeable(_updatedPOND);
         emit PONDAddressUpdated(_updatedPOND);
     }
 
@@ -356,4 +362,6 @@ contract RewardDelegators is Initializable, Ownable {
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
+    
+    function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
