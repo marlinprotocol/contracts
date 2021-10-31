@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IRewardDelegators.sol";
-import "../governance/MPondLogic.sol";
+import "../MPond.sol";
 
 
 contract StakeManager is
@@ -13,7 +13,7 @@ contract StakeManager is
     ContextUpgradeable,
     ERC1967UpgradeUpgradeable,
     UUPSUpgradeable,
-    OwnableUpgradeable 
+    OwnableUpgradeable
 {
     struct Stash {
         address staker;
@@ -98,7 +98,7 @@ contract StakeManager is
         MPOND = MPondLogic(_MPONDTokenAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         undelegationWaitTime = _undelegationWaitTime;
-        
+
         __Context_init_unchained();
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
@@ -237,7 +237,7 @@ contract StakeManager is
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        
+
         emit AddedToStash(_stashId, stashes[_stashId].delegatedCluster, _tokens, _amounts);
     }
 
@@ -422,7 +422,7 @@ contract StakeManager is
             redelegateStash(_stashIds[i]);
         }
     }
-    
+
     function cancelRedelegation(bytes32 _stashId) public {
         require(
             msg.sender == stashes[_stashId].staker,
@@ -469,7 +469,7 @@ contract StakeManager is
             undelegateStash(_stashIds[i]);
         }
     }
-    
+
     function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
         address _staker = stashes[_stashId].staker;
         uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
@@ -608,6 +608,6 @@ contract StakeManager is
     function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
         return stashes[_stashId].amount[_tokenId];
     }
-    
+
     function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
