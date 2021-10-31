@@ -8,7 +8,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinte
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract TokenLogic is
+contract Pond is
     Initializable,
     ContextUpgradeable,
     IAccessControlUpgradeable,
@@ -45,16 +45,16 @@ contract TokenLogic is
         __Ownable_init_unchained();
 
         ERC20PresetMinterPauserUpgradeable.mint(_bridge, 1000000000e18);
-        
+
     }
-    
+
     function _mint(address account, uint256 amount) internal virtual override(ERC20Upgradeable, ERC20CappedUpgradeable) {
         super._mint(account, amount);
     }
-    
+
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20Upgradeable, ERC20PresetMinterPauserUpgradeable) {
         super._beforeTokenTransfer(from, to, amount);
     }
-    
+
     function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
