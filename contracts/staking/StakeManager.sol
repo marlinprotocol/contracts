@@ -33,8 +33,8 @@ contract StakeManager is
     uint256 public stashIndex;
     // tokenId to token address - tokenId = keccak256(tokenTicker)
     mapping(bytes32 => Token) tokenAddresses;
-    MPondLogic MPOND;
-    MPondLogic prevMPOND;
+    MPond MPOND;
+    MPond prevMPOND;
     address _unused_1;
     IRewardDelegators public rewardDelegators;
     // new variables
@@ -95,7 +95,7 @@ contract StakeManager is
             tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
-        MPOND = MPondLogic(_MPONDTokenAddress);
+        MPOND = MPond(_MPONDTokenAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         undelegationWaitTime = _undelegationWaitTime;
 
@@ -115,7 +115,7 @@ contract StakeManager is
         address _MPONDTokenAddress
     ) external onlyOwner {
         prevMPOND = MPOND;
-        MPOND = MPondLogic(_MPONDTokenAddress);
+        MPOND = MPond(_MPONDTokenAddress);
         emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
     }
 

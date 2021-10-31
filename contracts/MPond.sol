@@ -1,9 +1,8 @@
-pragma solidity 0.5.17;
-pragma experimental ABIEncoderV2;
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+pragma solidity ^0.8.0;
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 
-contract MPondLogic is Initializable {
+contract MPond is Initializable {
     /// @notice EIP-20 token name for this token
     string public name;
 
@@ -217,8 +216,8 @@ contract MPondLogic is Initializable {
         returns (bool)
     {
         uint96 amount;
-        if (rawAmount == uint256(-1)) {
-            amount = uint96(-1);
+        if (rawAmount == type(uint256).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(
                 rawAmount,
@@ -237,8 +236,8 @@ contract MPondLogic is Initializable {
         returns (bool)
     {
         uint96 amount;
-        if (addedAmount == uint256(-1)) {
-            amount = uint96(-1);
+        if (addedAmount == type(uint256).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(
                 addedAmount,
@@ -260,8 +259,8 @@ contract MPondLogic is Initializable {
         returns (bool)
     {
         uint96 amount;
-        if (removedAmount == uint256(-1)) {
-            amount = uint96(-1);
+        if (removedAmount == type(uint256).max) {
+            amount = type(uint96).max;
         } else {
             amount = safe96(
                 removedAmount,
@@ -329,7 +328,7 @@ contract MPondLogic is Initializable {
             "MPond::approve: amount exceeds 96 bits"
         );
 
-        if (spender != src && spenderAllowance != uint96(-1)) {
+        if (spender != src && spenderAllowance != type(uint96).max) {
             uint96 newAllowance = sub96(
                 spenderAllowance,
                 amount,
@@ -378,7 +377,7 @@ contract MPondLogic is Initializable {
             abi.encode(
                 DOMAIN_TYPEHASH,
                 keccak256(bytes(name)),
-                getChainId(),
+                block.chainid,
                 address(this)
             )
         );
@@ -397,7 +396,7 @@ contract MPondLogic is Initializable {
             nonce == nonces[signatory]++,
             "MPond::delegateBySig: invalid nonce"
         );
-        require(now <= expiry, "MPond::delegateBySig: signature expired");
+        require(block.timestamp <= expiry, "MPond::delegateBySig: signature expired");
         return _delegate(signatory, delegatee, amount);
     }
 
@@ -414,7 +413,7 @@ contract MPondLogic is Initializable {
             abi.encode(
                 DOMAIN_TYPEHASH,
                 keccak256(bytes(name)),
-                getChainId(),
+                block.chainid,
                 address(this)
             )
         );
@@ -433,7 +432,7 @@ contract MPondLogic is Initializable {
             nonce == nonces[signatory]++,
             "MPond::undelegateBySig: invalid nonce"
         );
-        require(now <= expiry, "MPond::undelegateBySig: signature expired");
+        require(block.timestamp <= expiry, "MPond::undelegateBySig: signature expired");
         return _undelegate(signatory, delegatee, amount);
     }
 
@@ -678,14 +677,6 @@ contract MPondLogic is Initializable {
     ) internal pure returns (uint96) {
         require(b <= a, errorMessage);
         return a - b;
-    }
-
-    function getChainId() internal pure returns (uint256) {
-        uint256 chainId;
-        assembly {
-            chainId := chainid()
-        }
-        return chainId;
     }
 
     modifier onlyAdmin(string memory _error) {
