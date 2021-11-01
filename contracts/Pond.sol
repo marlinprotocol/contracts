@@ -17,11 +17,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 contract Pond is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
-    // IERC165Upgradeable,
-    // IAccessControlUpgradeable,
-    // IAccessControlEnumerableUpgradeable,
-    // IERC20Upgradeable,
-    // IERC20MetadataUpgradeable,
     ERC165Upgradeable,  // supportsInterface
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
@@ -84,3 +79,4 @@ contract Pond is
         require(hasRole(DEFAULT_ADMIN_ROLE, account), "Pond: must be admin to upgrade");
     }
 }
+
