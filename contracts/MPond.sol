@@ -1,76 +1,152 @@
+// Copyright 2020 Compound Labs, Inc.
+//
+// Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+//
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+//
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 
-contract MPond is Initializable {
+// do not use any of the OpenZeppelin ERC20 contracts or extensions
+contract MPond is
+    Initializable,  // initializer
+    ContextUpgradeable,  // _msgSender, _msgData
+    ERC165Upgradeable,  // supportsInterface
+    AccessControlUpgradeable,  // RBAC
+    AccessControlEnumerableUpgradeable,  // RBAC enumeration
+    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable  // public upgrade
+{
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
+
+//-------------------------------- Overrides start --------------------------------//
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _setupRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._setupRole(role, account);
+    }
+
+    function grantRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.grantRole(role, account);
+    }
+
+    function revokeRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.revokeRole(role, account);
+    }
+
+    function renounceRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.renounceRole(role, account);
+    }
+
+    function _authorizeUpgrade(address account) internal override {
+        require(hasRole(DEFAULT_ADMIN_ROLE, account), "MPond: must be admin to upgrade");
+    }
+//-------------------------------- Overrides end --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
+
+    uint256[50] private __gap1;
+
+    function initialize() public initializer {
+        // initialize parents
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+
+        // set sender as admin
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
+        // mint supply to sender
+        uint96 _amount = safe96(totalSupply, "Supply exceeds 2^96");
+        balances[_msgSender()] = Balance(_amount, _amount, 0);
+        emit Transfer(address(0), _msgSender(), totalSupply);
+    }
+
+//-------------------------------- Initializer end --------------------------------//
+
+//-------------------------------- Whitelist start --------------------------------//
+
+    uint256[50] private __gap2;
+
+    /// @notice Role used for whitelist
+    bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
+
+    function addWhiteListAddress(address _address) external {
+        // do not use _grantRole, need to check for admin here
+        grantRole(WHITELIST_ROLE, _address);
+    }
+
+    function removeWhiteListAddress(address _address) external {
+        // do not use _revokeRole, need to check for admin here
+        revokeRole(WHITELIST_ROLE, _address);
+    }
+
+    function isWhitelisted(address _address) public view returns (bool) {
+        return hasRole(WHITELIST_ROLE, _address);
+    }
+
+    function isWhitelistedTransfer(address _address1, address _address2)
+        public
+        view
+        returns (bool)
+    {
+        if (
+            isWhitelisted(_address2) ||
+            isWhitelisted(_address1)
+        ) {
+            return true;
+        }
+        return false;
+    }
+
+//-------------------------------- Whitelist end --------------------------------//
+
+//-------------------------------- ERC20 start --------------------------------//
+
     /// @notice EIP-20 token name for this token
-    string public name;
+    string public constant name = "Marlin";
 
     /// @notice EIP-20 token symbol for this token
-    string public symbol;
+    string public constant symbol = "MPond";
 
     /// @notice EIP-20 token decimals for this token
-    uint8 public decimals;
+    uint8 public constant decimals = 18;
 
     /// @notice Total number of tokens in circulation
-    uint256 public totalSupply; // 10k MPond
-    uint256 public bridgeSupply; // 3k MPond
+    uint256 public constant totalSupply = 10000e18;  // 10k
 
-    address public dropBridge;
     /// @notice Allowance amounts on behalf of others
     mapping(address => mapping(address => uint96)) internal allowances;
 
-    /// @notice Official record of token balances for each account
-    mapping(address => uint96) internal balances;
-
-    /// @notice A record of each accounts delegate
-    mapping(address => mapping(address => uint96)) public delegates;
-
-    /// @notice A checkpoint for marking number of votes from a given block
-    struct Checkpoint {
-        uint32 fromBlock;
-        uint96 votes;
+    /// @notice Optimize balances by storing multiple items in same slot
+    struct Balance {
+        uint96 undelegated;
+        uint96 token;
+        uint64 __unused;
     }
 
-    /// @notice A record of votes checkpoints for each account, by index
-    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
+    /// @notice Official record of token balances for each account
+    mapping(address => Balance) internal balances;
 
-    /// @notice The number of checkpoints for each account
-    mapping(address => uint32) public numCheckpoints;
-
-    /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public DOMAIN_TYPEHASH;
-
-    /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public DELEGATION_TYPEHASH;
-
-    /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public UNDELEGATION_TYPEHASH;
-
-    /// @notice A record of states for signing / validating signatures
-    mapping(address => uint256) public nonces;
-
-    /// customized params
-    address public admin;
-    mapping(address => bool) public isWhiteListed;
-    bool public enableAllTranfers;
-
-    /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(
-        address indexed delegator,
-        address indexed fromDelegate,
-        address indexed toDelegate
-    );
-
-    /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(
-        address indexed delegate,
-        uint256 previousBalance,
-        uint256 newBalance
-    );
-
-    /// @notice The standard EIP-20 transfer event
-    event Transfer(address indexed from, address indexed to, uint256 amount);
+    uint256[48] private __gap3;
 
     /// @notice The standard EIP-20 approval event
     event Approval(
@@ -79,115 +155,8 @@ contract MPond is Initializable {
         uint256 amount
     );
 
-    /**
-     * @notice Initializer a new MPond token
-     * @param account The initial account to grant all the tokens
-     */
-    function initialize(
-        address account,
-        address bridge,
-        address dropBridgeAddress
-    ) public initializer {
-        createConstants();
-        require(
-            account != bridge,
-            "Bridge and account should not be the same address"
-        );
-        balances[bridge] = uint96(bridgeSupply);
-        delegates[bridge][address(0)] = uint96(bridgeSupply);
-        isWhiteListed[bridge] = true;
-        emit Transfer(address(0), bridge, bridgeSupply);
-
-        uint96 remainingSupply = sub96(
-            uint96(totalSupply),
-            uint96(bridgeSupply),
-            "MPond: Subtraction overflow in the constructor"
-        );
-        balances[account] = remainingSupply;
-        delegates[account][address(0)] = remainingSupply;
-        isWhiteListed[account] = true;
-        dropBridge = dropBridgeAddress;
-        emit Transfer(address(0), account, uint256(remainingSupply));
-    }
-
-    function createConstants() internal {
-        name = "Marlin";
-        symbol = "MPond";
-        decimals = 18;
-        totalSupply = 10000e18;
-        bridgeSupply = 7000e18;
-        DOMAIN_TYPEHASH = keccak256(
-            "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
-        );
-        DELEGATION_TYPEHASH = keccak256(
-            "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-        );
-        UNDELEGATION_TYPEHASH = keccak256(
-            "Unelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
-        );
-        admin = msg.sender;
-        // enableAllTranfers = true; //This is only for testing, will be false
-    }
-
-    function addWhiteListAddress(address _address)
-        external
-        onlyAdmin("Only admin can whitelist")
-        returns (bool)
-    {
-        isWhiteListed[_address] = true;
-        return true;
-    }
-
-    function removeWhiteListAddress(address _address)
-        external
-        onlyAdmin("Only admin can remove from whitelist")
-        returns (bool)
-    {
-        isWhiteListed[_address] = false;
-        return true;
-    }
-
-    function enableAllTransfers()
-        external
-        onlyAdmin("Only admin can enable all transfers")
-        returns (bool)
-    {
-        enableAllTranfers = true;
-        return true;
-    }
-
-    function disableAllTransfers()
-        external
-        onlyAdmin("Only admin can disable all transfers")
-        returns (bool)
-    {
-        enableAllTranfers = false;
-        return true;
-    }
-
-    function changeDropBridge(address _updatedBridge)
-        public
-        onlyAdmin("Only admin can change drop bridge")
-    {
-        dropBridge = _updatedBridge;
-    }
-
-    function isWhiteListedTransfer(address _address1, address _address2)
-        public
-        view
-        returns (bool)
-    {
-        if (
-            enableAllTranfers ||
-            isWhiteListed[_address1] ||
-            isWhiteListed[_address2]
-        ) {
-            return true;
-        } else if (_address1 == dropBridge) {
-            return true;
-        }
-        return false;
-    }
+    /// @notice The standard EIP-20 transfer event
+    event Transfer(address indexed from, address indexed to, uint256 amount);
 
     /**
      * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
@@ -209,11 +178,9 @@ contract MPond is Initializable {
      *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
      * @param spender The address of the account which may transfer tokens
      * @param rawAmount The number of tokens that are approved (2^256-1 means infinite)
-     * @return Whether or not the approval succeeded
      */
     function approve(address spender, uint256 rawAmount)
         external
-        returns (bool)
     {
         uint96 amount;
         if (rawAmount == type(uint256).max) {
@@ -225,15 +192,13 @@ contract MPond is Initializable {
             );
         }
 
-        allowances[msg.sender][spender] = amount;
+        allowances[_msgSender()][spender] = amount;
 
-        emit Approval(msg.sender, spender, amount);
-        return true;
+        emit Approval(_msgSender(), spender, amount);
     }
 
     function increaseAllowance(address spender, uint256 addedAmount)
         external
-        returns (bool)
     {
         uint96 amount;
         if (addedAmount == type(uint256).max) {
@@ -245,18 +210,16 @@ contract MPond is Initializable {
             );
         }
 
-        allowances[msg.sender][spender] = add96(
-            allowances[msg.sender][spender],
+        allowances[_msgSender()][spender] = add96(
+            allowances[_msgSender()][spender],
             amount,
             "MPond: increaseAllowance allowance value overflows"
         );
-        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
-        return true;
+        emit Approval(_msgSender(), spender, allowances[_msgSender()][spender]);
     }
 
     function decreaseAllowance(address spender, uint256 removedAmount)
         external
-        returns (bool)
     {
         uint96 amount;
         if (removedAmount == type(uint256).max) {
@@ -268,13 +231,12 @@ contract MPond is Initializable {
             );
         }
 
-        allowances[msg.sender][spender] = sub96(
-            allowances[msg.sender][spender],
+        allowances[_msgSender()][spender] = sub96(
+            allowances[_msgSender()][spender],
             amount,
             "MPond: decreaseAllowance allowance value underflows"
         );
-        emit Approval(msg.sender, spender, allowances[msg.sender][spender]);
-        return true;
+        emit Approval(_msgSender(), spender, allowances[_msgSender()][spender]);
     }
 
     /**
@@ -283,26 +245,24 @@ contract MPond is Initializable {
      * @return The number of tokens held
      */
     function balanceOf(address account) external view returns (uint256) {
-        return balances[account];
+        return uint256(balances[account].token);
     }
 
     /**
-     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
+     * @notice Transfer `amount` tokens from `_msgSender()` to `dst`
      * @param dst The address of the destination account
      * @param rawAmount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
      */
     function transfer(address dst, uint256 rawAmount) external returns (bool) {
         require(
-            isWhiteListedTransfer(msg.sender, dst),
+            isWhitelistedTransfer(_msgSender(), dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
         uint96 amount = safe96(
             rawAmount,
             "MPond::transfer: amount exceeds 96 bits"
         );
-        _transferTokens(msg.sender, dst, amount);
-        return true;
+        _transferTokens(_msgSender(), dst, amount);
     }
 
     /**
@@ -310,18 +270,17 @@ contract MPond is Initializable {
      * @param src The address of the source account
      * @param dst The address of the destination account
      * @param rawAmount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
      */
     function transferFrom(
         address src,
         address dst,
         uint256 rawAmount
-    ) external returns (bool) {
+    ) external {
         require(
-            isWhiteListedTransfer(src, dst),
+            isWhitelistedTransfer(src, dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
         );
-        address spender = msg.sender;
+        address spender = _msgSender();
         uint96 spenderAllowance = allowances[src][spender];
         uint96 amount = safe96(
             rawAmount,
@@ -340,19 +299,102 @@ contract MPond is Initializable {
         }
 
         _transferTokens(src, dst, amount);
-        return true;
     }
 
+    function _transferTokens(
+        address src,
+        address dst,
+        uint96 amount
+    ) internal {
+        require(
+            src != address(0),
+            "MPond::_transferTokens: cannot transfer from the zero address"
+        );
+        require(
+            dst != address(0),
+            "MPond::_transferTokens: cannot transfer to the zero address"
+        );
+
+        Balance memory _srcBalance = balances[src];
+        _srcBalance.undelegated = sub96(
+            _srcBalance.undelegated,
+            amount,
+            "MPond::_transferTokens: transfer amount exceeds undelegated balance"
+        );
+        _srcBalance.token = sub96(
+            _srcBalance.token,
+            amount,
+            "MPond::_transferTokens: transfer amount exceeds balance"
+        );
+        balances[src] = _srcBalance;
+
+        Balance memory _dstBalance = balances[dst];
+        _dstBalance.undelegated = add96(
+            _dstBalance.undelegated,
+            amount,
+            "MPond::_transferTokens: undelegated balance overflow"
+        );
+        _dstBalance.token = add96(
+            _dstBalance.token,
+            amount,
+            "MPond::_transferTokens: balance overflow"
+        );
+        balances[dst] = _dstBalance;
+
+        emit Transfer(src, dst, amount);
+    }
+
+//-------------------------------- ERC20 end --------------------------------//
+
+//-------------------------------- Delegation start --------------------------------//
+
+    /// @notice A record of each accounts delegates and values except to 0x0 which is stored in balances
+    mapping(address => mapping(address => uint96)) internal delegates;
+
+    /// @notice A record of states for signing / validating signatures
+    mapping(address => uint256) public nonces;
+
+    uint256[48] private __gap4;
+
+    /// @notice The EIP-712 typehash for the contract's domain
+    bytes32 public DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,uint256 chainId,address verifyingContract)"
+    );
+
+    /// @notice The EIP-712 typehash for the delegation struct used by the contract
+    bytes32 public DELEGATION_TYPEHASH = keccak256(
+        "Delegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+    );
+
+    /// @notice The EIP-712 typehash for the delegation struct used by the contract
+    bytes32 public UNDELEGATION_TYPEHASH = keccak256(
+        "Undelegation(address delegatee,uint256 nonce,uint256 expiry,uint96 amount)"
+    );
+
+    /// @notice An event thats emitted when an account changes its delegate
+    event DelegateChanged(
+        address indexed delegator,
+        address indexed fromDelegate,
+        address indexed toDelegate
+    );
+
+    /// @notice An event thats emitted when a delegate account's vote balance changes
+    event DelegateVotesChanged(
+        address indexed delegate,
+        uint256 previousBalance,
+        uint256 newBalance
+    );
+
     /**
-     * @notice Delegate votes from `msg.sender` to `delegatee`
+     * @notice Delegate votes from `_msgSender()` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
     function delegate(address delegatee, uint96 amount) public {
-        return _delegate(msg.sender, delegatee, amount);
+        return _delegate(_msgSender(), delegatee, amount);
     }
 
     function undelegate(address delegatee, uint96 amount) public {
-        return _undelegate(msg.sender, delegatee, amount);
+        return _undelegate(_msgSender(), delegatee, amount);
     }
 
     /**
@@ -436,6 +478,72 @@ contract MPond is Initializable {
         return _undelegate(signatory, delegatee, amount);
     }
 
+    function _delegate(
+        address delegator,
+        address delegatee,
+        uint96 amount
+    ) internal {
+        Balance memory _srcBalance = balances[delegator];
+        _srcBalance.undelegated = sub96(
+            _srcBalance.undelegated,
+            amount,
+            "MPond::_transferTokens: transfer amount exceeds undelegated balance"
+        );
+        balances[delegator] = _srcBalance;
+
+        delegates[delegator][delegatee] = add96(
+            delegates[delegator][delegatee],
+            amount,
+            "MPond: delegates overflow"
+        );
+
+        emit DelegateChanged(delegator, address(0), delegatee);
+
+        _moveDelegates(address(0), delegatee, amount);
+    }
+
+    function _undelegate(
+        address delegator,
+        address delegatee,
+        uint96 amount
+    ) internal {
+        delegates[delegator][delegatee] = sub96(
+            delegates[delegator][delegatee],
+            amount,
+            "MPond: undelegates underflow"
+        );
+
+        Balance memory _srcBalance = balances[delegator];
+        _srcBalance.undelegated = add96(
+            _srcBalance.undelegated,
+            amount,
+            "MPond::_transferTokens: transfer amount exceeds undelegated balance"
+        );
+        balances[delegator] = _srcBalance;
+
+        emit DelegateChanged(delegator, delegatee, address(0));
+        _moveDelegates(delegatee, address(0), amount);
+    }
+
+//-------------------------------- Delegation end --------------------------------//
+
+
+//-------------------------------- Checkpoints start --------------------------------//
+
+    /// @notice A checkpoint for marking number of votes from a given block
+    struct Checkpoint {
+        uint32 fromBlock;
+        uint96 votes;
+    }
+
+    /// @notice A record of votes checkpoints for each account, by index
+    mapping(address => mapping(uint32 => Checkpoint)) public checkpoints;
+
+    /// @notice The number of checkpoints for each account
+    mapping(address => uint32) public numCheckpoints;
+
+    uint256[48] private __gap5;
+
     /**
      * @notice Gets the current votes balance for `account`
      * @param account The address to get votes balance
@@ -495,90 +603,6 @@ contract MPond is Initializable {
             }
         }
         return checkpoints[account][lower].votes;
-    }
-
-    function _delegate(
-        address delegator,
-        address delegatee,
-        uint96 amount
-    ) internal {
-        delegates[delegator][address(0)] = sub96(
-            delegates[delegator][address(0)],
-            amount,
-            "MPond: delegates underflow"
-        );
-        delegates[delegator][delegatee] = add96(
-            delegates[delegator][delegatee],
-            amount,
-            "MPond: delegates overflow"
-        );
-
-        emit DelegateChanged(delegator, address(0), delegatee);
-
-        _moveDelegates(address(0), delegatee, amount);
-    }
-
-    function _undelegate(
-        address delegator,
-        address delegatee,
-        uint96 amount
-    ) internal {
-        delegates[delegator][delegatee] = sub96(
-            delegates[delegator][delegatee],
-            amount,
-            "MPond: undelegates underflow"
-        );
-        delegates[delegator][address(0)] = add96(
-            delegates[delegator][address(0)],
-            amount,
-            "MPond: delegates underflow"
-        );
-        emit DelegateChanged(delegator, delegatee, address(0));
-        _moveDelegates(delegatee, address(0), amount);
-    }
-
-    function _transferTokens(
-        address src,
-        address dst,
-        uint96 amount
-    ) internal {
-        require(
-            src != address(0),
-            "MPond::_transferTokens: cannot transfer from the zero address"
-        );
-        require(
-            delegates[src][address(0)] >= amount,
-            "MPond: _transferTokens: undelegated amount should be greater than transfer amount"
-        );
-        require(
-            dst != address(0),
-            "MPond::_transferTokens: cannot transfer to the zero address"
-        );
-
-        balances[src] = sub96(
-            balances[src],
-            amount,
-            "MPond::_transferTokens: transfer amount exceeds balance"
-        );
-        delegates[src][address(0)] = sub96(
-            delegates[src][address(0)],
-            amount,
-            "MPond: _tranferTokens: undelegate subtraction error"
-        );
-
-        balances[dst] = add96(
-            balances[dst],
-            amount,
-            "MPond::_transferTokens: transfer amount overflows"
-        );
-        delegates[dst][address(0)] = add96(
-            delegates[dst][address(0)],
-            amount,
-            "MPond: _transferTokens: undelegate addition error"
-        );
-        emit Transfer(src, dst, amount);
-
-        // _moveDelegates(delegates[src], delegates[dst], amount);
     }
 
     function _moveDelegates(
@@ -642,6 +666,13 @@ contract MPond is Initializable {
         emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
     }
 
+//-------------------------------- Checkpoints end --------------------------------//
+
+
+//-------------------------------- uint96 math start --------------------------------//
+
+    uint256[50] private __gap6;
+
     function safe32(uint256 n, string memory errorMessage)
         internal
         pure
@@ -679,9 +710,7 @@ contract MPond is Initializable {
         return a - b;
     }
 
-    modifier onlyAdmin(string memory _error) {
-        require(msg.sender == admin, _error);
-        _;
-    }
+//-------------------------------- uint96 math end --------------------------------//
+
 }
 
