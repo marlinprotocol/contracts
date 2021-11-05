@@ -1,3 +1,7 @@
+require('@nomiclabs/hardhat-ethers');
+require('@openzeppelin/hardhat-upgrades');
+require('solidity-coverage');
+
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
