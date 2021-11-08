@@ -54,7 +54,7 @@ contract MPond is
     }
 
     function _authorizeUpgrade(address account) internal override {
-        require(hasRole(DEFAULT_ADMIN_ROLE, account), "MPond: must be admin to upgrade");
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "MPond: must be admin to upgrade");
     }
 //-------------------------------- Overrides end --------------------------------//
 
