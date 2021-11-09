@@ -32,6 +32,9 @@ contract MPond is
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
+
 //-------------------------------- Overrides start --------------------------------//
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
