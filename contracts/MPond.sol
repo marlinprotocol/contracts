@@ -102,28 +102,14 @@ contract MPond is
     /// @notice Role used for whitelist
     bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
 
-    function addWhiteListAddress(address _address) external {
-        // do not use _grantRole, need to check for admin here
-        grantRole(WHITELIST_ROLE, _address);
-    }
-
-    function removeWhiteListAddress(address _address) external {
-        // do not use _revokeRole, need to check for admin here
-        revokeRole(WHITELIST_ROLE, _address);
-    }
-
-    function isWhitelisted(address _address) public view returns (bool) {
-        return hasRole(WHITELIST_ROLE, _address);
-    }
-
     function isWhitelistedTransfer(address _address1, address _address2)
         public
         view
         returns (bool)
     {
         if (
-            isWhitelisted(_address2) ||
-            isWhitelisted(_address1)
+            hasRole(WHITELIST_ROLE, _address2) ||
+            hasRole(WHITELIST_ROLE, _address1)
         ) {
             return true;
         }
