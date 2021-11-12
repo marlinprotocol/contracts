@@ -33,9 +33,12 @@ contract MPond is
     uint256[500] private __gap0;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
     constructor() initializer {}
 
 //-------------------------------- Overrides start --------------------------------//
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
@@ -50,15 +53,22 @@ contract MPond is
 
     function revokeRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super.revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
     function renounceRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super.renounceRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
     function _authorizeUpgrade(address account) internal override {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "MPond: must be admin to upgrade");
     }
+
 //-------------------------------- Overrides end --------------------------------//
 
 //-------------------------------- Initializer start --------------------------------//
