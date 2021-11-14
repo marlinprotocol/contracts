@@ -121,7 +121,7 @@ contract MPond is
 //-------------------------------- ERC20 start --------------------------------//
 
     /// @notice EIP-20 token name for this token
-    string public constant name = "Marlin";
+    string public constant name = "Marlin MPond";
 
     /// @notice EIP-20 token symbol for this token
     string public constant symbol = "MPond";
