@@ -247,6 +247,10 @@ contract MPond is
         return uint256(balances[account].token);
     }
 
+    function undelegatedBalanceOf(address account) external view returns (uint256) {
+        return uint256(balances[account].undelegated);
+    }
+
     /**
      * @notice Transfer `amount` tokens from `_msgSender()` to `dst`
      * @param dst The address of the destination account
