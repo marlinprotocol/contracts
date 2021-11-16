@@ -256,7 +256,7 @@ contract MPond is
      * @param dst The address of the destination account
      * @param rawAmount The number of tokens to transfer
      */
-    function transfer(address dst, uint256 rawAmount) external returns (bool) {
+    function transfer(address dst, uint256 rawAmount) external {
         require(
             isWhitelistedTransfer(_msgSender(), dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
