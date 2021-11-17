@@ -72,7 +72,7 @@ contract Pond is
     }
 
     function _authorizeUpgrade(address account) internal override {
-        require(hasRole(DEFAULT_ADMIN_ROLE, account), "Pond: must be admin to upgrade");
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Pond: must be admin to upgrade");
     }
 }
 
