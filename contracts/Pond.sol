@@ -4,10 +4,10 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/presets/ERC20PresetMinterPauserUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract Pond is
@@ -18,29 +18,24 @@ contract Pond is
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC20Upgradeable,  // token
     ERC20CappedUpgradeable,  // supply cap
-    ERC20BurnableUpgradeable,  // burn
-    PausableUpgradeable,  // _pause
-    ERC20PausableUpgradeable,  // check paused or not
-    ERC20PresetMinterPauserUpgradeable,  // mint, pause, unpause, MINTER_ROLE, PAUSER_ROLE
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable  // public upgrade
 {
     function initialize(
         string memory _name,
         string memory _symbol
-    ) public initializer override {
+    ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
         __AccessControlEnumerable_init_unchained();
         __ERC20_init_unchained(_name, _symbol);
         __ERC20Capped_init_unchained(10000000000e18);
-        __ERC20Burnable_init_unchained();
-        __Pausable_init_unchained();
-        __ERC20Pausable_init_unchained();
-        __ERC20PresetMinterPauser_init_unchained(_name, _symbol);
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _mint(_msgSender(), 10000000000e18);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
@@ -65,10 +60,6 @@ contract Pond is
 
     function _mint(address account, uint256 amount) internal virtual override(ERC20Upgradeable, ERC20CappedUpgradeable) {
         super._mint(account, amount);
-    }
-
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20Upgradeable, ERC20PausableUpgradeable, ERC20PresetMinterPauserUpgradeable) {
-        super._beforeTokenTransfer(from, to, amount);
     }
 
     function _authorizeUpgrade(address account) internal override {

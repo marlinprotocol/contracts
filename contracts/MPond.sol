@@ -121,7 +121,7 @@ contract MPond is
 //-------------------------------- ERC20 start --------------------------------//
 
     /// @notice EIP-20 token name for this token
-    string public constant name = "Marlin";
+    string public constant name = "Marlin MPond";
 
     /// @notice EIP-20 token symbol for this token
     string public constant symbol = "MPond";
@@ -247,12 +247,16 @@ contract MPond is
         return uint256(balances[account].token);
     }
 
+    function undelegatedBalanceOf(address account) external view returns (uint256) {
+        return uint256(balances[account].undelegated);
+    }
+
     /**
      * @notice Transfer `amount` tokens from `_msgSender()` to `dst`
      * @param dst The address of the destination account
      * @param rawAmount The number of tokens to transfer
      */
-    function transfer(address dst, uint256 rawAmount) external returns (bool) {
+    function transfer(address dst, uint256 rawAmount) external {
         require(
             isWhitelistedTransfer(_msgSender(), dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
