@@ -38,8 +38,6 @@ describe('Pond Deployment', function () {
     expect(await pond.symbol()).to.equal("POND");
     expect(await pond.cap()).to.equal(BN.from(10000000000).e18());
     expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await pond.hasRole(await pond.MINTER_ROLE(), addrs[0])).to.be.true;
-    expect(await pond.hasRole(await pond.PAUSER_ROLE(), addrs[0])).to.be.true;
 
   });
 
@@ -52,8 +50,6 @@ describe('Pond Deployment', function () {
     expect(await pond.symbol()).to.equal("POND");
     expect(await pond.cap()).to.equal(BN.from(10000000000).e18());
     expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await pond.hasRole(await pond.MINTER_ROLE(), addrs[0])).to.be.true;
-    expect(await pond.hasRole(await pond.PAUSER_ROLE(), addrs[0])).to.be.true;
   });
 
   it('does not upgrade without admin', async function () {
@@ -113,42 +109,6 @@ describe('Pond Interface Check', function () {
   });
 });
 
-describe('Pond Minting check', function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let pond: Contract;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const Pond = await ethers.getContractFactory('Pond');
-    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
-  });
-
-  it('no other minter', async function () {
-    expect(await pond.hasRole(await pond.MINTER_ROLE(), addrs[1])).to.be.false;
-  });
-
-  it('grant minter', async function () {
-    await pond.grantRole(await pond.MINTER_ROLE(), addrs[1])
-    expect(await pond.hasRole(await pond.MINTER_ROLE(), addrs[1])).to.be.true;
-  });
-
-  it('revoke minter', async function () {
-    await pond.grantRole(await pond.MINTER_ROLE(), addrs[1])
-    await pond.revokeRole(await pond.MINTER_ROLE(), addrs[1])
-    expect(await pond.hasRole(await pond.MINTER_ROLE(), addrs[1])).to.be.false;
-  });
-
-  it('minting', async function () {
-
-    await pond.mint(addrs[0], 1000)
-    expect(await pond.balanceOf(addrs[0])).to.equal(1000);
-    expect(await pond.totalSupply()).to.equal(1000);
-    await expect(pond.connect(signers[1]).mint(addrs[1], 1000)).to.be.reverted;
-  })
-});
-
 describe('Pond allowance check', function() {
   let signers: Signer[];
   let addrs: string[];
@@ -162,7 +122,6 @@ describe('Pond allowance check', function() {
   });
 
   it('approve', async function() {
-    await pond.mint(addrs[0], 1000);
     await pond.approve(addrs[1], 400);
     expect(await pond.allowance(addrs[0], addrs[1])).to.equal(400);
   });
@@ -175,13 +134,6 @@ describe('Pond allowance check', function() {
   it('increase allowance', async function() {
     await pond.increaseAllowance(addrs[1], 100);
     expect(await pond.allowance(addrs[0], addrs[1])).to.equal(400);
-  });
-
-  it('burn', async function() {
-    await pond.connect(signers[1]).burnFrom(addrs[0], 100);
-    expect(await pond.allowance(addrs[0], addrs[1])).to.equal(300);
-    expect(await pond.balanceOf(addrs[0])).to.equal(900);
-
   });
 });
 
@@ -198,10 +150,8 @@ describe('Pond transfer check', function() {
   });
 
   it('transfer', async function() {
-    await pond.mint(addrs[0], 1000);
     await pond.transfer(addrs[1], 400);
     expect(await pond.balanceOf(addrs[1])).to.equal(400);
-    expect(await pond.balanceOf(addrs[0])).to.equal(600);
   });
 
   it('transferFrom (no allowance)', async function() {
