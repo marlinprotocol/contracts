@@ -26,8 +26,7 @@ describe('Pond Deployment', function () {
   it('deploys with initialization disabled', async function () {
     const Pond = await ethers.getContractFactory('Pond');
     let pond = await Pond.deploy();
-
-    await expect(pond.initialize()).to.be.reverted;
+    await expect(pond.initialize("Marlin", "POND")).to.be.reverted;
   });
 
   it('deploys as proxy and initializes', async function () {
