@@ -78,6 +78,11 @@ contract StakeManager is
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event RedelegationCancelled(bytes32 indexed _stashId);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
+    
     function initialize(
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
