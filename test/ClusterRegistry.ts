@@ -29,6 +29,8 @@ describe('ClusterRegistry Deployment', function () {
   let registeredCluster: Signer;
   let registeredCluster1: Signer;
   let unregisteredCluster: Signer;
+  let updatedRewardAddress: string;
+  let updatedClientKey: string;
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -40,7 +42,8 @@ describe('ClusterRegistry Deployment', function () {
     registeredCluster = signers[8];
     registeredCluster1 = signers[9];
     unregisteredCluster = signers[10];
-
+    updatedRewardAddress = addrs[11];
+    updatedClientKey = addrs[12];
     //clusterRewardsOwner = addrs[6];
     //feeder = addrs[7];
     //rewardDelegatorsOwner = addrs[8];
@@ -121,7 +124,80 @@ describe('ClusterRegistry Deployment', function () {
     await skipBlocks(1);
     const afterWaitCommission = parseInt((await clusterRegistryInstance.callStatic.getCommission(await registeredCluster.getAddress())).toString());
     expect(afterWaitCommission).to.equal(15);
-});
+  });
+
+  it("switch network", async () => {
+    const NEARHASH = ethers.utils.id("NEAR");
+    await expect(clusterRegistryInstance.connect(unregisteredCluster).switchNetwork(NEARHASH)).to.be.reverted;
+    const prevNetwork = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    await clusterRegistryInstance.connect(registeredCluster).switchNetwork(NEARHASH);
+    const networkAfterSwitch = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    expect(prevNetwork).to.equal(networkAfterSwitch);
+  
+    await skipBlocks(21);
+    const justBeforeSwitchNetwork = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    expect(justBeforeSwitchNetwork).to.equal(prevNetwork);
+    
+    await skipBlocks(1);
+    const afterSwitchNetwork = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    expect(afterSwitchNetwork).to.equal(NEARHASH);
+  });
+
+  it("update reward address", async () => {
+
+    await expect(clusterRegistryInstance.connect(unregisteredCluster).updateRewardAddress(updatedRewardAddress)).to.be.reverted;
+    const prevRewardAddress = await clusterRegistryInstance.getRewardAddress(await registeredCluster.getAddress());
+    await clusterRegistryInstance.connect(registeredCluster).updateRewardAddress(updatedRewardAddress);
+    const afterUpdateAddress = await clusterRegistryInstance.getRewardAddress(await registeredCluster.getAddress());
+    expect(prevRewardAddress).to.not.equal(afterUpdateAddress);
+    expect(afterUpdateAddress).to.equal(updatedRewardAddress);
+  });
+
+  it("update client key", async () => {
+    await expect(clusterRegistryInstance.connect(unregisteredCluster).updateClientKey(updatedClientKey)).to.be.reverted;
+    const prevClientKey = await clusterRegistryInstance.callStatic.getClientKey(await registeredCluster.getAddress());
+    await clusterRegistryInstance.connect(registeredCluster).updateClientKey(updatedClientKey);
+    const afterClientKey = await clusterRegistryInstance.callStatic.getClientKey(await registeredCluster.getAddress());
+    expect(prevClientKey).to.not.equal(afterClientKey);
+    expect(afterClientKey).to.equal(updatedClientKey);
+  });
+
+  it("update cluster params", async () => {
+    await expect(clusterRegistryInstance.connect(unregisteredCluster).updateCluster(7, DOTHASH,rewardAddress,clientKey)).to.be.reverted;
+
+    const clusterData = await clusterRegistryInstance.callStatic.getCluster(await registeredCluster.getAddress());
+    await clusterRegistryInstance.connect(registeredCluster).updateCluster(7, DOTHASH, rewardAddress, clientKey);
+    const clusterDataAfterUpdate = await clusterRegistryInstance.callStatic.getCluster(await registeredCluster.getAddress());
+    expect(clusterData.clientKey).to.not.equal(clusterDataAfterUpdate.clientKey);
+    expect(clusterDataAfterUpdate.clientKey).to.equal(clientKey);
+    expect(clusterData.rewardAddress).to.not.equal(clusterDataAfterUpdate.rewardAddress);
+    expect(clusterDataAfterUpdate.rewardAddress).to.equal(rewardAddress);
+    expect(clusterData.commission.toString()).to.equal(clusterDataAfterUpdate.commission.toString());
+    expect(clusterData.networkId).to.equal(clusterDataAfterUpdate.networkId);
+    await skipBlocks(20);
+    const justBeforeUpdateCommission = parseInt((await clusterRegistryInstance.callStatic.getCommission(await registeredCluster.getAddress())).toString());
+    expect(justBeforeUpdateCommission).to.equal(parseInt(clusterData.commission.toString()));
+    await skipBlocks(1);
+    const afterWaitCommission = parseInt((await clusterRegistryInstance.callStatic.getCommission(await registeredCluster.getAddress())).toString());
+    expect(afterWaitCommission).to.equal(7);
+    const justBeforeSwitchNetwork = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    expect(justBeforeSwitchNetwork).to.equal(clusterData.networkId);
+    await skipBlocks(1);
+    const afterSwitchNetwork = await clusterRegistryInstance.callStatic.getNetwork(await registeredCluster.getAddress());
+    expect(afterSwitchNetwork).to.equal(DOTHASH);
+  });
+
+  it("Unregister cluster", async () => {
+    await expect(clusterRegistryInstance.connect(unregisteredCluster).unregister()).to.be.reverted;
+
+    expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress())).to.be.true;
+    await clusterRegistryInstance.connect(registeredCluster).unregister();
+    expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress())).to.be.true;
+    await skipBlocks(21);
+    expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress())).to.be.true;
+    await skipBlocks(2);
+    expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress())).to.be.false;
+  });;
 
   async function skipBlocks(blocks: Number) {
     const unregisteredClusterAddress = await unregisteredCluster.getAddress();
