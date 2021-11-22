@@ -55,6 +55,11 @@ contract ClusterRegistry is
     event ClusterUnregistered(address cluster, uint256 updatedAt);
     event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
+    
     function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner) 
         public 
         initializer
