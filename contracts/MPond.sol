@@ -256,7 +256,7 @@ contract MPond is
      * @param dst The address of the destination account
      * @param rawAmount The number of tokens to transfer
      */
-    function transfer(address dst, uint256 rawAmount) external {
+    function transfer(address dst, uint256 rawAmount) external returns (bool) {
         require(
             isWhitelistedTransfer(_msgSender(), dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
@@ -266,6 +266,8 @@ contract MPond is
             "MPond::transfer: amount exceeds 96 bits"
         );
         _transferTokens(_msgSender(), dst, amount);
+
+        return true;
     }
 
     /**
@@ -278,7 +280,7 @@ contract MPond is
         address src,
         address dst,
         uint256 rawAmount
-    ) external {
+    ) external returns (bool) {
         require(
             isWhitelistedTransfer(src, dst),
             "Atleast one of the address (src or dst) should be whitelisted or all transfers must be enabled via enableAllTransfers()"
@@ -302,6 +304,8 @@ contract MPond is
         }
 
         _transferTokens(src, dst, amount);
+
+        return true;
     }
 
     function _transferTokens(
