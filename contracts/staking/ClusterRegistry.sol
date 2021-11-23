@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -9,7 +11,7 @@ contract ClusterRegistry is
     ContextUpgradeable,
     ERC1967UpgradeUpgradeable,
     UUPSUpgradeable,
-    OwnableUpgradeable 
+    OwnableUpgradeable
 {
     uint256 constant UINT256_MAX = type(uint256).max;
 
@@ -39,10 +41,10 @@ contract ClusterRegistry is
     mapping(address => address) public clientKeys;
 
     event ClusterRegistered(
-        address cluster, 
-        bytes32 networkId, 
-        uint256 commission, 
-        address rewardAddress, 
+        address cluster,
+        bytes32 networkId,
+        uint256 commission,
+        address rewardAddress,
         address clientKey
     );
     event CommissionUpdateRequested(address cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
@@ -59,9 +61,9 @@ contract ClusterRegistry is
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
     constructor() initializer {}
-    
-    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner) 
-        public 
+
+    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner)
+        public
         initializer
     {
         require(
@@ -81,18 +83,18 @@ contract ClusterRegistry is
 
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
-        lockWaitTime[_selector] = _updatedWaitTime; 
+        lockWaitTime[_selector] = _updatedWaitTime;
     }
 
     function register(
-        bytes32 _networkId, 
-        uint256 _commission, 
-        address _rewardAddress, 
+        bytes32 _networkId,
+        uint256 _commission,
+        address _rewardAddress,
         address _clientKey
     ) external {
         // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
-            !isClusterValid(msg.sender), 
+            !isClusterValid(msg.sender),
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
@@ -104,7 +106,7 @@ contract ClusterRegistry is
         clusters[msg.sender].status = Status.REGISTERED;
 
         clientKeys[_clientKey] = msg.sender;
-        
+
         emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
     }
 
@@ -132,7 +134,7 @@ contract ClusterRegistry is
         bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
-            unlockBlock < block.number, 
+            unlockBlock < block.number,
             "CR:UCM-Commission update in progress"
         );
         if(unlockBlock != 0) {
@@ -263,17 +265,17 @@ contract ClusterRegistry is
     }
 
     function getCluster(address _cluster) external returns(
-        uint256 commission, 
-        address rewardAddress, 
-        address clientKey, 
-        bytes32 networkId, 
+        uint256 commission,
+        address rewardAddress,
+        address clientKey,
+        bytes32 networkId,
         bool isValidCluster
     ) {
         return (
-            getCommission(_cluster), 
-            clusters[_cluster].rewardAddress, 
-            clusters[_cluster].clientKey, 
-            getNetwork(_cluster), 
+            getCommission(_cluster),
+            clusters[_cluster].rewardAddress,
+            clusters[_cluster].clientKey,
+            getNetwork(_cluster),
             isClusterValid(_cluster)
         );
     }
@@ -281,7 +283,7 @@ contract ClusterRegistry is
     function getRewardInfo(address _cluster) external returns(uint256, address) {
         return (getCommission(_cluster), clusters[_cluster].rewardAddress);
     }
-    
+
     function addClientKeys(address[] calldata _clusters) external onlyOwner {
         for(uint256 i=0; i < _clusters.length; i++) {
             address _clientKey = clusters[_clusters[i]].clientKey;
@@ -289,6 +291,6 @@ contract ClusterRegistry is
             clientKeys[_clientKey] = _clusters[i];
         }
     }
-    
+
     function _authorizeUpgrade(address account) internal override onlyOwner{}
 }

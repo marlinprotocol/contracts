@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -12,7 +14,7 @@ contract RewardDelegators is
     ContextUpgradeable,
     ERC1967UpgradeUpgradeable,
     UUPSUpgradeable,
-    OwnableUpgradeable 
+    OwnableUpgradeable
 {
 
     struct Cluster {
@@ -82,7 +84,7 @@ contract RewardDelegators is
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
-        
+
         __Context_init_unchained();
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
@@ -150,9 +152,9 @@ contract RewardDelegators is
             //                                                         .div(weightedStake)
             //                                                     );
             if(delegations[i] != 0) {
-                clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]] + 
+                clusters[_cluster].accRewardPerShare[tokens[i]] = clusters[_cluster].accRewardPerShare[tokens[i]] +
                                                                    (((delegatorReward * (10**30)) / delegatedTokens) / delegations[i]);
-                                                                    
+
             }
         }
         if(commissionReward != 0) {
@@ -362,6 +364,6 @@ contract RewardDelegators is
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
-    
+
     function _authorizeUpgrade(address account) internal override onlyOwner{}
 }

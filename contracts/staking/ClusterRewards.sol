@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -10,7 +12,7 @@ contract ClusterRewards is
     ContextUpgradeable,
     ERC1967UpgradeUpgradeable,
     UUPSUpgradeable,
-    OwnableUpgradeable 
+    OwnableUpgradeable
 {
     mapping(address => uint256) public clusterRewards;
 
@@ -48,23 +50,23 @@ contract ClusterRewards is
     }
 
     function initialize(
-        address _owner, 
-        address _rewardDelegatorsAddress, 
+        address _owner,
+        address _rewardDelegatorsAddress,
         bytes32[] memory _networkIds,
         uint256[] memory _rewardWeight,
-        uint256 _totalRewardsPerEpoch, 
+        uint256 _totalRewardsPerEpoch,
         address _PONDAddress,
         uint256 _payoutDenomination,
         address _feeder,
-        uint256 _rewardDistributionWaitTime) 
+        uint256 _rewardDistributionWaitTime)
         public
         initializer
     {
         require(
-            _networkIds.length == _rewardWeight.length, 
+            _networkIds.length == _rewardWeight.length,
             "CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa"
         );
-        
+
         uint256 weight = 0;
         rewardDelegatorsAddress = _rewardDelegatorsAddress;
         for(uint256 i=0; i < _networkIds.length; i++) {
@@ -78,7 +80,7 @@ contract ClusterRewards is
         payoutDenomination = _payoutDenomination;
         feeder = _feeder;
         rewardDistributionWaitTime = _rewardDistributionWaitTime;
-        
+
         __Context_init_unchained();
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
@@ -117,15 +119,15 @@ contract ClusterRewards is
 
 
     function feed(
-        bytes32 _networkId, 
-        address[] calldata _clusters, 
-        uint256[] calldata _payouts, 
+        bytes32 _networkId,
+        address[] calldata _clusters,
+        uint256[] calldata _payouts,
         uint256 _epoch
     ) external onlyFeeder {
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
             require(
-                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime, 
+                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime,
                 "CRW:F-Cant distribute reward for new epoch within such short interval"
             );
             latestNewEpochRewardAt = block.timestamp;
@@ -140,7 +142,7 @@ contract ClusterRewards is
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
         }
         require(
-            rewardDistributed <= totalRewardsPerEpoch, 
+            rewardDistributed <= totalRewardsPerEpoch,
             "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
         );
         rewardDistributedPerEpoch[_epoch] = rewardDistributed;
@@ -151,7 +153,7 @@ contract ClusterRewards is
         return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
     }
 
-    // only cluster registry is necessary because the rewards 
+    // only cluster registry is necessary because the rewards
     // should be updated in the cluster registry against the cluster
     function claimReward(address _cluster) external onlyRewardDelegatorsContract returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
@@ -199,6 +201,6 @@ contract ClusterRewards is
         rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
         emit RewardDistributionWaitTimeUpdated(_updatedRewardDistributionWaitTime);
     }
-    
+
     function _authorizeUpgrade(address account) internal override onlyOwner{}
 }

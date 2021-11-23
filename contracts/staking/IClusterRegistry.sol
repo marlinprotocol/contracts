@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 interface IClusterRegistry {
@@ -5,15 +7,15 @@ interface IClusterRegistry {
     function lockWaitTime(bytes32 _selectorId) external returns(uint256);
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external;
     function register(
-        bytes32 _networkId, 
-        uint256 _commission, 
-        address _rewardAddress, 
+        bytes32 _networkId,
+        uint256 _commission,
+        address _rewardAddress,
         address _clientKey
     ) external;
     function updateCluster(
-        uint256 _commission, 
-        bytes32 _networkId, 
-        address _rewardAddress, 
+        uint256 _commission,
+        bytes32 _networkId,
+        address _rewardAddress,
         address _clientKey
     ) external;
     function updateCommission(uint256 _commission) external;

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -82,7 +84,7 @@ contract StakeManager is
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
     constructor() initializer {}
-    
+
     function initialize(
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
