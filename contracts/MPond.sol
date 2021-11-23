@@ -67,7 +67,7 @@ contract MPond is
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
-    function _authorizeUpgrade(address account) internal override {
+    function _authorizeUpgrade(address /*account*/) internal view override {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "MPond: must be admin to upgrade");
     }
 

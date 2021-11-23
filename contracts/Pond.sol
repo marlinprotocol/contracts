@@ -78,7 +78,7 @@ contract Pond is
         super._mint(account, amount);
     }
 
-    function _authorizeUpgrade(address account) internal override {
+    function _authorizeUpgrade(address /*account*/) internal view override {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Pond: must be admin to upgrade");
     }
 }
