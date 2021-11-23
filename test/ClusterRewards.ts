@@ -51,7 +51,6 @@ describe('ClusterRegistry Deployment', function () {
 
   before(async function () {
     signers = await ethers.getSigners();
-    console.log("len ", signers.length);
     addrs = await Promise.all(signers.map(a => a.getAddress()));
     mpondAccount = signers[2];
     delegator = signers[3];
@@ -343,8 +342,6 @@ describe('ClusterRegistry Deployment', function () {
     }
     await clusterRewardsInstance.connect(feeder).feed(ethers.utils.id("DOT"), clusters, payouts, epoch);
   }
-
-
 });
 
 

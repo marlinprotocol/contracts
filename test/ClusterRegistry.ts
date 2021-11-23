@@ -83,10 +83,10 @@ describe('ClusterRegistry Deployment', function () {
     expect((await clusterRegistryInstance.lockWaitTime(selectors[0])).toString()).to.equal(lockWaitTimes[0].toString());
   });
 
-  it('does not upgrade without admin', async function () {
+  it('does not upgrade without owner', async function () {
 
     const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
-    await expect(upgrades.upgradeProxy(clusterRegistryInstance.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.reverted;
+    await expect(upgrades.upgradeProxy(clusterRegistryInstance.address, ClusterRegistry, { kind: "uups" })).to.be.reverted;
   });
 
   it("Register cluster", async () => {
