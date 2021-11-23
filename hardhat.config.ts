@@ -25,6 +25,20 @@ export default {
         enabled: true,
         runs: 10000,
       },
+      // tried to use SMTChecker, gets killed, investigate later
+      // modelChecker: {
+      //   engine: "all",
+      //   targets: [
+      //     "assert",
+      //     "overflow",
+      //     "underflow",
+      //     "divByZero",
+      //     "constantCondition",
+      //     "popEmptyArray",
+      //     "outOfBounds",
+      //     "balance",
+      //   ],
+      // },
     },
   },
 };
