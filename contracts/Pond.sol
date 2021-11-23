@@ -21,6 +21,9 @@ contract Pond is
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable  // public upgrade
 {
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
