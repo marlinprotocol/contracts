@@ -399,8 +399,8 @@ contract StakeManager is
             "MS3"
         );
         require(
-            (_stash1.undelegatesAt <= block.number) &&
-            (_stash2.undelegatesAt <= block.number),
+            (stashes[_stashId1].undelegatesAt <= block.number) &&
+            (stashes[_stashId2].undelegatesAt <= block.number),
             "MS4"
         );
         bytes32 _lockId1 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId1));
