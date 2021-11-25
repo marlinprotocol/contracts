@@ -55,6 +55,11 @@ contract RewardDelegators is
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
+    
     function initialize(
         address _stakeAddress,
         address _clusterRewardsAddress,

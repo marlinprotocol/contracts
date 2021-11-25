@@ -15,7 +15,7 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18))
 }
 
-describe('ClusterRegistry Deployment', function () {
+describe('ClusterRewards Deployment', function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: Contract;
