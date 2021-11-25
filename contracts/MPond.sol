@@ -181,7 +181,7 @@ contract MPond is
      * @param rawAmount The number of tokens that are approved (2^256-1 means infinite)
      */
     function approve(address spender, uint256 rawAmount)
-        external
+        external returns (bool)
     {
         uint96 amount;
         if (rawAmount == type(uint256).max) {
@@ -196,6 +196,8 @@ contract MPond is
         allowances[_msgSender()][spender] = amount;
 
         emit Approval(_msgSender(), spender, amount);
+
+        return true;
     }
 
     function increaseAllowance(address spender, uint256 addedAmount)
