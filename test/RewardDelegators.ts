@@ -53,7 +53,6 @@ describe('RewardDelegators Deployment', function () {
 
   before(async function () {
     signers = await ethers.getSigners();
-    console.log("num signers: ", signers.length);
     addrs = await Promise.all(signers.map(a => a.getAddress()));
     registeredCluster3 = signers[1];
     mpondAccount = signers[2];
@@ -243,7 +242,6 @@ describe('RewardDelegators Deployment', function () {
         await feedData([await registeredCluster1.getAddress(), await registeredCluster2.getAddress()], 2);
         const cluster1Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster1.getAddress());
         const cluster2Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster2.getAddress());
-        console.log(cluster1Reward.toString(), cluster2Reward.toString());
         expect(cluster1Reward).to.equal(Math.round((10 + 2) / (10 + 2 + 4 + 2) * appConfig.staking.rewardPerEpoch / 3));
         expect(cluster2Reward).to.equal(Math.round((4 + 2) / (10 + 2 + 4 + 2) * appConfig.staking.rewardPerEpoch / 3));
         // do some delegations for both users to the cluster
@@ -253,8 +251,6 @@ describe('RewardDelegators Deployment', function () {
         let PondBalance1After = await pondInstance.balanceOf(await delegator1.getAddress());
         let accPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), pondTokenId);
         let accMPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), mpondTokenId);
-        console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
-        console.log(PondBalance1After.sub(PondBalance1Before).toString(), (appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)), appConfig.staking.rewardPerEpoch / 3);
         // substract 1 from the delegator rewards according to contract changes?
         // expect(PondBalance1After.sub(PondBalance1Before)).to.equal(Math.round(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1)); // TODO
         // feed data again to the oracle
@@ -282,9 +278,9 @@ describe('RewardDelegators Deployment', function () {
 
         const delegatorOldBalance = await pondInstance.balanceOf(await delegator3.getAddress());
         expect(Number(delegatorOldBalance)).to.equal(0);
-        // await rewardDelegatorsInstance.connect(delegator3).withdrawRewards(await delegator3.getAddress(), [await registeredCluster3.getAddress()]);// TODO
-        // const delegatorNewBalance = await pondInstance.balanceOf(await delegator3.getAddress());
-        // expect(Number(delegatorNewBalance)).to.equal( Number(clusterReward) - clusterCommission -1);
+        await rewardDelegatorsInstance.connect(delegator3)["withdrawRewards(address,address[])"](await delegator3.getAddress(), [await registeredCluster3.getAddress()]);
+        const delegatorNewBalance = await pondInstance.balanceOf(await delegator3.getAddress());
+        expect(Number(delegatorNewBalance)).to.equal( Number(clusterReward) - clusterCommission -1);
     });
 
     it("update MPOND Token id", async () => {
@@ -501,7 +497,6 @@ describe('RewardDelegators Deployment', function () {
         const stake = stakes[i];
         payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
     }
-    console.log(payouts);
     await clusterRewardsInstance.connect(feeder).feed(ethers.utils.id("testing"), clusters, payouts, epoch);
   }
 });
