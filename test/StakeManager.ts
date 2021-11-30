@@ -206,7 +206,8 @@ describe('StakeManager Deployment', function () {
     await pondInstance.approve(stakeManagerInstance.address, amount * 2);
     let tx1 = await (await stakeManagerInstance.createStash([PONDTokenId], [amount])).wait();
     let tx2 = await (await stakeManagerInstance.createStash([PONDTokenId], [amount])).wait();
-    expect(tx1.events[2].args.stashId).to.not.equal(tx2.events[2].args.stashId);
+
+    expect(getStashId(tx1.events)).to.not.equal(getStashId(tx2.events));
   });
 
   it("create MPOND stash", async () => {
