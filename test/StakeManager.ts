@@ -1045,6 +1045,58 @@ it("cancel stash undelegation", async () => {
   expect(stash.undelegatesAt).equal(0);
 });
 
+it("change MPond address", async()=> {
+  const MPond = await ethers.getContractFactory('MPond');
+  const tempMPondInstance = await upgrades.deployProxy(MPond, { kind: "uups", initializer: false });
+
+  await expect(stakeManagerInstance.changeMPONDTokenAddress(tempMPondInstance.address)).to.be.reverted;
+  let tx = await (await stakeManagerInstance.connect(stakeManagerOwner).changeMPONDTokenAddress(tempMPondInstance.address)).wait();
+  expect(tx.events[0].event).to.equal("TokenUpdated");
+
+  //change back to original
+  await stakeManagerInstance.connect(stakeManagerOwner).changeMPONDTokenAddress(mpondInstance.address);
+});
+
+it("change Reward Delegators address", async()=> {
+  const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
+  const tempRewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
+
+  await expect(stakeManagerInstance.updateRewardDelegators(tempRewardDelegatorsInstance.address)).to.be.reverted;
+  let tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateRewardDelegators(tempRewardDelegatorsInstance.address)).wait();
+  expect(await stakeManagerInstance.rewardDelegators()).to.equal(tempRewardDelegatorsInstance.address);
+
+  //change back to original
+  await stakeManagerInstance.connect(stakeManagerOwner).updateRewardDelegators(rewardDelegatorsInstance.address);
+});
+
+it("update undelegation wait time", async()=> {
+  
+  const undelegationWaitTimeBefore = await stakeManagerInstance.undelegationWaitTime();
+  await expect(stakeManagerInstance.updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).to.be.reverted;
+  const tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).wait();
+  expect(tx.events[0].event).to.equal("UndelegationWaitTimeUpdated");
+  expect(await stakeManagerInstance.undelegationWaitTime()).to.equal(undelegationWaitTimeBefore + 10);
+  // change back to original
+
+  await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore);
+});
+
+it("enable/disable token", async()=> {
+  // try to enable already enabled
+  await expect(stakeManagerInstance.connect(stakeManagerOwner).enableToken(PONDTokenId, pondInstance.address)).to.be.reverted;
+
+  // only onwner should be able to disable
+  await expect(stakeManagerInstance.disableToken(PONDTokenId)).to.be.reverted;
+  const tx1 = await (await stakeManagerInstance.connect(stakeManagerOwner).disableToken(PONDTokenId)).wait();
+  expect(tx1.events[0].event).to.equal("TokenRemoved");
+
+  // only owner should be able to enable
+  await expect(stakeManagerInstance.enableToken(PONDTokenId, pondInstance.address)).to.be.reverted;
+  const tx2 = await (await stakeManagerInstance.connect(stakeManagerOwner).enableToken(PONDTokenId, pondInstance.address)).wait();
+  expect(tx2.events[0].event).to.equal("TokenAdded");
+});
+
+
 async function createStash(mpondAmount: Number, pondAmount: Number) {
   const tokens = [];
   const amounts = [];
