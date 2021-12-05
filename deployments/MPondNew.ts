@@ -43,7 +43,7 @@ async function main() {
 
   addresses[chainId]['MPond'] = mpond.address;
 
-  fs.writeFileSync('address.json', JSON.stringify(addresses), 'utf8');
+  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
 }
 
 main()
