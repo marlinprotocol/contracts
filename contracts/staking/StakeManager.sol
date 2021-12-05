@@ -459,6 +459,7 @@ contract StakeManager is
         );
         uint256 _waitTime = undelegationWaitTime;
         uint256 _undelegationBlock = block.number + _waitTime;
+        address _delegatedCluster = stashes[_stashId].delegatedCluster;
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
         _cancelRedelegation(_stashId);
@@ -467,8 +468,8 @@ contract StakeManager is
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amount[_tokens[i]];
         }
-        rewardDelegators.undelegate(msg.sender, stashes[_stashId].delegatedCluster, _tokens, _amounts);
-        emit StashUndelegated(_stashId, stashes[_stashId].delegatedCluster, _undelegationBlock);
+        rewardDelegators.undelegate(msg.sender, _delegatedCluster, _tokens, _amounts);
+        emit StashUndelegated(_stashId, _delegatedCluster, _undelegationBlock);
     }
 
     function undelegateStashes(bytes32[] memory _stashIds) public {

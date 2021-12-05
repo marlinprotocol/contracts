@@ -53,7 +53,6 @@ describe('RewardDelegators Deployment', function () {
 
   before(async function () {
     signers = await ethers.getSigners();
-    console.log("num signers: ", signers.length);
     addrs = await Promise.all(signers.map(a => a.getAddress()));
     registeredCluster3 = signers[1];
     mpondAccount = signers[2];
@@ -188,6 +187,8 @@ describe('RewardDelegators Deployment', function () {
     const commission = 5;
     await clusterRegistryInstance.connect(registeredCluster).register(ethers.utils.id("DOT"), commission, registeredClusterRewardAddress, clientKey1);
     await delegate(delegator, [await registeredCluster.getAddress()], [0], [2000000]);
+    expect(await rewardDelegatorsInstance.getDelegation(await registeredCluster.getAddress(), await delegator.getAddress(), pondTokenId)).to.equal(2000000);
+
     await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
     await feedData([await registeredCluster.getAddress()], 1);
 
@@ -243,7 +244,6 @@ describe('RewardDelegators Deployment', function () {
         await feedData([await registeredCluster1.getAddress(), await registeredCluster2.getAddress()], 2);
         const cluster1Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster1.getAddress());
         const cluster2Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster2.getAddress());
-        console.log(cluster1Reward.toString(), cluster2Reward.toString());
         expect(cluster1Reward).to.equal(Math.round((10 + 2) / (10 + 2 + 4 + 2) * appConfig.staking.rewardPerEpoch / 3));
         expect(cluster2Reward).to.equal(Math.round((4 + 2) / (10 + 2 + 4 + 2) * appConfig.staking.rewardPerEpoch / 3));
         // do some delegations for both users to the cluster
@@ -253,8 +253,6 @@ describe('RewardDelegators Deployment', function () {
         let PondBalance1After = await pondInstance.balanceOf(await delegator1.getAddress());
         let accPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), pondTokenId);
         let accMPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), mpondTokenId);
-        console.log(accPondRewardPerShare.sub(accPondRewardPerShareBefore).toString(), accMPondRewardPerShare.sub(accMPondRewardPerShareBefore).toString())
-        console.log(PondBalance1After.sub(PondBalance1Before).toString(), (appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2)), appConfig.staking.rewardPerEpoch / 3);
         // substract 1 from the delegator rewards according to contract changes?
         // expect(PondBalance1After.sub(PondBalance1Before)).to.equal(Math.round(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1)); // TODO
         // feed data again to the oracle
@@ -282,9 +280,9 @@ describe('RewardDelegators Deployment', function () {
 
         const delegatorOldBalance = await pondInstance.balanceOf(await delegator3.getAddress());
         expect(Number(delegatorOldBalance)).to.equal(0);
-        // await rewardDelegatorsInstance.connect(delegator3).withdrawRewards(await delegator3.getAddress(), [await registeredCluster3.getAddress()]);// TODO
-        // const delegatorNewBalance = await pondInstance.balanceOf(await delegator3.getAddress());
-        // expect(Number(delegatorNewBalance)).to.equal( Number(clusterReward) - clusterCommission -1);
+        await rewardDelegatorsInstance.connect(delegator3)["withdrawRewards(address,address[])"](await delegator3.getAddress(), [await registeredCluster3.getAddress()]);
+        const delegatorNewBalance = await pondInstance.balanceOf(await delegator3.getAddress());
+        expect(Number(delegatorNewBalance)).to.equal( Number(clusterReward) - clusterCommission -1);
     });
 
     it("update MPOND Token id", async () => {
@@ -392,11 +390,86 @@ describe('RewardDelegators Deployment', function () {
 
         // transfer POND for rewards
         await pondInstance.transfer(rewardDelegatorsInstance.address, appConfig.staking.rewardPerEpoch*100);
-        // await rewardDelegatorsInstance.connect(delegator1).withdrawRewards(await delegator1.getAddress(), await registeredCluster4.getAddress()); // TODO
+        await rewardDelegatorsInstance.connect(delegator1)["withdrawRewards(address,address)"](await delegator1.getAddress(), await registeredCluster4.getAddress()); 
 
-        // // delegator reward
-        // const delegator1AfterBalance = await pondInstance.balanceOf(await delegator1.getAddress());
-        // expect(await delegator1AfterBalance).to.equal(3000);
+        // delegator reward
+        const delegator1AfterBalance = await pondInstance.balanceOf(await delegator1.getAddress());
+        expect(await delegator1AfterBalance).to.equal(3000);
+    });
+
+    it("Add, remove and update reward Factor", async ()=> {
+      const testTokenId = ethers.utils.id("testTokenId");
+      // only owner can add the reward factor
+      await expect(rewardDelegatorsInstance.addRewardFactor(testTokenId, 10)).to.be.reverted;
+      const addRewardTx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).addRewardFactor(testTokenId, 10)).wait();
+      expect(addRewardTx.events[0].event).to.equal("AddReward");
+
+      // only owner can update the reward factor
+      await expect(rewardDelegatorsInstance.updateRewardFactor(testTokenId, 100)).to.be.reverted;
+      const updateRewardTx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateRewardFactor(testTokenId, 100)).wait();
+      expect(updateRewardTx.events[0].event).to.equal("RewardsUpdated");
+
+      // only owner can remove the reward factor
+      await expect(rewardDelegatorsInstance.removeRewardFactor(testTokenId)).to.be.reverted;
+      const removeRewardTx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).removeRewardFactor(testTokenId)).wait();
+      expect(removeRewardTx.events[0].event).to.equal("RemoveReward");
+    });
+
+    it("update minPondStake", async()=> {
+      const minPondStakeBefore = await rewardDelegatorsInstance.minMPONDStake();
+      // only owner can update
+      await expect(rewardDelegatorsInstance.updateMinMPONDStake(minPondStakeBefore + 10)).to.be.reverted;
+      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateMinMPONDStake(minPondStakeBefore + 10);
+
+      expect(await rewardDelegatorsInstance.minMPONDStake()).to.equal(minPondStakeBefore + 10);
+    });
+
+    it("update stake address", async()=> {
+      const StakeManager = await ethers.getContractFactory('StakeManager');
+      const tempStakeManagerInstance = await upgrades.deployProxy(StakeManager, {kind: "uups", initializer: false});
+
+      await expect(rewardDelegatorsInstance.updateStakeAddress(tempStakeManagerInstance.address)).to.be.reverted;
+      let tx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateStakeAddress(tempStakeManagerInstance.address)).wait();
+      expect(tx.events[0].event).to.equal("StakeAddressUpdated");
+
+      //change back to original
+      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateStakeAddress(stakeManagerInstance.address);
+    });
+
+    it("update clusterReward address", async()=> {
+      const ClusterRewards = await ethers.getContractFactory('ClusterRewards');
+      const tempCLusterRewardInstance = await upgrades.deployProxy(ClusterRewards, {kind: "uups", initializer: false});
+
+      await expect(rewardDelegatorsInstance.updateClusterRewards(tempCLusterRewardInstance.address)).to.be.reverted;
+      let tx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateClusterRewards(tempCLusterRewardInstance.address)).wait();
+      expect(tx.events[0].event).to.equal("ClusterRewardsAddressUpdated");
+
+      //change back to original
+      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateClusterRewards(clusterRewardsInstance.address);
+    });
+
+    it("update clusterRegistry address", async()=> {
+      const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+      const tempCLusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, {kind: "uups", initializer: false});
+
+      await expect(rewardDelegatorsInstance.updateClusterRegistry(tempCLusterRegistryInstance.address)).to.be.reverted;
+      let tx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateClusterRegistry(tempCLusterRegistryInstance.address)).wait();
+      expect(tx.events[0].event).to.equal("ClusterRegistryUpdated");
+
+      //change back to original
+      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateClusterRegistry(clusterRegistryInstance.address);
+    });
+
+    it("update POND address", async()=> {
+      const Pond = await ethers.getContractFactory('Pond');
+      const tempPondInstance = await upgrades.deployProxy(Pond, {kind: "uups", initializer: false});
+
+      await expect(rewardDelegatorsInstance.updatePONDAddress(tempPondInstance.address)).to.be.reverted;
+      let tx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updatePONDAddress(tempPondInstance.address)).wait();
+      expect(tx.events[0].event).to.equal("PONDAddressUpdated");
+
+      //change back to original
+      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updatePONDAddress(pondInstance.address);
     });
 
   async function getTokensAndApprove(user: Signer, tokens: any, spender: string) {
@@ -501,7 +574,6 @@ describe('RewardDelegators Deployment', function () {
         const stake = stakes[i];
         payouts.push(stake.mul(payoutDenomination).div(totalStake).toString())
     }
-    console.log(payouts);
     await clusterRewardsInstance.connect(feeder).feed(ethers.utils.id("testing"), clusters, payouts, epoch);
   }
 });
