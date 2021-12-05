@@ -67,19 +67,10 @@ contract ClusterRegistry is
 
     uint256[50] private __gap1;
 
-    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes)
+    function initialize(uint256[3] calldata _lockWaitTimes)
         public
         initializer
     {
-        require(
-            _selectors.length == _lockWaitTimes.length,
-            "CR:I-Invalid params"
-        );
-        for(uint256 i=0; i < _selectors.length; i++) {
-            lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
-            emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
-        }
-
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
@@ -88,6 +79,12 @@ contract ClusterRegistry is
         __UUPSUpgradeable_init_unchained();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
+        bytes32[3] memory _selectors = [COMMISSION_LOCK_SELECTOR, SWITCH_NETWORK_LOCK_SELECTOR, UNREGISTER_LOCK_SELECTOR];
+        for(uint256 i=0; i < _selectors.length; i++) {
+            lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
+            emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
+        }
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -150,7 +147,7 @@ contract ClusterRegistry is
         address _clientKey
     ) external {
         require(
-            !_isClusterValid(_msgSender()),
+            !isClusterValid(_msgSender()),
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
@@ -183,7 +180,7 @@ contract ClusterRegistry is
 
     function updateCommission(uint256 _commission) public {
         require(
-            _isClusterValid(_msgSender()),
+            isClusterValid(_msgSender()),
             "CR:UCM-Cluster not registered"
         );
         require(_commission <= 100, "CR:UCM-Commission more than 100%");
@@ -205,7 +202,7 @@ contract ClusterRegistry is
 
     function switchNetwork(bytes32 _networkId) public {
         require(
-            _isClusterValid(_msgSender()),
+            isClusterValid(_msgSender()),
             "CR:SN-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
@@ -226,7 +223,7 @@ contract ClusterRegistry is
 
     function updateRewardAddress(address _rewardAddress) public {
         require(
-            _isClusterValid(_msgSender()),
+            isClusterValid(_msgSender()),
             "CR:URA-Cluster not registered"
         );
         clusters[_msgSender()].rewardAddress = _rewardAddress;
@@ -236,7 +233,7 @@ contract ClusterRegistry is
     function updateClientKey(address _clientKey) public {
         // TODO: Add delay to client key updates as well
         require(
-            _isClusterValid(_msgSender()),
+            isClusterValid(_msgSender()),
             "CR:UCK-Cluster not registered"
         );
         require(clientKeys[_clientKey] ==  address(0), "CR:UCK - Client key is already used");
@@ -317,7 +314,7 @@ contract ClusterRegistry is
             clusters[_cluster].rewardAddress,
             clusters[_cluster].clientKey,
             getNetwork(_cluster),
-            _isClusterValid(_cluster)
+            isClusterValid(_cluster)
         );
     }
 
@@ -325,7 +322,7 @@ contract ClusterRegistry is
         return (getCommission(_cluster), clusters[_cluster].rewardAddress);
     }
 
-    function _isClusterValid(address _cluster) internal returns(bool) {
+    function isClusterValid(address _cluster) public returns(bool) {
         bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _cluster));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         if(unlockBlock != 0 && unlockBlock < block.number) {
