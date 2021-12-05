@@ -109,11 +109,14 @@ contract L2Gateway is
         _;
     }
 
+    event Transfer(address indexed to, uint256 amount);
+
     function transferL2(
         address _to,
         uint256 _amount
     ) external onlyGatewayL1 {
         tokenL2.transfer(_to, _amount);
+        emit Transfer(_to, _amount);
     }
 
     function withdraw() onlyAdmin public {
