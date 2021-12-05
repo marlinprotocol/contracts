@@ -104,6 +104,14 @@ contract L1Gateway is
     event TokenL1Changed(address indexed _oldTokenL1, address indexed _newTokenL1);
     event GatewayL2Changed(address indexed _oldGatewayL2, address indexed _newGatewayL2);
 
+    event TransferL2(
+        uint256 indexed ticketId,
+        address indexed from,
+        address indexed to,
+        uint256 tokenAmount,
+        uint256 ethAmount
+    );
+
     function setInbox(address _newInbox) onlyAdmin external {
         _setInbox(_newInbox);
     }
@@ -151,7 +159,7 @@ contract L1Gateway is
             _to,
             _amount
         );
-        return inbox.createRetryableTicket{ value: msg.value }(
+        uint256 _ticketId = inbox.createRetryableTicket{ value: msg.value }(
             // send msg to corresponding gateway on L2
             gatewayL2,
             // do not need to send eth
@@ -164,6 +172,16 @@ contract L1Gateway is
             _gasPriceBid,
             _data
         );
+
+        emit TransferL2(
+            _ticketId,
+            _msgSender(),
+            _to,
+            _amount,
+            msg.value
+        );
+
+        return _ticketId;
     }
 
     function withdraw() onlyAdmin public {
