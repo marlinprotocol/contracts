@@ -3,66 +3,71 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract ClusterRegistry is
-    Initializable,
-    ContextUpgradeable,
-    ERC1967UpgradeUpgradeable,
-    UUPSUpgradeable,
-    OwnableUpgradeable
+    Initializable,  // initializer
+    ContextUpgradeable,  // _msgSender, _msgData
+    ERC165Upgradeable,  // supportsInterface
+    AccessControlUpgradeable,  // RBAC
+    AccessControlEnumerableUpgradeable,  // RBAC enumeration
+    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable  // public upgrade
 {
-    uint256 constant UINT256_MAX = type(uint256).max;
-
-    struct Cluster {
-        uint256 commission;
-        address rewardAddress;
-        address clientKey;
-        bytes32 networkId; // keccak256("ETH") // token ticker for anyother chain in place of ETH
-        Status status;
-    }
-
-    struct Lock {
-        uint256 unlockBlock;
-        uint256 iValue;
-    }
-
-    mapping(address => Cluster) clusters;
-
-    mapping(bytes32 => Lock) public locks;
-    mapping(bytes32 => uint256) public lockWaitTime;
-    bytes32 constant COMMISSION_LOCK_SELECTOR = keccak256("COMMISSION_LOCK");
-    bytes32 constant SWITCH_NETWORK_LOCK_SELECTOR = keccak256("SWITCH_NETWORK_LOCK");
-    bytes32 constant UNREGISTER_LOCK_SELECTOR = keccak256("UNREGISTER_LOCK");
-
-    enum Status{NOT_REGISTERED, REGISTERED}
-
-    mapping(address => address) public clientKeys;
-
-    event ClusterRegistered(
-        address cluster,
-        bytes32 networkId,
-        uint256 commission,
-        address rewardAddress,
-        address clientKey
-    );
-    event CommissionUpdateRequested(address cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
-    event CommissionUpdated(address cluster, uint256 updatedCommission, uint256 updatedAt);
-    event RewardAddressUpdated(address cluster, address updatedRewardAddress);
-    event NetworkSwitchRequested(address cluster, bytes32 networkId, uint256 effectiveBlock);
-    event NetworkSwitched(address cluster, bytes32 networkId, uint256 updatedAt);
-    event ClientKeyUpdated(address cluster, address clientKey);
-    event ClusterUnregisterRequested(address cluster, uint256 effectiveBlock);
-    event ClusterUnregistered(address cluster, uint256 updatedAt);
-    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
     constructor() initializer {}
 
-    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes, address _owner)
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
+        _;
+    }
+
+//-------------------------------- Overrides start --------------------------------//
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _setupRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._setupRole(role, account);
+    }
+
+    function grantRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.grantRole(role, account);
+    }
+
+    function revokeRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+    }
+
+    function renounceRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super.renounceRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+    }
+
+    function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
+
+//-------------------------------- Overrides end --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
+
+    uint256[50] private __gap1;
+
+    function initialize(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes)
         public
         initializer
     {
@@ -74,17 +79,69 @@ contract ClusterRegistry is
             lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
             emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
         }
+
         __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
-        __Ownable_init_unchained();
-        transferOwnership(_owner);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyOwner {
+//-------------------------------- Initializer end --------------------------------//
+
+//-------------------------------- Locks start --------------------------------//
+
+    struct Lock {
+        uint256 unlockBlock;
+        uint256 iValue;
+    }
+    mapping(bytes32 => Lock) public locks;
+    mapping(bytes32 => uint256) public lockWaitTime;
+
+    bytes32 constant COMMISSION_LOCK_SELECTOR = keccak256("COMMISSION_LOCK");
+    bytes32 constant SWITCH_NETWORK_LOCK_SELECTOR = keccak256("SWITCH_NETWORK_LOCK");
+    bytes32 constant UNREGISTER_LOCK_SELECTOR = keccak256("UNREGISTER_LOCK");
+
+    event LockTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
+
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyAdmin {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
     }
+
+//-------------------------------- Locks end --------------------------------//
+
+//-------------------------------- Clusters start --------------------------------//
+
+    enum Status{NOT_REGISTERED, REGISTERED}
+    struct Cluster {
+        bytes32 networkId; // keccak256("ETH") // token ticker for anyother chain in place of ETH
+        uint256 commission;
+        address rewardAddress;
+        address clientKey;
+        Status status;
+    }
+    mapping(address => Cluster) clusters;
+    mapping(address => address) public clientKeys;
+
+    event ClusterRegistered(
+        address indexed cluster,
+        bytes32 indexed networkId,
+        uint256 commission,
+        address rewardAddress,
+        address clientKey
+    );
+    event CommissionUpdateRequested(address indexed cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
+    event CommissionUpdated(address indexed cluster, uint256 updatedCommission, uint256 updatedAt);
+    event RewardAddressUpdated(address indexed cluster, address updatedRewardAddress);
+    event NetworkSwitchRequested(address indexed cluster, bytes32 indexed networkId, uint256 effectiveBlock);
+    event NetworkSwitched(address indexed cluster, bytes32 indexed networkId, uint256 updatedAt);
+    event ClientKeyUpdated(address indexed cluster, address clientKey);
+    event ClusterUnregisterRequested(address indexed cluster, uint256 effectiveBlock);
+    event ClusterUnregistered(address indexed cluster, uint256 updatedAt);
 
     function register(
         bytes32 _networkId,
@@ -92,22 +149,21 @@ contract ClusterRegistry is
         address _rewardAddress,
         address _clientKey
     ) external {
-        // This happens only when the data of the cluster is registered or it wasn't registered before
         require(
-            !isClusterValid(msg.sender),
+            !_isClusterValid(_msgSender()),
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
         require(clientKeys[_clientKey] ==  address(0), "CR:R - Client key is already used");
-        clusters[msg.sender].commission = _commission;
-        clusters[msg.sender].rewardAddress = _rewardAddress;
-        clusters[msg.sender].clientKey = _clientKey;
-        clusters[msg.sender].networkId = _networkId;
-        clusters[msg.sender].status = Status.REGISTERED;
+        clusters[_msgSender()].commission = _commission;
+        clusters[_msgSender()].rewardAddress = _rewardAddress;
+        clusters[_msgSender()].clientKey = _clientKey;
+        clusters[_msgSender()].networkId = _networkId;
+        clusters[_msgSender()].status = Status.REGISTERED;
 
-        clientKeys[_clientKey] = msg.sender;
+        clientKeys[_clientKey] = _msgSender();
 
-        emit ClusterRegistered(msg.sender, _networkId, _commission, _rewardAddress, _clientKey);
+        emit ClusterRegistered(_msgSender(), _networkId, _commission, _rewardAddress, _clientKey);
     }
 
     function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
@@ -120,18 +176,18 @@ contract ClusterRegistry is
         if(_clientKey != address(0)) {
             updateClientKey(_clientKey);
         }
-        if(_commission != UINT256_MAX) {
+        if(_commission != type(uint256).max) {
             updateCommission(_commission);
         }
     }
 
     function updateCommission(uint256 _commission) public {
         require(
-            isClusterValid(msg.sender),
+            _isClusterValid(_msgSender()),
             "CR:UCM-Cluster not registered"
         );
         require(_commission <= 100, "CR:UCM-Commission more than 100%");
-        bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender));
+        bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
             unlockBlock < block.number,
@@ -139,20 +195,20 @@ contract ClusterRegistry is
         );
         if(unlockBlock != 0) {
             uint256 currentCommission = locks[lockId].iValue;
-            clusters[msg.sender].commission = currentCommission;
-            emit CommissionUpdated(msg.sender, currentCommission, unlockBlock);
+            clusters[_msgSender()].commission = currentCommission;
+            emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
         }
         uint256 updatedUnlockBlock = block.number + lockWaitTime[COMMISSION_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, _commission);
-        emit CommissionUpdateRequested(msg.sender, _commission, updatedUnlockBlock);
+        emit CommissionUpdateRequested(_msgSender(), _commission, updatedUnlockBlock);
     }
 
     function switchNetwork(bytes32 _networkId) public {
         require(
-            isClusterValid(msg.sender),
+            _isClusterValid(_msgSender()),
             "CR:SN-Cluster not registered"
         );
-        bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender));
+        bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
             unlockBlock < block.number,
@@ -160,74 +216,59 @@ contract ClusterRegistry is
         );
         if(unlockBlock != 0) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
-            clusters[msg.sender].networkId = currentNetwork;
-            emit NetworkSwitched(msg.sender, currentNetwork, unlockBlock);
+            clusters[_msgSender()].networkId = currentNetwork;
+            emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
         }
         uint256 updatedUnlockBlock = block.number + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, uint256(_networkId));
-        emit NetworkSwitchRequested(msg.sender, _networkId, updatedUnlockBlock);
+        emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockBlock);
     }
 
     function updateRewardAddress(address _rewardAddress) public {
         require(
-            isClusterValid(msg.sender),
+            _isClusterValid(_msgSender()),
             "CR:URA-Cluster not registered"
         );
-        clusters[msg.sender].rewardAddress = _rewardAddress;
-        emit RewardAddressUpdated(msg.sender, _rewardAddress);
+        clusters[_msgSender()].rewardAddress = _rewardAddress;
+        emit RewardAddressUpdated(_msgSender(), _rewardAddress);
     }
 
     function updateClientKey(address _clientKey) public {
         // TODO: Add delay to client key updates as well
         require(
-            isClusterValid(msg.sender),
+            _isClusterValid(_msgSender()),
             "CR:UCK-Cluster not registered"
         );
         require(clientKeys[_clientKey] ==  address(0), "CR:UCK - Client key is already used");
-        delete clientKeys[clusters[msg.sender].clientKey];
-        clusters[msg.sender].clientKey = _clientKey;
-        clientKeys[_clientKey] = msg.sender;
-        emit ClientKeyUpdated(msg.sender, _clientKey);
+        delete clientKeys[clusters[_msgSender()].clientKey];
+        clusters[_msgSender()].clientKey = _clientKey;
+        clientKeys[_clientKey] = _msgSender();
+        emit ClientKeyUpdated(_msgSender(), _clientKey);
     }
 
     function unregister() external {
         require(
-            clusters[msg.sender].status != Status.NOT_REGISTERED,
+            clusters[_msgSender()].status != Status.NOT_REGISTERED,
             "CR:UR-Cluster not registered"
         );
-        bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, msg.sender));
+        bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(
             unlockBlock < block.number,
             "CR:UR-Unregistration already in progress"
         );
         if(unlockBlock != 0) {
-            clusters[msg.sender].status = Status.NOT_REGISTERED;
-            emit ClusterUnregistered(msg.sender, unlockBlock);
-            delete clientKeys[clusters[msg.sender].clientKey];
+            clusters[_msgSender()].status = Status.NOT_REGISTERED;
+            emit ClusterUnregistered(_msgSender(), unlockBlock);
+            delete clientKeys[clusters[_msgSender()].clientKey];
             delete locks[lockId];
-            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
-            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
+            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()))];
+            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()))];
             return;
         }
         uint256 updatedUnlockBlock = block.number + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, 0);
-        emit ClusterUnregisterRequested(msg.sender, updatedUnlockBlock);
-    }
-
-    function isClusterValid(address _cluster) public returns(bool) {
-        bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _cluster));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
-        if(unlockBlock != 0 && unlockBlock < block.number) {
-            clusters[_cluster].status = Status.NOT_REGISTERED;
-            delete clientKeys[clusters[_cluster].clientKey];
-            emit ClusterUnregistered(_cluster, unlockBlock);
-            delete locks[lockId];
-            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
-            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
-            return false;
-        }
-        return (clusters[_cluster].status != Status.NOT_REGISTERED);    // returns true if the status is registered
+        emit ClusterUnregisterRequested(_msgSender(), updatedUnlockBlock);
     }
 
     function getCommission(address _cluster) public returns(uint256) {
@@ -248,8 +289,8 @@ contract ClusterRegistry is
         uint256 unlockBlock = locks[lockId].unlockBlock;
         if(unlockBlock != 0 && unlockBlock < block.number) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
-            clusters[msg.sender].networkId = currentNetwork;
-            emit NetworkSwitched(msg.sender, currentNetwork, unlockBlock);
+            clusters[_msgSender()].networkId = currentNetwork;
+            emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
             delete locks[lockId];
             return currentNetwork;
         }
@@ -276,7 +317,7 @@ contract ClusterRegistry is
             clusters[_cluster].rewardAddress,
             clusters[_cluster].clientKey,
             getNetwork(_cluster),
-            isClusterValid(_cluster)
+            _isClusterValid(_cluster)
         );
     }
 
@@ -284,13 +325,20 @@ contract ClusterRegistry is
         return (getCommission(_cluster), clusters[_cluster].rewardAddress);
     }
 
-    function addClientKeys(address[] calldata _clusters) external onlyOwner {
-        for(uint256 i=0; i < _clusters.length; i++) {
-            address _clientKey = clusters[_clusters[i]].clientKey;
-            require(_clientKey != address(0), "CR:ACK - Cluster has invalid client key");
-            clientKeys[_clientKey] = _clusters[i];
+    function _isClusterValid(address _cluster) internal returns(bool) {
+        bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _cluster));
+        uint256 unlockBlock = locks[lockId].unlockBlock;
+        if(unlockBlock != 0 && unlockBlock < block.number) {
+            clusters[_cluster].status = Status.NOT_REGISTERED;
+            emit ClusterUnregistered(_cluster, unlockBlock);
+            delete locks[lockId];
+            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
+            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
+            return false;
         }
+        return (clusters[_cluster].status != Status.NOT_REGISTERED);    // returns true if the status is registered
     }
 
-    function _authorizeUpgrade(address account) internal override onlyOwner{}
+//-------------------------------- Clusters end --------------------------------//
 }
+
