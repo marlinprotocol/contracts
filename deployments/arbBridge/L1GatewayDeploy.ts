@@ -14,6 +14,9 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
+  let name = process.env.NAME || 'L1Gateway';
+  console.log(name);
+
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -26,8 +29,8 @@ async function main() {
     addresses[chainId] = {};
   }
 
-  if(addresses[chainId]['MPond'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['MPond']);
+  if(addresses[chainId][name] !== undefined) {
+    console.log("Existing deployment:", addresses[chainId][name]);
     return;
   }
 
@@ -36,12 +39,12 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const MPond = await ethers.getContractFactory('MPond');
-  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  const L1Gateway = await ethers.getContractFactory('L1Gateway');
+  let l1Gateway = await upgrades.deployProxy(L1Gateway, { kind: "uups", initializer: false });
 
-  console.log("Deployed addr:", mpond.address);
+  console.log("Deployed addr:", l1Gateway.address);
 
-  addresses[chainId]['MPond'] = mpond.address;
+  addresses[chainId][name] = l1Gateway.address;
 
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
 }

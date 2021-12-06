@@ -1,7 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber as BN, Signer, Contract } from 'ethers';
-import exp from 'constants';
 
 
 declare module 'ethers' {

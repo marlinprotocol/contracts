@@ -22,12 +22,8 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined) {
-    addresses[chainId] = {};
-  }
-
-  if(addresses[chainId]['MPond'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['MPond']);
+  if(addresses[chainId] === undefined || addresses[chainId]['L1Gateway'] === undefined) {
+    console.log("Missing dependencies");
     return;
   }
 
@@ -36,14 +32,10 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const MPond = await ethers.getContractFactory('MPond');
-  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  const L1Gateway = await ethers.getContractFactory('L1Gateway');
+  let l1Gateway = await upgrades.upgradeProxy(addresses[chainId]["L1Gateway"], L1Gateway, { kind: "uups" });
 
-  console.log("Deployed addr:", mpond.address);
-
-  addresses[chainId]['MPond'] = mpond.address;
-
-  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+  console.log("Deployed addr:", l1Gateway.address);
 }
 
 main()

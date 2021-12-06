@@ -14,20 +14,26 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
+  let name = process.env.NAME || 'L2Gateway';
+  let tokenName = process.env.TOKENNAME || 'Pond';
+  let l1GName = process.env.L1GNAME || 'L1Gateway';
+  console.log(name);
+
   let chainId = (await ethers.provider.getNetwork()).chainId;
-  console.log("Chain Id:", chainId);
+  let ethChainId = { '421611': '4' }[chainId]!;
+  console.log("Chain Id:", chainId, ethChainId);
 
   var addresses: {[key: string]: {[key: string]: string}} = {};
   if(fs.existsSync('address.json')) {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined) {
-    addresses[chainId] = {};
-  }
-
-  if(addresses[chainId]['MPond'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['MPond']);
+  if(addresses[chainId] === undefined ||
+     addresses[ethChainId] === undefined ||
+     addresses[chainId][tokenName] === undefined ||
+     addresses[ethChainId][l1GName] === undefined
+  ) {
+    console.log("Missing dependencies");
     return;
   }
 
@@ -36,14 +42,15 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const MPond = await ethers.getContractFactory('MPond');
-  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  const L2Gateway = await ethers.getContractFactory('L2Gateway');
+  let l2Gateway = L2Gateway.attach(addresses[chainId][name]);
 
-  console.log("Deployed addr:", mpond.address);
+  console.log("Deployed addr:", l2Gateway.address);
 
-  addresses[chainId]['MPond'] = mpond.address;
-
-  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+  await l2Gateway.initialize(
+    addresses[chainId][tokenName],
+    addresses[ethChainId][l1GName]
+  );
 }
 
 main()
