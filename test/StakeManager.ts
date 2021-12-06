@@ -1096,6 +1096,24 @@ it("enable/disable token", async()=> {
   expect(tx2.events[0].event).to.equal("TokenAdded");
 });
 
+it("create, add and withdraw Stash", async ()=> {
+  let tokenId = ethers.utils.id("testToken");
+  pondInstance.approve(stakeManagerInstance.address, 300);
+  await stakeManagerInstance.connect(stakeManagerOwner).enableToken(tokenId, pondInstance.address);
+
+  let tx = await (await stakeManagerInstance.createStash([tokenId], [100])).wait();
+  let stashId = getStashId(tx.events);
+  expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(100);
+
+  stakeManagerInstance.addToStash(stashId, [tokenId], [200]);
+  expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(300);
+  
+  stakeManagerInstance["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [tokenId], [100]);
+  expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(200);
+  
+  stakeManagerInstance["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [tokenId], [200]);
+  expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(0);
+});
 
 async function createStash(mpondAmount: Number, pondAmount: Number) {
   const tokens = [];
