@@ -327,6 +327,7 @@ contract ClusterRegistry is
         uint256 unlockBlock = locks[lockId].unlockBlock;
         if(unlockBlock != 0 && unlockBlock < block.number) {
             clusters[_cluster].status = Status.NOT_REGISTERED;
+            delete clientKeys[clusters[_cluster].clientKey];
             emit ClusterUnregistered(_cluster, unlockBlock);
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
