@@ -85,7 +85,7 @@ describe('StakeManager Deployment', function () {
     const lockWaitTimes = [4, 10, 22];
     const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
     clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
-    await clusterRegistryInstance.initialize(selectors, lockWaitTimes, addrs[0]);
+    await clusterRegistryInstance.initialize(lockWaitTimes);
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
     rewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
@@ -126,16 +126,15 @@ describe('StakeManager Deployment', function () {
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     );
 
-    clusterRewardsInstance.initialize(addrs[0], // oracleOwner,
+    clusterRewardsInstance.initialize(
+      feeder,
       rewardDelegatorsInstance.address,
       ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
       [100, 100, 100],
       appConfig.staking.rewardPerEpoch,
-      mpondInstance.address,
       appConfig.staking.payoutDenomination,
-      feeder,
       10);
-    
+
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
@@ -229,7 +228,7 @@ describe('StakeManager Deployment', function () {
     const postUserBalance = await mpondInstance.balanceOf(addrs[0]);
     expect(postBalLowStash.sub(prevBalLowStash)).to.equal(amount - 100);
     expect(prevUserBalance.sub(postUserBalance)).to.equal(amount - 100);
-    
+
     await mpondInstance.approve(stakeManagerInstance.address, amount);
     const prevBalEqStash = await mpondInstance.balanceOf(stakeManagerInstance.address);
     // If exact amount is approved, the stash should still be created and tokens transferred to stakingContract with specified amount
@@ -350,7 +349,7 @@ it("Redelegate a undelegated POND stash", async () => {
   expect(delegationBeforeRedelegateRequest).to.equal(delegationAfterRedelegateRequest);
   expect(prevClusterDelegationBeforeRedelegateRequest).to.equal(prevClusterDelegationAfterRedelegateRequest);
   expect(stakeContractBalanceBeforeRedelegateRequest).to.equal(stakeContractBalanceAfterRedelegateRequest);
-  
+
   await skipBlocks(2);
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
@@ -568,7 +567,7 @@ it("Redelegate cluster when registered and apply when unregistering", async () =
     await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
     await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 });
-  
+
 it("Check if redelegation request remains active even after usage", async () => {
   const amount = 1000000;
   // register and delegate
@@ -689,7 +688,7 @@ it("Undelegate POND stash from a deregistering cluster", async () => {
   const amount = 670000;
   await pondInstance.approve(stakeManagerInstance.address, amount);
   await clusterRegistryInstance.connect(deregisteredCluster).register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
-  
+
 
   const clusterInitialDelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   const receipt = await (await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())).wait();
@@ -1070,7 +1069,7 @@ it("change Reward Delegators address", async()=> {
 });
 
 it("update undelegation wait time", async()=> {
-  
+
   const undelegationWaitTimeBefore = await stakeManagerInstance.undelegationWaitTime();
   await expect(stakeManagerInstance.updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).to.be.reverted;
   const tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).wait();
