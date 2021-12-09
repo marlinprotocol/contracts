@@ -286,7 +286,7 @@ describe('StakeManager Deployment', function () {
 it("Delegate MPOND stash", async () => {
   const amount = 1500000;
   // register cluster with cluster registry
-  await expect(clusterRegistryInstance.register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey)).to.be.reverted;
+  await expect(clusterRegistryInstance.connect(registeredCluster).register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey)).to.be.reverted;
 
   const clusterInitialMPONDDelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
 
@@ -412,10 +412,10 @@ it("Redelegate to unregistered cluster", async () => {
   const amount = 1000000;
   // register and delegate
   if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress()))) {
-      await clusterRegistryInstance.register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey);
+      await clusterRegistryInstance.connect(registeredCluster).register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey);
   }
   if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster1.getAddress()))) {
-      await clusterRegistryInstance.register(ethers.utils.id("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey);
+      await clusterRegistryInstance.connect(registeredCluster1).register(ethers.utils.id("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey);
   }
   // Redelegate to invalid cluster
   const stashId = await createStash(amount, amount);
@@ -432,6 +432,7 @@ it("Redelegate to unregistered cluster", async () => {
     if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress()))) {
         await clusterRegistryInstance.connect(registeredCluster).register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey);
     }
+
     if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster1.getAddress()))) {
         await clusterRegistryInstance.connect(registeredCluster1).register(ethers.utils.id("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey);
     }
@@ -449,8 +450,9 @@ it("Redelegate to unregistered cluster", async () => {
     const amount = 1000000;
     // register and delegate
     if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress()))) {
-        await clusterRegistryInstance.register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey);
+        await clusterRegistryInstance.connect(registeredCluster).register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, registeredClusterClientKey);
     }
+
     if(!(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster1.getAddress()))) {
         await clusterRegistryInstance.connect(registeredCluster1).register(ethers.utils.id("NEAR"), 10, registeredCluster1RewardAddress, registeredCluster1ClientKey);
     }
@@ -1109,7 +1111,7 @@ it("create, add and withdraw Stash", async ()=> {
   
   stakeManagerInstance["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [tokenId], [100]);
   expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(200);
-  
+
   stakeManagerInstance["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [tokenId], [200]);
   expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(0);
 });
