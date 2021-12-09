@@ -91,7 +91,7 @@ describe('RewardDelegators Deployment', function () {
     const lockWaitTimes = [20, 21, 22];
     const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
     clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
-    await clusterRegistryInstance.initialize(selectors, lockWaitTimes, addrs[0]);
+    await clusterRegistryInstance.initialize(lockWaitTimes);
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
     rewardDelegatorsInstance = await RewardDelegators.deploy();
@@ -137,16 +137,14 @@ describe('RewardDelegators Deployment', function () {
         appConfig.staking.undelegationWaitTime
     );
     await clusterRewardsInstance.initialize(
-        addrs[0], // oracleOwner
+        await feeder.getAddress(),
         rewardDelegatorsInstance.address,
         ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
         [100, 100, 100],
         appConfig.staking.rewardPerEpoch,
-        pondInstance.address,
         appConfig.staking.payoutDenomination,
-        await feeder.getAddress(),
         10);
-    
+
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -329,7 +327,7 @@ describe('RewardDelegators Deployment', function () {
         const lockWaitTimes = [20, 21, 22];
         const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
         clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
-        await clusterRegistryInstance.initialize(selectors, lockWaitTimes, addrs[0]);
+        await clusterRegistryInstance.initialize(lockWaitTimes);
 
 
         const ClusterRewards = await ethers.getContractFactory('ClusterRewards');
@@ -347,7 +345,7 @@ describe('RewardDelegators Deployment', function () {
             [testTokenId],
             [100]
         ], { kind: "uups" });
-        
+
         await stakeManagerInstance.initialize(
             [testTokenId],
             [testTokenInstance.address],
@@ -357,16 +355,14 @@ describe('RewardDelegators Deployment', function () {
             appConfig.staking.undelegationWaitTime
         );
         await clusterRewardsInstance.initialize(
-            addrs[0], // oracleOwner
+            await feeder.getAddress(),
             rewardDelegatorsInstance.address,
             [ethers.utils.id("testing")],
             [100],
             appConfig.staking.rewardPerEpoch,
-            pondInstance.address,
             appConfig.staking.payoutDenomination,
-            await feeder.getAddress(),
             10);
-        
+
 
         await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
         expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -383,14 +379,14 @@ describe('RewardDelegators Deployment', function () {
         await delegateToken(delegator2, [await registeredCluster4.getAddress()], [20], testTokenInstance);
         await skipBlocks(10);
         await feedTokenData([await registeredCluster4.getAddress()], testTokenInstance, 1);
-        
+
         // cluster reward
         const cluster4Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster4.getAddress());
         expect(cluster4Reward).to.equal(10000);
 
         // transfer POND for rewards
         await pondInstance.transfer(rewardDelegatorsInstance.address, appConfig.staking.rewardPerEpoch*100);
-        await rewardDelegatorsInstance.connect(delegator1)["withdrawRewards(address,address)"](await delegator1.getAddress(), await registeredCluster4.getAddress()); 
+        await rewardDelegatorsInstance.connect(delegator1)["withdrawRewards(address,address)"](await delegator1.getAddress(), await registeredCluster4.getAddress());
 
         // delegator reward
         const delegator1AfterBalance = await pondInstance.balanceOf(await delegator1.getAddress());
