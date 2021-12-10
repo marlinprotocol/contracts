@@ -8,6 +8,29 @@ import "./IRewardDelegators.sol";
 import "../governance/MPondLogic.sol";
 
 
+interface Inbox {
+    function createRetryableTicket(
+        address destAddr,
+        uint256 l2CallValue,
+        uint256 maxSubmissionCost,
+        address excessFeeRefundAddress,
+        address callValueRefundAddress,
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        bytes calldata data
+    ) external payable returns (uint256);
+}
+
+interface TokenGateway {
+    function transferL2(
+        address _to,
+        uint256 _amount,
+        uint256 _maxSubmissionCost,
+        uint256 _maxGas,
+        uint256 _gasPriceBid
+    ) external payable returns (uint256);
+}
+
 contract StakeManager is Initializable, Ownable {
 
     using SafeMath for uint256;
@@ -45,6 +68,15 @@ contract StakeManager is Initializable, Ownable {
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     uint256 public undelegationWaitTime;
 
+    // gap so we do not accidentally access tainted storage
+    uint256[50] __gap;
+    mapping(bytes32 => bool) public isStashBridged;
+    address public inbox;
+    address public gatewayL2;
+    address public stakeManagerL2;
+    mapping(bytes32 => uint256) public amountBridged;
+    mapping(bytes32 => address) public tokenGateways;
+
     event StashCreated(
         address indexed creator,
         bytes32 stashId,
@@ -74,6 +106,7 @@ contract StakeManager is Initializable, Ownable {
     event StashUndelegationCancelled(bytes32 _stashId);
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event RedelegationCancelled(bytes32 indexed _stashId);
+    event StashesBridged(uint256 indexed _ticketId, bytes32[] _stashIds);
 
     function initialize(
         bytes32[] memory _tokenIds,
@@ -118,6 +151,65 @@ contract StakeManager is Initializable, Ownable {
             _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
+    }
+
+    function updateInbox(
+        address _inbox
+    ) external onlyOwner {
+        require(
+            _inbox != address(0)
+        );
+        inbox = _inbox;
+    }
+
+    function updateGatewayL2(
+        address _gatewayL2
+    ) external onlyOwner {
+        require(
+            _gatewayL2 != address(0)
+        );
+        gatewayL2 = _gatewayL2;
+    }
+
+    function updateStakeManagerL2(
+        address _stakeManagerL2
+    ) external onlyOwner {
+        require(
+            _stakeManagerL2 != address(0)
+        );
+        stakeManagerL2 = _stakeManagerL2;
+    }
+
+    function setAmountBridged(
+        bytes32[] calldata _tokenIds,
+        uint256[] calldata _amounts
+    ) external onlyOwner {
+        require(_tokenIds.length == _amounts.length);
+        for(uint256 i = 0; i < _tokenIds.length; i++) {
+            amountBridged[_tokenIds[i]] = _amounts[i];
+        }
+    }
+
+    function setTokenGateway(
+        bytes32[] calldata _tokenIds,
+        address[] calldata _gateways
+    ) external onlyOwner {
+        require(_tokenIds.length == _gateways.length);
+        for(uint256 i = 0; i < _tokenIds.length; i++) {
+            tokenGateways[_tokenIds[i]] = _gateways[i];
+        }
+    }
+
+    function bridgeStash(
+        bytes32 _stashId
+    ) external onlyOwner {
+        isStashBridged[_stashId] = true;
+    }
+
+    function unbridgeStash(
+        bytes32 _stashId
+    ) external onlyOwner {
+        isStashBridged[_stashId] = false;
     }
 
     function updateUndelegationWaitTime(
@@ -201,6 +293,8 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] calldata _tokens,
         uint256[] calldata _amounts
     ) external {
+        require(isStashBridged[_stashId] == false, "AS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -230,11 +324,13 @@ contract StakeManager is Initializable, Ownable {
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
-        
+
         emit AddedToStash(_stashId, _stash.delegatedCluster, _tokens, _amounts);
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
+        require(isStashBridged[_stashId] == false, "DS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -264,6 +360,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function requestStashRedelegation(bytes32 _stashId, address _newCluster) public {
+        require(isStashBridged[_stashId] == false, "RSR0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -282,6 +380,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function _requestStashRedelegation(bytes32 _stashId, address _newCluster) internal returns(uint256) {
+        require(isStashBridged[_stashId] == false, "_RSR0");
+
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         uint256 _unlockBlock = locks[_lockId].unlockBlock;
         require(
@@ -301,6 +401,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function redelegateStash(bytes32 _stashId) public {
+        require(isStashBridged[_stashId] == false, "RS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.delegatedCluster != address(0),
@@ -323,6 +425,8 @@ contract StakeManager is Initializable, Ownable {
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
+        require(isStashBridged[_stashId] == false, "_RS0");
+
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
@@ -337,6 +441,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external {
+        require(isStashBridged[_stashId] == false, "SS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -377,6 +483,9 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external {
+        require(isStashBridged[_stashId1] == false, "MS01");
+        require(isStashBridged[_stashId2] == false, "MS02");
+
         require(_stashId1 != _stashId2, "MS1");
         Stash memory _stash1 = stashes[_stashId1];
         Stash memory _stash2 = stashes[_stashId2];
@@ -419,8 +528,10 @@ contract StakeManager is Initializable, Ownable {
             redelegateStash(_stashIds[i]);
         }
     }
-    
+
     function cancelRedelegation(bytes32 _stashId) public {
+        require(isStashBridged[_stashId] == false, "CR0");
+
         require(
             msg.sender == stashes[_stashId].staker,
             "CR1"
@@ -429,6 +540,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
+        require(isStashBridged[_stashId] == false, "_CR0");
+
         bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
         if(locks[_lockId].unlockBlock != 0) {
             delete locks[_lockId];
@@ -439,6 +552,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function undelegateStash(bytes32 _stashId) public {
+        require(isStashBridged[_stashId] == false, "US0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -467,8 +582,10 @@ contract StakeManager is Initializable, Ownable {
             undelegateStash(_stashIds[i]);
         }
     }
-    
+
     function cancelUndelegation(bytes32 _stashId, address _delegatedCluster) public {
+        require(isStashBridged[_stashId] == false, "CU0");
+
         address _staker = stashes[_stashId].staker;
         uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
         require(
@@ -491,6 +608,8 @@ contract StakeManager is Initializable, Ownable {
     }
 
     function withdrawStash(bytes32 _stashId) external {
+        require(isStashBridged[_stashId] == false, "WS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -524,6 +643,8 @@ contract StakeManager is Initializable, Ownable {
         bytes32[] calldata _tokens,
         uint256[] calldata _amounts
     ) external {
+        require(isStashBridged[_stashId] == false, "WS0");
+
         Stash memory _stash = stashes[_stashId];
         require(
             _stash.staker == msg.sender,
@@ -607,5 +728,131 @@ contract StakeManager is Initializable, Ownable {
 
     function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
         return stashes[_stashId].amount[_tokenId];
+    }
+
+    function transferStashL2(
+        address _to,
+        bytes32[] calldata _stashIds,
+        uint256 _maxSubmissionCost,
+        uint256 _maxGas,
+        uint256 _gasPriceBid
+    ) external payable returns (uint256) {
+        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        uint256[] memory _amounts = new uint256[](_tokens.length * _stashIds.length);
+        address[] memory _delegatedClusters = new address[](_stashIds.length);
+
+        for(uint256 idx = 0; idx < _stashIds.length; idx++) {
+            bytes32 _stashId = _stashIds[idx];
+            address _staker = stashes[_stashId].staker;
+            address _delegatedCluster = stashes[_stashId].delegatedCluster;
+            uint256 _undelegatesAt = stashes[_stashId].undelegatesAt;
+
+            // stash should not be bridged already
+            require(isStashBridged[_stashId] == false, "TL20");
+            isStashBridged[_stashId] = true;
+
+            // stash owner should match sender
+            require(_staker == msg.sender, "TL21");
+
+            // stash should be delegated
+            require(_delegatedCluster == address(0), "TL22");
+
+            // stash should not be undelegating
+            require(_undelegatesAt < block.number, "TL23");
+
+            _delegatedClusters[idx] = _delegatedCluster;
+
+            for(uint256 i=0; i < _tokens.length; i++) {
+                uint256 _amount = stashes[_stashId].amount[_tokens[i]];
+                if(_amount == 0) {
+                    continue;
+                }
+
+                amountBridged[_tokens[i]] += _amount;
+
+                // mpond has to be undelegated first
+                address tokenAddress = tokenAddresses[_tokens[i]].addr;
+                if(tokenAddress == address(MPOND)) {
+                    MPOND.undelegate(
+                        _staker,
+                        uint96(_amount)
+                    );
+                } else if(tokenAddress == address(prevMPOND)) {
+                    prevMPOND.undelegate(
+                        _staker,
+                        uint96(_amount)
+                    );
+                }
+
+                _amounts[idx * _tokens.length + i] = _amount;
+            }
+        }
+
+        // encode for L2 tx
+        bytes memory _data = abi.encodeWithSignature(
+            "transferL2(address,bytes32[],uint256[],address[])",
+            msg.sender, _tokens, _amounts, _delegatedClusters
+        );
+
+        bytes memory callAbi = abi.encodeWithSignature(
+            "createRetryableTicket(address,uint256,uint256,address,address,uint256,uint256,bytes)",
+            // send msg to corresponding gateway on L2
+            gatewayL2,
+            // do not need to send eth
+            0,
+            _maxSubmissionCost,
+            // all refunds and ticket ownership to _to
+            _to,
+            _to,
+            _maxGas,
+            _gasPriceBid,
+            _data
+        );
+
+        (bool success, bytes memory returnValue) = inbox.call.value(msg.value)(callAbi);
+        require(success, "InboxCall");
+        (uint256 _ticketId) = abi.decode(returnValue, (uint256));
+
+        emit StashesBridged(
+            _ticketId,
+            _stashIds
+        );
+
+        return _ticketId;
+    }
+
+    function transferTokenL2(
+        bytes32 _tokenId,
+        uint256 _maxSubmissionCost,
+        uint256 _maxGas,
+        uint256 _gasPriceBid
+    ) external onlyOwner payable returns (uint256) {
+        address _tokenAddress = tokenAddresses[_tokenId].addr;
+        address _tokenGateway = tokenGateways[_tokenId];
+        uint256 _amount = amountBridged[_tokenId];
+        amountBridged[_tokenId] = 0;
+
+        // approve first
+        ERC20(_tokenAddress).approve(
+            _tokenGateway,
+            _amount
+        );
+
+        bytes memory callAbi = abi.encodeWithSignature(
+            "transferL2(address,uint256,uint256,uint256,uint256)",
+            // send tokens to l2 staking contract
+            stakeManagerL2,
+            _amount,
+            _maxSubmissionCost,
+            _maxGas,
+            _gasPriceBid
+        );
+
+        // initiate transfer
+        (bool success, bytes memory returnValue) = _tokenGateway.call.value(msg.value)(callAbi);
+        require(success, "TGCall");
+        (uint256 _ticketId) = abi.decode(returnValue, (uint256));
+
+        return _ticketId;
     }
 }
