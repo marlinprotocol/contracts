@@ -755,7 +755,7 @@ contract StakeManager is Initializable, Ownable {
             require(_staker == msg.sender, "TL21");
 
             // stash should be delegated
-            require(_delegatedCluster == address(0), "TL22");
+            require(_delegatedCluster != address(0), "TL22");
 
             // stash should not be undelegating
             require(_undelegatesAt < block.number, "TL23");
