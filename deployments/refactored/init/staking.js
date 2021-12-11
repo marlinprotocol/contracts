@@ -1,16 +1,16 @@
 const fs = require('fs');
 
-const Stake = require("../../../../build/contracts/StakeManager.json");
-const StakeProxy = require("../../../../build/contracts/StakeManagerProxy.json");
+const Stake = require("../../../build/contracts/StakeManager.json");
+const StakeProxy = require("../../../build/contracts/StakeManagerProxy.json");
 
-const RewardDelegators = require("../../../../build/contracts/RewardDelegators.json");
-const RewardDelegatorsProxy = require("../../../../build/contracts/RewardDelegatorsProxy.json");
+const RewardDelegators = require("../../../build/contracts/RewardDelegators.json");
+const RewardDelegatorsProxy = require("../../../build/contracts/RewardDelegatorsProxy.json");
 
-const ClusterRegistry = require("../../../../build/contracts/ClusterRegistry.json");
-const ClusterRegistryProxy = require("../../../../build/contracts/ClusterRegistryProxy.json");
+const ClusterRegistry = require("../../../build/contracts/ClusterRegistry.json");
+const ClusterRegistryProxy = require("../../../build/contracts/ClusterRegistryProxy.json");
 
-const ClusterRewards = require("../../../../build/contracts/ClusterRewards.json");
-const ClusterRewardsProxy = require("../../../../build/contracts/ClusterRewardsProxy.json");
+const ClusterRewards = require("../../../build/contracts/ClusterRewards.json");
+const ClusterRewardsProxy = require("../../../build/contracts/ClusterRewardsProxy.json");
 
 const utils = require("../utils");
 
@@ -20,7 +20,7 @@ const deployedAddressesPath = "./config/deployedAddresses.json";
 
 const deployStakingManager = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network]['stakeManager'] != "") {
+    if(deployedAddresses[network]['stakeManager'] && deployedAddresses[network]['stakeManager'] != "") {
         return (new web3.eth.Contract(Stake.abi, deployedAddresses[network]['stakeManager']));
     }
     const stakeContract = await utils.contract.deployWithProxyAndAdmin(
@@ -56,9 +56,9 @@ const initStakingManager = async (stakeContract, network) => {
         tokensIds,
         addresses,
         deployedAddresses[network]['mpond'], 
-        deployedAddresses[network]['clusterRegistry'],
         deployedAddresses[network]['rewardDelegators'],
-        stakeManagerConfig.admin
+        stakeManagerConfig.admin,
+        stakeManagerConfig.undelegation.delay
     ).send({
         from: stakeManagerConfig.deployer,
         gas: 500000
@@ -77,7 +77,7 @@ const initStakingManager = async (stakeContract, network) => {
 
 const deployRewardDelegators = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network]['rewardDelegators'] != "") {
+    if(deployedAddresses[network]['rewardDelegators'] && deployedAddresses[network]['rewardDelegators'] != "") {
         return (new web3.eth.Contract(RewardDelegators.abi, deployedAddresses[network]['rewardDelegators']));
     }
     const rewardDelegatorsContract = await utils.contract.deployWithProxyAndAdmin(
@@ -110,7 +110,6 @@ const initRewardDelegators = async (rewardDelegators, network) => {
     }
 
     await rewardDelegators.methods.initialize(
-        rewardDelegatorsConfig.undelegationWaitTime,
         deployedAddresses[network].stakeManager,
         deployedAddresses[network].clusterRewards,
         deployedAddresses[network].clusterRegistry,
@@ -128,7 +127,7 @@ const initRewardDelegators = async (rewardDelegators, network) => {
 
 const deployClusterRegistry = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network]['clusterRegistry'] != "") {
+    if(deployedAddresses[network]['clusterRegistry'] && deployedAddresses[network]['clusterRegistry'] != "") {
         return (new web3.eth.Contract(ClusterRewards.abi, deployedAddresses[network]['clusterRegistry']));
     }
     const clusterRegistryContract = await utils.contract.deployWithProxyAndAdmin(
@@ -170,7 +169,7 @@ const initClusterRegistry = async (clusterRegistry, network) => {
 
 const deployClusterRewards = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network].clusterRewards != "") {
+    if(deployedAddresses[network].clusterRewards && deployedAddresses[network].clusterRewards != "") {
         return (new web3.eth.Contract(ClusterRewards.abi, deployedAddresses[network].clusterRewards));
     }
     const clusterRewardsContract = await utils.contract.deployWithProxyAndAdmin(

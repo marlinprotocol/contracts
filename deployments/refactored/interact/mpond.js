@@ -14,7 +14,12 @@ const fundAccount = async (MPONDInstance, network, address, amount) => {
     })
 }
 
+const getAdmin = async (MPONDInstance) => {
+    return (await MPONDInstance.methods.admin().call());
+}
+
 module.exports = {
     whitelist,
-    fundAccount
+    fundAccount,
+    getAdmin
 }

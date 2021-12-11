@@ -17,6 +17,7 @@
  * phrase from a file you've .gitignored so it doesn't accidentally become public.
  *
  */
+require('dotenv').config();
 const PrivateKeyProvider = require("truffle-privatekey-provider");
 const privateKey =
 "4b306d0ee52f310b23aafd093298b896755ac389fa169d99378f9becac5a6e71";
@@ -39,7 +40,7 @@ const HDWalletProvider = require("truffle-hdwallet-provider");
 //
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
-
+console.log(process.env.ETHERSCAN_API_KEY)
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -64,7 +65,7 @@ module.exports = {
       network_id: "*", // Any network (default: none)
     },
     // mainnet: {
-    //   provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://mainnet.infura.io/v3/f69c3698961e47d7834969e8c4347c1b`),
+    //   provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://mainnet.infura.io/v3/`),
     //   port: 80,
     //   network_id: "*"
     // },
@@ -78,19 +79,19 @@ module.exports = {
     // websockets: true        // Enable EventEmitter interface for web3 (default: false)
     // },
     kovan: {
-      // provider: () => new PrivateKeyProvider(privateKey, "https://kovan.infura.io/v3/f69c3698961e47d7834969e8c4347c1b"),
-      provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://kovan.infura.io/v3/f69c3698961e47d7834969e8c4347c1b`),
+      // provider: () => new PrivateKeyProvider(privateKey, "https://kovan.infura.io/v3/"),
+      provider: () => new HDWalletProvider("myth like bonus scare over problem client lizard pioneer submit female collect", `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`),
       network_id: 42,
       gas: 8000000,
       // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
     },
 
     rinkeby: {
-      host: "localhost", // Connect to geth on the specified
-      port: 8545,
-      from: "0xbb434d361c5ff56876826ac92e9eda834334aef5", // default address to use for any transaction Truffle makes during migrations
       network_id: 4,
-      gas: 4612388, // Gas limit used for deploys
+      provider: () => new HDWalletProvider(JSON.parse(process.env.kovan_privateKeys), `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`)
+    },
+    rinkeby_fork: {
+      provider: () => new HDWalletProvider(JSON.parse(process.env.kovan_privateKeys), "http://localhost:8545")
     },
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
@@ -121,7 +122,9 @@ module.exports = {
   mocha: {
     enableTimeouts: true,
   },
-
+  plugins: [
+    'truffle-plugin-verify'
+  ],
   // Configure your compilers
   compilers: {
     solc: {
@@ -136,4 +139,7 @@ module.exports = {
       },
     },
   },
+  api_keys: {
+    etherscan: ""
+  }
 };

@@ -1,10 +1,10 @@
 const fs = require("fs");
 
-const TokenLogicCompiled = require("../../../../build/contracts/TokenLogic.json");
-const TokenProxyCompiled = require("../../../../build/contracts/TokenProxy.json");
+const TokenLogicCompiled = require("../../../build/contracts/TokenLogic.json");
+const TokenProxyCompiled = require("../../../build/contracts/TokenProxy.json");
 
-const MPONDToken = require("../../../../build/contracts/MPondLogic.json");
-const MPONDProxy = require("../../../../build/contracts/MPondProxy.json");
+const MPONDToken = require("../../../build/contracts/MPondLogic.json");
+const MPONDProxy = require("../../../build/contracts/MPondProxy.json");
 
 const utils = require("../utils");
 
@@ -13,7 +13,7 @@ const deployedAddressesPath = "./config/deployedAddresses.json";
 
 const deployPond  = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network].pond != "") {
+    if(deployedAddresses[network] && deployedAddresses[network].pond && deployedAddresses[network].pond != "") {
         return (new web3.eth.Contract(TokenLogicCompiled.abi, deployedAddresses[network].pond));
     }
     const PONDInstance = await utils.contract.deployWithProxyAndAdmin(
@@ -40,14 +40,14 @@ const initPond  = async (PONDInstance, network) => {
         config[network].tokens.pond.decimals,
         deployedAddresses[network].bridge
     ).send({
-        from: config[network].tokens.pond.holder,
+        from: config[network].tokens.pond.deployer,
         gas: 400000
     });
 }
 
 const deployMpond = async (web3, network) => {
     const deployedAddresses = JSON.parse(fs.readFileSync(deployedAddressesPath));
-    if(deployedAddresses[network].mpond != "") {
+    if(deployedAddresses[network] && deployedAddresses[network].mpond && deployedAddresses[network].mpond != "") {
         return (new web3.eth.Contract(MPONDToken.abi, deployedAddresses[network].mpond));
     }
     const MPONDInstance = await utils.contract.deployWithProxyAndAdmin(

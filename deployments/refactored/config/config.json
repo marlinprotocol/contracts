@@ -185,6 +185,118 @@
             }
         }
     },
+    "rinkeby": {
+        "url": "https://rinkeby.infura.io/v3/9dc997986f8840daa0e6ccb1d8d0d757",
+        "tokens": {
+            "pond": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "name": "Marlin POND",
+                "symbol": "POND",
+                "decimals": "18",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "holder": "0x41243E6DFa02efB4E5ECEFBD93A99d482c3a74C0",
+                "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4"
+            },
+            "mpond": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "holder": "0x3dAB798472436e75499298aE0eA63eF365580A51",
+                "maticBridge": "0xa0dbe24f52264f939c580f2f93971e9bd3d7e06d",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "admin": "0xe0ffcAb7b1eC8068fE23C90b4863FBAf861Fa1f3",
+                "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e"
+            }
+        },
+        "staking": {
+            "stakeManager": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "admin": "0xe0ffcAb7b1eC8068fE23C90b4863FBAf861Fa1f3",
+                "enabledTokens": ["pond", "mpond"],
+                "locks": {
+                    "redelegation": {
+                        "id": "0xc9fb5027edad04dc7cbd44766b39dcb7d42c498b3b47b80001805039c63cf1e0",
+                        "delay": 15
+                    }
+                },
+                "undelegation": {
+                    "delay": 30
+                }
+            },
+            "clusterRegistry": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "admin": "0xe0ffcAb7b1eC8068fE23C90b4863FBAf861Fa1f3",
+                "locks": {
+                    "commission": {
+                        "id": "0x7877e81172e1242eb265a9ff5a14c913d44197a6e15e0bc1d984f40be9096403",
+                        "delay": 15
+                    },
+                    "switchNetwork": {
+                        "id": "0x18981a75d138782f14f3fbd4153783a0dc1558f28dc5538bf045e7de84cb2ae2",
+                        "delay": 20
+                    },
+                    "unregister": {
+                        "id": "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a73cc8c7080c",
+                        "delay": 50
+                    }
+                }
+            },
+            "rewardDelegators": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "admin": "0xe0ffcAb7b1eC8068fE23C90b4863FBAf861Fa1f3",
+                "threshold": {
+                    "token": "mpond",
+                    "balance": "500000000000000000"
+                },
+                "undelegationWaitTime": "50",
+                "rewards": {
+                    "token": "pond",
+                    "factor": {
+                        "pond": "100",
+                        "mpond": "100"
+                    }
+                }
+            },
+            "clusterRewards": {
+                "proxyAdmin": "0x148A4c32809754038F52d0b724Cd01d9920Aa9D9",
+                "deployer": "0x9688Ed106600ced9019BF2605af10d774F062A9c",
+                "admin": "0xe0ffcAb7b1eC8068fE23C90b4863FBAf861Fa1f3",
+                "feeder": "0x7b4e7bd6Ea40a811599626b5Fb982EE54Fcef465",
+                "rewards": {
+                    "amountPerEpoch": "281553000000000000000000",
+                    "denomination": "1000000000000000000",
+                    "minDelay": "1",
+                    "weights": {
+                        "ETHEREUM": {
+                            "id": "0xaaaebeba3810b1e6b70781f14b2d72c1cb89c0b2b320c43bb67ff79f562f5ff4",
+                            "weight": 100
+                        },
+                        "COSMOS": {
+                            "id": "0xa7afb7207c63764e77fd8c26e89627207accddd4b033d7d0cd3b669b62d6af4f",
+                            "weight": 100
+                        },
+                        "NEAR": {
+                            "id": "0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533",
+                            "weight": 100
+                        },
+                        "POLYGON": {
+                            "id": "0xa6a7de01e8b7ba6a4a61c782a73188d808fc1f3cf5743fadb68a02ed884b594f",
+                            "weight": 100
+                        },
+                        "IRISNET": {
+                            "id": "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701",
+                            "weight": 100
+                        },
+                        "POLKADOT": {
+                            "id": "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f",
+                            "weight": 100
+                        }
+                    }
+                }
+            }
+        }
+    },
     "mainnet": {
         "url": ""
     }
