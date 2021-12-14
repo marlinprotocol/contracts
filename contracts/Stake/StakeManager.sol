@@ -791,7 +791,7 @@ contract StakeManager is Initializable, Ownable {
         // encode for L2 tx
         bytes memory _data = abi.encodeWithSignature(
             "transferL2(address,bytes32[],uint256[],address[])",
-            msg.sender, _tokens, _amounts, _delegatedClusters
+            _to, _tokens, _amounts, _delegatedClusters
         );
 
         bytes memory callAbi = abi.encodeWithSignature(
