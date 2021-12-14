@@ -50,6 +50,19 @@ contract StakeManager is
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     uint256 public undelegationWaitTime;
 
+    address public gatewayL1;
+    uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
+
+    modifier onlyGatewayL1() {
+        unchecked {
+            require(
+                address(uint160(_msgSender()) - diff) == gatewayL1,
+                "only gateway L1"
+            );
+        }
+        _;
+    }
+
     event StashCreated(
         address indexed creator,
         bytes32 stashId,
@@ -91,7 +104,9 @@ contract StakeManager is
         address _MPONDTokenAddress,
         address _rewardDelegatorsAddress,
         address _owner,
-        uint256 _undelegationWaitTime)
+        uint256 _undelegationWaitTime,
+        address _gatewayL1
+    )
         initializer
         public
     {
@@ -105,6 +120,7 @@ contract StakeManager is
         MPOND = MPond(_MPONDTokenAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         undelegationWaitTime = _undelegationWaitTime;
+        gatewayL1 = _gatewayL1;
 
         __Context_init_unchained();
         __ERC1967Upgrade_init_unchained();
@@ -618,4 +634,35 @@ contract StakeManager is
     }
 
     function _authorizeUpgrade(address account) internal override onlyOwner{}
+
+    function transferL2(
+        address _staker,
+        bytes32[] calldata _tokenIds,
+        uint256[] calldata _allAmounts,
+        address[] calldata _delegatedClusters
+    ) external onlyGatewayL1 {
+        uint256 _stashCount = _delegatedClusters.length;
+        for(uint256 _sidx = 0; _sidx < _stashCount; _sidx++) {
+            // create stash
+            uint256 _stashIndex = stashIndex;
+            bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
+            uint256[] memory _amounts = _allAmounts[(_sidx*_tokenIds.length):((_sidx+1)*_tokenIds.length)];
+            for(uint256 _tidx=0; _tidx < _tokenIds.length; _tidx++) {
+                bytes32 _tokenId = _tokenIds[_tidx];
+                uint256 _amount = _amounts[_tidx];
+                if(_amount == 0) {
+                    continue;
+                }
+                stashes[_stashId].amount[_tokenId] = _amount;
+            }
+            stashes[_stashId].staker = _staker;
+            emit StashCreated(_staker, _stashId, _stashIndex, _tokenIds, _amounts);
+            stashIndex = _stashIndex + 1;  // Can't overflow
+
+            // delegate
+            stashes[_stashId].delegatedCluster = _delegatedClusters[_sidx];
+            rewardDelegators.delegate(_staker, _delegatedClusters[_sidx], _tokenIds, _amounts);
+            emit StashDelegated(_stashId, _delegatedClusters[_sidx]);
+        }
+    }
 }
