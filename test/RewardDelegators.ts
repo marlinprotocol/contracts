@@ -134,7 +134,8 @@ describe('RewardDelegators Deployment', function () {
         mpondInstance.address,
         rewardDelegatorsInstance.address,
         addrs[0],
-        appConfig.staking.undelegationWaitTime
+        appConfig.staking.undelegationWaitTime,
+        addrs[0],
     );
     await clusterRewardsInstance.initialize(
         await feeder.getAddress(),
@@ -352,7 +353,8 @@ describe('RewardDelegators Deployment', function () {
             mpondInstance.address,
             rewardDelegatorsInstance.address,
             addrs[0],
-            appConfig.staking.undelegationWaitTime
+            appConfig.staking.undelegationWaitTime,
+            addrs[0],
         );
         await clusterRewardsInstance.initialize(
             await feeder.getAddress(),

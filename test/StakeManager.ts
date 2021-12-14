@@ -99,7 +99,8 @@ describe('StakeManager Deployment', function () {
       mpondInstance.address,
       rewardDelegatorsInstance.address,
       await stakeManagerOwner.getAddress(),
-      appConfig.staking.undelegationWaitTime
+      appConfig.staking.undelegationWaitTime,
+      await stakeManagerOwner.getAddress(),
     )).to.be.reverted;
   });
 
@@ -112,7 +113,8 @@ describe('StakeManager Deployment', function () {
       mpondInstance.address,
       rewardDelegatorsInstance.address,
       await stakeManagerOwner.getAddress(),
-      appConfig.staking.undelegationWaitTime
+      appConfig.staking.undelegationWaitTime,
+      await stakeManagerOwner.getAddress(),
     ],{ kind: "uups" });
 
     await rewardDelegatorsInstance.initialize(stakeManagerInstance.address,
@@ -1108,7 +1110,7 @@ it("create, add and withdraw Stash", async ()=> {
 
   stakeManagerInstance.addToStash(stashId, [tokenId], [200]);
   expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(300);
-  
+
   stakeManagerInstance["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [tokenId], [100]);
   expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(200);
 
