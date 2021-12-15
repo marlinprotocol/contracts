@@ -733,7 +733,6 @@ contract StakeManager is Initializable, Ownable {
     function transferStashL2(
         address _to,
         bytes32[] calldata _stashIds,
-        uint256 _maxSubmissionCost,
         uint256 _maxGas,
         uint256 _gasPriceBid
     ) external payable returns (uint256) {
@@ -800,7 +799,8 @@ contract StakeManager is Initializable, Ownable {
             gatewayL2,
             // do not need to send eth
             0,
-            _maxSubmissionCost,
+            // send all eth as submission cost, excess will be refunded
+            msg.value,
             // all refunds and ticket ownership to _to
             _to,
             _to,
