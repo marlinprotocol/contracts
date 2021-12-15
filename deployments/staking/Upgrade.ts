@@ -14,6 +14,9 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
+  let name = process.env.NAME || 'Contract';
+  console.log(name);
+
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -23,7 +26,7 @@ async function main() {
   }
 
   if(addresses[chainId] === undefined ||
-     addresses[chainId]['StakeManager'] === undefined
+     addresses[chainId][name] === undefined
   ) {
     console.log("Missing dependencies");
     return;
@@ -34,10 +37,10 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const StakeManager = await ethers.getContractFactory('StakeManager');
-  let stakeManager = await upgrades.upgradeProxy(addresses[chainId]['StakeManager'], StakeManager, { kind: "uups" });
+  const CF = await ethers.getContractFactory(name);
+  let c = await upgrades.upgradeProxy(addresses[chainId][name], CF, { kind: "uups" });
 
-  console.log("Deployed addr:", stakeManager.address);
+  console.log("Deployed addr:", c.address);
 }
 
 main()
