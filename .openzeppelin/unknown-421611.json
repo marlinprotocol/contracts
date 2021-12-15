@@ -1158,7 +1158,7 @@
           {
             "contract": "RewardDelegators",
             "label": "clusters",
-            "type": "t_mapping(t_address,t_struct(Cluster)8622_storage)",
+            "type": "t_mapping(t_address,t_struct(Cluster)8625_storage)",
             "src": "contracts/staking/RewardDelegators.sol:27"
           },
           {
@@ -1212,13 +1212,13 @@
           {
             "contract": "RewardDelegators",
             "label": "clusterRewards",
-            "type": "t_contract(IClusterRewards)8429",
+            "type": "t_contract(IClusterRewards)8432",
             "src": "contracts/staking/RewardDelegators.sol:37"
           },
           {
             "contract": "RewardDelegators",
             "label": "clusterRegistry",
-            "type": "t_contract(IClusterRegistry)8316",
+            "type": "t_contract(IClusterRegistry)8319",
             "src": "contracts/staking/RewardDelegators.sol:38"
           },
           {
@@ -1229,13 +1229,13 @@
           }
         ],
         "types": {
-          "t_mapping(t_address,t_struct(Cluster)8622_storage)": {
+          "t_mapping(t_address,t_struct(Cluster)8625_storage)": {
             "label": "mapping(address => struct RewardDelegators.Cluster)"
           },
           "t_address": {
             "label": "address"
           },
-          "t_struct(Cluster)8622_storage": {
+          "t_struct(Cluster)8625_storage": {
             "label": "struct RewardDelegators.Cluster",
             "members": [
               {
@@ -1274,10 +1274,10 @@
           "t_array(t_bytes32)dyn_storage": {
             "label": "bytes32[]"
           },
-          "t_contract(IClusterRewards)8429": {
+          "t_contract(IClusterRewards)8432": {
             "label": "contract IClusterRewards"
           },
-          "t_contract(IClusterRegistry)8316": {
+          "t_contract(IClusterRegistry)8319": {
             "label": "contract IClusterRegistry"
           },
           "t_contract(IERC20Upgradeable)1983": {
@@ -2704,6 +2704,754 @@
           },
           "t_array(t_uint256)50_storage": {
             "label": "uint256[50]"
+          }
+        }
+      }
+    },
+    "cba15e4b8163ee3be2679778b5e53fd5a9e3eaa463d843a641e3485e93958bc1": {
+      "address": "0x8a51eF596FC756b02978D9fFbA17b18bFF102a76",
+      "txHash": "0x5142fd94bcd6d13dd8fca308210ff687a86f9fc6ce62a0fa3b7ba1addbebb522",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:214"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:80"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusters",
+            "type": "t_mapping(t_address,t_struct(Cluster)8625_storage)",
+            "src": "contracts/staking/RewardDelegators.sol:27"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_2",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:29"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "stakeAddress",
+            "type": "t_address",
+            "src": "contracts/staking/RewardDelegators.sol:30"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "minMPONDStake",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:31"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "MPONDTokenId",
+            "type": "t_bytes32",
+            "src": "contracts/staking/RewardDelegators.sol:32"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "rewardFactor",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:33"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenIndex",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:34"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_1",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "src": "contracts/staking/RewardDelegators.sol:35"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenList",
+            "type": "t_array(t_bytes32)dyn_storage",
+            "src": "contracts/staking/RewardDelegators.sol:36"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRewards",
+            "type": "t_contract(IClusterRewards)8432",
+            "src": "contracts/staking/RewardDelegators.sol:37"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRegistry",
+            "type": "t_contract(IClusterRegistry)8319",
+            "src": "contracts/staking/RewardDelegators.sol:38"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "PONDToken",
+            "type": "t_contract(IERC20Upgradeable)1983",
+            "src": "contracts/staking/RewardDelegators.sol:39"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_struct(Cluster)8625_storage)": {
+            "label": "mapping(address => struct RewardDelegators.Cluster)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(Cluster)8625_storage": {
+            "label": "struct RewardDelegators.Cluster",
+            "members": [
+              {
+                "label": "totalDelegations",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              },
+              {
+                "label": "delegators",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "accRewardPerShare",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))": {
+            "label": "mapping(address => mapping(bytes32 => uint256))"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_contract(IClusterRewards)8432": {
+            "label": "contract IClusterRewards"
+          },
+          "t_contract(IClusterRegistry)8319": {
+            "label": "contract IClusterRegistry"
+          },
+          "t_contract(IERC20Upgradeable)1983": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "5c0c5042393ea6a9d2641092a8e63ed28be1871aaefdccb7bd47c7bf9131172a": {
+      "address": "0x2E342239f4E30Fa4c92Caf9371c2EdD130E3633B",
+      "txHash": "0x0c8243c55d1fc4f7119d695229ac937a4ba4f6f4a67e7a495bf34b2630424267",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:214"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:80"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusters",
+            "type": "t_mapping(t_address,t_struct(Cluster)8625_storage)",
+            "src": "contracts/staking/RewardDelegators.sol:27"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_2",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:29"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "stakeAddress",
+            "type": "t_address",
+            "src": "contracts/staking/RewardDelegators.sol:30"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "minMPONDStake",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:31"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "MPONDTokenId",
+            "type": "t_bytes32",
+            "src": "contracts/staking/RewardDelegators.sol:32"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "rewardFactor",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:33"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenIndex",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:34"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_1",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "src": "contracts/staking/RewardDelegators.sol:35"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenList",
+            "type": "t_array(t_bytes32)dyn_storage",
+            "src": "contracts/staking/RewardDelegators.sol:36"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRewards",
+            "type": "t_contract(IClusterRewards)8432",
+            "src": "contracts/staking/RewardDelegators.sol:37"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRegistry",
+            "type": "t_contract(IClusterRegistry)8319",
+            "src": "contracts/staking/RewardDelegators.sol:38"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "PONDToken",
+            "type": "t_contract(IERC20Upgradeable)1983",
+            "src": "contracts/staking/RewardDelegators.sol:39"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_struct(Cluster)8625_storage)": {
+            "label": "mapping(address => struct RewardDelegators.Cluster)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(Cluster)8625_storage": {
+            "label": "struct RewardDelegators.Cluster",
+            "members": [
+              {
+                "label": "totalDelegations",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              },
+              {
+                "label": "delegators",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "accRewardPerShare",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))": {
+            "label": "mapping(address => mapping(bytes32 => uint256))"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_contract(IClusterRewards)8432": {
+            "label": "contract IClusterRewards"
+          },
+          "t_contract(IClusterRegistry)8319": {
+            "label": "contract IClusterRegistry"
+          },
+          "t_contract(IERC20Upgradeable)1983": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "f89832b47a42fd5ce76f4f9ea81bec360832330a3fc74bf02a5af5d3271d922a": {
+      "address": "0x93956f780B16C7561728Ca68697c516358C6709b",
+      "txHash": "0xae54490efe4c681307a3ca25c7afef054bbf394648f560436f5db80e13b681da",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:214"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:80"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusters",
+            "type": "t_mapping(t_address,t_struct(Cluster)8625_storage)",
+            "src": "contracts/staking/RewardDelegators.sol:27"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_2",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:29"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "stakeAddress",
+            "type": "t_address",
+            "src": "contracts/staking/RewardDelegators.sol:30"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "minMPONDStake",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:31"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "MPONDTokenId",
+            "type": "t_bytes32",
+            "src": "contracts/staking/RewardDelegators.sol:32"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "rewardFactor",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:33"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenIndex",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:34"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_1",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "src": "contracts/staking/RewardDelegators.sol:35"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenList",
+            "type": "t_array(t_bytes32)dyn_storage",
+            "src": "contracts/staking/RewardDelegators.sol:36"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRewards",
+            "type": "t_contract(IClusterRewards)8432",
+            "src": "contracts/staking/RewardDelegators.sol:37"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRegistry",
+            "type": "t_contract(IClusterRegistry)8319",
+            "src": "contracts/staking/RewardDelegators.sol:38"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "PONDToken",
+            "type": "t_contract(IERC20Upgradeable)1983",
+            "src": "contracts/staking/RewardDelegators.sol:39"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_struct(Cluster)8625_storage)": {
+            "label": "mapping(address => struct RewardDelegators.Cluster)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(Cluster)8625_storage": {
+            "label": "struct RewardDelegators.Cluster",
+            "members": [
+              {
+                "label": "totalDelegations",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              },
+              {
+                "label": "delegators",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "accRewardPerShare",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))": {
+            "label": "mapping(address => mapping(bytes32 => uint256))"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_contract(IClusterRewards)8432": {
+            "label": "contract IClusterRewards"
+          },
+          "t_contract(IClusterRegistry)8319": {
+            "label": "contract IClusterRegistry"
+          },
+          "t_contract(IERC20Upgradeable)1983": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "4967280f1e1ede2c7cc839a50d22a7db617f5d63609af505dbfc71a51e83539e": {
+      "address": "0x9f3Ef2F72A6C2477186AE1704a521599d22A5985",
+      "txHash": "0x65355c65068f67388e18e3ddb6858f08113d7a1c8265b7f810e764242eb9202c",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:26"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:30"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:214"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:80"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "_owner",
+            "type": "t_address",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:21"
+          },
+          {
+            "contract": "OwnableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:77"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusters",
+            "type": "t_mapping(t_address,t_struct(Cluster)8625_storage)",
+            "src": "contracts/staking/RewardDelegators.sol:27"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_2",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:29"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "stakeAddress",
+            "type": "t_address",
+            "src": "contracts/staking/RewardDelegators.sol:30"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "minMPONDStake",
+            "type": "t_uint256",
+            "src": "contracts/staking/RewardDelegators.sol:31"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "MPONDTokenId",
+            "type": "t_bytes32",
+            "src": "contracts/staking/RewardDelegators.sol:32"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "rewardFactor",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:33"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenIndex",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/staking/RewardDelegators.sol:34"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "__unused_1",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "src": "contracts/staking/RewardDelegators.sol:35"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "tokenList",
+            "type": "t_array(t_bytes32)dyn_storage",
+            "src": "contracts/staking/RewardDelegators.sol:36"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRewards",
+            "type": "t_contract(IClusterRewards)8432",
+            "src": "contracts/staking/RewardDelegators.sol:37"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "clusterRegistry",
+            "type": "t_contract(IClusterRegistry)8319",
+            "src": "contracts/staking/RewardDelegators.sol:38"
+          },
+          {
+            "contract": "RewardDelegators",
+            "label": "PONDToken",
+            "type": "t_contract(IERC20Upgradeable)1983",
+            "src": "contracts/staking/RewardDelegators.sol:39"
+          }
+        ],
+        "types": {
+          "t_mapping(t_address,t_struct(Cluster)8625_storage)": {
+            "label": "mapping(address => struct RewardDelegators.Cluster)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(Cluster)8625_storage": {
+            "label": "struct RewardDelegators.Cluster",
+            "members": [
+              {
+                "label": "totalDelegations",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              },
+              {
+                "label": "delegators",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "rewardDebt",
+                "type": "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))"
+              },
+              {
+                "label": "accRewardPerShare",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_mapping(t_address,t_mapping(t_bytes32,t_uint256))": {
+            "label": "mapping(address => mapping(bytes32 => uint256))"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_contract(IClusterRewards)8432": {
+            "label": "contract IClusterRewards"
+          },
+          "t_contract(IClusterRegistry)8319": {
+            "label": "contract IClusterRegistry"
+          },
+          "t_contract(IERC20Upgradeable)1983": {
+            "label": "contract IERC20Upgradeable"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
           }
         }
       }
