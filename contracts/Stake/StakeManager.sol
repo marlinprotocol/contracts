@@ -797,10 +797,10 @@ contract StakeManager is Initializable, Ownable {
             "createRetryableTicket(address,uint256,uint256,address,address,uint256,uint256,bytes)",
             // send msg to corresponding gateway on L2
             gatewayL2,
-            // do not need to send eth
+            // do not need to send eth to gateway
             0,
-            // send all eth as submission cost, excess will be refunded
-            msg.value,
+            // send all eth minus gas as submission cost, excess will be refunded
+            msg.value - _maxGas * _gasPriceBid,
             // all refunds and ticket ownership to _to
             _to,
             _to,
