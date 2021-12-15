@@ -823,7 +823,6 @@ contract StakeManager is Initializable, Ownable {
 
     function transferTokenL2(
         bytes32 _tokenId,
-        uint256 _maxSubmissionCost,
         uint256 _maxGas,
         uint256 _gasPriceBid
     ) external onlyOwner payable returns (uint256) {
@@ -839,11 +838,10 @@ contract StakeManager is Initializable, Ownable {
         );
 
         bytes memory callAbi = abi.encodeWithSignature(
-            "transferL2(address,uint256,uint256,uint256,uint256)",
+            "transferL2(address,uint256,uint256,uint256)",
             // send tokens to l2 staking contract
             stakeManagerL2,
             _amount,
-            _maxSubmissionCost,
             _maxGas,
             _gasPriceBid
         );
