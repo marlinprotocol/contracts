@@ -148,7 +148,6 @@ contract L1Gateway is
     function transferL2(
         address _to,
         uint256 _amount,
-        uint256 _maxSubmissionCost,
         uint256 _maxGas,
         uint256 _gasPriceBid
     ) external payable returns (uint256) {
@@ -162,9 +161,10 @@ contract L1Gateway is
         uint256 _ticketId = inbox.createRetryableTicket{ value: msg.value }(
             // send msg to corresponding gateway on L2
             gatewayL2,
-            // do not need to send eth
+            // do not need to send eth to gateway
             0,
-            _maxSubmissionCost,
+            // send all eth minus gas as submission cost, excess will be refunded
+            msg.value - _maxGas * _gasPriceBid,
             // all refunds and ticket ownership to _to
             _to,
             _to,
