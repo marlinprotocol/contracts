@@ -55,7 +55,7 @@ describe('StakeManager Deployment', function () {
     registeredCluster = signers[6];
     feeder = addrs[7];
     unregisteredCluster = addrs[8];
-    stakeManagerOwner = signers[9];
+    stakeManagerOwner = signers[0];
     deregisteredClusterRewardAddress = addrs[10];
     deregisteredClusterClientKey = addrs[11];
     deregisteredCluster = signers[12];
@@ -98,7 +98,6 @@ describe('StakeManager Deployment', function () {
       [pondInstance.address, mpondInstance.address],
       mpondInstance.address,
       rewardDelegatorsInstance.address,
-      await stakeManagerOwner.getAddress(),
       appConfig.staking.undelegationWaitTime,
       await stakeManagerOwner.getAddress(),
     )).to.be.reverted;
@@ -112,7 +111,6 @@ describe('StakeManager Deployment', function () {
       [pondInstance.address, mpondInstance.address],
       mpondInstance.address,
       rewardDelegatorsInstance.address,
-      await stakeManagerOwner.getAddress(),
       appConfig.staking.undelegationWaitTime,
       await stakeManagerOwner.getAddress(),
     ],{ kind: "uups" });
@@ -1052,7 +1050,7 @@ it("change MPond address", async()=> {
   const MPond = await ethers.getContractFactory('MPond');
   const tempMPondInstance = await upgrades.deployProxy(MPond, { kind: "uups", initializer: false });
 
-  await expect(stakeManagerInstance.changeMPONDTokenAddress(tempMPondInstance.address)).to.be.reverted;
+  await expect(stakeManagerInstance.connect(signers[1]).changeMPONDTokenAddress(tempMPondInstance.address)).to.be.reverted;
   let tx = await (await stakeManagerInstance.connect(stakeManagerOwner).changeMPONDTokenAddress(tempMPondInstance.address)).wait();
   expect(tx.events[0].event).to.equal("TokenUpdated");
 
@@ -1064,7 +1062,7 @@ it("change Reward Delegators address", async()=> {
   const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
   const tempRewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
 
-  await expect(stakeManagerInstance.updateRewardDelegators(tempRewardDelegatorsInstance.address)).to.be.reverted;
+  await expect(stakeManagerInstance.connect(signers[1]).updateRewardDelegators(tempRewardDelegatorsInstance.address)).to.be.reverted;
   let tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateRewardDelegators(tempRewardDelegatorsInstance.address)).wait();
   expect(await stakeManagerInstance.rewardDelegators()).to.equal(tempRewardDelegatorsInstance.address);
 
@@ -1075,7 +1073,7 @@ it("change Reward Delegators address", async()=> {
 it("update undelegation wait time", async()=> {
 
   const undelegationWaitTimeBefore = await stakeManagerInstance.undelegationWaitTime();
-  await expect(stakeManagerInstance.updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).to.be.reverted;
+  await expect(stakeManagerInstance.connect(signers[1]).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).to.be.reverted;
   const tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).wait();
   expect(tx.events[0].event).to.equal("UndelegationWaitTimeUpdated");
   expect(await stakeManagerInstance.undelegationWaitTime()).to.equal(undelegationWaitTimeBefore + 10);
@@ -1089,12 +1087,12 @@ it("enable/disable token", async()=> {
   await expect(stakeManagerInstance.connect(stakeManagerOwner).enableToken(PONDTokenId, pondInstance.address)).to.be.reverted;
 
   // only onwner should be able to disable
-  await expect(stakeManagerInstance.disableToken(PONDTokenId)).to.be.reverted;
+  await expect(stakeManagerInstance.connect(signers[1]).disableToken(PONDTokenId)).to.be.reverted;
   const tx1 = await (await stakeManagerInstance.connect(stakeManagerOwner).disableToken(PONDTokenId)).wait();
   expect(tx1.events[0].event).to.equal("TokenRemoved");
 
   // only owner should be able to enable
-  await expect(stakeManagerInstance.enableToken(PONDTokenId, pondInstance.address)).to.be.reverted;
+  await expect(stakeManagerInstance.connect(signers[1]).enableToken(PONDTokenId, pondInstance.address)).to.be.reverted;
   const tx2 = await (await stakeManagerInstance.connect(stakeManagerOwner).enableToken(PONDTokenId, pondInstance.address)).wait();
   expect(tx2.events[0].event).to.equal("TokenAdded");
 });

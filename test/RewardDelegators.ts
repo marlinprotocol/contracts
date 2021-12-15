@@ -25,7 +25,7 @@ describe('RewardDelegators', function() {
   let clusterRegistryInstance: Contract;
   let pondTokenId: String;
   let mpondTokenId: String;
-  
+
   beforeEach(async()=> {
 
     signers = await ethers.getSigners();
@@ -495,7 +495,6 @@ describe('RewardDelegators Deployment', function () {
         [pondInstance.address, mpondInstance.address],
         mpondInstance.address,
         rewardDelegatorsInstance.address,
-        addrs[0],
         appConfig.staking.undelegationWaitTime,
         addrs[0],
     );
@@ -714,7 +713,6 @@ describe('RewardDelegators Deployment', function () {
             [testTokenInstance.address],
             mpondInstance.address,
             rewardDelegatorsInstance.address,
-            addrs[0],
             appConfig.staking.undelegationWaitTime,
             addrs[0],
         );
