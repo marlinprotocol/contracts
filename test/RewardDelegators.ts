@@ -513,7 +513,7 @@ describe('RewardDelegators Deployment', function () {
 
     await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
     // initialize contract and check if all variables are correctly set(including admin)
-    expect(await stakeManagerInstance.undelegationWaitTime()).to.equal(appConfig.staking.undelegationWaitTime);
+    expect(await stakeManagerInstance.lockWaitTime(await stakeManagerInstance.UNDELEGATION_LOCK_SELECTOR())).to.equal(appConfig.staking.undelegationWaitTime);
     expect(await rewardDelegatorsInstance.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
   });
 

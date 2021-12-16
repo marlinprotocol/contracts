@@ -821,7 +821,7 @@ it("Withdraw POND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime-1);
+  await skipTime(appConfig.staking.undelegationWaitTime);
 
   const balanceBefore = (await pondInstance.balanceOf(addrs[0])).toString();
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
@@ -845,7 +845,7 @@ it("Withdraw MPOND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime-1);
+  await skipTime(appConfig.staking.undelegationWaitTime);
 
   const balanceBefore = await mpondInstance.balanceOf(addrs[0]);
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
@@ -1034,16 +1034,13 @@ it("cancel stash undelegation", async () => {
   await stakeManagerInstance.undelegateStash(stashId);
 
   // cancel undelegation
-  await expect(stakeManagerInstance.cancelUndelegation(stashId, await registeredCluster.getAddress())).to.be.reverted;
-  for(let i=0; i < 5-1; i++) {
-    await ethers.provider.send('evm_mine', []);
-  }
+  await expect(stakeManagerInstance.connect(signers[1]).cancelUndelegation(stashId)).to.be.reverted;
+  await skipBlocks(4);
 
-  const cancelTx = await (await stakeManagerInstance.cancelUndelegation(stashId, await registeredCluster.getAddress())).wait();
+  const cancelTx = await (await stakeManagerInstance.cancelUndelegation(stashId)).wait();
   expect(cancelTx.events[0].event).equal("StashUndelegationCancelled");
   const stash = await stakeManagerInstance.stashes(stashId);
   expect(stash.delegatedCluster.toString()).equal(await registeredCluster.getAddress());
-  expect(stash.undelegatesAt).equal(0);
 });
 
 it("change MPond address", async()=> {
@@ -1071,15 +1068,17 @@ it("change Reward Delegators address", async()=> {
 });
 
 it("update undelegation wait time", async()=> {
-
-  const undelegationWaitTimeBefore = await stakeManagerInstance.undelegationWaitTime();
-  await expect(stakeManagerInstance.connect(signers[1]).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).to.be.reverted;
-  const tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore + 10)).wait();
-  expect(tx.events[0].event).to.equal("UndelegationWaitTimeUpdated");
-  expect(await stakeManagerInstance.undelegationWaitTime()).to.equal(undelegationWaitTimeBefore + 10);
+  const SELECTOR = await stakeManagerInstance.UNDELEGATION_LOCK_SELECTOR();
+  const undelegationWaitTimeBefore = await stakeManagerInstance.lockWaitTime(SELECTOR);
+  await expect(stakeManagerInstance.connect(signers[1]).updateLockWaitTime(
+    SELECTOR, undelegationWaitTimeBefore + 10)).to.be.reverted;
+  const tx = await (await stakeManagerInstance.connect(stakeManagerOwner).updateLockWaitTime(
+    SELECTOR, undelegationWaitTimeBefore + 10)).wait();
+  expect(tx.events[0].event).to.equal("LockTimeUpdated");
+  expect(await stakeManagerInstance.lockWaitTime(SELECTOR)).to.equal(undelegationWaitTimeBefore + 10);
   // change back to original
 
-  await stakeManagerInstance.connect(stakeManagerOwner).updateUndelegationWaitTime(undelegationWaitTimeBefore);
+  await stakeManagerInstance.connect(stakeManagerOwner).updateLockWaitTime(SELECTOR, undelegationWaitTimeBefore);
 });
 
 it("enable/disable token", async()=> {
