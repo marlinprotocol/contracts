@@ -96,10 +96,9 @@ contract StakeManager is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokens[_tokenIds[i]] = Token(_tokenAddresses[i], true);
-            emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
+            _addToken(_tokenIds[i], _tokenAddresses[i]);
         }
-        MPOND = MPond(_MPONDTokenAddress);
+        _setupRole(DELEGATABLE_TOKEN_ROLE, _MPONDTokenAddress);
         rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
         _updateLockWaitTime(UNDELEGATION_LOCK_SELECTOR, _undelegationWaitTime);
         gatewayL1 = _gatewayL1;
@@ -185,6 +184,8 @@ contract StakeManager is
 
 //-------------------------------- Tokens start --------------------------------//
 
+    bytes32 public constant DELEGATABLE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
+
     struct Token {
         address addr;
         bool isActive;
@@ -243,6 +244,49 @@ contract StakeManager is
         _updateToken(_tokenId, _address);
     }
 
+    function _lockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+        if(_amount == 0) {
+            return;
+        }
+        address tokenAddress = tokens[_tokenId].addr;
+        // pull tokens from mpond/pond contract
+        // if mpond transfer the governance rights back
+        require(
+            IERC20Upgradeable(tokenAddress).transferFrom(
+                _delegator,
+                address(this),
+                _amount
+            )
+        );
+        if (hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
+            // send a request to delegate governance rights for the amount to delegator
+            MPond(tokenAddress).delegate(
+                _delegator,
+                uint96(_amount)
+            );
+        }
+    }
+
+    function _unlockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+        if(_amount == 0) {
+            return;
+        }
+        address tokenAddress = tokens[_tokenId].addr;
+        if (hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
+            // send a request to undelegate governacne rights for the amount to previous delegator
+            MPond(tokenAddress).undelegate(
+                _delegator,
+                uint96(_amount)
+            );
+        }
+        require(
+            IERC20Upgradeable(tokenAddress).transfer(
+                _delegator,
+                _amount
+            )
+        );
+    }
+
 //-------------------------------- Tokens end --------------------------------//
 
     struct Stash {
@@ -256,8 +300,6 @@ contract StakeManager is
     mapping(bytes32 => Stash) public stashes;
     // Stash index for unique id generation
     uint256 public stashIndex;
-    MPond MPOND;
-    MPond prevMPOND;
     IRewardDelegators public rewardDelegators;
     // new variables
     bytes32 public constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
@@ -299,14 +341,6 @@ contract StakeManager is
     event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
     event StashUndelegationCancelled(bytes32 _stashId);
     event RedelegationCancelled(bytes32 indexed _stashId);
-
-    function changeMPONDTokenAddress(
-        address _MPONDTokenAddress
-    ) external onlyAdmin {
-        prevMPOND = MPOND;
-        MPOND = MPond(_MPONDTokenAddress);
-        // emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
-    }
 
     function updateRewardDelegators(
         address _updatedRewardDelegator
@@ -652,54 +686,6 @@ contract StakeManager is
             _unlockTokens(_tokens[i], _amounts[i], msg.sender);
         }
         emit StashWithdrawn(_stashId, _tokens, _amounts);
-    }
-
-    function _lockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
-            return;
-        }
-        address tokenAddress = tokens[_tokenId].addr;
-        // pull tokens from mpond/pond contract
-        // if mpond transfer the governance rights back
-        require(
-            IERC20Upgradeable(tokenAddress).transferFrom(
-                _delegator,
-                address(this),
-                _amount
-            )
-        );
-        // if (tokenAddress == address(MPOND)) {
-        //     // send a request to delegate governance rights for the amount to delegator
-        //     MPOND.delegate(
-        //         _delegator,
-        //         uint96(_amount)
-        //     );
-        // }
-    }
-
-    function _unlockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
-            return;
-        }
-        address tokenAddress = tokens[_tokenId].addr;
-        // if(tokenAddress == address(MPOND)) {
-        //     // send a request to undelegate governacne rights for the amount to previous delegator
-        //     MPOND.undelegate(
-        //         _delegator,
-        //         uint96(_amount)
-        //     );
-        // } else if(tokenAddress == address(prevMPOND)) {
-        //     prevMPOND.undelegate(
-        //         _delegator,
-        //         uint96(_amount)
-        //     );
-        // }
-        require(
-            IERC20Upgradeable(tokenAddress).transfer(
-                _delegator,
-                _amount
-            )
-        );
     }
 
     function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
