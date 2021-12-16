@@ -16,6 +16,11 @@ async function skipBlocks(n: number) {
   await Promise.all([...Array(n)].map(async x => await ethers.provider.send('evm_mine', [])));
 }
 
+async function skipTime(t: number) {
+  await ethers.provider.send('evm_increaseTime', [t]);
+  await skipBlocks(1);
+}
+
 const COMMISSION_LOCK = "0x7877e81172e1242eb265a9ff5a14c913d44197a6e15e0bc1d984f40be9096403";
 const SWITCH_NETWORK_LOCK = "0x18981a75d138782f14f3fbd4153783a0dc1558f28dc5538bf045e7de84cb2ae2";
 const UNREGISTER_LOCK = "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a73cc8c7080c";
@@ -225,7 +230,7 @@ describe('ClusterRegistry', function () {
     await expect(clusterRegistry.register(DOTHASH, 7, addrs[3], addrs[4])).to.be.reverted;
   });
 
-  it("Unregister cluster", async () => {
+  it("unregister cluster", async () => {
     await clusterRegistry.register(DOTHASH, 7, addrs[1], addrs[2]);
     const clusterData = await clusterRegistry.callStatic.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
@@ -239,9 +244,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await clusterRegistry.unregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await skipBlocks(40);
+    await skipTime(40);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await skipBlocks(1);
+    await skipTime(1);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.false;
   });
 });
@@ -267,9 +272,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await clusterRegistry.updateCommission(15);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await skipBlocks(20);
+    await skipTime(20);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await skipBlocks(1);
+    await skipTime(1);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
   });
 
@@ -281,9 +286,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await clusterRegistry.switchNetwork(NEARHASH);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await skipBlocks(30);
+    await skipTime(30);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await skipBlocks(1);
+    await skipTime(1);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
   });
 
@@ -321,28 +326,28 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipBlocks(20);
+    await skipTime(20);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipBlocks(1);
+    await skipTime(1);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipBlocks(9);
+    await skipTime(9);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipBlocks(1);
+    await skipTime(1);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
@@ -350,14 +355,4 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
   });
 });
-
-//   async function skipBlocks(blocks: Number) {
-//     const unregisteredClusterAddress = await signers[1].getAddress();
-//     for(let i=0; i < blocks; i++) {
-//         await clusterRegistry.getNetwork(unregisteredClusterAddress);
-//     }
-//   }
-// });
-
-
 
