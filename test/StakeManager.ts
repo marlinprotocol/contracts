@@ -315,7 +315,7 @@ it("Delegate MPOND to deregistered cluster", async () => {
   await clusterRegistryInstance.connect(deregisteredCluster).register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
   await clusterRegistryInstance.connect(deregisteredCluster).unregister();
 
-  await skipBlocks(23);
+  await skipTime(23);
 
   const amount = 700000;
   const stashId = await createStash(amount, 0);
@@ -350,7 +350,7 @@ it("Redelegate a undelegated POND stash", async () => {
   expect(prevClusterDelegationBeforeRedelegateRequest).to.equal(prevClusterDelegationAfterRedelegateRequest);
   expect(stakeContractBalanceBeforeRedelegateRequest).to.equal(stakeContractBalanceAfterRedelegateRequest);
 
-  await skipBlocks(2);
+  await skipTime(2);
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
@@ -394,7 +394,7 @@ it("Redelegate a undelegated MPOND stash", async () => {
   expect(prevClusterDelegationBeforeRedelegateRequest).to.equal(prevClusterDelegationAfterRedelegateRequest);
   expect(stakeContractBalanceBeforeRedelegateRequest).to.equal(stakeContractBalanceAfterRedelegateRequest);
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
-  await skipBlocks(2);
+  await skipTime(2);
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
   await stakeManagerInstance.redelegateStash(stashId);
@@ -422,7 +422,7 @@ it("Redelegate to unregistered cluster", async () => {
   await expect(stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress())).to.be.reverted;
   await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
   await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster2.getAddress());
-  await skipBlocks(5);
+  await skipTime(5);
   await stakeManagerInstance.redelegateStash(stashId);
   });
 
@@ -441,7 +441,7 @@ it("Redelegate to unregistered cluster", async () => {
     // Redelegate to cluster that was valid when placing request then has unregistered(hence invalid) when applying redelegation
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
     await clusterRegistryInstance.connect(registeredCluster1).unregister();
-    await skipBlocks(23);
+    await skipTime(23);
     expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster1.getAddress())).to.be.false;
     await stakeManagerInstance.redelegateStash(stashId);
   });
@@ -461,7 +461,7 @@ it("Redelegate to unregistered cluster", async () => {
     // Redelegate a stash that is undelegating
     await clusterRegistryInstance.connect(registeredCluster).unregister();
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
-    await skipBlocks(4);
+    await skipTime(4);
     const delegationAfterRedelegateRequest = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster1.getAddress(), MPONDTokenId));
     const prevClusterDelegationAfterRedelegateRequest = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
     const stakeContractBalanceAfterRedelegateRequest = (await mpondInstance.balanceOf(stakeManagerInstance.address));
@@ -473,7 +473,7 @@ it("Redelegate to unregistered cluster", async () => {
     expect(delegationAfterRedelegate - delegationAfterRedelegateRequest).to.equal(amount);
     expect(prevClusterDelegationAfterRedelegateRequest - prevClusterDelegationAfterRedelegate).to.equal(amount);
     expect(stakeContractBalanceAfterRedelegateRequest).to.equal(stakeContractBalanceAfterRedelegate);
-    await skipBlocks(18);
+    await skipTime(18);
     expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress())).to.be.false;
 });
 
@@ -491,7 +491,7 @@ it("Redelegate a stash to a unregistered cluster", async () => {
   await clusterRegistryInstance.connect(registeredCluster1).unregister();
   // Register redelegate when cluster is undelegating and apply it when undelegated
   await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
-  await skipBlocks(23);
+  await skipTime(23);
   expect(await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster1.getAddress())).to.be.false;
   await stakeManagerInstance.redelegateStash(stashId);
 });
@@ -510,7 +510,7 @@ it("Redelegate stash from an unregistered cluster", async () => {
   // Redelegate a stash that is undelegated
   await clusterRegistryInstance.connect(registeredCluster).unregister();
   await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
-  await skipBlocks(23);
+  await skipTime(23);
   expect((await clusterRegistryInstance.callStatic.isClusterValid(await registeredCluster.getAddress()))).to.be.false;
   await stakeManagerInstance.redelegateStash(stashId);
   });
@@ -545,10 +545,10 @@ it("Redelegate cluster when registered and apply when unregistering", async () =
   // Register redelegate when cluster is registered and apply it when unregistering
   await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
   await clusterRegistryInstance.connect(registeredCluster1).unregister();
-  await skipBlocks(4);
+  await skipTime(4);
   await stakeManagerInstance.redelegateStash(stashId);
   // cleanup unregistration
-  await skipBlocks(20);
+  await skipTime(20);
   });
 
   it("Check if redelegation requests before undelegation are applicable after", async () => {
@@ -565,7 +565,7 @@ it("Redelegate cluster when registered and apply when unregistering", async () =
     // Register redelegate to a cluster, undelegate and delegate again to another cluster. Now apply redelegation
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
     await stakeManagerInstance.undelegateStash(stashId);
-    await skipBlocks(23);
+    await skipTime(23);
     await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
     await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 });
@@ -583,14 +583,14 @@ it("Check if redelegation request remains active even after usage", async () => 
   await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
   // Register redelegate to a cluster and apply redelegation, undelegate and delegate again to another cluster. Now apply redelegation again
   await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
-  await skipBlocks(4);
+  await skipTime(4);
   await stakeManagerInstance.redelegateStash(stashId)
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 
-  await skipBlocks(4);
+  await skipTime(4);
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
   await stakeManagerInstance.undelegateStash(stashId);
-  await skipBlocks(23);
+  await skipTime(23);
   await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 });
@@ -699,11 +699,11 @@ it("Undelegate POND stash from a deregistering cluster", async () => {
   const stashId = getStashId(receipt.events);
 
   await clusterRegistryInstance.connect(deregisteredCluster).unregister();
-  await skipBlocks(5);
+  await skipTime(5);
   await stakeManagerInstance.undelegateStash(stashId);
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
-  await skipBlocks(24);
+  await skipTime(24);
 });
 
 it("Undelegate POND stash from a deregistered cluster", async () => {
@@ -718,7 +718,7 @@ it("Undelegate POND stash from a deregistered cluster", async () => {
   const stashId = getStashId(receipt.events);
 
   await clusterRegistryInstance.connect(deregisteredCluster).unregister();
-  await skipBlocks(23);
+  await skipTime(23);
 
   await stakeManagerInstance.undelegateStash(stashId);
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
@@ -738,12 +738,12 @@ it("Undelegate MPOND stash from a deregistering cluster", async () => {
   const stashId = getStashId(receipt.events);
 
   await clusterRegistryInstance.connect(deregisteredCluster).unregister();
-  await skipBlocks(5);
+  await skipTime(5);
 
   await stakeManagerInstance.undelegateStash(stashId);
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
-  await skipBlocks(24);
+  await skipTime(24);
 });
 
 it("Undelegate MPOND stash from a deregistered cluster", async () => {
@@ -759,7 +759,7 @@ it("Undelegate MPOND stash from a deregistered cluster", async () => {
   const stashId = getStashId(receipt.events);
 
   await clusterRegistryInstance.connect(deregisteredCluster).unregister();
-  await skipBlocks(23);
+  await skipTime(23);
 
   await stakeManagerInstance.undelegateStash(stashId);
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
@@ -781,7 +781,7 @@ it("Withdraw POND before wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipBlocks(appConfig.staking.undelegationWaitTime-2);
+  await skipTime(appConfig.staking.undelegationWaitTime-2);
 
   await expect(stakeManagerInstance["withdrawStash(bytes32)"](stashId)).to.be.reverted;
 });
@@ -801,7 +801,7 @@ it("Withdraw MPOND before wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipBlocks(appConfig.staking.undelegationWaitTime-2);
+  await skipTime(appConfig.staking.undelegationWaitTime-2);
 
   await expect(stakeManagerInstance["withdrawStash(bytes32)"](stashId)).to.be.reverted;
 });
@@ -821,7 +821,7 @@ it("Withdraw POND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipBlocks(appConfig.staking.undelegationWaitTime-1);
+  await skipTime(appConfig.staking.undelegationWaitTime-1);
 
   const balanceBefore = (await pondInstance.balanceOf(addrs[0])).toString();
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
@@ -845,7 +845,7 @@ it("Withdraw MPOND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipBlocks(appConfig.staking.undelegationWaitTime-1);
+  await skipTime(appConfig.staking.undelegationWaitTime-1);
 
   const balanceBefore = await mpondInstance.balanceOf(addrs[0]);
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
@@ -952,7 +952,7 @@ it("Request multiple stash redelegations", async () => {
 
 
   await expect(stakeManagerInstance.redelegateStashes([stashId1, stashId2])).to.be.reverted;
-  await skipBlocks(4);
+  await skipTime(4);
   const redelTX = await (await stakeManagerInstance.redelegateStashes([stashId1, stashId2])).wait();
 
   stash1 = await stakeManagerInstance.stashes(stashId1);
@@ -1013,13 +1013,13 @@ it("Redelegate stash and then cancel redeledation", async () => {
   let lock = await stakeManagerInstance.locks(lockID);
 
   // fail if unlock block is 0
-  expect(lock.unlockBlock).to.not.equal(0);
+  expect(lock.unlockTime).to.not.equal(0);
 
   // cancel redelegation
   const cancelTx = await (await stakeManagerInstance.cancelRedelegation(stashId)).wait();
   expect(cancelTx.events[0].event).equal("RedelegationCancelled");
   lock = await stakeManagerInstance.locks(lockID);
-  expect(lock.unlockBlock).equal(0);
+  expect(lock.unlockTime).equal(0);
 });
 
 it("cancel stash undelegation", async () => {
@@ -1134,10 +1134,13 @@ async function createStash(mpondAmount: Number, pondAmount: Number) {
   return getStashId(tx.events);
   }
 
-  async function skipBlocks(noOfBlocks: Number) {
-    for(let i=0; i < noOfBlocks; i++) {
-        await pondInstance.transfer(addrs[0], 0);
-    }
+  async function skipTime(t: number) {
+    await ethers.provider.send('evm_increaseTime', [t]);
+    await skipBlocks(1);
+  }
+
+  async function skipBlocks(n: number) {
+    await Promise.all([...Array(n)].map(async x => await ethers.provider.send('evm_mine', [])));
   }
 
   function getStashId(events: any[]) {
