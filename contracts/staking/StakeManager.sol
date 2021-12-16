@@ -96,7 +96,7 @@ contract StakeManager is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         for(uint256 i=0; i < _tokenIds.length; i++) {
-            tokenAddresses[_tokenIds[i]] = Token(_tokenAddresses[i], true);
+            tokens[_tokenIds[i]] = Token(_tokenAddresses[i], true);
             emit TokenAdded(_tokenIds[i], _tokenAddresses[i]);
         }
         MPOND = MPond(_MPONDTokenAddress);
@@ -183,23 +183,79 @@ contract StakeManager is
 
 //-------------------------------- Locks end --------------------------------//
 
+//-------------------------------- Tokens start --------------------------------//
+
+    struct Token {
+        address addr;
+        bool isActive;
+    }
+
+    mapping(bytes32 => Token) tokens;
+
+    event TokenAdded(bytes32 tokenId, address tokenAddress);
+    event TokenEnabled(bytes32 tokenId);
+    event TokenDisabled(bytes32 tokenId);
+    event TokenUpdated(bytes32 tokenId, address oldTokenAddress, address newTokenAddress);
+
+    function _addToken(bytes32 _tokenId, address _address) internal {
+        require(_address != address(0));
+        require(tokens[_tokenId].addr == address(0));
+
+        tokens[_tokenId] = Token(_address, true);
+        emit TokenAdded(_tokenId, _address);
+    }
+
+    function _enableToken(bytes32 _tokenId) internal {
+        require(tokens[_tokenId].isActive == false);
+        tokens[_tokenId].isActive = true;
+        emit TokenEnabled(_tokenId);
+    }
+
+    function _disableToken(bytes32 _tokenId) internal {
+        require(tokens[_tokenId].isActive == true);
+        tokens[_tokenId].isActive = false;
+        emit TokenDisabled(_tokenId);
+    }
+
+    function _updateToken(bytes32 _tokenId, address _address) internal {
+        require(_address != address(0));
+        address _oldAddress = tokens[_tokenId].addr;
+        require(_oldAddress != address(0));
+
+        tokens[_tokenId].addr = _address;
+
+        emit TokenUpdated(_tokenId, _oldAddress, _address);
+    }
+
+    function addToken(bytes32 _tokenId, address _address) external onlyAdmin {
+        _addToken(_tokenId, _address);
+    }
+
+    function enableToken(bytes32 _tokenId) external onlyAdmin {
+        _enableToken(_tokenId);
+    }
+
+    function disableToken(bytes32 _tokenId) external onlyAdmin {
+        _disableToken(_tokenId);
+    }
+
+    function updateToken(bytes32 _tokenId, address _address) external onlyAdmin {
+        _updateToken(_tokenId, _address);
+    }
+
+//-------------------------------- Tokens end --------------------------------//
+
     struct Stash {
         address staker;
         address delegatedCluster;
         mapping(bytes32 => uint256) amount;   // name is not intuitive
     }
 
-    struct Token {
-        address addr;
-        bool isActive;
-    }
     // stashId to stash
     // stashId = keccak256(index)
     mapping(bytes32 => Stash) public stashes;
     // Stash index for unique id generation
     uint256 public stashIndex;
-    // tokenId to token address - tokenId = keccak256(tokenTicker)
-    mapping(bytes32 => Token) tokenAddresses;
     MPond MPOND;
     MPond prevMPOND;
     IRewardDelegators public rewardDelegators;
@@ -231,9 +287,6 @@ contract StakeManager is
     event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
     event StashClosed(bytes32 stashId, address indexed staker);
     event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
-    event TokenAdded(bytes32 tokenId, address tokenAddress);
-    event TokenRemoved(bytes32 tokenId);
-    event TokenUpdated(bytes32 tokenId, address tokenAddress);
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
     event StashSplit(
@@ -252,7 +305,7 @@ contract StakeManager is
     ) external onlyAdmin {
         prevMPOND = MPOND;
         MPOND = MPond(_MPONDTokenAddress);
-        emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
+        // emit TokenUpdated(keccak256("MPOND"), _MPONDTokenAddress);
     }
 
     function updateRewardDelegators(
@@ -262,28 +315,6 @@ contract StakeManager is
             _updatedRewardDelegator != address(0)
         );
         rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
-    }
-
-    function enableToken(
-        bytes32 _tokenId,
-        address _address
-    ) external onlyAdmin {
-        require(
-            !tokenAddresses[_tokenId].isActive
-        );
-        require(_address != address(0));
-        tokenAddresses[_tokenId] = Token(_address, true);
-        emit TokenAdded(_tokenId, _address);
-    }
-
-    function disableToken(
-        bytes32 _tokenId
-    ) external onlyAdmin {
-        require(
-            tokenAddresses[_tokenId].isActive
-        );
-        tokenAddresses[_tokenId].isActive = false;
-        emit TokenRemoved(_tokenId);
     }
 
     function createStashAndDelegate(
@@ -311,7 +342,7 @@ contract StakeManager is
             bytes32 _tokenId = _tokens[_index];
             uint256 _amount = _amounts[_index];
             require(
-                tokenAddresses[_tokenId].isActive
+                tokens[_tokenId].isActive
             );
             require(
                 stashes[_stashId].amount[_tokenId] == 0
@@ -347,7 +378,7 @@ contract StakeManager is
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
             require(
-                tokenAddresses[_tokenId].isActive
+                tokens[_tokenId].isActive
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId] + _amounts[i];
@@ -627,7 +658,7 @@ contract StakeManager is
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId].addr;
+        address tokenAddress = tokens[_tokenId].addr;
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
         require(
@@ -650,7 +681,7 @@ contract StakeManager is
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokenAddresses[_tokenId].addr;
+        address tokenAddress = tokens[_tokenId].addr;
         // if(tokenAddress == address(MPOND)) {
         //     // send a request to undelegate governacne rights for the amount to previous delegator
         //     MPOND.undelegate(
@@ -701,7 +732,7 @@ contract StakeManager is
 
             // delegate
             stashes[_stashId].delegatedCluster = _delegatedClusters[_sidx];
-            if(_delegatedCluster[sidx] != address(0)) {
+            if(_delegatedClusters[_sidx] != address(0)) {
                 rewardDelegators.delegate(_staker, _delegatedClusters[_sidx], _tokenIds, _amounts);
                 emit StashDelegated(_stashId, _delegatedClusters[_sidx]);
             }
