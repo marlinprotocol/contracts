@@ -1043,18 +1043,6 @@ it("cancel stash undelegation", async () => {
   expect(stash.delegatedCluster.toString()).equal(await registeredCluster.getAddress());
 });
 
-it("change MPond address", async()=> {
-  const MPond = await ethers.getContractFactory('MPond');
-  const tempMPondInstance = await upgrades.deployProxy(MPond, { kind: "uups", initializer: false });
-
-  await expect(stakeManagerInstance.connect(signers[1]).changeMPONDTokenAddress(tempMPondInstance.address)).to.be.reverted;
-  let tx = await (await stakeManagerInstance.connect(stakeManagerOwner).changeMPONDTokenAddress(tempMPondInstance.address)).wait();
-  // expect(tx.events[0].event).to.equal("TokenUpdated");
-
-  //change back to original
-  await stakeManagerInstance.connect(stakeManagerOwner).changeMPONDTokenAddress(mpondInstance.address);
-});
-
 it("change Reward Delegators address", async()=> {
   const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
   const tempRewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
