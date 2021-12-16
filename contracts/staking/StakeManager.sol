@@ -701,8 +701,10 @@ contract StakeManager is
 
             // delegate
             stashes[_stashId].delegatedCluster = _delegatedClusters[_sidx];
-            rewardDelegators.delegate(_staker, _delegatedClusters[_sidx], _tokenIds, _amounts);
-            emit StashDelegated(_stashId, _delegatedClusters[_sidx]);
+            if(_delegatedCluster[sidx] != address(0)) {
+                rewardDelegators.delegate(_staker, _delegatedClusters[_sidx], _tokenIds, _amounts);
+                emit StashDelegated(_stashId, _delegatedClusters[_sidx]);
+            }
         }
     }
 }
