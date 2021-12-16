@@ -244,9 +244,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await clusterRegistry.unregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await skipTime(40);
+    await skipTime(39);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await skipTime(1);
+    await skipTime(2);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.false;
   });
 });
@@ -272,9 +272,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await clusterRegistry.updateCommission(15);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await skipTime(20);
+    await skipTime(19);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await skipTime(1);
+    await skipTime(2);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
   });
 
@@ -286,9 +286,9 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await clusterRegistry.switchNetwork(NEARHASH);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await skipTime(30);
+    await skipTime(29);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await skipTime(1);
+    await skipTime(2);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
   });
 
@@ -326,28 +326,28 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipTime(20);
+    await skipTime(19);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipTime(1);
+    await skipTime(2);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipTime(9);
+    await skipTime(8);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
-    await skipTime(1);
+    await skipTime(2);
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
