@@ -107,6 +107,67 @@ contract StakeManager is
 
 //-------------------------------- Initializer end --------------------------------//
 
+//-------------------------------- Locks start --------------------------------//
+
+    struct Lock {
+        uint256 unlockTime;
+        uint256 iValue;
+    }
+
+    mapping(bytes32 => Lock) public locks;
+    mapping(bytes32 => uint256) public lockWaitTime;
+
+    enum LockStatus {
+        None,
+        Unlocked,
+        Locked
+    }
+
+    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+
+    function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
+        bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
+        uint256 _unlockTime = locks[_lockId].unlockTime;
+        if(_unlockTime == 0) {
+            return LockStatus.None;
+        } else if(_unlockTime <= block.timestamp) {
+            return LockStatus.Unlocked;
+        } else {
+            return LockStatus.Locked;
+        }
+    }
+
+    function _lock(bytes32 _selector, bytes32 _key, uint256 _iValue) internal returns (uint256) {
+        require(_lockStatus(_selector, _key) == LockStatus.None);
+
+        uint256 _duration = lockWaitTime[_selector];
+        bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
+        locks[_lockId].unlockTime = block.timestamp + _duration;
+        locks[_lockId].iValue = _iValue;
+
+        return block.timestamp + _duration;
+    }
+
+    function _revertLock(bytes32 _selector, bytes32 _key) internal returns (uint256) {
+        bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
+        uint256 _iValue = locks[_lockId].iValue;
+        delete locks[_lockId];
+
+        return _iValue;
+    }
+
+    function _unlock(bytes32 _selector, bytes32 _key) internal returns (uint256) {
+        require(_lockStatus(_selector, _key) == LockStatus.Unlocked);
+        return _revertLock(_selector, _key);
+    }
+
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyAdmin {
+        emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
+        lockWaitTime[_selector] = _updatedWaitTime;
+    }
+
+//-------------------------------- Locks end --------------------------------//
+
     struct Stash {
         address staker;
         address delegatedCluster;
@@ -129,13 +190,6 @@ contract StakeManager is
     MPond prevMPOND;
     IRewardDelegators public rewardDelegators;
     // new variables
-    struct Lock {
-        uint256 unlockBlock;
-        uint256 iValue;
-    }
-
-    mapping(bytes32 => Lock) public locks;
-    mapping(bytes32 => uint256) public lockWaitTime;
     bytes32 constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     uint256 public undelegationWaitTime;
 
@@ -168,7 +222,6 @@ contract StakeManager is
     event TokenUpdated(bytes32 tokenId, address tokenAddress);
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
     event Redelegated(bytes32 stashId, address updatedCluster);
-    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
     event StashSplit(
         bytes32 _newStashId,
         bytes32 _stashId,
@@ -180,11 +233,6 @@ contract StakeManager is
     event StashUndelegationCancelled(bytes32 _stashId);
     event UndelegationWaitTimeUpdated(uint256 undelegationWaitTime);
     event RedelegationCancelled(bytes32 indexed _stashId);
-
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyAdmin {
-        emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
-        lockWaitTime[_selector] = _updatedWaitTime;
-    }
 
     function changeMPONDTokenAddress(
         address _MPONDTokenAddress
@@ -283,7 +331,7 @@ contract StakeManager is
             stashes[_stashId].staker == msg.sender
         );
         require(
-            stashes[_stashId].undelegatesAt <= block.number
+            stashes[_stashId].undelegatesAt <= block.timestamp
         );
         require(
             _tokens.length == _amounts.length
@@ -318,7 +366,7 @@ contract StakeManager is
             stashes[_stashId].delegatedCluster == address(0)
         );
         require(
-            stashes[_stashId].undelegatesAt <= block.number
+            stashes[_stashId].undelegatesAt <= block.timestamp
         );
         stashes[_stashId].delegatedCluster = _delegatedCluster;
         delete stashes[_stashId].undelegatesAt;
@@ -341,19 +389,12 @@ contract StakeManager is
         require(
             _newCluster != address(0)
         );
-        uint256 _redelegationBlock = _requestStashRedelegation(_stashId, _newCluster);
-        emit RedelegationRequested(_stashId, stashes[_stashId].delegatedCluster, _newCluster, _redelegationBlock);
+        uint256 _redelegationTimestamp = _requestStashRedelegation(_stashId, _newCluster);
+        emit RedelegationRequested(_stashId, stashes[_stashId].delegatedCluster, _newCluster, _redelegationTimestamp);
     }
 
     function _requestStashRedelegation(bytes32 _stashId, address _newCluster) internal returns(uint256) {
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        uint256 _unlockBlock = locks[_lockId].unlockBlock;
-        require(
-            _unlockBlock == 0
-        );
-        uint256 _redelegationBlock = block.number + lockWaitTime[REDELEGATION_LOCK_SELECTOR];
-        locks[_lockId] = Lock(_redelegationBlock, uint256(uint160(_newCluster)));
-        return _redelegationBlock;
+        return _lock(REDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_newCluster)));
     }
 
     function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
@@ -367,14 +408,8 @@ contract StakeManager is
         require(
              stashes[_stashId].delegatedCluster != address(0)
         );
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        uint256 _unlockBlock = locks[_lockId].unlockBlock;
-        require(
-            _unlockBlock != 0 && _unlockBlock <= block.number
-        );
-        address _updatedCluster = address(uint160(locks[_lockId].iValue));
+        address _updatedCluster = address(uint160(_unlock(REDELEGATION_LOCK_SELECTOR, _stashId)));
         _redelegateStash(_stashId,  stashes[_stashId].staker,  stashes[_stashId].delegatedCluster, _updatedCluster);
-        delete locks[_lockId];
     }
 
     function _redelegateStash(
@@ -440,16 +475,12 @@ contract StakeManager is
             stashes[_stashId1].delegatedCluster == stashes[_stashId2].delegatedCluster
         );
         require(
-            (stashes[_stashId1].undelegatesAt <= block.number) &&
-            (stashes[_stashId2].undelegatesAt <= block.number)
+            (stashes[_stashId1].undelegatesAt <= block.timestamp) &&
+            (stashes[_stashId2].undelegatesAt <= block.timestamp)
         );
-        bytes32 _lockId1 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId1));
-        uint256 _unlockBlock1 = locks[_lockId1].unlockBlock;
-        bytes32 _lockId2 = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId2));
-        uint256 _unlockBlock2 = locks[_lockId2].unlockBlock;
-        require(
-            _unlockBlock1 == 0 && _unlockBlock2 == 0
-        );
+        require(_lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId1) == LockStatus.None);
+        require(_lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId2) == LockStatus.None);
+
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         for(uint256 i=0; i < _tokens.length; i++) {
             uint256 _amount = stashes[_stashId2].amount[_tokens[i]];
@@ -477,13 +508,12 @@ contract StakeManager is
     }
 
     function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
-        bytes32 _lockId = keccak256(abi.encodePacked(REDELEGATION_LOCK_SELECTOR, _stashId));
-        if(locks[_lockId].unlockBlock != 0) {
-            delete locks[_lockId];
+        bool _exists = _lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.None;
+        _revertLock(REDELEGATION_LOCK_SELECTOR, _stashId);
+        if(_exists) {
             emit RedelegationCancelled(_stashId);
-            return true;
         }
-        return false;
+        return _exists;
     }
 
     function undelegateStash(bytes32 _stashId) public {
@@ -494,7 +524,7 @@ contract StakeManager is
             stashes[_stashId].delegatedCluster != address(0)
         );
         uint256 _waitTime = undelegationWaitTime;
-        uint256 _undelegationBlock = block.number + _waitTime;
+        uint256 _undelegationBlock = block.timestamp + _waitTime;
         address _delegatedCluster = stashes[_stashId].delegatedCluster;
         stashes[_stashId].undelegatesAt = _undelegationBlock;
         delete stashes[_stashId].delegatedCluster;
@@ -521,10 +551,10 @@ contract StakeManager is
             _staker == msg.sender
         );
         require(
-            _undelegatesAt > block.number
+            _undelegatesAt > block.timestamp
         );
         require(
-            _undelegatesAt < block.number
+            _undelegatesAt < block.timestamp
                              + undelegationWaitTime
                              - lockWaitTime[REDELEGATION_LOCK_SELECTOR]
         );
@@ -541,7 +571,7 @@ contract StakeManager is
             stashes[_stashId].delegatedCluster == address(0)
         );
         require(
-            stashes[_stashId].undelegatesAt <= block.number
+            stashes[_stashId].undelegatesAt <= block.timestamp
         );
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
@@ -570,7 +600,7 @@ contract StakeManager is
             stashes[_stashId].delegatedCluster == address(0)
         );
         require(
-            stashes[_stashId].undelegatesAt <= block.number
+            stashes[_stashId].undelegatesAt <= block.timestamp
         );
         require(
             _tokens.length == _amounts.length
