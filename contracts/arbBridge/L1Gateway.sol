@@ -41,23 +41,12 @@ contract L1Gateway is
         return super.supportsInterface(interfaceId);
     }
 
-    function _setupRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super._setupRole(role, account);
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
     }
 
-    function grantRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.grantRole(role, account);
-    }
-
-    function revokeRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.revokeRole(role, account);
-
-        // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
-    }
-
-    function renounceRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.renounceRole(role, account);
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");

@@ -41,23 +41,12 @@ contract StakeManager is
         return super.supportsInterface(interfaceId);
     }
 
-    function _setupRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super._setupRole(role, account);
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
     }
 
-    function grantRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.grantRole(role, account);
-    }
-
-    function revokeRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.revokeRole(role, account);
-
-        // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
-    }
-
-    function renounceRole(bytes32 role, address account) public virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super.renounceRole(role, account);
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
@@ -187,13 +176,9 @@ contract StakeManager is
 //-------------------------------- Tokens start --------------------------------//
 
     bytes32 public constant DELEGATABLE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
-    bytes32 public constant ACTIVE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
+    bytes32 public constant ACTIVE_TOKEN_ROLE = keccak256("ACTIVE_TOKEN_ROLE");
 
-    struct Token {
-        address addr;
-    }
-
-    mapping(bytes32 => Token) tokens;
+    mapping(bytes32 => address) tokens;
 
     uint256[49] private __gap3;
 
@@ -202,28 +187,29 @@ contract StakeManager is
 
     function _addToken(bytes32 _tokenId, address _address) internal {
         require(_address != address(0));
-        require(tokens[_tokenId].addr == address(0));
+        require(tokens[_tokenId] == address(0));
 
-        tokens[_tokenId] = Token(_address, true);
+        tokens[_tokenId] = _address;
         emit TokenAdded(_tokenId, _address);
+        _enableToken(_tokenId);
     }
 
     function _enableToken(bytes32 _tokenId) internal {
-        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr) == false);
-        _grantRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr);
+        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId]) == false);
+        _grantRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId]);
     }
 
     function _disableToken(bytes32 _tokenId) internal {
-        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr) == true);
-        _revokeRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr);
+        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId]) == true);
+        _revokeRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId]);
     }
 
     function _updateToken(bytes32 _tokenId, address _address) internal {
         require(_address != address(0));
-        address _oldAddress = tokens[_tokenId].addr;
+        address _oldAddress = tokens[_tokenId];
         require(_oldAddress != address(0));
 
-        tokens[_tokenId].addr = _address;
+        tokens[_tokenId] = _address;
 
         emit TokenUpdated(_tokenId, _oldAddress, _address);
     }
@@ -248,7 +234,7 @@ contract StakeManager is
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokens[_tokenId].addr;
+        address tokenAddress = tokens[_tokenId];
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
         require(
@@ -271,7 +257,7 @@ contract StakeManager is
         if(_amount == 0) {
             return;
         }
-        address tokenAddress = tokens[_tokenId].addr;
+        address tokenAddress = tokens[_tokenId];
         if (hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPond(tokenAddress).undelegate(
@@ -383,7 +369,7 @@ contract StakeManager is
             bytes32 _tokenId = _tokens[_index];
             uint256 _amount = _amounts[_index];
             require(
-                tokens[_tokenId].isActive
+                hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId])
             );
             require(
                 stashes[_stashId].amounts[_tokenId] == 0
@@ -396,7 +382,7 @@ contract StakeManager is
         }
         stashes[_stashId].staker = msg.sender;
         emit StashCreated(msg.sender, _stashId, _stashIndex, _tokens, _amounts);
-        stashIndex = _stashIndex + 1;  // Can't overflow
+        stashIndex = _stashIndex + 1;
         return _stashId;
     }
 
@@ -419,7 +405,7 @@ contract StakeManager is
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
             require(
-                tokens[_tokenId].isActive
+                hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId])
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
