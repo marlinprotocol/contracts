@@ -1076,18 +1076,18 @@ it("enable/disable token", async()=> {
   // only onwner should be able to disable
   await expect(stakeManagerInstance.connect(signers[1]).disableToken(PONDTokenId)).to.be.reverted;
   const tx1 = await (await stakeManagerInstance.connect(stakeManagerOwner).disableToken(PONDTokenId)).wait();
-  expect(tx1.events[0].event).to.equal("TokenDisabled");
+  expect(tx1.events[0].event).to.equal("RoleRevoked");
 
   // only owner should be able to enable
   await expect(stakeManagerInstance.connect(signers[1]).enableToken(PONDTokenId)).to.be.reverted;
   const tx2 = await (await stakeManagerInstance.connect(stakeManagerOwner).enableToken(PONDTokenId)).wait();
-  expect(tx2.events[0].event).to.equal("TokenEnabled");
+  expect(tx2.events[0].event).to.equal("RoleGranted");
 });
 
 it("create, add and withdraw Stash", async ()=> {
-  let tokenId = ethers.utils.id("testToken");
+  let tokenId = PONDTokenId;
   pondInstance.approve(stakeManagerInstance.address, 300);
-  await stakeManagerInstance.connect(stakeManagerOwner).addToken(tokenId, pondInstance.address);
+  // await stakeManagerInstance.connect(stakeManagerOwner).addToken(tokenId, pondInstance.address);
 
   let tx = await (await stakeManagerInstance.createStash([tokenId], [100])).wait();
   let stashId = getStashId(tx.events);
