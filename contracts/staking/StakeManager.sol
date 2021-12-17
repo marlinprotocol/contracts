@@ -116,7 +116,7 @@ contract StakeManager is
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
 
-    uint256[48] private __gap1;
+    uint256[48] private __gap2;
 
     enum LockStatus {
         None,
@@ -187,19 +187,17 @@ contract StakeManager is
 //-------------------------------- Tokens start --------------------------------//
 
     bytes32 public constant DELEGATABLE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
+    bytes32 public constant ACTIVE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
 
     struct Token {
         address addr;
-        bool isActive;
     }
 
     mapping(bytes32 => Token) tokens;
 
-    uint256[49] private __gap2;
+    uint256[49] private __gap3;
 
     event TokenAdded(bytes32 tokenId, address tokenAddress);
-    event TokenEnabled(bytes32 tokenId);
-    event TokenDisabled(bytes32 tokenId);
     event TokenUpdated(bytes32 tokenId, address oldTokenAddress, address newTokenAddress);
 
     function _addToken(bytes32 _tokenId, address _address) internal {
@@ -211,15 +209,13 @@ contract StakeManager is
     }
 
     function _enableToken(bytes32 _tokenId) internal {
-        require(tokens[_tokenId].isActive == false);
-        tokens[_tokenId].isActive = true;
-        emit TokenEnabled(_tokenId);
+        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr) == false);
+        _grantRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr);
     }
 
     function _disableToken(bytes32 _tokenId) internal {
-        require(tokens[_tokenId].isActive == true);
-        tokens[_tokenId].isActive = false;
-        emit TokenDisabled(_tokenId);
+        require(hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr) == true);
+        _revokeRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId].addr);
     }
 
     function _updateToken(bytes32 _tokenId, address _address) internal {
@@ -307,7 +303,7 @@ contract StakeManager is
     // Stash index for unique id generation
     uint256 public stashIndex;
 
-    uint256[48] private __gap3;
+    uint256[48] private __gap4;
 
 //-------------------------------- Stashes end --------------------------------//
 
