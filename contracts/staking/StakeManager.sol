@@ -31,7 +31,7 @@ contract StakeManager is
     constructor() initializer {}
 
     modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
         _;
     }
 
@@ -49,7 +49,7 @@ contract StakeManager is
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
     }
 
     function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
@@ -504,7 +504,7 @@ contract StakeManager is
     }
 
     function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
-        require(_stashIds.length == _newClusters.length, "SM:RSRs - Invalid input data");
+        require(_stashIds.length == _newClusters.length);
         for(uint256 i=0; i < _stashIds.length; i++) {
             requestStashRedelegation(_stashIds[i], _newClusters[i]);
         }
@@ -557,7 +557,7 @@ contract StakeManager is
     }
 
     function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external {
-        require(_stashId1 != _stashId2, "MS1");
+        require(_stashId1 != _stashId2);
         require(
             stashes[_stashId1].staker == msg.sender && stashes[_stashId2].staker == msg.sender
         );
