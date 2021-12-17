@@ -113,7 +113,7 @@ contract StakeManager is
         Locked
     }
 
-    event LockTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event LockWaitTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
 
     function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
@@ -163,7 +163,7 @@ contract StakeManager is
     }
 
     function _updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) internal {
-        emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
+        emit LockWaitTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
     }
 
@@ -244,7 +244,7 @@ contract StakeManager is
                 _amount
             )
         );
-        if (hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
+        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to delegate governance rights for the amount to delegator
             MPond(tokenAddress).delegate(
                 _delegator,
@@ -258,7 +258,7 @@ contract StakeManager is
             return;
         }
         address tokenAddress = tokens[_tokenId];
-        if (hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
+        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPond(tokenAddress).undelegate(
                 _delegator,
@@ -275,7 +275,7 @@ contract StakeManager is
 
 //-------------------------------- Tokens end --------------------------------//
 
-//-------------------------------- Stashes start --------------------------------//
+//-------------------------------- Stash internals start --------------------------------//
 
     struct Stash {
         address staker;
@@ -289,11 +289,115 @@ contract StakeManager is
     // Stash index for unique id generation
     uint256 public stashIndex;
 
-    uint256[48] private __gap4;
-
-//-------------------------------- Stashes end --------------------------------//
-
     IRewardDelegators public rewardDelegators;
+
+    uint256[47] private __gap4;
+
+    event StashCreated(bytes32 indexed stashId, address indexed creator);
+    event StashDeposit(bytes32 indexed stashId, bytes32[] tokenIds, uint256[] amounts);
+    event StashWithdraw(bytes32 indexed stashId, bytes32[] tokenIds, uint256[] amounts);
+    event StashMove(bytes32 indexed fromStashId, bytes32 indexed toStashId, bytes32[] tokenIds, uint256[] amounts);
+    event StashDelegated(bytes32 indexed stashId, address indexed delegatedCluster);
+    event StashUndelegated(bytes32 indexed stashId, address indexed delegatedCluster);
+
+    function _newId() internal returns (bytes32) {
+        uint256 _stashIndex = stashIndex;
+        bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
+        stashIndex = _stashIndex + 1;
+
+        return _stashId;
+    }
+
+    function _newStash(address _staker) internal returns (bytes32) {
+        bytes32 _stashId = _newId();
+        stashes[_stashId].staker = _staker;
+
+        emit StashCreated(_stashId, _staker);
+        return _stashId;
+    }
+
+    function _deposit(
+        bytes32 _stashId,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _amounts
+    ) internal {
+        for(uint256 i = 0; i < _tokenIds.length; i++) {
+            bytes32 _tokenId = _tokenIds[i];
+            require(
+                hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId])
+            );
+            if(_amounts[i] != 0) {
+                stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
+                _lockTokens(_tokenId, _amounts[i], msg.sender);
+            }
+        }
+
+        emit StashDeposit(_stashId, _tokenIds, _amounts);
+    }
+
+    function _withdraw(
+        bytes32 _stashId,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _amounts
+    ) internal {
+        for(uint256 i = 0; i < _tokenIds.length; i++) {
+            bytes32 _tokenId = _tokenIds[i];
+            if(_amounts[i] != 0) {
+                stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] - _amounts[i];
+                _unlockTokens(_tokenId, _amounts[i], msg.sender);
+            }
+        }
+
+        emit StashWithdraw(_stashId, _tokenIds, _amounts);
+    }
+
+    function _move(
+        bytes32 _fromStashId,
+        bytes32 _toStashId,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _amounts
+    ) internal {
+        for(uint256 i = 0; i < _tokenIds.length; i++) {
+            bytes32 _tokenId = _tokenIds[i];
+            stashes[_fromStashId].amounts[_tokenId] = stashes[_fromStashId].amounts[_tokenId] - _amounts[i];
+            stashes[_toStashId].amounts[_tokenId] = stashes[_toStashId].amounts[_tokenId] + _amounts[i];
+        }
+
+        emit StashMove(_fromStashId, _toStashId, _tokenIds, _amounts);
+    }
+
+    function _delegate(
+        bytes32 _stashId,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _amounts,
+        address _delegatedCluster
+    ) internal {
+        stashes[_stashId].delegatedCluster = _delegatedCluster;
+        rewardDelegators.delegate(msg.sender, _delegatedCluster, _tokenIds, _amounts);
+
+        emit StashDelegated(_stashId, stashes[_stashId].delegatedCluster);
+    }
+
+    function _undelegate(
+        bytes32 _stashId,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _amounts,
+        address _delegatedCluster
+    ) internal {
+        rewardDelegators.undelegate(msg.sender, _delegatedCluster, _tokenIds, _amounts);
+        delete stashes[_stashId].delegatedCluster;
+
+        emit StashUndelegated(_stashId, stashes[_stashId].delegatedCluster);
+    }
+
+    function updateRewardDelegators(
+        address _updatedRewardDelegator
+    ) external onlyAdmin {
+        rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
+    }
+
+//-------------------------------- Stash internals end --------------------------------//
+
     // new variables
     bytes32 public constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     bytes32 public constant UNDELEGATION_LOCK_SELECTOR = keccak256("UNDELEGATION_LOCK");
@@ -310,39 +414,13 @@ contract StakeManager is
         _;
     }
 
-    event StashCreated(
-        address indexed creator,
-        bytes32 stashId,
-        uint256 stashIndex,
-        bytes32[] tokens,
-        uint256[] amounts
-    );
-    event StashDelegated(bytes32 stashId, address delegatedCluster);
-    event StashUndelegated(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
+    // event StashDelegated(bytes32 stashId, address delegatedCluster);
+    event StashUndelegation(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
     event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
     event StashClosed(bytes32 stashId, address indexed staker);
-    event AddedToStash(bytes32 stashId, address delegatedCluster, bytes32[] tokens, uint256[] amounts);
     event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
-    event Redelegated(bytes32 stashId, address updatedCluster);
-    event StashSplit(
-        bytes32 _newStashId,
-        bytes32 _stashId,
-        uint256 _stashIndex,
-        bytes32[] _splitTokens,
-        uint256[] _splitAmounts
-    );
-    event StashesMerged(bytes32 _stashId1, bytes32 _stashId2);
     event StashUndelegationCancelled(bytes32 _stashId);
     event RedelegationCancelled(bytes32 indexed _stashId);
-
-    function updateRewardDelegators(
-        address _updatedRewardDelegator
-    ) external onlyAdmin {
-        require(
-            _updatedRewardDelegator != address(0)
-        );
-        rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
-    }
 
     function createStashAndDelegate(
         bytes32[] memory _tokens,
@@ -363,26 +441,9 @@ contract StakeManager is
         require(
             _tokens.length != 0
         );
-        uint256 _stashIndex = stashIndex;
-        bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
-        for(uint256 _index=0; _index < _tokens.length; _index++) {
-            bytes32 _tokenId = _tokens[_index];
-            uint256 _amount = _amounts[_index];
-            require(
-                hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId])
-            );
-            require(
-                stashes[_stashId].amounts[_tokenId] == 0
-            );
-            require(
-                _amount != 0
-            );
-            stashes[_stashId].amounts[_tokenId] = _amount;
-            _lockTokens(_tokenId, _amount, msg.sender);
-        }
-        stashes[_stashId].staker = msg.sender;
-        emit StashCreated(msg.sender, _stashId, _stashIndex, _tokens, _amounts);
-        stashIndex = _stashIndex + 1;
+        bytes32 _stashId = _newStash(msg.sender);
+        _deposit(_stashId, _tokens, _amounts);
+
         return _stashId;
     }
 
@@ -397,23 +458,12 @@ contract StakeManager is
         require(
             _tokens.length == _amounts.length
         );
-        if(
-            stashes[_stashId].delegatedCluster != address(0)
-        ) {
-            rewardDelegators.delegate(msg.sender, stashes[_stashId].delegatedCluster, _tokens, _amounts);
-        }
-        for(uint256 i = 0; i < _tokens.length; i++) {
-            bytes32 _tokenId = _tokens[i];
-            require(
-                hasRole(ACTIVE_TOKEN_ROLE, tokens[_tokenId])
-            );
-            if(_amounts[i] != 0) {
-                stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
-                _lockTokens(_tokenId, _amounts[i], msg.sender);
-            }
-        }
+        _deposit(_stashId, _tokens, _amounts);
 
-        emit AddedToStash(_stashId, stashes[_stashId].delegatedCluster, _tokens, _amounts);
+        address _delegatedCluster = stashes[_stashId].delegatedCluster;
+        if(_delegatedCluster != address(0)) {
+            _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
+        }
     }
 
     function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
@@ -429,15 +479,14 @@ contract StakeManager is
         require(
             _lockStatus(UNDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.Locked
         );
-        stashes[_stashId].delegatedCluster = _delegatedCluster;
         _revertLock(UNDELEGATION_LOCK_SELECTOR, _stashId);
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i = 0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
-        rewardDelegators.delegate(msg.sender, _delegatedCluster, _tokens, _amounts);
-        emit StashDelegated(_stashId, _delegatedCluster);
+
+        _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
     }
 
     function requestStashRedelegation(bytes32 _stashId, address _newCluster) public {
@@ -467,15 +516,17 @@ contract StakeManager is
 
     function redelegateStash(bytes32 _stashId) public {
         require(
+            stashes[_stashId].staker == msg.sender
+        );
+        require(
              stashes[_stashId].delegatedCluster != address(0)
         );
         address _updatedCluster = address(uint160(_unlock(REDELEGATION_LOCK_SELECTOR, _stashId)));
-        _redelegateStash(_stashId,  stashes[_stashId].staker,  stashes[_stashId].delegatedCluster, _updatedCluster);
+        _redelegateStash(_stashId,  stashes[_stashId].delegatedCluster, _updatedCluster);
     }
 
     function _redelegateStash(
         bytes32 _stashId,
-        address _staker,
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
@@ -484,16 +535,16 @@ contract StakeManager is
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
+
         if(_delegatedCluster != address(0)) {
-            rewardDelegators.undelegate(_staker, _delegatedCluster, _tokens, _amounts);
+            _undelegate(_stashId, _tokens, _amounts, _delegatedCluster);
         }
-        rewardDelegators.delegate(_staker, _updatedCluster, _tokens, _amounts);
-        stashes[_stashId].delegatedCluster = _updatedCluster;
-        emit Redelegated(_stashId, _updatedCluster);
+        if(_updatedCluster != address(0)) {
+            _delegate(_stashId, _tokens, _amounts, _updatedCluster);
+        }
     }
 
     function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external {
-        //Stash memory _stash = stashes[_stashId];
         require(
             stashes[_stashId].staker == msg.sender
         );
@@ -503,28 +554,10 @@ contract StakeManager is
         require(
             _tokens.length == _amounts.length
         );
-        uint256 _stashIndex = stashIndex;
-        bytes32 _newStashId = keccak256(abi.encodePacked(_stashIndex));
-        for(uint256 _index=0; _index < _tokens.length; _index++) {
-            bytes32 _tokenId = _tokens[_index];
-            uint256 _amount = _amounts[_index];
-            require(
-                stashes[_newStashId].amounts[_tokenId] == 0
-            );
-            require(
-                _amount != 0
-            );
-            require(
-                stashes[_stashId].amounts[_tokenId] >= _amount
-            );
-            stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] - _amount;
-            stashes[_newStashId].amounts[_tokenId] = _amount;
-        }
-        stashes[_newStashId].staker = msg.sender;
+        bytes32 _newStashId = _newStash(msg.sender);
+        _move(_stashId, _newStashId, _tokens, _amounts);
         stashes[_newStashId].delegatedCluster = stashes[_stashId].delegatedCluster;
         _cloneLock(UNDELEGATION_LOCK_SELECTOR, _stashId, _newStashId);
-        emit StashSplit(_newStashId, _stashId, _stashIndex, _tokens, _amounts);
-        stashIndex = _stashIndex + 1;
     }
 
     function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external {
@@ -543,16 +576,14 @@ contract StakeManager is
         );
 
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 _amount = stashes[_stashId2].amounts[_tokens[i]];
-            if(_amount == 0) {
-                continue;
-            }
-            delete stashes[_stashId2].amounts[_tokens[i]];
-            stashes[_stashId1].amounts[_tokens[i]] = stashes[_stashId1].amounts[_tokens[i]] + _amount;
+            _amounts[i] = stashes[_stashId2].amounts[_tokens[i]];
         }
+
+        _move(_stashId2, _stashId1, _tokens, _amounts);
+
         delete stashes[_stashId2];
-        emit StashesMerged(_stashId1, _stashId2);
     }
 
     function redelegateStashes(bytes32[] memory _stashIds) public {
@@ -581,20 +612,23 @@ contract StakeManager is
         require(
             stashes[_stashId].staker == msg.sender
         );
+
+        address _delegatedCluster = stashes[_stashId].delegatedCluster;
         require(
             stashes[_stashId].delegatedCluster != address(0)
         );
-        address _delegatedCluster = stashes[_stashId].delegatedCluster;
-        uint256 _undelegationBlock = _lock(UNDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_delegatedCluster)));
-        delete stashes[_stashId].delegatedCluster;
-        _cancelRedelegation(_stashId);
+
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
-        rewardDelegators.undelegate(msg.sender, _delegatedCluster, _tokens, _amounts);
-        emit StashUndelegated(_stashId, _delegatedCluster, _undelegationBlock);
+
+        _undelegate(_stashId, _tokens, _amounts, _delegatedCluster);
+
+        uint256 _undelegationBlock = _lock(UNDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_delegatedCluster)));
+        _cancelRedelegation(_stashId);
+        emit StashUndelegation(_stashId, _delegatedCluster, _undelegationBlock);
     }
 
     function undelegateStashes(bytes32[] memory _stashIds) public {
@@ -612,16 +646,16 @@ contract StakeManager is
             _lockStatus(UNDELEGATION_LOCK_SELECTOR, _stashId) == LockStatus.Locked
         );
         address _delegatedCluster = address(uint160(_revertLock(UNDELEGATION_LOCK_SELECTOR, _stashId)));
-        stashes[_stashId].delegatedCluster = _delegatedCluster;
-        emit StashUndelegationCancelled(_stashId);
-        if(_delegatedCluster != address(0)) {
-            bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
-            uint256[] memory _amounts = new uint256[](_tokens.length);
-            for(uint256 i=0; i < _tokens.length; i++) {
-                _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
-            }
-            rewardDelegators.delegate(msg.sender, _delegatedCluster, _tokens, _amounts);
+
+        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        uint256[] memory _amounts = new uint256[](_tokens.length);
+        for(uint256 i=0; i < _tokens.length; i++) {
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
+
+        _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
+
+        emit StashUndelegationCancelled(_stashId);
     }
 
     function withdrawStash(bytes32 _stashId) external {
@@ -638,15 +672,9 @@ contract StakeManager is
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
-            if(_amounts[i] == 0) continue;
-            delete stashes[_stashId].amounts[_tokens[i]];
-            _unlockTokens(_tokens[i], _amounts[i], msg.sender);
         }
-        // Other items already zeroed
-        delete stashes[_stashId].staker;
-        _revertLock(UNDELEGATION_LOCK_SELECTOR, _stashId);
-        emit StashWithdrawn(_stashId, _tokens, _amounts);
-        emit StashClosed(_stashId, msg.sender);
+
+        _withdraw(_stashId, _tokens, _amounts);
     }
 
     function withdrawStash(
@@ -666,19 +694,7 @@ contract StakeManager is
         require(
             _tokens.length == _amounts.length
         );
-        for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 _balance = stashes[_stashId].amounts[_tokens[i]];
-            require(
-                _balance >= _amounts[i]
-            );
-            if(_balance == _amounts[i]) {
-                delete stashes[_stashId].amounts[_tokens[i]];
-            } else {
-                stashes[_stashId].amounts[_tokens[i]] = _balance - _amounts[i];
-            }
-            _unlockTokens(_tokens[i], _amounts[i], msg.sender);
-        }
-        emit StashWithdrawn(_stashId, _tokens, _amounts);
+        _withdraw(_stashId, _tokens, _amounts);
     }
 
     function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
@@ -694,8 +710,7 @@ contract StakeManager is
         uint256 _stashCount = _delegatedClusters.length;
         for(uint256 _sidx = 0; _sidx < _stashCount; _sidx++) {
             // create stash
-            uint256 _stashIndex = stashIndex;
-            bytes32 _stashId = keccak256(abi.encodePacked(_stashIndex));
+            bytes32 _stashId = _newStash(_staker);
             uint256[] memory _amounts = _allAmounts[(_sidx*_tokenIds.length):((_sidx+1)*_tokenIds.length)];
             for(uint256 _tidx=0; _tidx < _tokenIds.length; _tidx++) {
                 bytes32 _tokenId = _tokenIds[_tidx];
@@ -706,14 +721,13 @@ contract StakeManager is
                 stashes[_stashId].amounts[_tokenId] = _amount;
             }
             stashes[_stashId].staker = _staker;
-            emit StashCreated(_staker, _stashId, _stashIndex, _tokenIds, _amounts);
-            stashIndex = _stashIndex + 1;  // Can't overflow
+
+            emit StashDeposit(_stashId, _tokenIds, _amounts);
 
             // delegate
             stashes[_stashId].delegatedCluster = _delegatedClusters[_sidx];
             if(_delegatedClusters[_sidx] != address(0)) {
-                rewardDelegators.delegate(_staker, _delegatedClusters[_sidx], _tokenIds, _amounts);
-                emit StashDelegated(_stashId, _delegatedClusters[_sidx]);
+                _delegate(_stashId, _tokenIds, _amounts, _delegatedClusters[_sidx]);
             }
         }
     }
