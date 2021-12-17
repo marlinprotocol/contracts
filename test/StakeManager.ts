@@ -941,8 +941,8 @@ it("Request multiple stash redelegations", async () => {
   // request redelegate multiple stashes to new cluster
   const reqRedelTX = await (await stakeManagerInstance.requestStashRedelegations([stashId1, stashId2], [await registeredCluster1.getAddress(), await  registeredCluster1.getAddress()])).wait();
   expect(reqRedelTX.logs.length).equal(2);
-  expect(reqRedelTX.events[0].event).equal( "RedelegationRequested");
-  expect(reqRedelTX.events[1].event).equal("RedelegationRequested");
+  expect(reqRedelTX.events[0].event).equal("LockCreated");
+  expect(reqRedelTX.events[1].event).equal("LockCreated");
 
   stash1 = await stakeManagerInstance.stashes(stashId1);
   stash2 = await stakeManagerInstance.stashes(stashId2);
@@ -1017,7 +1017,7 @@ it("Redelegate stash and then cancel redeledation", async () => {
 
   // cancel redelegation
   const cancelTx = await (await stakeManagerInstance.cancelRedelegation(stashId)).wait();
-  expect(cancelTx.events[0].event).equal("RedelegationCancelled");
+  expect(cancelTx.events[0].event).equal("LockDeleted");
   lock = await stakeManagerInstance.locks(lockID);
   expect(lock.unlockTime).equal(0);
 });
