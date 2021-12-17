@@ -116,6 +116,8 @@ contract StakeManager is
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
 
+    uint256[48] private __gap1;
+
     enum LockStatus {
         None,
         Unlocked,
@@ -192,6 +194,8 @@ contract StakeManager is
     }
 
     mapping(bytes32 => Token) tokens;
+
+    uint256[49] private __gap2;
 
     event TokenAdded(bytes32 tokenId, address tokenAddress);
     event TokenEnabled(bytes32 tokenId);
@@ -289,10 +293,12 @@ contract StakeManager is
 
 //-------------------------------- Tokens end --------------------------------//
 
+//-------------------------------- Stashes start --------------------------------//
+
     struct Stash {
         address staker;
         address delegatedCluster;
-        mapping(bytes32 => uint256) amount;   // name is not intuitive
+        mapping(bytes32 => uint256) amounts;
     }
 
     // stashId to stash
@@ -300,6 +306,11 @@ contract StakeManager is
     mapping(bytes32 => Stash) public stashes;
     // Stash index for unique id generation
     uint256 public stashIndex;
+
+    uint256[48] private __gap3;
+
+//-------------------------------- Stashes end --------------------------------//
+
     IRewardDelegators public rewardDelegators;
     // new variables
     bytes32 public constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
@@ -379,12 +390,12 @@ contract StakeManager is
                 tokens[_tokenId].isActive
             );
             require(
-                stashes[_stashId].amount[_tokenId] == 0
+                stashes[_stashId].amounts[_tokenId] == 0
             );
             require(
                 _amount != 0
             );
-            stashes[_stashId].amount[_tokenId] = _amount;
+            stashes[_stashId].amounts[_tokenId] = _amount;
             _lockTokens(_tokenId, _amount, msg.sender);
         }
         stashes[_stashId].staker = msg.sender;
@@ -415,7 +426,7 @@ contract StakeManager is
                 tokens[_tokenId].isActive
             );
             if(_amounts[i] != 0) {
-                stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId] + _amounts[i];
+                stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
                 _lockTokens(_tokenId, _amounts[i], msg.sender);
             }
         }
@@ -441,7 +452,7 @@ contract StakeManager is
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i = 0; i < _tokens.length; i++) {
-            _amounts[i] = stashes[_stashId].amount[_tokens[i]];
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
         rewardDelegators.delegate(msg.sender, _delegatedCluster, _tokens, _amounts);
         emit StashDelegated(_stashId, _delegatedCluster);
@@ -489,7 +500,7 @@ contract StakeManager is
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
-            _amounts[i] = stashes[_stashId].amount[_tokens[i]];
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
         if(_delegatedCluster != address(0)) {
             rewardDelegators.undelegate(_staker, _delegatedCluster, _tokens, _amounts);
@@ -516,16 +527,16 @@ contract StakeManager is
             bytes32 _tokenId = _tokens[_index];
             uint256 _amount = _amounts[_index];
             require(
-                stashes[_newStashId].amount[_tokenId] == 0
+                stashes[_newStashId].amounts[_tokenId] == 0
             );
             require(
                 _amount != 0
             );
             require(
-                stashes[_stashId].amount[_tokenId] >= _amount
+                stashes[_stashId].amounts[_tokenId] >= _amount
             );
-            stashes[_stashId].amount[_tokenId] = stashes[_stashId].amount[_tokenId] - _amount;
-            stashes[_newStashId].amount[_tokenId] = _amount;
+            stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] - _amount;
+            stashes[_newStashId].amounts[_tokenId] = _amount;
         }
         stashes[_newStashId].staker = msg.sender;
         stashes[_newStashId].delegatedCluster = stashes[_stashId].delegatedCluster;
@@ -551,12 +562,12 @@ contract StakeManager is
 
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 _amount = stashes[_stashId2].amount[_tokens[i]];
+            uint256 _amount = stashes[_stashId2].amounts[_tokens[i]];
             if(_amount == 0) {
                 continue;
             }
-            delete stashes[_stashId2].amount[_tokens[i]];
-            stashes[_stashId1].amount[_tokens[i]] = stashes[_stashId1].amount[_tokens[i]] + _amount;
+            delete stashes[_stashId2].amounts[_tokens[i]];
+            stashes[_stashId1].amounts[_tokens[i]] = stashes[_stashId1].amounts[_tokens[i]] + _amount;
         }
         delete stashes[_stashId2];
         emit StashesMerged(_stashId1, _stashId2);
@@ -598,7 +609,7 @@ contract StakeManager is
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
-            _amounts[i] = stashes[_stashId].amount[_tokens[i]];
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
         rewardDelegators.undelegate(msg.sender, _delegatedCluster, _tokens, _amounts);
         emit StashUndelegated(_stashId, _delegatedCluster, _undelegationBlock);
@@ -625,7 +636,7 @@ contract StakeManager is
             bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
             uint256[] memory _amounts = new uint256[](_tokens.length);
             for(uint256 i=0; i < _tokens.length; i++) {
-                _amounts[i] = stashes[_stashId].amount[_tokens[i]];
+                _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
             }
             rewardDelegators.delegate(msg.sender, _delegatedCluster, _tokens, _amounts);
         }
@@ -644,9 +655,9 @@ contract StakeManager is
         bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
-            _amounts[i] = stashes[_stashId].amount[_tokens[i]];
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
             if(_amounts[i] == 0) continue;
-            delete stashes[_stashId].amount[_tokens[i]];
+            delete stashes[_stashId].amounts[_tokens[i]];
             _unlockTokens(_tokens[i], _amounts[i], msg.sender);
         }
         // Other items already zeroed
@@ -674,14 +685,14 @@ contract StakeManager is
             _tokens.length == _amounts.length
         );
         for(uint256 i=0; i < _tokens.length; i++) {
-            uint256 _balance = stashes[_stashId].amount[_tokens[i]];
+            uint256 _balance = stashes[_stashId].amounts[_tokens[i]];
             require(
                 _balance >= _amounts[i]
             );
             if(_balance == _amounts[i]) {
-                delete stashes[_stashId].amount[_tokens[i]];
+                delete stashes[_stashId].amounts[_tokens[i]];
             } else {
-                stashes[_stashId].amount[_tokens[i]] = _balance - _amounts[i];
+                stashes[_stashId].amounts[_tokens[i]] = _balance - _amounts[i];
             }
             _unlockTokens(_tokens[i], _amounts[i], msg.sender);
         }
@@ -689,7 +700,7 @@ contract StakeManager is
     }
 
     function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
-        return stashes[_stashId].amount[_tokenId];
+        return stashes[_stashId].amounts[_tokenId];
     }
 
     function transferL2(
@@ -710,7 +721,7 @@ contract StakeManager is
                 if(_amount == 0) {
                     continue;
                 }
-                stashes[_stashId].amount[_tokenId] = _amount;
+                stashes[_stashId].amounts[_tokenId] = _amount;
             }
             stashes[_stashId].staker = _staker;
             emit StashCreated(_staker, _stashId, _stashIndex, _tokenIds, _amounts);
