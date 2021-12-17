@@ -113,7 +113,9 @@ contract StakeManager is
         Locked
     }
 
-    event LockWaitTimeUpdated(bytes32 selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event LockWaitTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event LockCreated(bytes32 indexed selector, bytes32 indexed key, uint256 iValue, uint256 unlockTime);
+    event LockDeleted(bytes32 indexed selector, bytes32 indexed key, uint256 iValue);
 
     function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
@@ -132,16 +134,21 @@ contract StakeManager is
 
         uint256 _duration = lockWaitTime[_selector];
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
-        locks[_lockId].unlockTime = block.timestamp + _duration;
+        uint256 _unlockTime = block.timestamp + _duration;
+        locks[_lockId].unlockTime = _unlockTime;
         locks[_lockId].iValue = _iValue;
 
-        return block.timestamp + _duration;
+        emit LockCreated(_selector, _key, _iValue, _unlockTime);
+
+        return _unlockTime;
     }
 
     function _revertLock(bytes32 _selector, bytes32 _key) internal returns (uint256) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
         uint256 _iValue = locks[_lockId].iValue;
         delete locks[_lockId];
+
+        emit LockDeleted(_selector, _key, _iValue);
 
         return _iValue;
     }
@@ -160,6 +167,8 @@ contract StakeManager is
 
         locks[_toLockId].unlockTime = _unlockTime;
         locks[_toLockId].iValue = _iValue;
+
+        emit LockCreated(_selector, _toKey, _iValue, _unlockTime);
     }
 
     function _updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) internal {
@@ -414,14 +423,6 @@ contract StakeManager is
         _;
     }
 
-    // event StashDelegated(bytes32 stashId, address delegatedCluster);
-    event StashUndelegation(bytes32 stashId, address undelegatedCluster, uint256 undelegatesAt);
-    event StashWithdrawn(bytes32 stashId, bytes32[] tokens, uint256[] amounts);
-    event StashClosed(bytes32 stashId, address indexed staker);
-    event RedelegationRequested(bytes32 stashId, address currentCluster, address updatedCluster, uint256 redelegatesAt);
-    event StashUndelegationCancelled(bytes32 _stashId);
-    event RedelegationCancelled(bytes32 indexed _stashId);
-
     function createStashAndDelegate(
         bytes32[] memory _tokens,
         uint256[] memory _amounts,
@@ -499,12 +500,7 @@ contract StakeManager is
         require(
             _newCluster != address(0)
         );
-        uint256 _redelegationTimestamp = _requestStashRedelegation(_stashId, _newCluster);
-        emit RedelegationRequested(_stashId, stashes[_stashId].delegatedCluster, _newCluster, _redelegationTimestamp);
-    }
-
-    function _requestStashRedelegation(bytes32 _stashId, address _newCluster) internal returns(uint256) {
-        return _lock(REDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_newCluster)));
+        _lock(REDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_newCluster)));
     }
 
     function requestStashRedelegations(bytes32[] memory _stashIds, address[] memory _newClusters) public {
@@ -601,9 +597,8 @@ contract StakeManager is
 
     function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
         bool _exists = _lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.None;
-        _revertLock(REDELEGATION_LOCK_SELECTOR, _stashId);
         if(_exists) {
-            emit RedelegationCancelled(_stashId);
+            _revertLock(REDELEGATION_LOCK_SELECTOR, _stashId);
         }
         return _exists;
     }
@@ -626,9 +621,8 @@ contract StakeManager is
 
         _undelegate(_stashId, _tokens, _amounts, _delegatedCluster);
 
-        uint256 _undelegationBlock = _lock(UNDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_delegatedCluster)));
+        _lock(UNDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_delegatedCluster)));
         _cancelRedelegation(_stashId);
-        emit StashUndelegation(_stashId, _delegatedCluster, _undelegationBlock);
     }
 
     function undelegateStashes(bytes32[] memory _stashIds) public {
@@ -654,8 +648,6 @@ contract StakeManager is
         }
 
         _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
-
-        emit StashUndelegationCancelled(_stashId);
     }
 
     function withdrawStash(bytes32 _stashId) external {
