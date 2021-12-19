@@ -187,9 +187,11 @@ contract StakeManager is
     bytes32 public constant DELEGATABLE_TOKEN_ROLE = keccak256("DELEGATABLE_TOKEN_ROLE");
     bytes32 public constant ACTIVE_TOKEN_ROLE = keccak256("ACTIVE_TOKEN_ROLE");
 
-    mapping(bytes32 => address) tokens;
+    mapping(bytes32 => address) public tokens;
+    bytes32[] public tokenList;
+    mapping(bytes32 => uint256) public tokenIndex;
 
-    uint256[49] private __gap3;
+    uint256[47] private __gap3;
 
     event TokenAdded(bytes32 tokenId, address tokenAddress);
     event TokenUpdated(bytes32 tokenId, address oldTokenAddress, address newTokenAddress);
@@ -199,6 +201,9 @@ contract StakeManager is
         require(tokens[_tokenId] == address(0));
 
         tokens[_tokenId] = _address;
+        tokenIndex[_tokenId] = tokenList.length;
+        tokenList.push(_tokenId);
+
         emit TokenAdded(_tokenId, _address);
         _enableToken(_tokenId);
     }
@@ -482,7 +487,7 @@ contract StakeManager is
             _lockStatus(UNDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.Locked
         );
         _revertLock(UNDELEGATION_LOCK_SELECTOR, _stashId);
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i = 0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
@@ -521,7 +526,7 @@ contract StakeManager is
         address _delegatedCluster,
         address _updatedCluster
     ) internal {
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
@@ -560,7 +565,7 @@ contract StakeManager is
             _lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId2) == LockStatus.None
         );
 
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId2].amounts[_tokens[i]];
@@ -595,7 +600,7 @@ contract StakeManager is
             stashes[_stashId].delegatedCluster != address(0)
         );
 
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
@@ -619,7 +624,7 @@ contract StakeManager is
         );
         address _delegatedCluster = address(uint160(_revertLock(UNDELEGATION_LOCK_SELECTOR, _stashId)));
 
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
@@ -635,7 +640,7 @@ contract StakeManager is
         require(
             _lockStatus(UNDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.Locked
         );
-        bytes32[] memory _tokens = rewardDelegators.getFullTokenList();
+        bytes32[] memory _tokens = tokenList;
         uint256[] memory _amounts = new uint256[](_tokens.length);
         for(uint256 i=0; i < _tokens.length; i++) {
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
