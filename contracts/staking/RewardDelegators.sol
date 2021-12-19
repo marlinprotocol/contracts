@@ -3,19 +3,110 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IClusterRewards.sol";
 import "./IClusterRegistry.sol";
 
+
 contract RewardDelegators is
-    Initializable,
-    ContextUpgradeable,
-    ERC1967UpgradeUpgradeable,
-    UUPSUpgradeable,
-    OwnableUpgradeable
+    Initializable,  // initializer
+    ContextUpgradeable,  // _msgSender, _msgData
+    ERC165Upgradeable,  // supportsInterface
+    AccessControlUpgradeable,  // RBAC
+    AccessControlEnumerableUpgradeable,  // RBAC enumeration
+    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable  // public upgrade
 {
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
+
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+//-------------------------------- Overrides start --------------------------------//
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
+    }
+
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
+    }
+
+    function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
+
+//-------------------------------- Overrides end --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
+
+    uint256[50] private __gap1;
+
+    function initialize(
+        address _stakeAddress,
+        address _clusterRewardsAddress,
+        address _clusterRegistry,
+        address _rewardDelegatorsAdmin,
+        uint256 _minMPONDStake,
+        bytes32 _MPONDTokenId,
+        address _PONDAddress,
+        bytes32[] memory _tokenIds,
+        uint256[] memory _rewardFactors
+    )
+        initializer
+        public
+    {
+        require(
+            _tokenIds.length == _rewardFactors.length,
+            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
+        );
+
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+
+        // _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _rewardDelegatorsAdmin);
+
+        stakeAddress = _stakeAddress;
+        clusterRegistry = IClusterRegistry(_clusterRegistry);
+        clusterRewards = IClusterRewards(_clusterRewardsAddress);
+        PONDToken = IERC20Upgradeable(_PONDAddress);
+        minMPONDStake = _minMPONDStake;
+        emit MinMPONDStakeUpdated(_minMPONDStake);
+        MPONDTokenId = _MPONDTokenId;
+        emit MPONDTokenIdUpdated(_MPONDTokenId);
+        for(uint256 i=0; i < _tokenIds.length; i++) {
+            rewardFactor[_tokenIds[i]] = _rewardFactors[i];
+            tokenIndex[_tokenIds[i]] = tokenList.length;
+            tokenList.push(_tokenIds[i]);
+            emit AddReward(_tokenIds[i], _rewardFactors[i]);
+        }
+    }
+
+//-------------------------------- Initializer end --------------------------------//
+
 
     struct Cluster {
         mapping(bytes32 => uint256) totalDelegations;
@@ -55,54 +146,12 @@ contract RewardDelegators is
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    // initializes the logic contract without any admins
-    // safeguard against takeover of the logic contract
-    constructor() initializer {}
-    
-    function initialize(
-        address _stakeAddress,
-        address _clusterRewardsAddress,
-        address _clusterRegistry,
-        address _rewardDelegatorsAdmin,
-        uint256 _minMPONDStake,
-        bytes32 _MPONDTokenId,
-        address _PONDAddress,
-        bytes32[] memory _tokenIds,
-        uint256[] memory _rewardFactors
-    ) public initializer {
-        require(
-            _tokenIds.length == _rewardFactors.length,
-            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
-        );
-        stakeAddress = _stakeAddress;
-        clusterRegistry = IClusterRegistry(_clusterRegistry);
-        clusterRewards = IClusterRewards(_clusterRewardsAddress);
-        PONDToken = IERC20Upgradeable(_PONDAddress);
-        minMPONDStake = _minMPONDStake;
-        emit MinMPONDStakeUpdated(_minMPONDStake);
-        MPONDTokenId = _MPONDTokenId;
-        emit MPONDTokenIdUpdated(_MPONDTokenId);
-        for(uint256 i=0; i < _tokenIds.length; i++) {
-            rewardFactor[_tokenIds[i]] = _rewardFactors[i];
-            tokenIndex[_tokenIds[i]] = tokenList.length;
-            tokenList.push(_tokenIds[i]);
-            emit AddReward(_tokenIds[i], _rewardFactors[i]);
-        }
-
-        __Context_init_unchained();
-        __ERC1967Upgrade_init_unchained();
-        __UUPSUpgradeable_init_unchained();
-        __Ownable_init_unchained();
-        transferOwnership(_rewardDelegatorsAdmin);
-    }
-
-    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external onlyOwner {
+    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external onlyAdmin {
         MPONDTokenId = _updatedMPONDTokenId;
         emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
     }
 
-    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external onlyOwner {
+    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external onlyAdmin {
         require(rewardFactor[_tokenId] == 0, "RD:AR-Reward already exists");
         require(_rewardFactor != 0, "RD:AR-Reward cant be 0");
         rewardFactor[_tokenId] = _rewardFactor;
@@ -111,7 +160,7 @@ contract RewardDelegators is
         emit AddReward(_tokenId, _rewardFactor);
     }
 
-    function removeRewardFactor(bytes32 _tokenId) external onlyOwner {
+    function removeRewardFactor(bytes32 _tokenId) external onlyAdmin {
         require(rewardFactor[_tokenId] != 0, "RD:RR-Reward doesnt exist");
         bytes32 tokenToReplace = tokenList[tokenList.length - 1];
         uint256 originalTokenIndex = tokenIndex[_tokenId];
@@ -123,7 +172,7 @@ contract RewardDelegators is
         emit RemoveReward(_tokenId);
     }
 
-    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external onlyOwner {
+    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external onlyAdmin {
         require(rewardFactor[_tokenId] != 0, "RD:UR-Cant update reward that doesnt exist");
         require(_updatedRewardFactor != 0, "RD:UR-Reward cant be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
@@ -317,12 +366,12 @@ contract RewardDelegators is
         return clusters[_cluster].delegators[_delegator][_tokenId];
     }
 
-    function updateMinMPONDStake(uint256 _minMPONDStake) external onlyOwner {
+    function updateMinMPONDStake(uint256 _minMPONDStake) external onlyAdmin {
         minMPONDStake = _minMPONDStake;
         emit MinMPONDStakeUpdated(_minMPONDStake);
     }
 
-    function updateStakeAddress(address _updatedStakeAddress) external onlyOwner {
+    function updateStakeAddress(address _updatedStakeAddress) external onlyAdmin {
         require(
             _updatedStakeAddress != address(0),
             "RD:USA-Stake contract address cant be 0"
@@ -333,7 +382,7 @@ contract RewardDelegators is
 
     function updateClusterRewards(
         address _updatedClusterRewards
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(
             _updatedClusterRewards != address(0),
             "RD:UCR-ClusterRewards address cant be 0"
@@ -344,7 +393,7 @@ contract RewardDelegators is
 
     function updateClusterRegistry(
         address _updatedClusterRegistry
-    ) external onlyOwner {
+    ) external onlyAdmin {
         require(
             _updatedClusterRegistry != address(0),
             "RD:UCR-Cluster Registry address cant be 0"
@@ -353,7 +402,7 @@ contract RewardDelegators is
         emit ClusterRegistryUpdated(_updatedClusterRegistry);
     }
 
-    function updatePONDAddress(address _updatedPOND) external onlyOwner {
+    function updatePONDAddress(address _updatedPOND) external onlyAdmin {
         require(
             _updatedPOND != address(0),
             "RD:UPA-Updated POND token address cant be 0"
@@ -369,6 +418,4 @@ contract RewardDelegators is
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
-
-    function _authorizeUpgrade(address account) internal override onlyOwner{}
 }
