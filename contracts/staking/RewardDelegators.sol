@@ -64,7 +64,6 @@ contract RewardDelegators is
         address _stakeAddress,
         address _clusterRewardsAddress,
         address _clusterRegistry,
-        address _rewardDelegatorsAdmin,
         uint256 _minMPONDStake,
         bytes32 _MPONDTokenId,
         address _PONDAddress,
@@ -86,8 +85,7 @@ contract RewardDelegators is
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
 
-        // _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(DEFAULT_ADMIN_ROLE, _rewardDelegatorsAdmin);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         stakeAddress = _stakeAddress;
         clusterRegistry = IClusterRegistry(_clusterRegistry);
