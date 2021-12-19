@@ -118,9 +118,6 @@ describe('StakeManager Deployment', function () {
     await rewardDelegatorsInstance.initialize(stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      addrs[0],
-      appConfig.staking.minMPONDStake,
-      MOND_HASH,
       pondInstance.address,
       [PONDTokenId, MPONDTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]

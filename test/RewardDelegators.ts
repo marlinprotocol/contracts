@@ -59,8 +59,6 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
@@ -74,16 +72,12 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await rewardDelegators.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
     expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
-    expect(await rewardDelegators.MPONDTokenId()).to.equal(mpondTokenId);
   });
 
   it('upgrades', async()=> {
@@ -93,17 +87,13 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, {kind: 'uups'});
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await rewardDelegators.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
     expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
-    expect(await rewardDelegators.MPONDTokenId()).to.equal(mpondTokenId);
   });
 
   it('does not upgrade without admin', async()=> {
@@ -113,8 +103,6 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
@@ -164,29 +152,10 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     );
-  });
-
-  it('owner can update MPondTokenId', async()=> {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpondInstance2 = await upgrades.deployProxy(MPond, { kind: "uups" });
-
-    let mpondTokenId2 = ethers.utils.keccak256(mpondInstance2.address);
-    await rewardDelegators.updateMPONDTokenId(mpondTokenId2);
-    expect(await rewardDelegators.MPONDTokenId()).to.equal(mpondTokenId2);
-  });
-
-  it('non owner can not update MPondTokenId', async()=> {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpondInstance2 = await upgrades.deployProxy(MPond, { kind: "uups" });
-
-    let mpondTokenId2 = ethers.utils.keccak256(mpondInstance2.address);
-    await expect(rewardDelegators.connect(signers[1]).updateMPONDTokenId(mpondTokenId2)).to.be.reverted;
   });
 
   it('non owner cannot update PondAddress', async()=> {
@@ -256,18 +225,6 @@ describe('RewardDelegators', function() {
     let tx = await(await rewardDelegators.updateStakeAddress(stakeManagerInstance2.address)).wait();
     expect(tx.events[0].event).to.equal('StakeAddressUpdated');
   });
-
-  it('non owner cannot update minMPONDStake', async()=> {
-    await expect(rewardDelegators.connect(signers[1]).updateMinMPONDStake(appConfig.staking.minMPONDStake + 1)).to.be.reverted;
-  });
-
-  it('owner can update minMPONDStake', async()=> {
-    // expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    await rewardDelegators.updateMinMPONDStake(appConfig.staking.minMPONDStake + 1);
-    expect(await rewardDelegators.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake + 1);
-  });
-
-
 });
 
 describe('RewardDelegators', function() {
@@ -311,8 +268,6 @@ describe('RewardDelegators', function() {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      appConfig.staking.minMPONDStake,
-      mpondTokenId,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
@@ -460,8 +415,6 @@ describe('RewardDelegators Deployment', function () {
         stakeManagerInstance.address,
         clusterRewardsInstance.address,
         clusterRegistryInstance.address,
-        appConfig.staking.minMPONDStake,
-        mpondTokenId,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
@@ -476,8 +429,6 @@ describe('RewardDelegators Deployment', function () {
         stakeManagerInstance.address,
         clusterRewardsInstance.address,
         clusterRegistryInstance.address,
-        appConfig.staking.minMPONDStake,
-        mpondTokenId,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
@@ -507,14 +458,12 @@ describe('RewardDelegators Deployment', function () {
     await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
     // initialize contract and check if all variables are correctly set(including admin)
     expect(await stakeManagerInstance.lockWaitTime(await stakeManagerInstance.UNDELEGATION_LOCK_SELECTOR())).to.equal(appConfig.staking.undelegationWaitTime);
-    expect(await rewardDelegatorsInstance.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
   });
 
   it('upgrades', async function () {
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
     await upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(rewardDelegatorsOwner), {kind: "uups"});
-    expect(await rewardDelegatorsInstance.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
   });
 
   it('does not upgrade without admin', async function () {
@@ -638,25 +587,6 @@ describe('RewardDelegators Deployment', function () {
         expect(Number(delegatorNewBalance)).to.equal( Number(clusterReward) - clusterCommission -1);
     });
 
-    it("update MPOND Token id", async () => {
-        // update MPOND token id and check if minMPOND requirements is happenning(is cluster  active) with the updated token
-        // cluster had minMPOND before and after change it doesn't
-        // cluster had minMPOND before and after change it does have in new tokenId as well
-        // update MPOND token to id that doesn't have an address mapped
-        const oldMPONDTokenId = await rewardDelegatorsInstance.MPONDTokenId();
-        const oldClusterDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster1.getAddress(), oldMPONDTokenId);
-
-        const rewardDelegatorsOwner = await ethers.getSigner(await rewardDelegatorsInstance.getRoleMember(await rewardDelegatorsInstance.DEFAULT_ADMIN_ROLE(), 0));
-        await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateMPONDTokenId(ethers.utils.id("dummyTokenId"));
-        const newMPONDTokenId = await rewardDelegatorsInstance.MPONDTokenId();
-
-        // should be zero
-        const newClusterDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster1.getAddress(), newMPONDTokenId);
-        const clusterTokenDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster1.getAddress(), oldMPONDTokenId);
-        expect(newClusterDelegation).to.equal(0);
-        expect(oldClusterDelegation).to.equal(clusterTokenDelegation);
-    });
-
     it("reinitialize contract then delegate and withdraw rewards for single token", async () => {
 
         // deploy pond and mpond tokens
@@ -693,8 +623,6 @@ describe('RewardDelegators Deployment', function () {
             stakeManagerInstance.address,
             clusterRewardsInstance.address,
             clusterRegistryInstance.address,
-            appConfig.staking.minMPONDStake,
-            mpondTokenId,
             pondInstance.address,
             [testTokenId],
             [100]
@@ -763,15 +691,6 @@ describe('RewardDelegators Deployment', function () {
       await expect(rewardDelegatorsInstance.connect(signers[1]).removeRewardFactor(testTokenId)).to.be.reverted;
       const removeRewardTx = await (await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).removeRewardFactor(testTokenId)).wait();
       expect(removeRewardTx.events[0].event).to.equal("RemoveReward");
-    });
-
-    it("update minPondStake", async()=> {
-      const minPondStakeBefore = await rewardDelegatorsInstance.minMPONDStake();
-      // only owner can update
-      await expect(rewardDelegatorsInstance.connect(signers[1]).updateMinMPONDStake(minPondStakeBefore + 10)).to.be.reverted;
-      await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateMinMPONDStake(minPondStakeBefore + 10);
-
-      expect(await rewardDelegatorsInstance.minMPONDStake()).to.equal(minPondStakeBefore + 10);
     });
 
     it("update stake address", async()=> {
