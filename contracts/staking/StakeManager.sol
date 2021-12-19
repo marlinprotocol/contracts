@@ -239,7 +239,7 @@ contract StakeManager is
         _updateToken(_tokenId, _address);
     }
 
-    function _lockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+    function _lockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         if(_amount == 0) {
             return;
         }
@@ -259,10 +259,12 @@ contract StakeManager is
                 _delegator,
                 uint96(_amount)
             );
+
+            stashes[_stashId].govDelegations[_tokenId] = _delegator;
         }
     }
 
-    function _unlockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+    function _unlockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         if(_amount == 0) {
             return;
         }
@@ -273,6 +275,8 @@ contract StakeManager is
                 _delegator,
                 uint96(_amount)
             );
+
+            delete stashes[_stashId].govDelegations[_tokenId];
         }
         require(
             IERC20Upgradeable(tokenAddress).transfer(
@@ -290,6 +294,7 @@ contract StakeManager is
         address staker;
         address delegatedCluster;
         mapping(bytes32 => uint256) amounts;
+        mapping(bytes32 => address) govDelegations;
     }
 
     // stashId to stash
@@ -338,7 +343,7 @@ contract StakeManager is
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
-                _lockTokens(_tokenId, _amounts[i], _msgSender());
+                _lockTokens(_stashId, _tokenId, _amounts[i], _msgSender());
             }
         }
 
@@ -354,7 +359,7 @@ contract StakeManager is
             bytes32 _tokenId = _tokenIds[i];
             if(_amounts[i] != 0) {
                 stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] - _amounts[i];
-                _unlockTokens(_tokenId, _amounts[i], _msgSender());
+                _unlockTokens(_stashId, _tokenId, _amounts[i], _msgSender());
             }
         }
 
@@ -420,6 +425,11 @@ contract StakeManager is
 
     uint256[50] private __gap5;
 
+    modifier onlyStakerOf(bytes32 _stashId) {
+        require(stashes[_stashId].staker == _msgSender());
+        _;
+    }
+
     function createStashAndDelegate(
         bytes32[] memory _tokens,
         uint256[] memory _amounts,
@@ -449,10 +459,7 @@ contract StakeManager is
         bytes32 _stashId,
         bytes32[] calldata _tokens,
         uint256[] calldata _amounts
-    ) external {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    ) external onlyStakerOf(_stashId) {
         require(
             _tokens.length == _amounts.length
         );
@@ -464,10 +471,7 @@ contract StakeManager is
         }
     }
 
-    function delegateStash(bytes32 _stashId, address _delegatedCluster) public {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    function delegateStash(bytes32 _stashId, address _delegatedCluster) public onlyStakerOf(_stashId) {
         require(
             _delegatedCluster != address(0)
         );
@@ -487,10 +491,7 @@ contract StakeManager is
         _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
     }
 
-    function requestStashRedelegation(bytes32 _stashId, address _newCluster) public {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    function requestStashRedelegation(bytes32 _stashId, address _newCluster) public onlyStakerOf(_stashId) {
         require(
             stashes[_stashId].delegatedCluster != address(0)
         );
@@ -507,10 +508,7 @@ contract StakeManager is
         }
     }
 
-    function redelegateStash(bytes32 _stashId) public {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    function redelegateStash(bytes32 _stashId) public onlyStakerOf(_stashId) {
         require(
              stashes[_stashId].delegatedCluster != address(0)
         );
@@ -537,10 +535,7 @@ contract StakeManager is
         }
     }
 
-    function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external onlyStakerOf(_stashId) {
         require(
             _tokens.length != 0
         );
@@ -553,11 +548,8 @@ contract StakeManager is
         _cloneLock(UNDELEGATION_LOCK_SELECTOR, _stashId, _newStashId);
     }
 
-    function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external {
+    function mergeStash(bytes32 _stashId1, bytes32 _stashId2) external onlyStakerOf(_stashId1) onlyStakerOf(_stashId2) {
         require(_stashId1 != _stashId2);
-        require(
-            stashes[_stashId1].staker == _msgSender() && stashes[_stashId2].staker == _msgSender()
-        );
         require(
             stashes[_stashId1].delegatedCluster == stashes[_stashId2].delegatedCluster
         );
@@ -585,10 +577,7 @@ contract StakeManager is
         }
     }
 
-    function cancelRedelegation(bytes32 _stashId) public {
-        require(
-            _msgSender() == stashes[_stashId].staker
-        );
+    function cancelRedelegation(bytes32 _stashId) public onlyStakerOf(_stashId) {
         require(_cancelRedelegation(_stashId));
     }
 
@@ -600,11 +589,7 @@ contract StakeManager is
         return _exists;
     }
 
-    function undelegateStash(bytes32 _stashId) public {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
-
+    function undelegateStash(bytes32 _stashId) public onlyStakerOf(_stashId) {
         address _delegatedCluster = stashes[_stashId].delegatedCluster;
         require(
             stashes[_stashId].delegatedCluster != address(0)
@@ -628,11 +613,7 @@ contract StakeManager is
         }
     }
 
-    function cancelUndelegation(bytes32 _stashId) public {
-        address _staker = stashes[_stashId].staker;
-        require(
-            _staker == _msgSender()
-        );
+    function cancelUndelegation(bytes32 _stashId) public onlyStakerOf(_stashId) {
         require(
             _lockStatus(UNDELEGATION_LOCK_SELECTOR, _stashId) == LockStatus.Locked
         );
@@ -647,10 +628,7 @@ contract StakeManager is
         _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
     }
 
-    function withdrawStash(bytes32 _stashId) external {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    function withdrawStash(bytes32 _stashId) external onlyStakerOf(_stashId) {
         require(
             stashes[_stashId].delegatedCluster == address(0)
         );
@@ -670,10 +648,7 @@ contract StakeManager is
         bytes32 _stashId,
         bytes32[] calldata _tokens,
         uint256[] calldata _amounts
-    ) external {
-        require(
-            stashes[_stashId].staker == _msgSender()
-        );
+    ) external onlyStakerOf(_stashId) {
         require(
             stashes[_stashId].delegatedCluster == address(0)
         );
