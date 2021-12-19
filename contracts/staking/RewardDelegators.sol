@@ -128,7 +128,7 @@ contract RewardDelegators is
     event PONDAddressUpdated(address _updatedPOND);
 
     modifier onlyStake() {
-        require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
+        require(_msgSender() == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
     }
 
