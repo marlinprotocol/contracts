@@ -64,8 +64,6 @@ contract RewardDelegators is
         address _stakeAddress,
         address _clusterRewardsAddress,
         address _clusterRegistry,
-        uint256 _minMPONDStake,
-        bytes32 _MPONDTokenId,
         address _PONDAddress,
         bytes32[] memory _tokenIds,
         uint256[] memory _rewardFactors
@@ -91,10 +89,6 @@ contract RewardDelegators is
         clusterRegistry = IClusterRegistry(_clusterRegistry);
         clusterRewards = IClusterRewards(_clusterRewardsAddress);
         PONDToken = IERC20Upgradeable(_PONDAddress);
-        minMPONDStake = _minMPONDStake;
-        emit MinMPONDStakeUpdated(_minMPONDStake);
-        MPONDTokenId = _MPONDTokenId;
-        emit MPONDTokenIdUpdated(_MPONDTokenId);
         for(uint256 i=0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
             tokenIndex[_tokenIds[i]] = tokenList.length;
@@ -115,13 +109,9 @@ contract RewardDelegators is
 
     mapping(address => Cluster) clusters;
 
-    uint256 __unused_2;
     address stakeAddress;
-    uint256 public minMPONDStake;
-    bytes32 public MPONDTokenId;
     mapping(bytes32 => uint256) rewardFactor;
     mapping(bytes32 => uint256) tokenIndex;
-    mapping(bytes32 => bytes32) __unused_1;
     bytes32[] tokenList;
     IClusterRewards clusterRewards;
     IClusterRegistry clusterRegistry;
@@ -129,11 +119,9 @@ contract RewardDelegators is
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
-    event MPONDTokenIdUpdated(bytes32 MPONDTokenId);
     event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
     event ClusterRewardDistributed(address cluster);
     event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
-    event MinMPONDStakeUpdated(uint256 minMPONDStake);
     event StakeAddressUpdated(address _updatedStakeAddress);
     event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
     event ClusterRegistryUpdated(address _updatedClusterRegistry);
@@ -142,11 +130,6 @@ contract RewardDelegators is
     modifier onlyStake() {
         require(msg.sender == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
-    }
-
-    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external onlyAdmin {
-        MPONDTokenId = _updatedMPONDTokenId;
-        emit MPONDTokenIdUpdated(_updatedMPONDTokenId);
     }
 
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external onlyAdmin {
@@ -338,16 +321,6 @@ contract RewardDelegators is
         PONDToken.transfer(_to, _amount);
     }
 
-    function isClusterActive(address _cluster) external returns(bool) {
-        if(
-            clusterRegistry.isClusterValid(_cluster)
-            && clusters[_cluster].totalDelegations[MPONDTokenId] > minMPONDStake
-        ) {
-            return true;
-        }
-        return false;
-    }
-
     function getClusterDelegation(address _cluster, bytes32 _tokenId)
         external
         view
@@ -362,11 +335,6 @@ contract RewardDelegators is
         returns(uint256)
     {
         return clusters[_cluster].delegators[_delegator][_tokenId];
-    }
-
-    function updateMinMPONDStake(uint256 _minMPONDStake) external onlyAdmin {
-        minMPONDStake = _minMPONDStake;
-        emit MinMPONDStakeUpdated(_minMPONDStake);
     }
 
     function updateStakeAddress(address _updatedStakeAddress) external onlyAdmin {
