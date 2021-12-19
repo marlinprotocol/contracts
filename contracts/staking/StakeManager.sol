@@ -413,21 +413,10 @@ contract StakeManager is
 
 //-------------------------------- Stash internals end --------------------------------//
 
-    // new variables
+//-------------------------------- Stash externals start --------------------------------//
+
     bytes32 public constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     bytes32 public constant UNDELEGATION_LOCK_SELECTOR = keccak256("UNDELEGATION_LOCK");
-
-    address public gatewayL1;
-    uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
-
-    modifier onlyGatewayL1() {
-        unchecked {
-            require(
-                address(uint160(_msgSender()) - diff) == gatewayL1
-            );
-        }
-        _;
-    }
 
     function createStashAndDelegate(
         bytes32[] memory _tokens,
@@ -699,6 +688,22 @@ contract StakeManager is
         return stashes[_stashId].amounts[_tokenId];
     }
 
+//-------------------------------- Stash externals end --------------------------------//
+
+//-------------------------------- Gateway start --------------------------------//
+
+    address public gatewayL1;
+    uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
+
+    modifier onlyGatewayL1() {
+        unchecked {
+            require(
+                address(uint160(_msgSender()) - diff) == gatewayL1
+            );
+        }
+        _;
+    }
+
     function transferL2(
         address _staker,
         bytes32[] calldata _tokenIds,
@@ -729,4 +734,7 @@ contract StakeManager is
             }
         }
     }
+
+//-------------------------------- Gateway end --------------------------------//
+
 }
