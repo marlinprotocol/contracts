@@ -82,7 +82,7 @@ describe('RewardDelegators', function() {
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
-    expect(await rewardDelegators.owner()).to.equal(addrs[1]);
+    expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
     expect(await rewardDelegators.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
     expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
     expect(await rewardDelegators.MPONDTokenId()).to.equal(mpondTokenId);
@@ -103,7 +103,7 @@ describe('RewardDelegators', function() {
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {kind: 'uups'});
-    expect(await rewardDelegators.owner()).to.equal(addrs[1]);
+    expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
     expect(await rewardDelegators.minMPONDStake()).to.equal(appConfig.staking.minMPONDStake);
     expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
     expect(await rewardDelegators.MPONDTokenId()).to.equal(mpondTokenId);
@@ -653,7 +653,7 @@ describe('RewardDelegators Deployment', function () {
         const oldMPONDTokenId = await rewardDelegatorsInstance.MPONDTokenId();
         const oldClusterDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster1.getAddress(), oldMPONDTokenId);
 
-        const rewardDelegatorsOwner = await ethers.getSigner(await rewardDelegatorsInstance.owner());
+        const rewardDelegatorsOwner = await ethers.getSigner(await rewardDelegatorsInstance.getRoleMember(await rewardDelegatorsInstance.DEFAULT_ADMIN_ROLE(), 0));
         await rewardDelegatorsInstance.connect(rewardDelegatorsOwner).updateMPONDTokenId(ethers.utils.id("dummyTokenId"));
         const newMPONDTokenId = await rewardDelegatorsInstance.MPONDTokenId();
 
