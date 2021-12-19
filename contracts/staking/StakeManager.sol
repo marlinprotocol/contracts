@@ -90,7 +90,7 @@ contract StakeManager is
         _setupRole(DELEGATABLE_TOKEN_ROLE, _MPONDTokenAddress);
         _updateRewardDelegators(_rewardDelegatorsAddress);
         _updateLockWaitTime(UNDELEGATION_LOCK_SELECTOR, _undelegationWaitTime);
-        gatewayL1 = _gatewayL1;
+        _setupRole(GATEWAY_ROLE, _gatewayL1);
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -418,6 +418,8 @@ contract StakeManager is
     bytes32 public constant REDELEGATION_LOCK_SELECTOR = keccak256("REDELEGATION_LOCK");
     bytes32 public constant UNDELEGATION_LOCK_SELECTOR = keccak256("UNDELEGATION_LOCK");
 
+    uint256[50] private __gap5;
+
     function createStashAndDelegate(
         bytes32[] memory _tokens,
         uint256[] memory _amounts,
@@ -692,13 +694,15 @@ contract StakeManager is
 
 //-------------------------------- Gateway start --------------------------------//
 
-    address public gatewayL1;
+    bytes32 public constant GATEWAY_ROLE = keccak256("GATEWAY_ROLE");
     uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
+
+    uint256[50] private __gap6;
 
     modifier onlyGatewayL1() {
         unchecked {
             require(
-                address(uint160(_msgSender()) - diff) == gatewayL1
+                hasRole(GATEWAY_ROLE, address(uint160(_msgSender()) - diff))
             );
         }
         _;
@@ -728,7 +732,6 @@ contract StakeManager is
             emit StashDeposit(_stashId, _tokenIds, _amounts);
 
             // delegate
-            stashes[_stashId].delegatedCluster = _delegatedClusters[_sidx];
             if(_delegatedClusters[_sidx] != address(0)) {
                 _delegate(_stashId, _tokenIds, _amounts, _delegatedClusters[_sidx]);
             }
