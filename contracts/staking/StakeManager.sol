@@ -88,7 +88,7 @@ contract StakeManager is
             _addToken(_tokenIds[i], _tokenAddresses[i]);
         }
         _setupRole(DELEGATABLE_TOKEN_ROLE, _MPONDTokenAddress);
-        rewardDelegators = IRewardDelegators(_rewardDelegatorsAddress);
+        _updateRewardDelegators(_rewardDelegatorsAddress);
         _updateLockWaitTime(UNDELEGATION_LOCK_SELECTOR, _undelegationWaitTime);
         gatewayL1 = _gatewayL1;
     }
@@ -308,6 +308,7 @@ contract StakeManager is
     event StashMove(bytes32 indexed fromStashId, bytes32 indexed toStashId, bytes32[] tokenIds, uint256[] amounts);
     event StashDelegated(bytes32 indexed stashId, address indexed delegatedCluster);
     event StashUndelegated(bytes32 indexed stashId, address indexed delegatedCluster);
+    event RewardDelegatorsUpdated(address from, address to);
 
     function _newId() internal returns (bytes32) {
         uint256 _stashIndex = stashIndex;
@@ -399,10 +400,15 @@ contract StakeManager is
         emit StashUndelegated(_stashId, stashes[_stashId].delegatedCluster);
     }
 
+    function _updateRewardDelegators(address _updatedRewardDelegator) internal {
+        emit RewardDelegatorsUpdated(address(rewardDelegators), _updatedRewardDelegator);
+        rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
+    }
+
     function updateRewardDelegators(
         address _updatedRewardDelegator
     ) external onlyAdmin {
-        rewardDelegators = IRewardDelegators(_updatedRewardDelegator);
+        _updateRewardDelegators(_updatedRewardDelegator);
     }
 
 //-------------------------------- Stash internals end --------------------------------//
