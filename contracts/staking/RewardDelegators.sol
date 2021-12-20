@@ -109,13 +109,13 @@ contract RewardDelegators is
 
     mapping(address => Cluster) clusters;
 
-    address stakeAddress;
-    mapping(bytes32 => uint256) rewardFactor;
-    mapping(bytes32 => uint256) tokenIndex;
-    bytes32[] tokenList;
-    IClusterRewards clusterRewards;
-    IClusterRegistry clusterRegistry;
-    IERC20Upgradeable PONDToken;
+    address public stakeAddress;
+    mapping(bytes32 => uint256) public rewardFactor;
+    mapping(bytes32 => uint256) public tokenIndex;
+    bytes32[] public tokenList;
+    IClusterRewards public clusterRewards;
+    IClusterRegistry public clusterRegistry;
+    IERC20Upgradeable public PONDToken;
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -375,10 +375,6 @@ contract RewardDelegators is
         );
         PONDToken = IERC20Upgradeable(_updatedPOND);
         emit PONDAddressUpdated(_updatedPOND);
-    }
-
-    function getFullTokenList() external view returns (bytes32[] memory) {
-        return tokenList;
     }
 
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
