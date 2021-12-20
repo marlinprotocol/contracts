@@ -63,8 +63,9 @@ contract StakeManager is
     function initialize(
         bytes32[] memory _tokenIds,
         address[] memory _tokenAddresses,
-        address _MPONDTokenAddress,
+        bool[] memory _delegatable,
         address _rewardDelegatorsAddress,
+        uint256 _redelegationWaitTime,
         uint256 _undelegationWaitTime,
         address _gatewayL1
     )
@@ -86,9 +87,12 @@ contract StakeManager is
 
         for(uint256 i=0; i < _tokenIds.length; i++) {
             _addToken(_tokenIds[i], _tokenAddresses[i]);
+            if(_delegatable[i]) {
+                _setupRole(DELEGATABLE_TOKEN_ROLE, _tokenAddresses[i]);
+            }
         }
-        _setupRole(DELEGATABLE_TOKEN_ROLE, _MPONDTokenAddress);
         _updateRewardDelegators(_rewardDelegatorsAddress);
+        _updateLockWaitTime(REDELEGATION_LOCK_SELECTOR, _redelegationWaitTime);
         _updateLockWaitTime(UNDELEGATION_LOCK_SELECTOR, _undelegationWaitTime);
         _setupRole(GATEWAY_ROLE, _gatewayL1);
     }
