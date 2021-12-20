@@ -86,9 +86,17 @@ contract RewardDelegators is
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
 
         stakeAddress = _stakeAddress;
+        emit StakeAddressUpdated(_stakeAddress);
+
         clusterRegistry = IClusterRegistry(_clusterRegistry);
+        emit ClusterRegistryUpdated(_clusterRegistry);
+
         clusterRewards = IClusterRewards(_clusterRewardsAddress);
+        emit ClusterRewardsAddressUpdated(_clusterRewardsAddress);
+
         PONDToken = IERC20Upgradeable(_PONDAddress);
+        emit PONDAddressUpdated(_PONDAddress);
+
         for(uint256 i=0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
             tokenIndex[_tokenIds[i]] = tokenList.length;
