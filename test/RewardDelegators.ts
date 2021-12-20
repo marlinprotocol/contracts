@@ -77,7 +77,7 @@ describe('RewardDelegators', function() {
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
+    expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId,mpondTokenId]);
   });
 
   it('upgrades', async()=> {
@@ -93,7 +93,7 @@ describe('RewardDelegators', function() {
     )
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, {kind: 'uups'});
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await rewardDelegators.getFullTokenList()).to.eql([pondTokenId,mpondTokenId]);
+    expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId,mpondTokenId]);
   });
 
   it('does not upgrade without admin', async()=> {
@@ -437,8 +437,9 @@ describe('RewardDelegators Deployment', function () {
     await stakeManagerInstance.initialize(
         [pondTokenId, mpondTokenId],
         [pondInstance.address, mpondInstance.address],
-        mpondInstance.address,
+        [false, true],
         rewardDelegatorsInstance.address,
+        5,
         appConfig.staking.undelegationWaitTime,
         addrs[0],
     );
@@ -631,8 +632,9 @@ describe('RewardDelegators Deployment', function () {
         await stakeManagerInstance.initialize(
             [testTokenId],
             [testTokenInstance.address],
-            mpondInstance.address,
+            [false, true],
             rewardDelegatorsInstance.address,
+            5,
             appConfig.staking.undelegationWaitTime,
             addrs[0],
         );

@@ -96,8 +96,9 @@ describe('StakeManager Deployment', function () {
     await expect(stakeManager.initialize(
       [PONDTokenId, MPONDTokenId],
       [pondInstance.address, mpondInstance.address],
-      mpondInstance.address,
+      [false, true],
       rewardDelegatorsInstance.address,
+      5,
       appConfig.staking.undelegationWaitTime,
       await stakeManagerOwner.getAddress(),
     )).to.be.reverted;
@@ -109,8 +110,9 @@ describe('StakeManager Deployment', function () {
     stakeManagerInstance = await upgrades.deployProxy(StakeManager, [
       [PONDTokenId, MPONDTokenId],
       [pondInstance.address, mpondInstance.address],
-      mpondInstance.address,
+      [false, true],
       rewardDelegatorsInstance.address,
+      5,
       appConfig.staking.undelegationWaitTime,
       await stakeManagerOwner.getAddress(),
     ],{ kind: "uups" });
@@ -136,7 +138,6 @@ describe('StakeManager Deployment', function () {
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
     await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch*100);
-    await stakeManagerInstance.connect(stakeManagerOwner).updateLockWaitTime(REDELEGATION_LOCK, 5);
 
     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
   });
@@ -147,7 +148,6 @@ describe('StakeManager Deployment', function () {
     await upgrades.upgradeProxy(stakeManagerInstance.address, StakeManager.connect(stakeManagerOwner), {kind: "uups"});
 
     await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch*100);
-    await stakeManagerInstance.connect(stakeManagerOwner).updateLockWaitTime(REDELEGATION_LOCK, 5);
 
     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
   });
