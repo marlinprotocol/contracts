@@ -14,8 +14,8 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
-  let name = process.env.NAME || 'MPond';
-  let wname = process.env.WNAME || 'MPondGateway';
+  let name = process.env.NAME || 'Token';
+  let wname = process.env.WNAME || 'TokenGateway';
   let amount = BN.from(process.env.AMOUNT || 1).e18();
   console.log(name, wname, amount);
 
