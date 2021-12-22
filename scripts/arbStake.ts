@@ -51,7 +51,6 @@ async function main() {
     ['0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4'],
     [1],
     '0x41243e6dfa02efb4e5ecefbd93a99d482c3a74c0',
-    { gasLimit: 50000000 },
   );
   console.log(res);
 
