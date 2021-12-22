@@ -43,11 +43,11 @@ async function main() {
   let stakeManager = await upgrades.deployProxy(StakeManager, [
     ["0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4", "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e"],
     [addresses[chainId]['Pond'], addresses[chainId]['MPond']],
-    addresses[chainId]['MPond'],
+    [false, true],
     addresses[chainId]['RewardDelegators'],
-    addrs[0],
-    1000,
-    "0xbD3678C4423514AF7Cc9fB61524781F363E63862",
+    21600,
+    604800,
+    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82",
   ], { kind: "uups" });
 
   console.log("Deployed addr:", stakeManager.address);

@@ -47,9 +47,6 @@ async function main() {
     addresses[chainId]['StakeManager'],
     addresses[chainId]['ClusterRewards'],
     addresses[chainId]['ClusterRegistry'],
-    addrs[0],
-    BN.from(1).e18().div(2),
-    "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
     addresses[chainId]['Pond'],
     ["0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4", "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e"],
     [1,1]

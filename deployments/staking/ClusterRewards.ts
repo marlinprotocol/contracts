@@ -41,8 +41,8 @@ async function main() {
 
   const ClusterRewards = await ethers.getContractFactory('ClusterRewards');
   let clusterRewards = await upgrades.deployProxy(ClusterRewards, [
-    addresses[chainId]['RewardDelegators'],
     addrs[0],
+    addresses[chainId]['RewardDelegators'],
     [ethers.utils.id("ETH"), ethers.utils.id("COSMOS"), ethers.utils.id("DOT"), ethers.utils.id("POLYGON")],
     [BN.from(1).e18(), 0, 0, 0],
     BN.from(281553).e18(),

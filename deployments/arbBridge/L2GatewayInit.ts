@@ -15,12 +15,12 @@ BN.prototype.e18 = function () {
 
 async function main() {
   let name = process.env.NAME || 'L2Gateway';
-  let tokenName = process.env.TOKENNAME || 'Pond';
+  let tokenName = process.env.TOKENNAME || 'Token';
   let l1GName = process.env.L1GNAME || 'L1Gateway';
   console.log(name);
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
-  let ethChainId = { '421611': '4' }[chainId]!;
+  let ethChainId = { '421611': '4', '42161': '1' }[chainId]!;
   console.log("Chain Id:", chainId, ethChainId);
 
   var addresses: {[key: string]: {[key: string]: string}} = {};
