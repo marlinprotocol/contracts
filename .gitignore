@@ -7,3 +7,8 @@ slither.log
 temp
 .DS_Store
 accounts.json
+cache
+artifacts
+coverage
+coverage.json
+.openzeppelin/unknown-31337.json
