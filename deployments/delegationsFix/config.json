@@ -1,0 +1,13 @@
+{
+    "gatewayL1": "0xdcCa4D13FB90c28368E4358F3ECCe248aE4b7D93",
+    "contracts": {
+        "stakeManager": "0xf90490186F370f324DEF2871F077668455f65253",
+        "rewardDelegators": "0xfB1F3fFa0d9819Da45D4E91967D46fAF025aa1c3"
+    },
+    "bug": {
+        "duration": {
+            "start": 3992825,
+            "end": 4562943
+        }
+    }
+}

@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import "@nomiclabs/hardhat-etherscan";
 import '@openzeppelin/hardhat-upgrades';
+import "@typechain/hardhat";
 import 'solidity-coverage';
 import dotenv from 'dotenv';
 
@@ -12,19 +13,24 @@ export default {
   networks: {
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.ETH_DEPLOYER_KEY],
+      accounts: process.env.ETH_DEPLOYER_KEY? [process.env.ETH_DEPLOYER_KEY]: [],
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_DEPLOYER_KEY? [process.env.ARBITRUM_DEPLOYER_KEY]: [],
     },
     arbitrumRinkeby: {
       url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY? [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY]: [],
     },
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.RINKEBY_DEPLOYER_KEY? [process.env.RINKEBY_DEPLOYER_KEY]: [],
+    },
+    hardhat: {
+      forking: {
+        url: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
+      }
     }
   },
   solidity: {

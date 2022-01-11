@@ -12,3 +12,4 @@ artifacts
 coverage
 coverage.json
 .openzeppelin/unknown-31337.json
+typechain
