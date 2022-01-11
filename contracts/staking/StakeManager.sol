@@ -391,24 +391,26 @@ contract StakeManager is
     }
 
     function _delegate(
+        address _staker,
         bytes32 _stashId,
         bytes32[] memory _tokenIds,
         uint256[] memory _amounts,
         address _delegatedCluster
     ) internal {
         stashes[_stashId].delegatedCluster = _delegatedCluster;
-        rewardDelegators.delegate(_msgSender(), _delegatedCluster, _tokenIds, _amounts);
+        rewardDelegators.delegate(_staker, _delegatedCluster, _tokenIds, _amounts);
 
         emit StashDelegated(_stashId, stashes[_stashId].delegatedCluster);
     }
 
     function _undelegate(
+        address _staker,
         bytes32 _stashId,
         bytes32[] memory _tokenIds,
         uint256[] memory _amounts,
         address _delegatedCluster
     ) internal {
-        rewardDelegators.undelegate(_msgSender(), _delegatedCluster, _tokenIds, _amounts);
+        rewardDelegators.undelegate(_staker, _delegatedCluster, _tokenIds, _amounts);
         delete stashes[_stashId].delegatedCluster;
 
         emit StashUndelegated(_stashId, stashes[_stashId].delegatedCluster);
@@ -476,7 +478,7 @@ contract StakeManager is
 
         address _delegatedCluster = stashes[_stashId].delegatedCluster;
         if(_delegatedCluster != address(0)) {
-            _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
+            _delegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
         }
     }
 
@@ -497,7 +499,7 @@ contract StakeManager is
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
 
-        _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
+        _delegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
     }
 
     function requestStashRedelegation(bytes32 _stashId, address _newCluster) public onlyStakerOf(_stashId) {
@@ -537,10 +539,10 @@ contract StakeManager is
         }
 
         if(_delegatedCluster != address(0)) {
-            _undelegate(_stashId, _tokens, _amounts, _delegatedCluster);
+            _undelegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
         }
         if(_updatedCluster != address(0)) {
-            _delegate(_stashId, _tokens, _amounts, _updatedCluster);
+            _delegate(_msgSender(), _stashId, _tokens, _amounts, _updatedCluster);
         }
     }
 
@@ -610,7 +612,7 @@ contract StakeManager is
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
 
-        _undelegate(_stashId, _tokens, _amounts, _delegatedCluster);
+        _undelegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
 
         _lock(UNDELEGATION_LOCK_SELECTOR, _stashId, uint256(uint160(_delegatedCluster)));
         _cancelRedelegation(_stashId);
@@ -634,7 +636,7 @@ contract StakeManager is
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
 
-        _delegate(_stashId, _tokens, _amounts, _delegatedCluster);
+        _delegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
     }
 
     function withdrawStash(bytes32 _stashId) external onlyStakerOf(_stashId) {
@@ -717,7 +719,7 @@ contract StakeManager is
 
             // delegate
             if(_delegatedClusters[_sidx] != address(0)) {
-                _delegate(_stashId, _tokenIds, _amounts, _delegatedClusters[_sidx]);
+                _delegate(_staker, _stashId, _tokenIds, _amounts, _delegatedClusters[_sidx]);
             }
         }
     }
