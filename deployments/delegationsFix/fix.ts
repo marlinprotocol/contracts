@@ -253,4 +253,4 @@ const deploy = async () => {
     await fix();
 }
 
-deploy();
+fix();
