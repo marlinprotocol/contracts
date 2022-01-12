@@ -240,9 +240,6 @@ const deploy = async () => {
             method: "hardhat_impersonateAccount",
             params: ["0x52b50644a9fef330ffc7a93d92a4b7591d5a3903"],
         });
-    } else {
-        console.log(`update proxy to use new logic and come back`);
-        process.exit();
     }
 
     const rewardDelegatorsFactory = await ethers.getContractFactory("RewardDelegators");
