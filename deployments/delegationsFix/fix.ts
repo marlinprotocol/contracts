@@ -3,8 +3,6 @@ import { BigNumber } from "ethers";
 import { ethers, network, upgrades }  from "hardhat";
 import Web3 from "web3";
 
-import { ClusterRegistry, RewardDelegators, StakeManager } from "../../typechain";
-
 const web3 = new Web3(`https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`);
 
 const processTransferedStash = async (data: any, stashData: any) => {
@@ -167,16 +165,19 @@ const checkFixedStake = async (stashData: any, rewardDelegators: any) => {
                 } catch(err) {
                     delegation = await rewardDelegators.getDelegation(cluster, staker, token);
                 }
-                const delegationGateway = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+                let delegationGateway;
+                try {
+                    delegationGateway = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+                } catch(err) {
+                    delegationGateway = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+                }
                 if(!amount.eq(delegation)) {
-                    console.error(`updated stake for cluster ${cluster} and token ${token} should be ${stakedToCluster[token].toString()}, actual is ${delegation.toString()}`);
-                    process.exit();
+                    console.error(`--------updated stake for staker ${staker} cluster ${cluster} and token ${token} should be ${stakedToCluster[token].toString()}, actual is ${delegation.toString()}`);
                 } else {
-                    console.log(`stake matches for cluster ${cluster} and token ${token} is ${stakedToCluster[token].toString()}`);
+                    console.log(`stake matches for staker ${staker} cluster ${cluster} and token ${token} is ${stakedToCluster[token].toString()}`);
                 }
                 if(!delegationGateway.eq(BigNumber.from(0))) {
-                    console.error(`Gateway stake not reset for cluster ${cluster} and token ${token}`);
-                    process.exit();
+                    console.error(`--------Gateway stake not reset for cluster ${cluster} and token ${token}`);
                 }
             }
         }
@@ -188,7 +189,7 @@ const fix = async () => {
     const stakeManager = StakeManagerFactory.attach(config.contracts.stakeManager);
     const RewardDelegatorsFactory = await ethers.getContractFactory("RewardDelegators");
     const rewardDelegators = RewardDelegatorsFactory.attach(config.contracts.rewardDelegators).connect(
-        ethers.provider.getSigner("0x52b50644a9fef330ffc7a93d92a4b7591d5a3903")
+        ethers.provider.getSigner("0xfF7049307e46123B807AEF5CC3b9AB9B7626CBa0")
     );
     // get all affected stashes
     const stashData = await getTransferedStashes(stakeManager, config.bug.duration.start, config.bug.duration.end);
@@ -238,7 +239,7 @@ const deploy = async () => {
     if(network.name == "hardhat") {
         await network.provider.request({
             method: "hardhat_impersonateAccount",
-            params: ["0x52b50644a9fef330ffc7a93d92a4b7591d5a3903"],
+            params: ["0xfF7049307e46123B807AEF5CC3b9AB9B7626CBa0"],
         });
     }
 
@@ -246,7 +247,7 @@ const deploy = async () => {
     const upgraded = await upgrades.upgradeProxy(
         config.contracts.rewardDelegators, 
         rewardDelegatorsFactory.connect(
-            ethers.provider.getSigner("0x52b50644a9fef330ffc7a93d92a4b7591d5a3903")
+            ethers.provider.getSigner("0xfF7049307e46123B807AEF5CC3b9AB9B7626CBa0")
         )
     );
     console.log("contract upgraded");

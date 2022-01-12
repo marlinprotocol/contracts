@@ -16,7 +16,7 @@ export default {
       accounts: process.env.ETH_DEPLOYER_KEY? [process.env.ETH_DEPLOYER_KEY]: [],
     },
     arb1: {
-      url: "https://arb1.arbitrum.io/rpc",
+      url: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       accounts: process.env.ARBITRUM_DEPLOYER_KEY? [process.env.ARBITRUM_DEPLOYER_KEY]: [],
     },
     arbitrumRinkeby: {
@@ -30,7 +30,7 @@ export default {
     hardhat: {
       forking: {
         url: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 4580456
+        blockNumber: 4581990
       }
     },
     ftm: {
