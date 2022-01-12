@@ -32,7 +32,11 @@ export default {
         url: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
         blockNumber: 4580456
       }
-    }
+    },
+    ftm: {
+      url: "https://rpc.ftm.tools/",
+      accounts: process.env.FANTOM_DEPLOYER_KEY? [process.env.FANTOM_DEPLOYER_KEY]: [],
+    },
   },
   solidity: {
     version: "0.8.9",
@@ -59,7 +63,8 @@ export default {
   },
   etherscan: {
     // apiKey: process.env.ETHERSCAN_API_KEY,
-    apiKey: process.env.ARBISCAN_API_KEY,
+    // apiKey: process.env.ARBISCAN_API_KEY,
+    apiKey: process.env.FTMSCAN_API_KEY,
   }
 };
 
