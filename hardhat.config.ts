@@ -25,7 +25,11 @@ export default {
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: [process.env.RINKEBY_DEPLOYER_KEY],
-    }
+    },
+    ftm: {
+      url: "https://rpc.ftm.tools/",
+      accounts: [process.env.FANTOM_DEPLOYER_KEY],
+    },
   },
   solidity: {
     version: "0.8.9",
@@ -52,7 +56,8 @@ export default {
   },
   etherscan: {
     // apiKey: process.env.ETHERSCAN_API_KEY,
-    apiKey: process.env.ARBISCAN_API_KEY,
+    // apiKey: process.env.ARBISCAN_API_KEY,
+    apiKey: process.env.FTMSCAN_API_KEY,
   }
 };
 
