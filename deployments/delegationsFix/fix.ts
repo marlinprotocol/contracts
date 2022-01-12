@@ -97,7 +97,37 @@ const checkGatewayStake = async (stakedToGateway: any, rewardDelegators: any) =>
     }
 }
 
-const prepareData = async (stakeData: any, stakedToGateway: any) => {
+const prepareStakerData = async (stakeData: any) => {
+    const preparedData: any = {
+        delegators: [],
+        clusters: [],
+        tokens: [],
+        allAmounts: [],
+        isDelegations: []
+    };
+
+    const token1 = "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4";
+    const token2 = "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e";
+
+    preparedData.tokens.push(token1);
+    preparedData.tokens.push(token2);
+
+    for(let staker in stakeData) {
+        let stakes = stakeData[staker];
+        for(let cluster in stakes) {
+            let stakedToCluster = stakes[cluster];
+            preparedData.delegators.push(staker);
+            preparedData.clusters.push(cluster);
+            preparedData.allAmounts.push(stakedToCluster[token1]);
+            preparedData.allAmounts.push(stakedToCluster[token2]);
+            preparedData.isDelegations.push(true);
+        }
+    }
+
+    return preparedData;
+}
+
+const prepareGatewayData = async (stakedToGateway: any) => {
     const preparedData: any = {
         delegators: [],
         clusters: [],
@@ -119,18 +149,6 @@ const prepareData = async (stakeData: any, stakedToGateway: any) => {
         preparedData.allAmounts.push(clusterStake[token1]);
         preparedData.allAmounts.push(clusterStake[token2]);
         preparedData.isDelegations.push(false);
-    }
-
-    for(let staker in stakeData) {
-        let stakes = stakeData[staker];
-        for(let cluster in stakes) {
-            let stakedToCluster = stakes[cluster];
-            preparedData.delegators.push(staker);
-            preparedData.clusters.push(cluster);
-            preparedData.allAmounts.push(stakedToCluster[token1]);
-            preparedData.allAmounts.push(stakedToCluster[token2]);
-            preparedData.isDelegations.push(true);
-        }
     }
 
     return preparedData;
@@ -156,7 +174,7 @@ const checkFixedStake = async (stashData: any, rewardDelegators: any) => {
                 } else {
                     console.log(`stake matches for cluster ${cluster} and token ${token} is ${stakedToCluster[token].toString()}`);
                 }
-                if(!delegationGateway.eq(0)) {
+                if(!delegationGateway.eq(BigNumber.from(0))) {
                     console.error(`Gateway stake not reset for cluster ${cluster} and token ${token}`);
                     process.exit();
                 }
@@ -181,21 +199,36 @@ const fix = async () => {
     // verify supposed staked tokens against actual staked to gateway
     await checkGatewayStake(stakedToGateway, rewardDelegators);
     console.log("checked gateway stake with expected");
-    // prepare data for tx
-    const txData = await prepareData(stashData, stakedToGateway);
-    console.log("data for tx prepared");
-    // send tx
-    const tx = await rewardDelegators.applyDiffs(
-        txData.delegators,
-        txData.clusters,
-        txData.tokens,
-        txData.allAmounts,
-        txData.isDelegations
+    // prepare data for removing gateway stake tx
+    const gatewayTxData = await prepareGatewayData(stakedToGateway);
+    console.log("data for gateway stake tx prepared");
+    // send gateway tx
+    const gatewayTx = await rewardDelegators.applyDiffs(
+        gatewayTxData.delegators,
+        gatewayTxData.clusters,
+        gatewayTxData.tokens,
+        gatewayTxData.allAmounts,
+        gatewayTxData.isDelegations
     );
-    console.log(`tx for applying diffs submitted hash: ${tx.transactionHash}`);
+    console.log(`tx for applying gateway diffs submitted hash: ${gatewayTx.hash}`);
     // wait for success
-    const receipt = await tx.wait();
-    console.log("receipt", receipt);
+    const gatewayTxReceipt = await gatewayTx.wait();
+    console.log("tx for gateway successful", gatewayTxReceipt);
+    // prepare data for adding staker stake tx
+    const stakerTxData = await prepareStakerData(stashData);
+    console.log("data for staker stake tx prepared");
+    // send staker tx
+    const stakerTx = await rewardDelegators.applyDiffs(
+        stakerTxData.delegators,
+        stakerTxData.clusters,
+        stakerTxData.tokens,
+        stakerTxData.allAmounts,
+        stakerTxData.isDelegations
+    );
+    console.log(`tx for applying staker diffs submitted hash: ${stakerTx.hash}`);
+    // wait for success
+    const stakerReceipt = await stakerTx.wait();
+    console.log("tx for staker successful", stakerReceipt);
     // query and verify
     await checkFixedStake(stashData, rewardDelegators);
     console.log("Upgrade successful");
