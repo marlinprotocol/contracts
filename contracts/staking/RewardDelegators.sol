@@ -388,4 +388,27 @@ contract RewardDelegators is
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
+
+    function applyDiffs(
+        address[] calldata _delegators,
+        address[] calldata _clusters,
+        bytes32[] calldata _tokens,
+        uint256[] calldata _allAmounts,
+        bool[] calldata _isDelegations
+    ) external onlyAdmin {
+        require(_delegators.length == _clusters.length);
+        require(_delegators.length * _tokens.length == _allAmounts.length);
+        require(_delegators.length == _isDelegations.length);
+
+        for(uint256 _idx = 0; _idx < _delegators.length; _idx++) {
+            address _delegator = _delegators[_idx];
+            address _cluster = _clusters[_idx];
+            uint256[] memory _amounts = _allAmounts[(_idx*_tokens.length):((_idx+1)*_tokens.length)];
+            bool _isDelegation = _isDelegations[_idx];
+
+            for(uint256 _tidx = 0; _tidx < _tokens.length; _tidx++) {
+                _updateBalances(_cluster, _delegator, _tokens[_tidx], _amounts[_tidx], _isDelegation);
+            }
+        }
+    }
 }
