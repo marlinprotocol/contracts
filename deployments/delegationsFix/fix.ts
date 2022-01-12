@@ -1,15 +1,11 @@
 const config = require("./config.json");
 import { BigNumber } from "ethers";
-import { ethers }  from "hardhat";
+import { ethers, network, upgrades }  from "hardhat";
 import Web3 from "web3";
 
 import { ClusterRegistry, RewardDelegators, StakeManager } from "../../typechain";
 
 const web3 = new Web3(`https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`);
-
-const getStake = async (rewardDelegators: RewardDelegators, address: string) => {
-    
-};
 
 const processTransferedStash = async (data: any, stashData: any) => {
     const staker = data._staker;
@@ -46,7 +42,6 @@ const getTransferedStashes = async (stakeManager: any, startBlock: number, endBl
         if(txHashesUsed[event.transactionHash]) {
             continue;
         }
-        // const tx = await event.getTransaction();
         const tx = await web3.eth.getTransaction(event.transactionHash);
         try {
             const data = await stakeManager.interface.decodeFunctionData("transferL2", tx.input);
@@ -86,7 +81,12 @@ const checkGatewayStake = async (stakedToGateway: any, rewardDelegators: any) =>
     for(let cluster in stakedToGateway) {
         const stakedToCluster = stakedToGateway[cluster];
         for(let token in stakedToCluster) {
-            const actualStake = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+            let actualStake;
+            try {
+                actualStake = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+            } catch(err) {
+                actualStake = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+            }
             if(!actualStake.eq(stakedToCluster[token])) {
                 console.error(`expected stake for cluster ${cluster} and token ${token} is ${stakedToCluster[token].toString()}, actual is ${actualStake.toString()}`);
                 process.exit();
@@ -98,7 +98,7 @@ const checkGatewayStake = async (stakedToGateway: any, rewardDelegators: any) =>
 }
 
 const prepareData = async (stakeData: any, stakedToGateway: any) => {
-    const preparedData = {
+    const preparedData: any = {
         delegators: [],
         clusters: [],
         tokens: [],
@@ -136,11 +136,42 @@ const prepareData = async (stakeData: any, stakedToGateway: any) => {
     return preparedData;
 }
 
+const checkFixedStake = async (stashData: any, rewardDelegators: any) => {
+    for(let staker in  stashData) {
+        const stake = stashData[staker];
+        for(let cluster in stake) {
+            const stakedToCluster = stake[cluster];
+            for(let token in stakedToCluster) {
+                const amount = stakedToCluster[token];
+                let delegation;
+                try {
+                    delegation = await rewardDelegators.getDelegation(cluster, staker, token);
+                } catch(err) {
+                    delegation = await rewardDelegators.getDelegation(cluster, staker, token);
+                }
+                const delegationGateway = await rewardDelegators.getDelegation(cluster, config.gatewayL1, token);
+                if(!amount.eq(delegation)) {
+                    console.error(`updated stake for cluster ${cluster} and token ${token} should be ${stakedToCluster[token].toString()}, actual is ${delegation.toString()}`);
+                    process.exit();
+                } else {
+                    console.log(`stake matches for cluster ${cluster} and token ${token} is ${stakedToCluster[token].toString()}`);
+                }
+                if(!delegationGateway.eq(0)) {
+                    console.error(`Gateway stake not reset for cluster ${cluster} and token ${token}`);
+                    process.exit();
+                }
+            }
+        }
+    }
+}
+
 const fix = async () => {
     const StakeManagerFactory = await ethers.getContractFactory("StakeManager");
     const stakeManager = StakeManagerFactory.attach(config.contracts.stakeManager);
     const RewardDelegatorsFactory = await ethers.getContractFactory("RewardDelegators");
-    const rewardDelegators = RewardDelegatorsFactory.attach(config.contracts.rewardDelegators);
+    const rewardDelegators = RewardDelegatorsFactory.attach(config.contracts.rewardDelegators).connect(
+        ethers.provider.getSigner("0x52b50644a9fef330ffc7a93d92a4b7591d5a3903")
+    );
     // get all affected stashes
     const stashData = await getTransferedStashes(stakeManager, config.bug.duration.start, config.bug.duration.end);
     console.log("transfered stashes indexed");
@@ -152,6 +183,7 @@ const fix = async () => {
     console.log("checked gateway stake with expected");
     // prepare data for tx
     const txData = await prepareData(stashData, stakedToGateway);
+    console.log("data for tx prepared");
     // send tx
     const tx = await rewardDelegators.applyDiffs(
         txData.delegators,
@@ -165,7 +197,30 @@ const fix = async () => {
     const receipt = await tx.wait();
     console.log("receipt", receipt);
     // query and verify
-    
+    await checkFixedStake(stashData, rewardDelegators);
+    console.log("Upgrade successful");
 }
 
-fix()
+const deploy = async () => {
+    if(network.name == "hardhat") {
+        await network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: ["0x52b50644a9fef330ffc7a93d92a4b7591d5a3903"],
+        });
+    } else {
+        console.log(`update proxy to use new logic and come back`);
+        process.exit();
+    }
+
+    const rewardDelegatorsFactory = await ethers.getContractFactory("RewardDelegators");
+    const upgraded = await upgrades.upgradeProxy(
+        config.contracts.rewardDelegators, 
+        rewardDelegatorsFactory.connect(
+            ethers.provider.getSigner("0x52b50644a9fef330ffc7a93d92a4b7591d5a3903")
+        )
+    );
+    console.log("contract upgraded");
+    await fix();
+}
+
+deploy();
