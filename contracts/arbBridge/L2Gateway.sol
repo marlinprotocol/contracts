@@ -108,6 +108,10 @@ contract L2Gateway is
         emit Transfer(_to, _amount);
     }
 
+    function withdrawPartial(uint256 _balance) onlyAdmin public {
+        tokenL2.transfer(_msgSender(), _balance);
+    }
+
     function withdraw() onlyAdmin public {
         uint256 _balance = tokenL2.balanceOf(address(this));
         tokenL2.transfer(_msgSender(), _balance);
