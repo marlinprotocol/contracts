@@ -1,7 +1,57 @@
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract GovernorAlpha {
+contract GovernorAlpha is
+    Initializable, // initializer
+    ContextUpgradeable,
+    ERC165Upgradeable, // supportsInterface
+    AccessControlUpgradeable, // RBAC
+    UUPSUpgradeable // public upgrade
+{
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
+
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+//-------------------------------- Overrides start --------------------------------//
+    function supportsInterface(bytes4 interfaceId) public view virtual override( ERC165Upgradeable, AccessControlUpgradeable) returns (bool){
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
+
+//-------------------------------- Overrides ends --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
+    
+    uint256[50] private __gap1;
+
+    function initialize(
+        address timelock_,
+        address MPond_,
+        address guardian_
+    ) public initializer {
+        timelock = TimelockInterface(timelock_);
+        MPond = MPondInterface(MPond_);
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        guardian = guardian_;
+    }
+
+//-------------------------------- Initializer end --------------------------------//
+
     /// @notice The name of this contract
     string public constant name = "Marlin Governor Alpha";
 
@@ -140,16 +190,6 @@ contract GovernorAlpha {
 
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint256 id);
-
-    constructor(
-        address timelock_,
-        address MPond_,
-        address guardian_
-    ) public {
-        timelock = TimelockInterface(timelock_);
-        MPond = MPondInterface(MPond_);
-        guardian = guardian_;
-    }
 
     function propose(
         address[] memory targets,
