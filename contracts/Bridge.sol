@@ -15,9 +15,9 @@ contract Bridge is
     Initializable, // initializer
     ContextUpgradeable,
     ERC165Upgradeable, // supportsInterface
-    AccessControlUpgradeable,
-    AccessControlEnumerableUpgradeable,
-    UUPSUpgradeable
+    AccessControlUpgradeable, // RBAC
+    AccessControlEnumerableUpgradeable, // RBAC enumeration
+    UUPSUpgradeable // public upgrade
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -117,8 +117,8 @@ contract Bridge is
 
     function changeStakingContract(address _newAddr) external {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-                hasRole(GOVERNANCE_ROLE, msg.sender),
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
+                hasRole(GOVERNANCE_ROLE, _msgSender()),
             "Liquidity can be  changed by governance or owner"
         );
         stakingContract = _newAddr;
@@ -126,8 +126,8 @@ contract Bridge is
 
     function changeLiquidityBp(uint256 _newLbp) external {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-                hasRole(GOVERNANCE_ROLE, msg.sender),
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
+                hasRole(GOVERNANCE_ROLE, _msgSender()),
             "Liquidity can be only changed by governance or owner"
         );
         liquidityBp = _newLbp;
@@ -136,8 +136,8 @@ contract Bridge is
     // input should be number of days
     function changeLockTimeEpochs(uint256 _newLockTimeEpochs) external {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-                hasRole(GOVERNANCE_ROLE, msg.sender),
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
+                hasRole(GOVERNANCE_ROLE, _msgSender()),
             "LockTime can be only changed by goveranance or owner"
         );
         lockTimeEpochs = _newLockTimeEpochs;
@@ -148,8 +148,8 @@ contract Bridge is
         external
     {
         require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender) ||
-                hasRole(GOVERNANCE_ROLE, msg.sender),
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
+                hasRole(GOVERNANCE_ROLE, _msgSender()),
             "LiquidityEpoch length can only be changed by governance or owner"
         );
         liquidityEpochLength = _newLiquidityEpochLength * 1 days;
@@ -207,9 +207,9 @@ contract Bridge is
 
     function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
         require(_amount != 0, "Should be non zero amount");
-        uint256 _claimedAmount = claimedAmounts[msg.sender][_epoch];
+        uint256 _claimedAmount = claimedAmounts[_msgSender()][_epoch];
         uint256 totalUnlockableAmount = _claimedAmount + _amount;
-        Requests memory _req = requests[msg.sender][_epoch];
+        Requests memory _req = requests[_msgSender()][_epoch];
         uint256 _reqReleaseTime = (_req.releaseEpoch * epochLength) + liquidityStartTime;
 
         // replace div with actual divide
@@ -222,47 +222,47 @@ contract Bridge is
             getCurrentEpoch() >= _req.releaseEpoch,
             "Funds can only be released after requests exceed locktime"
         );
-        claimedAmounts[msg.sender][_epoch] = totalUnlockableAmount;
+        claimedAmounts[_msgSender()][_epoch] = totalUnlockableAmount;
 
-        mpond.transferFrom(msg.sender, address(this), _amount);
-        // pond.tranfer(msg.sender, _amount.mul(pondPerMpond));
+        mpond.transferFrom(_msgSender(), address(this), _amount);
+        // pond.tranfer(_msgSender(), _amount.mul(pondPerMpond));
         SafeERC20Upgradeable.safeTransfer(
             pond,
-            msg.sender,
+            _msgSender(),
             _amount * pondPerMpond
         );
         uint256 amountLockedInRequests = totalAmountPlacedInRequests[
-            msg.sender
+            _msgSender()
         ];
-        totalAmountPlacedInRequests[msg.sender] =
+        totalAmountPlacedInRequests[_msgSender()] =
             amountLockedInRequests -
             _amount;
-        emit MPondToPond(msg.sender, _epoch, _amount * pondPerMpond);
+        emit MPondToPond(_msgSender(), _epoch, _amount * pondPerMpond);
         return _amount * pondPerMpond;
     }
 
     function placeRequest(uint256 amount) external returns (uint256, uint256) {
         uint256 epoch = getCurrentEpoch();
-        uint256 amountInRequests = totalAmountPlacedInRequests[msg.sender];
-        uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(msg.sender) +
-            mpond.getDelegates(stakingContract, msg.sender) -
+        uint256 amountInRequests = totalAmountPlacedInRequests[_msgSender()];
+        uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(_msgSender()) +
+            mpond.getDelegates(stakingContract, _msgSender()) -
             amountInRequests;
         require(
             amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
             "Request should be placed with amount greater than 0 and less than remainingAmount"
         );
         // require(
-        //     amount != 0 && amount <= mpond.balanceOf(msg.sender),
+        //     amount != 0 && amount <= mpond.balanceOf(_msgSender()),
         //     "Request should be placed with amount greater than 0 and less than the balance of the user"
         // );
         require(
-            requests[msg.sender][epoch].amount == 0,
+            requests[_msgSender()][epoch].amount == 0,
             "Only one request per epoch is acceptable"
         );
         Requests memory _req = Requests(amount, epoch + lockTimeEpochs);
-        requests[msg.sender][epoch] = _req;
-        totalAmountPlacedInRequests[msg.sender] = amountInRequests + amount;
-        emit PlacedRequest(msg.sender, epoch, _req.releaseEpoch);
+        requests[_msgSender()][epoch] = _req;
+        totalAmountPlacedInRequests[_msgSender()] = amountInRequests + amount;
+        emit PlacedRequest(_msgSender(), epoch, _req.releaseEpoch);
         return (epoch, _req.releaseEpoch);
     }
 
@@ -271,11 +271,11 @@ contract Bridge is
         onlyAdmin
         returns (bool)
     {
-        mpond.transferFrom(msg.sender, address(this), _mpond);
-        // pond.transferFrom(msg.sender, address(this), _pond);
+        mpond.transferFrom(_msgSender(), address(this), _mpond);
+        // pond.transferFrom(_msgSender(), address(this), _pond);
         SafeERC20Upgradeable.safeTransferFrom(
             pond,
-            msg.sender,
+            _msgSender(),
             address(this),
             _pond
         );
@@ -299,15 +299,15 @@ contract Bridge is
 
     function getMpond(uint256 _mpond) public returns (uint256) {
         uint256 pondToDeduct = _mpond * pondPerMpond;
-        // pond.transferFrom(msg.sender, address(this), pondToDeduct);
+        // pond.transferFrom(_msgSender(), address(this), pondToDeduct);
         SafeERC20Upgradeable.safeTransferFrom(
             pond,
-            msg.sender,
+            _msgSender(),
             address(this),
             pondToDeduct
         );
-        mpond.transfer(msg.sender, _mpond);
-        emit PondToMPond(msg.sender, _mpond);
+        mpond.transfer(_msgSender(), _mpond);
+        emit PondToMPond(_msgSender(), _mpond);
         return pondToDeduct;
     }
 
