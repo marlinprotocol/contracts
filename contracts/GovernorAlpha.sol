@@ -27,6 +27,7 @@ contract GovernorAlpha is
     }
 
 //-------------------------------- Overrides start --------------------------------//
+    
     function supportsInterface(bytes4 interfaceId) public view virtual override( ERC165Upgradeable, AccessControlUpgradeable) returns (bool){
         return super.supportsInterface(interfaceId);
     }
@@ -199,7 +200,7 @@ contract GovernorAlpha is
         string memory description
     ) public returns (uint256) {
         require(
-            MPond.getPriorVotes(msg.sender, block.number - 1) >
+            MPond.getPriorVotes(_msgSender(), block.number - 1) >
                 proposalThreshold(),
             "GovernorAlpha::propose: proposer votes below proposal threshold"
         );
@@ -218,7 +219,7 @@ contract GovernorAlpha is
             "GovernorAlpha::propose: too many actions"
         );
 
-        uint256 latestProposalId = latestProposalIds[msg.sender];
+        uint256 latestProposalId = latestProposalIds[_msgSender()];
         if (latestProposalId != 0) {
             ProposalState proposersLatestProposalState = state(
                 latestProposalId
@@ -239,7 +240,7 @@ contract GovernorAlpha is
         proposalCount++;
         Proposal storage newProposal = proposals[proposalCount];
         newProposal.id = proposalCount;
-        newProposal.proposer = msg.sender;
+        newProposal.proposer = _msgSender();
         newProposal.eta = 0;
         newProposal.targets = targets;
         newProposal.values = values;
@@ -256,7 +257,7 @@ contract GovernorAlpha is
 
         emit ProposalCreated(
             newProposal.id,
-            msg.sender,
+            _msgSender(),
             targets,
             values,
             signatures,
@@ -332,7 +333,7 @@ contract GovernorAlpha is
 
         Proposal storage proposal = proposals[proposalId];
         require(
-            msg.sender == guardian ||
+            _msgSender() == guardian ||
                 MPond.getPriorVotes(
                     proposal.proposer,
                     block.number - 1
@@ -408,7 +409,7 @@ contract GovernorAlpha is
     }
 
     function castVote(uint256 proposalId, bool support) public {
-        return _castVote(msg.sender, proposalId, support);
+        return _castVote(_msgSender(), proposalId, support);
     }
 
     function castVoteBySig(
@@ -472,7 +473,7 @@ contract GovernorAlpha is
 
     function __acceptAdmin() public {
         require(
-            msg.sender == guardian,
+            _msgSender() == guardian,
             "GovernorAlpha::__acceptAdmin: sender must be gov guardian"
         );
         timelock.acceptAdmin();
@@ -480,7 +481,7 @@ contract GovernorAlpha is
 
     function __abdicate() public {
         require(
-            msg.sender == guardian,
+            _msgSender() == guardian,
             "GovernorAlpha::__abdicate: sender must be gov guardian"
         );
         guardian = address(0);
@@ -491,7 +492,7 @@ contract GovernorAlpha is
         uint256 eta
     ) public {
         require(
-            msg.sender == guardian,
+            _msgSender() == guardian,
             "GovernorAlpha::__queueSetTimelockPendingAdmin: sender must be gov guardian"
         );
         timelock.queueTransaction(
@@ -508,7 +509,7 @@ contract GovernorAlpha is
         uint256 eta
     ) public {
         require(
-            msg.sender == guardian,
+            _msgSender() == guardian,
             "GovernorAlpha::__executeSetTimelockPendingAdmin: sender must be gov guardian"
         );
         timelock.executeTransaction(
