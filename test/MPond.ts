@@ -612,5 +612,32 @@ describe('MPond', function () {
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(10000).e18());
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(10000).e18());
   });
+
+  describe('MPond', function () {
+    let signers: Signer[];
+    let addrs: string[];
+    let mpond: Contract;
+    let WHITELIST_ROLE: string;
+  
+    beforeEach(async function () {
+      signers = await ethers.getSigners();
+      addrs = await Promise.all(signers.map(a => a.getAddress()));
+      const MPond = await ethers.getContractFactory('MPond');
+      mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+      WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
+    });
+
+    it('can get delegation for 0 address', async function() {
+      expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+      expect(await mpond.getDelegates(addrs[0], '0x0000000000000000000000000000000000000000')).to.equal(BN.from(10000).e18());
+    });
+
+    it('can get delegation for non zero address', async function() {
+      expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+      expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
+      await mpond.delegate(addrs[1], 1234);
+      expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
+    });
+  });
 });
 
