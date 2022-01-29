@@ -278,7 +278,7 @@ contract StakeManager is
             return;
         }
         address tokenAddress = tokens[_tokenId];
-        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
+        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress) && stashes[_stashId].govDelegations[_tokenId] != address(0)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPond(tokenAddress).undelegate(
                 _delegator,
