@@ -386,6 +386,20 @@ contract MPond is
     );
 
     /**
+     * @notice Get the number of tokens `delegator` has delegated to `delegatee`
+     * @param delegator The address of the delegator
+     * @param delegatee The address of the account which has been delegated to
+     * @return The number of tokens delegated
+     */
+    function getDelegates(address delegator, address delegatee) external view returns (uint256){
+        if(delegatee != address(0)) {
+            return uint256(delegates[delegator][delegatee]);
+        } else{
+            return this.balanceOf(delegator);
+        }
+    }
+
+    /**
      * @notice Delegate votes from `_msgSender()` to `delegatee`
      * @param delegatee The address to delegate votes to
      */
