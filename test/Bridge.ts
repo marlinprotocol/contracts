@@ -182,6 +182,164 @@ describe('Bridge', function () {
         expect(await bridge.hasRole(await bridge.GOVERNANCE_ROLE(), addrs[1])).to.be.true;
     });
 
+    it('non admin cannot renounce ownership', async() => {
+        await expect(bridge.connect(signers[1]).renounceOwnership()).to.be.reverted;
+    });
 
-
+    it('admin can renounce ownership', async() => {
+        await bridge.renounceOwnership();
+        expect(await bridge.hasRole(await bridge.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.false;
+    });
 });
+
+describe('Bridge', function () {
+    let signers: Signer[];
+    let addrs: string[];
+    let bridge: Contract;
+    let mpond: Contract;
+    let pond: Contract;
+
+    beforeEach(async function () {
+        signers = await ethers.getSigners();
+        addrs = await Promise.all(signers.map(a => a.getAddress()));
+
+        const MPond = await ethers.getContractFactory('MPond');
+        mpond = await upgrades.deployProxy(MPond, [], { kind: "uups" });
+        let WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
+        await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
+        await mpond.transfer(addrs[2], BN.from(1000).e18());
+
+        const Pond = await ethers.getContractFactory('Pond');
+        pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"],{ kind: "uups" });
+
+        const Bridge = await ethers.getContractFactory('Bridge');
+        bridge = await upgrades.deployProxy(Bridge,[mpond.address, pond.address, addrs[1]] , { kind: "uups" });
+
+        await pond.transfer(bridge.address, BN.from(1000000000).e18());
+        await mpond.grantRole(WHITELIST_ROLE, bridge.address);
+        await mpond.connect(signers[2]).approve(bridge.address, BN.from(1000).e18());
+    });
+
+    it('cannot place request for zero amount',async() => {
+        await expect(bridge.connect(signers[2]).placeRequest(0)).to.be.reverted;
+    }); 
+
+    it('cannot place request for amount greater than balance/delegation', async()=> {
+        await expect(bridge.connect(signers[2]).placeRequest(BN.from(1001).e18())).to.be.reverted;
+    });
+
+    it('can place request', async() => {
+        let req = await bridge.connect(signers[2]).callStatic.placeRequest(BN.from(900).e18());
+        expect(req[0]).to.equal(BN.from(0));
+        expect(req[1]).to.equal(BN.from(180));
+    });
+
+    it('cannot place multiple requests in same epoch', async() => {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await expect(bridge.connect(signers[2]).placeRequest(BN.from(10).e18())).to.be.reverted;
+    });
+
+    it('can place another request in different epoch', async()=> {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await skipTime(1 * 86400); // 1 day
+        let req = await bridge.connect(signers[2]).callStatic.placeRequest(BN.from(10).e18());
+        expect(req[0]).to.equal(BN.from(1));
+        expect(req[1]).to.equal(BN.from(181));
+    });
+
+    it('cannot convert more amount than convertable', async() => {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await skipTime(180 * 86400); // 180 days
+        let convertableAmount = await bridge.getConvertableAmount(addrs[2], 0);
+        await expect(bridge.convert(0, convertableAmount + 1)).to.be.reverted;
+    });
+
+    it('cannot convert before release epoch', async() => {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await skipTime(179 * 86400);
+        let convertableAmount = await bridge.getConvertableAmount(addrs[2], 0);
+        await expect(bridge.convert(0,  convertableAmount)).to.be.reverted;
+    });
+
+    it('can convert amount equal to convertable', async() => {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await skipTime(180 * 86400); // 180 days
+        let convertableAmount = await bridge.getConvertableAmount(addrs[2], 0);
+        await bridge.connect(signers[2]).convert(0, convertableAmount);
+        expect(await mpond.balanceOf(addrs[2])).to.equal(BN.from(1000).e18().sub(convertableAmount));
+        expect(await mpond.balanceOf(bridge.address)).to.equal(convertableAmount);
+        expect(await pond.balanceOf(addrs[2])).to.equal(convertableAmount.mul(1000000));
+        expect(await pond.balanceOf(bridge.address)).to.equal(BN.from(1000000000).e18().sub(convertableAmount.mul(1000000)));
+    });
+
+    it('can convert partial amount', async() => {
+        await bridge.connect(signers[2]).placeRequest(BN.from(900).e18());
+        await skipTime(180 * 86400); // 180 days
+        let convertableAmount = await bridge.getConvertableAmount(addrs[2], 0);
+        await bridge.connect(signers[2]).convert(0, 10000);
+        expect(await bridge.claimedAmounts(addrs[2], 0)).to.equal(10000);
+        await bridge.connect(signers[2]).convert(0, convertableAmount.sub(10000));
+        expect(await mpond.balanceOf(addrs[2])).to.equal(BN.from(1000).e18().sub(convertableAmount));
+        expect(await mpond.balanceOf(bridge.address)).to.equal(convertableAmount);
+        expect(await pond.balanceOf(addrs[2])).to.equal(convertableAmount.mul(1000000));
+        expect(await pond.balanceOf(bridge.address)).to.equal(BN.from(1000000000).e18().sub(convertableAmount.mul(1000000)));
+    });
+
+    it('admin can add liquidity', async()=> {
+        let prevMpondBal = await mpond.balanceOf(bridge.address);
+        let prevPondBal = await pond.balanceOf(bridge.address);
+        await mpond.approve(bridge.address, 1000);
+        await pond.approve(bridge.address,1000);
+
+        await bridge.addLiquidity(1000, 1000);
+
+        expect(await mpond.balanceOf(bridge.address)).to.equal(prevMpondBal.add(1000));
+        expect(await pond.balanceOf(bridge.address)).to.equal(prevPondBal.add(1000));
+    });
+
+    it('non admin cannot add liquidity', async()=> {
+        await pond.transfer(addrs[1], 1000);
+        await pond.connect(signers[1]).approve(bridge.address, 1000);
+        await mpond.transfer(addrs[1], 1000);
+        await mpond.connect(signers[1]).approve(bridge.address, 1000);
+
+        await expect(bridge.connect(signers[1]).addLiquidity(1000, 1000)).to.be.reverted;
+    });
+
+    it('admin can remove liquidity', async() => {
+        await mpond.approve(bridge.address, 1000);
+        await pond.approve(bridge.address,1000);
+        await bridge.addLiquidity(1000, 1000);
+
+        await bridge.removeLiquidity(500, 500, addrs[3]);
+        expect(await mpond.balanceOf(addrs[3])).to.equal(500);
+        expect(await pond.balanceOf(addrs[3])).to.equal(500);
+    });
+
+    it('non admin cannot remove liquidity', async() => {
+        await mpond.approve(bridge.address, 1000);
+        await pond.approve(bridge.address,1000);
+        await bridge.addLiquidity(1000, 1000);
+
+        await expect(bridge.connect(signers[1]).removeLiquidity(500, 500, addrs[3])).to.be.reverted;
+    });
+
+    it('can get mpond from pond', async() => {
+        await mpond.approve(bridge.address, 100);
+        await bridge.addLiquidity(100, 0);
+
+        await pond.transfer(addrs[3], 100 * (await bridge.pondPerMpond()));
+        await pond.connect(signers[3]).approve(bridge.address, 100 * (await bridge.pondPerMpond()));
+        await bridge.connect(signers[3]).getMpond(100);
+        expect(await mpond.balanceOf(addrs[3])).to.equal(100);
+    });
+});
+
+async function skipTime(t: number) {
+    await ethers.provider.send('evm_increaseTime', [t]);
+    await skipBlocks(1);
+}
+
+async function skipBlocks(n: number) {
+    await Promise.all([...Array(n)].map(async x => await ethers.provider.send('evm_mine', [])));
+}
