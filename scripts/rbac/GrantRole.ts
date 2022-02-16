@@ -15,9 +15,11 @@ BN.prototype.e18 = function () {
 
 async function main() {
   let name = process.env.NAME || 'Contract';
+  let cname = process.env.CNAME || name;
   let addr = process.env.ADDR || '0x00';
-  let role = ethers.utils.id(process.env.ROLE || 'SOME_ROLE');
-  console.log(name, addr, role);
+  let roleString = process.env.ROLE || 'SOME_ROLE';
+  let role = roleString !== 'DEFAULT_ADMIN_ROLE' ? ethers.utils.id(roleString) : '0x0000000000000000000000000000000000000000000000000000000000000000';
+  console.log(name, cname, addr, role);
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
@@ -39,7 +41,7 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const CF = await ethers.getContractFactory(name);
+  const CF = await ethers.getContractFactory(cname);
   let c = CF.attach(addresses[chainId][name]);
 
   let res = await c.grantRole(role, addr);
