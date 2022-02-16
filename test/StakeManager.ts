@@ -13,97 +13,286 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18))
 }
 
+
+const UNDELEGATION_WAIT_TIME = 604800;
+const REDELEGATION_WAIT_TIME = 21600;
+
+
 describe('StakeManager', function() {
   let signers: Signer[];
   let addrs: string[];
-  let pondInstance: Contract;
-  let mpondInstance: Contract;
-  let rewardDelegatorsInstance: Contract;
-  let pondTokenId: String;
-  let mpondTokenId: String;
-  
-  beforeEach(async()=> {
 
+  beforeEach(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map(a => a.getAddress()));
-
-    const Pond = await ethers.getContractFactory('Pond');
-    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], {kind: 'uups'});
-
-    const MPond = await ethers.getContractFactory('MPond');
-    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
-
-    pondTokenId = ethers.utils.keccak256(pondInstance.address);
-    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
-
-    const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    rewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
   });
 
-  it('deploys with initialization disabled', async()=> {
-    
+  it('deploys with initialization disabled', async function() {
     const StakeManager = await ethers.getContractFactory('StakeManager');
     let stakeManager = await StakeManager.deploy();
 
     await expect(stakeManager.initialize(
-      [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
       [false, true],
-      rewardDelegatorsInstance.address,
-      5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[2]
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4]
     )).to.be.reverted;
   });
 
-  it('deploy as proxy and initializes', async()=> {
+  it('deploy as proxy and initializes', async function() {
     const StakeManager = await ethers.getContractFactory('StakeManager');
-    let stakeManager = await upgrades.deployProxy(StakeManager, {kind: 'uups', initializer: false});
-    await stakeManager.initialize(
-      [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+    let stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
       [false, true],
-      rewardDelegatorsInstance.address,
-      5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[2]
-    );
-    expect(await stakeManager.rewardDelegators()).to.equal(rewardDelegatorsInstance.address);
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(appConfig.staking.undelegationWaitTime);
-    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[2])).to.be.true;
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+
+    expect(await stakeManager.hasRole(await stakeManager.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(await stakeManager.tokens(ethers.utils.id(addrs[1]))).to.equal(addrs[1]);
+    expect(await stakeManager.tokens(ethers.utils.id(addrs[2]))).to.equal(addrs[2]);
+    expect(await stakeManager.tokenIndex(ethers.utils.id(addrs[1]))).to.equal(0);
+    expect(await stakeManager.tokenIndex(ethers.utils.id(addrs[2]))).to.equal(1);
+    expect(await stakeManager.tokenList(0)).to.equal(ethers.utils.id(addrs[1]));
+    expect(await stakeManager.tokenList(1)).to.equal(ethers.utils.id(addrs[2]));
+    expect(await stakeManager.hasRole(await stakeManager.ACTIVE_TOKEN_ROLE(), addrs[1])).to.be.true;
+    expect(await stakeManager.hasRole(await stakeManager.ACTIVE_TOKEN_ROLE(), addrs[2])).to.be.true;
+    expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[1])).to.be.false;
+    expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[2])).to.be.true;
+    expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
+    expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
+    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
+    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[4])).to.be.true;
   });
 
-  it('upgrades', async()=> {
+  it('upgrades', async function() {
     const StakeManager = await ethers.getContractFactory('StakeManager');
-    let stakeManager = await upgrades.deployProxy(StakeManager, {kind: 'uups', initializer: false});
-    await stakeManager.initialize(
-      [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+    let stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
       [false, true],
-      rewardDelegatorsInstance.address,
-      5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[2]);
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+    await upgrades.upgradeProxy(stakeManager.address, StakeManager, { kind: "uups" });
 
-    await upgrades.upgradeProxy(stakeManager.address, StakeManager, {kind: 'uups'});
-    expect(await stakeManager.rewardDelegators()).to.equal(rewardDelegatorsInstance.address);
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(appConfig.staking.undelegationWaitTime);
-    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[2])).to.be.true;
+    expect(await stakeManager.hasRole(await stakeManager.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(await stakeManager.tokens(ethers.utils.id(addrs[1]))).to.equal(addrs[1]);
+    expect(await stakeManager.tokens(ethers.utils.id(addrs[2]))).to.equal(addrs[2]);
+    expect(await stakeManager.tokenIndex(ethers.utils.id(addrs[1]))).to.equal(0);
+    expect(await stakeManager.tokenIndex(ethers.utils.id(addrs[2]))).to.equal(1);
+    expect(await stakeManager.tokenList(0)).to.equal(ethers.utils.id(addrs[1]));
+    expect(await stakeManager.tokenList(1)).to.equal(ethers.utils.id(addrs[2]));
+    expect(await stakeManager.hasRole(await stakeManager.ACTIVE_TOKEN_ROLE(), addrs[1])).to.be.true;
+    expect(await stakeManager.hasRole(await stakeManager.ACTIVE_TOKEN_ROLE(), addrs[2])).to.be.true;
+    expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[1])).to.be.false;
+    expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[2])).to.be.true;
+    expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
+    expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
+    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
+    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[4])).to.be.true;
   });
 
   it('does not upgrade without admin', async()=> {
     const StakeManager = await ethers.getContractFactory('StakeManager');
-    let stakeManager = await upgrades.deployProxy(StakeManager, {kind: 'uups', initializer: false});
-    await stakeManager.initialize(
-      [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+    let stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
       [false, true],
-      rewardDelegatorsInstance.address,
-      5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[2]);
-      
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+
     await expect(upgrades.upgradeProxy(stakeManager.address, StakeManager.connect(signers[1]), {kind: 'uups'})).to.be.reverted;
+  });
+});
+
+describe('StakeManager', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let stakeManager: Contract;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const StakeManager = await ethers.getContractFactory('StakeManager');
+    stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
+      [false, true],
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+  });
+
+  it('supports ERC167', async function () {
+    const iid = ethers.utils.id('supportsInterface(bytes4)').substr(0, 10);
+    expect(await stakeManager.supportsInterface(iid)).to.be.true;
+  });
+
+  it('does not support 0xffffffff', async function () {
+    expect(await stakeManager.supportsInterface('0xffffffff')).to.be.false;
+  });
+
+  function makeInterfaceId(interfaces: string[]): string {
+    return ethers.utils.hexlify(
+      interfaces.map(i => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10)))
+                .reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
+    );
+  }
+
+  it('supports IAccessControl', async function () {
+    let interfaces = [
+      'hasRole(bytes32,address)',
+      'getRoleAdmin(bytes32)',
+      'grantRole(bytes32,address)',
+      'revokeRole(bytes32,address)',
+      'renounceRole(bytes32,address)',
+    ];
+    const iid = makeInterfaceId(interfaces);
+    expect(await stakeManager.supportsInterface(iid)).to.be.true;
+  });
+
+  it('supports IAccessControlEnumerable', async function () {
+    let interfaces = [
+      'getRoleMember(bytes32,uint256)',
+      'getRoleMemberCount(bytes32)',
+    ];
+    const iid = makeInterfaceId(interfaces);
+    expect(await stakeManager.supportsInterface(iid)).to.be.true;
+  });
+});
+
+describe('StakeManager', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let stakeManager: Contract;
+  let DEFAULT_ADMIN_ROLE: string;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const StakeManager = await ethers.getContractFactory('StakeManager');
+    stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
+      [false, true],
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+    DEFAULT_ADMIN_ROLE = await stakeManager.DEFAULT_ADMIN_ROLE();
+  });
+
+  it('admin can grant admin role', async function () {
+    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
+  });
+
+  it('non admin cannot grant admin role', async function () {
+    await expect(stakeManager.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('admin can revoke admin role', async function () {
+    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
+
+    await stakeManager.revokeRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
+  });
+
+  it('non admin cannot revoke admin role', async function () {
+    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
+
+    await expect(stakeManager.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('admin can renounce own admin role if there are other admins', async function () {
+    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
+
+    await stakeManager.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
+  });
+
+  it('admin cannot renounce own admin role if there are no other admins', async function () {
+    await expect(stakeManager.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
+  });
+
+  it('admin cannot renounce admin role of other admins', async function () {
+    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
+
+    await expect(stakeManager.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
+  });
+});
+
+describe('StakeManager', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let stakeManager: Contract;
+  let DELEGATABLE_TOKEN_ROLE: string;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const StakeManager = await ethers.getContractFactory('StakeManager');
+    stakeManager = await upgrades.deployProxy(StakeManager, [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
+      [false, true],
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ], {kind: 'uups'});
+    DELEGATABLE_TOKEN_ROLE = await stakeManager.DELEGATABLE_TOKEN_ROLE();
+  });
+
+  it('admin can grant delegatable token role', async function () {
+    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
+  });
+
+  it('non admin cannot grant delegatable token role', async function () {
+    await expect(stakeManager.connect(signers[1]).grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('admin can revoke delegatable token role', async function () {
+    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
+
+    await stakeManager.revokeRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.false;
+  });
+
+  it('non admin cannot revoke delegatable token role', async function () {
+    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
+
+    await expect(stakeManager.connect(signers[2]).revokeRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('whitelisted signer can renounce own delegatable token role', async function () {
+    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
+
+    await stakeManager.connect(signers[1]).renounceRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
+    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.false;
   });
 });
 
@@ -118,7 +307,7 @@ describe('StakeManager', function() {
   let mpondTokenId: String;
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
-  
+
   beforeEach(async()=> {
 
     signers = await ethers.getSigners();
@@ -144,7 +333,7 @@ describe('StakeManager', function() {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
+      UNDELEGATION_WAIT_TIME,
       addrs[2]
     );
   });
@@ -287,7 +476,7 @@ describe('StakeManager', function() {
   let mpondTokenId: String;
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
-  
+
   beforeEach(async()=> {
 
     signers = await ethers.getSigners();
@@ -324,7 +513,7 @@ describe('StakeManager', function() {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
+      UNDELEGATION_WAIT_TIME,
       addrs[2]
     );
 
@@ -509,7 +698,7 @@ describe('StakeManager', function() {
     await expect(stakeManager.connect(signers[2]).splitStash(stashId, [pondTokenId], [50, 51])).to.be.reverted;
     // amount cannot be greater than the stash
     await expect(stakeManager.connect(signers[2]).splitStash(stashId, [pondTokenId, mpondTokenId], [101, 102])).to.be.reverted;
-  });  
+  });
 
   it('staker can split stash', async()=> {
     const stashIndex = await stakeManager.stashIndex();
@@ -530,7 +719,7 @@ describe('StakeManager', function() {
     let newLockId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256", "uint256"], [ethers.utils.id("UNDELEGATION_LOCK"), newStashId]));
     let newiValue = (await stakeManager.locks(newLockId)).iValue;
     let newunlockTime = (await stakeManager.locks(newLockId)).unlockTime;
-    
+
     expect((await stakeManager.locks(lockId)).iValue).to.equal(newiValue);
     expect((await stakeManager.locks(lockId)).unlockTime).to.equal(newunlockTime);
   });
@@ -551,7 +740,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[4]).register(ethers.utils.id("DOT"), 5, addrs[5], addrs[6]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[4]);
-    
+
     await expect(stakeManager.connect(signers[2]).mergeStash(stashId1, stashId2)).to.be.reverted;
   });
 
@@ -659,7 +848,7 @@ describe('StakeManager', function() {
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
 
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
     await expect(stakeManager.connect(signers[2]).cancelUndelegation(stashId)).to.be.reverted;
   });
 
@@ -711,7 +900,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
 
     await stakeManager.connect(signers[2])["withdrawStash(bytes32)"](stashId);
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(0);
@@ -726,7 +915,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
 
     await stakeManager.connect(signers[2])["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [pondTokenId, mpondTokenId], [50, 50]);
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(50);
@@ -741,7 +930,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.connect(signers[2])["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [pondTokenId, mpondTokenId], [150, 150])).to.be.reverted;
   });
@@ -752,7 +941,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager["withdrawStash(bytes32)"](stashId)).to.be.reverted;
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [pondTokenId, mpondTokenId], [50, 50])).to.be.reverted;
@@ -764,7 +953,7 @@ describe('StakeManager', function() {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
     await stakeManager.connect(signers[2]).undelegateStash(stashId);
-    await skipTime(appConfig.staking.undelegationWaitTime);
+    await skipTime(UNDELEGATION_WAIT_TIME);
 
     // tokenId and amount length should be same
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [pondTokenId, mpondTokenId], [50])).to.be.reverted;
@@ -865,7 +1054,7 @@ describe('StakeManager Deployment', function () {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
+      UNDELEGATION_WAIT_TIME,
       await stakeManagerOwner.getAddress(),
     )).to.be.reverted;
   });
@@ -879,7 +1068,7 @@ describe('StakeManager Deployment', function () {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
+      UNDELEGATION_WAIT_TIME,
       await stakeManagerOwner.getAddress(),
     ],{ kind: "uups" });
 
@@ -1328,7 +1517,7 @@ it("Redelegate cluster when registered and apply when unregistering", async () =
     // Register redelegate to a cluster, undelegate and delegate again to another cluster. Now apply redelegation
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
     await stakeManagerInstance.undelegateStash(stashId);
-    await skipTime(23);
+    await skipTime(UNDELEGATION_WAIT_TIME + 2);
     await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
     await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 });
@@ -1353,7 +1542,7 @@ it("Check if redelegation request remains active even after usage", async () => 
   await skipTime(4);
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
   await stakeManagerInstance.undelegateStash(stashId);
-  await skipTime(23);
+  await skipTime(UNDELEGATION_WAIT_TIME + 2);
   await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
   await expect(stakeManagerInstance.redelegateStash(stashId)).to.be.reverted;
 });
@@ -1544,7 +1733,7 @@ it("Withdraw POND before wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime-2);
+  await skipTime(UNDELEGATION_WAIT_TIME-2);
 
   await expect(stakeManagerInstance["withdrawStash(bytes32)"](stashId)).to.be.reverted;
 });
@@ -1564,7 +1753,7 @@ it("Withdraw MPOND before wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime-2);
+  await skipTime(UNDELEGATION_WAIT_TIME-2);
 
   await expect(stakeManagerInstance["withdrawStash(bytes32)"](stashId)).to.be.reverted;
 });
@@ -1584,7 +1773,7 @@ it("Withdraw POND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime);
+  await skipTime(UNDELEGATION_WAIT_TIME);
 
   const balanceBefore = (await pondInstance.balanceOf(addrs[0])).toString();
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
@@ -1608,7 +1797,7 @@ it("Withdraw MPOND after wait time", async () => {
   const clusterDelegationAfterUndelegation = (await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId));
   expect(clusterInitialDelegation).to.equal(clusterDelegationAfterUndelegation);
 
-  await skipTime(appConfig.staking.undelegationWaitTime);
+  await skipTime(UNDELEGATION_WAIT_TIME);
 
   const balanceBefore = await mpondInstance.balanceOf(addrs[0]);
   await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
