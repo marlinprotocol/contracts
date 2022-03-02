@@ -1,6 +1,7 @@
 import { ethers, upgrades } from 'hardhat';
 import { expect, util } from 'chai';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { BigNumber as BN, Signer, Contract, VoidSigner } from 'ethers';
+import { Address } from 'cluster';
 
 declare module 'ethers' {
     interface BigNumber {
@@ -299,6 +300,60 @@ describe('GovernorAlpha', function () {
         await expect( governorAlpha.connect(signers[2]).castVote(1, true)).to.be.reverted;
     });
 
+    it('can cast for vote by signature', async() => {
+      let WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
+        await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
+        await mpond.transfer(addrs[2], (await governorAlpha.quorumVotes())+1);
+        await mpond.connect(signers[2]).delegate(addrs[2], (await governorAlpha.quorumVotes())+1);
+
+        const calldatas = [
+            ethers.utils.defaultAbiCoder.encode(
+              ["uint256"],
+              ["0x000000000000000000000000000000000000000000000000000000000000000A"]
+            ),
+          ];
+        await governorAlpha.connect(signers[2]).propose([bridge.address], [0], ["changeLiquidityBp(uint256)"], calldatas, "test");
+        skipBlocks(2);
+        expect(await governorAlpha.state(1)).to.equal(1); // active state
+        let sig = await createVoteBySigMessage(addrs[2], governorAlpha.address, 1, true, (await ethers.provider.getNetwork()).chainId);
+        let sigParams = getSignatureParams(sig);
+        await governorAlpha.connect(signers[2]).castVoteBySig(1, true, sigParams.v, sigParams.r, sigParams.s);
+        const receipt = await governorAlpha.getReceipt(1, addrs[2]);
+        let proposal = await governorAlpha.proposals(1);
+
+        expect(receipt.hasVoted).to.be.true;
+        expect(receipt.support).to.be.true;
+        expect(receipt.votes).to.equal((await governorAlpha.quorumVotes())+1);
+        expect(proposal.forVotes).to.equal((await governorAlpha.quorumVotes())+1);
+    });
+
+    it('can cast against vote by signature', async() => {
+      let WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
+        await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
+        await mpond.transfer(addrs[2], (await governorAlpha.quorumVotes())+1);
+        await mpond.connect(signers[2]).delegate(addrs[2], (await governorAlpha.quorumVotes())+1);
+
+        const calldatas = [
+            ethers.utils.defaultAbiCoder.encode(
+              ["uint256"],
+              ["0x000000000000000000000000000000000000000000000000000000000000000A"]
+            ),
+          ];
+        await governorAlpha.connect(signers[2]).propose([bridge.address], [0], ["changeLiquidityBp(uint256)"], calldatas, "test");
+        skipBlocks(2);
+        expect(await governorAlpha.state(1)).to.equal(1); // active state
+        let sig = await createVoteBySigMessage(addrs[2], governorAlpha.address, 1, false, (await ethers.provider.getNetwork()).chainId);
+        let sigParams = getSignatureParams(sig);
+        await governorAlpha.connect(signers[2]).castVoteBySig(1, false, sigParams.v, sigParams.r, sigParams.s);
+        const receipt = await governorAlpha.getReceipt(1, addrs[2]);
+        let proposal = await governorAlpha.proposals(1);
+
+        expect(receipt.hasVoted).to.be.true;
+        expect(receipt.support).to.be.false;
+        expect(receipt.votes).to.equal((await governorAlpha.quorumVotes())+1);
+        expect(proposal.againstVotes).to.equal((await governorAlpha.quorumVotes())+1);
+    });
+
     it('cannot queue an active proposal', async() => {
         let WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
         await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
@@ -439,3 +494,27 @@ async function skipTime(t: number) {
 async function skipBlocks(n: number) {
     await Promise.all([...Array(n)].map(async x => await ethers.provider.send('evm_mine', [])));
 }
+async function createVoteBySigMessage(account: string, govAddress: string, proposalId: number, support: boolean, chainId: number) {
+  const types = {
+    EIP712Domain: [
+      { name: 'name', type: 'string' },
+      { name: 'chainId', type: 'uint256' },
+      { name: 'verifyingContract', type: 'address' },
+    ],
+    Ballot: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'bool' }
+    ]
+  };
+  const primaryType = 'Ballot';
+  const domain = { name: 'Marlin Governor Alpha', chainId: chainId, verifyingContract: govAddress };
+  const message = { proposalId, support };
+  return ethers.provider.send('eth_signTypedData_v4', [ account, JSON.stringify({ types, primaryType, domain, message })]);
+}
+
+function getSignatureParams(signature: string){
+  const r = '0x' + signature.substring(2).substring(0, 64);
+  const s = '0x' + signature.substring(2).substring(64, 128);
+  const v = '0x' + signature.substring(2).substring(128, 130);
+  return {r: r, s: s, v: v};
+};
