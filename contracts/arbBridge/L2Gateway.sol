@@ -13,6 +13,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IInbox.sol";
 
 
+interface ArbSys {
+    function sendTxToL1(address destination, bytes calldata calldataForL1) external payable returns(uint);
+}
+
+
 contract L2Gateway is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -86,6 +91,8 @@ contract L2Gateway is
 
     uint256[48] private __gap2;
 
+    ArbSys public constant arbsys = ArbSys(address(0x0000000000000000000000000000000000000064));
+
     uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
 
     modifier onlyGatewayL1() {
@@ -99,6 +106,7 @@ contract L2Gateway is
     }
 
     event Transfer(address indexed to, uint256 amount);
+    event TransferL1(uint256 indexed id, address indexed from, address indexed to, uint256 amount);
 
     function transferL2(
         address _to,
@@ -106,6 +114,23 @@ contract L2Gateway is
     ) external onlyGatewayL1 {
         tokenL2.transfer(_to, _amount);
         emit Transfer(_to, _amount);
+    }
+
+    function transferL1(
+        address _to,
+        uint256 _amount
+    ) external returns (uint256) {
+        tokenL2.transferFrom(_msgSender(), address(this), _amount);
+        bytes memory _data = abi.encodeWithSignature(
+            "transferL1(address,uint256)",
+            _to,
+            _amount
+        );
+        uint256 _id = arbsys.sendTxToL1(gatewayL1, _data);
+
+        emit TransferL1(_id, _msgSender(), _to, _amount);
+
+        return _id;
     }
 
     function withdrawPartial(uint256 _balance) onlyAdmin public {
