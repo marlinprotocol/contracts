@@ -86,12 +86,14 @@ contract L1Gateway is
     IInbox public inbox;
     IERC20 public tokenL1;
     address public gatewayL2;
+    address public outbox;
 
-    uint256[47] private __gap2;
+    uint256[46] private __gap2;
 
     event InboxChanged(address indexed _oldInbox, address indexed _newInbox);
     event TokenL1Changed(address indexed _oldTokenL1, address indexed _newTokenL1);
     event GatewayL2Changed(address indexed _oldGatewayL2, address indexed _newGatewayL2);
+    event OutboxChanged(address indexed _oldOutbox, address indexed _newOutbox);
 
     event TransferL2(
         uint256 indexed ticketId,
@@ -99,6 +101,11 @@ contract L1Gateway is
         address indexed to,
         uint256 tokenAmount,
         uint256 ethAmount
+    );
+
+    event TransferL1(
+        address indexed to,
+        uint256 amount
     );
 
     function setInbox(address _newInbox) onlyAdmin external {
@@ -132,6 +139,22 @@ contract L1Gateway is
         gatewayL2 = _newGatewayL2;
 
         emit GatewayL2Changed(_oldGatewayL2, _newGatewayL2);
+    }
+
+    function setOutbox(address _newOutbox) onlyAdmin external {
+        _setOutbox(_newOutbox);
+    }
+
+    function _setOutbox(address _newOutbox) internal {
+        address _oldOutbox = outbox;
+        outbox = _newOutbox;
+
+        emit OutboxChanged(_oldOutbox, _newOutbox);
+    }
+
+    modifier onlyOutbox() {
+        require(_msgSender() == outbox, "only outbox");
+        _;
     }
 
     function transferL2(
@@ -171,6 +194,15 @@ contract L1Gateway is
         );
 
         return _ticketId;
+    }
+
+    function transferL1(
+        address _to,
+        uint256 _amount
+    ) external onlyOutbox returns (bool) {
+        tokenL1.transfer(_to, _amount);
+        emit TransferL1(_to, _amount);
+        return true;
     }
 
     function withdraw() onlyAdmin public {
