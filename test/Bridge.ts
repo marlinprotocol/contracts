@@ -222,7 +222,7 @@ describe('Bridge', function () {
 
     it('cannot place request for zero amount',async() => {
         await expect(bridge.connect(signers[2]).placeRequest(0)).to.be.reverted;
-    }); 
+    });
 
     it('cannot place request for amount greater than balance/delegation', async()=> {
         await expect(bridge.connect(signers[2]).placeRequest(BN.from(1001).e18())).to.be.reverted;

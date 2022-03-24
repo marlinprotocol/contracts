@@ -676,6 +676,22 @@ contract StakeManager is
         return stashes[_stashId].amounts[_tokenId];
     }
 
+    function transfer(bytes32 _stashId, address _to) external onlyAdmin {
+        bytes32[] memory _tokens = tokenList;
+        uint256[] memory _amounts = new uint256[](_tokens.length);
+        for(uint256 i=0; i < _tokens.length; i++) {
+            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
+        }
+
+        address _from = stashes[_stashId].staker;
+        address _delegatedCluster = stashes[_stashId].delegatedCluster;
+
+        _undelegate(_from, _stashId, _tokens, _amounts, _delegatedCluster);
+        bytes32 _newStashId = _newStash(_to);
+        _move(_stashId, _newStashId, _tokens, _amounts);
+        _delegate(_to, _newStashId, _tokens, _amounts, _delegatedCluster);
+    }
+
 //-------------------------------- Stash externals end --------------------------------//
 
 //-------------------------------- Gateway start --------------------------------//

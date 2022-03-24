@@ -37,6 +37,7 @@ contract Bridge is
     }
 
 //-------------------------------- Overrides start --------------------------------//
+
     function supportsInterface(bytes4 interfaceId) public view virtual override( ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool){
         return super.supportsInterface(interfaceId);
     }
@@ -47,6 +48,9 @@ contract Bridge is
 
     function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable){
         super._revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
     function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
@@ -54,28 +58,29 @@ contract Bridge is
 //-------------------------------- Overrides ends --------------------------------//
 
 //-------------------------------- Initializer start --------------------------------//
-    
+
     uint256[50] private __gap1;
 
     function initialize(
         address _mpond,
         address _pond,
-        address _governanceProxy
+        address _stakingContract
     ) public initializer {
         mpond = MPond(_mpond);
         pond = Pond(_pond);
+        stakingContract = _stakingContract;
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(GOVERNANCE_ROLE, _governanceProxy);
+        _setupRole(GOVERNANCE_ROLE, _msgSender());
 
         startTime = block.timestamp;
         liquidityStartTime = block.timestamp;
-        liquidityBp = 1000;
-        lockTimeEpochs = 180;
-        liquidityEpochLength = 180 days;
+        liquidityBp = 55;
+        lockTimeEpochs = 1;
+        liquidityEpochLength = 1 days;
     }
 
 //-------------------------------- Initializer end --------------------------------//
-    
+
     uint256 public constant pondPerMpond = 1000000;
     uint256 public constant epochLength = 1 days;
     uint256 public constant liquidityStartEpoch = 1;
@@ -87,7 +92,6 @@ contract Bridge is
 
     MPond public mpond;
     Pond public pond;
-    address public governanceProxy;
     uint256 public startTime;
     uint256 public liquidityStartTime;
 
@@ -115,43 +119,23 @@ contract Bridge is
     address public stakingContract;
 
 
-    function changeStakingContract(address _newAddr) external {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
-                hasRole(GOVERNANCE_ROLE, _msgSender()),
-            "Liquidity can be  changed by governance or owner"
-        );
+    function changeStakingContract(address _newAddr) external onlyGovernance {
         stakingContract = _newAddr;
     }
 
-    function changeLiquidityBp(uint256 _newLbp) external {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
-                hasRole(GOVERNANCE_ROLE, _msgSender()),
-            "Liquidity can be only changed by governance or owner"
-        );
+    function changeLiquidityBp(uint256 _newLbp) external onlyGovernance {
         liquidityBp = _newLbp;
     }
 
     // input should be number of days
-    function changeLockTimeEpochs(uint256 _newLockTimeEpochs) external {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
-                hasRole(GOVERNANCE_ROLE, _msgSender()),
-            "LockTime can be only changed by goveranance or owner"
-        );
+    function changeLockTimeEpochs(uint256 _newLockTimeEpochs) external onlyGovernance {
         lockTimeEpochs = _newLockTimeEpochs;
     }
 
     // input should be number of days
     function changeLiquidityEpochLength(uint256 _newLiquidityEpochLength)
-        external
+        external onlyGovernance
     {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()) ||
-                hasRole(GOVERNANCE_ROLE, _msgSender()),
-            "LiquidityEpoch length can only be changed by governance or owner"
-        );
         liquidityEpochLength = _newLiquidityEpochLength * 1 days;
     }
 
@@ -241,30 +225,30 @@ contract Bridge is
         return _amount * pondPerMpond;
     }
 
-    function placeRequest(uint256 amount) external returns (uint256, uint256) {
-        uint256 epoch = getCurrentEpoch();
-        uint256 amountInRequests = totalAmountPlacedInRequests[_msgSender()];
-        uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(_msgSender()) +
-            mpond.getDelegates(stakingContract, _msgSender()) -
-            amountInRequests;
-        require(
-            amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
-            "Request should be placed with amount greater than 0 and less than remainingAmount"
-        );
-        // require(
-        //     amount != 0 && amount <= mpond.balanceOf(_msgSender()),
-        //     "Request should be placed with amount greater than 0 and less than the balance of the user"
-        // );
-        require(
-            requests[_msgSender()][epoch].amount == 0,
-            "Only one request per epoch is acceptable"
-        );
-        Requests memory _req = Requests(amount, epoch + lockTimeEpochs);
-        requests[_msgSender()][epoch] = _req;
-        totalAmountPlacedInRequests[_msgSender()] = amountInRequests + amount;
-        emit PlacedRequest(_msgSender(), epoch, _req.releaseEpoch);
-        return (epoch, _req.releaseEpoch);
-    }
+    // function placeRequest(uint256 amount) external returns (uint256, uint256) {
+    //     uint256 epoch = getCurrentEpoch();
+    //     uint256 amountInRequests = totalAmountPlacedInRequests[_msgSender()];
+    //     uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(_msgSender()) +
+    //         mpond.getDelegates(stakingContract, _msgSender()) -
+    //         amountInRequests;
+    //     require(
+    //         amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
+    //         "Request should be placed with amount greater than 0 and less than remainingAmount"
+    //     );
+    //     // require(
+    //     //     amount != 0 && amount <= mpond.balanceOf(_msgSender()),
+    //     //     "Request should be placed with amount greater than 0 and less than the balance of the user"
+    //     // );
+    //     require(
+    //         requests[_msgSender()][epoch].amount == 0,
+    //         "Only one request per epoch is acceptable"
+    //     );
+    //     Requests memory _req = Requests(amount, epoch + lockTimeEpochs);
+    //     requests[_msgSender()][epoch] = _req;
+    //     totalAmountPlacedInRequests[_msgSender()] = amountInRequests + amount;
+    //     emit PlacedRequest(_msgSender(), epoch, _req.releaseEpoch);
+    //     return (epoch, _req.releaseEpoch);
+    // }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
         external
@@ -309,28 +293,5 @@ contract Bridge is
         mpond.transfer(_msgSender(), _mpond);
         emit PondToMPond(_msgSender(), _mpond);
         return pondToDeduct;
-    }
-
-    function transferOwner(address newOwner) public onlyAdmin {
-        require(
-            newOwner != address(0),
-            "BridgeLogic: newOwner is the zero address"
-        );
-
-        _revokeRole(DEFAULT_ADMIN_ROLE, getRoleMember(DEFAULT_ADMIN_ROLE, 0));
-        _grantRole(DEFAULT_ADMIN_ROLE, newOwner);
-    }
-
-    function renounceOwnership() public onlyAdmin {
-        _revokeRole(DEFAULT_ADMIN_ROLE, getRoleMember(DEFAULT_ADMIN_ROLE, 0));
-    }
-
-    function transferGovernance(address newGoverance) public onlyGovernance {
-        require(
-            newGoverance != address(0),
-            "BridgeLogic: newGovernance is the zero address"
-        );
-        _revokeRole(GOVERNANCE_ROLE, getRoleMember(GOVERNANCE_ROLE, 0));
-        _grantRole(GOVERNANCE_ROLE, newGoverance);
     }
 }
