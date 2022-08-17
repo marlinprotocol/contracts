@@ -14,11 +14,16 @@ export default {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: [process.env.ETH_DEPLOYER_KEY],
     },
+    arb2: {
+      url: "http://127.0.0.1:1248/",
+      accounts: "remote",
+      timeout: 600000,
+    },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
       accounts: [process.env.ARBITRUM_DEPLOYER_KEY],
     },
-    arbitrumRinkeby: {
+    arbRinkeby: {
       url: "https://rinkeby.arbitrum.io/rpc",
       accounts: [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY],
     },
@@ -55,9 +60,9 @@ export default {
     },
   },
   etherscan: {
-    // apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY,
     // apiKey: process.env.ARBISCAN_API_KEY,
-    apiKey: process.env.FTMSCAN_API_KEY,
+    // apiKey: process.env.FTMSCAN_API_KEY,
   }
 };
 

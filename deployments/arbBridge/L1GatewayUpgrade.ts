@@ -37,6 +37,7 @@ async function main() {
 
   const L1Gateway = await ethers.getContractFactory('L1Gateway');
   let l1Gateway = await upgrades.upgradeProxy(addresses[chainId][name], L1Gateway, { kind: "uups" });
+  // let l1Gateway = await upgrades.upgradeProxy(addresses[chainId][name], L1Gateway, { kind: "uups", unsafeAllowRenames: true });
 
   console.log("Deployed addr:", l1Gateway.address);
 }
