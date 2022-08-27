@@ -81,7 +81,7 @@ contract Pond is
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
     address public l1Address;
-    uint256[50] private __gap1;
+    uint256[49] private __gap1;
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
