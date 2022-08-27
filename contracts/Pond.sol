@@ -12,6 +12,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+import "./IArbToken.sol";
+
 contract Pond is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -21,7 +23,8 @@ contract Pond is
     ERC20Upgradeable,  // token
     ERC20CappedUpgradeable,  // supply cap
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IArbToken  // Arbitrum bridge support
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -70,5 +73,38 @@ contract Pond is
     function _authorizeUpgrade(address /*account*/) internal view override {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Pond: must be admin to upgrade");
     }
+
+//-------------------------------- Bridge start --------------------------------//
+
+    // The bridge mint/burn functions are implemented using transfers to/from the token contract itself
+
+    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+
+    address public l1Address;
+    uint256[50] private __gap1;
+
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+    modifier onlyBridge() {
+        require(hasRole(BRIDGE_ROLE, _msgSender()));
+        _;
+    }
+
+    function setL1Address(address _l1Address) external onlyAdmin {
+        l1Address = _l1Address;
+    }
+
+    function bridgeMint(address _account, uint256 _amount) external onlyBridge {
+        _transfer(address(this), _account, _amount);
+    }
+
+    function bridgeBurn(address _account, uint256 _amount) external onlyBridge {
+        _transfer(_account, address(this), _amount);
+    }
+
+//-------------------------------- Bridge end --------------------------------//
 }
 
