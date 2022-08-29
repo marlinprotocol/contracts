@@ -317,6 +317,22 @@ describe('Pond', function () {
   it('non admin cannot set l1 address', async function () {
     await expect(pond.connect(signers[1]).setL1Address(addrs[1])).to.be.reverted;
   });
+
+  it('admin can withdraw', async function () {
+    let balance = await pond.balanceOf(addrs[0]);
+    await pond.transfer(pond.address, 1000);
+    expect(await pond.balanceOf(pond.address)).to.equal(1000);
+    expect(await pond.balanceOf(addrs[0])).to.equal(balance.sub(1000));
+
+    await pond.withdraw(200);
+    expect(await pond.balanceOf(pond.address)).to.equal(800);
+    expect(await pond.balanceOf(addrs[0])).to.equal(balance.sub(800));
+  });
+
+  it('non admin cannot withdraw', async function () {
+    await pond.transfer(pond.address, 1000);
+    await expect(pond.connect(signers[1]).withdraw(200)).to.be.reverted;
+  });
 });
 
 describe('Pond', function () {
