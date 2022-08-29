@@ -76,7 +76,8 @@ contract Pond is
 
 //-------------------------------- Bridge start --------------------------------//
 
-    // The bridge mint/burn functions are implemented using transfers to/from the token contract itself
+    // bridge mint/burn functions are implemented using transfers to/from the token contract itself
+    // limits exposure to contract balance in case the bridge is compromised
 
     bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
 
@@ -103,6 +104,10 @@ contract Pond is
 
     function bridgeBurn(address _account, uint256 _amount) external onlyBridge {
         _transfer(_account, address(this), _amount);
+    }
+
+    function withdraw(uint256 _amount) external onlyAdmin {
+        _transfer(address(this), _msgSender(), _amount);
     }
 
 //-------------------------------- Bridge end --------------------------------//
