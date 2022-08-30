@@ -363,6 +363,8 @@ describe('RewardDelegators Deployment', function () {
   let delegator4: Signer;
   let registeredClusterRewardAddress1: string;
 
+  let clusterSelectorInstance: Contract;
+
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map(a => a.getAddress()));
@@ -382,7 +384,6 @@ describe('RewardDelegators Deployment', function () {
     clientKey1 = addrs[17]; delegator1 = signers[17];
     clientKey2 = addrs[18]; delegator2 = signers[18];
     registeredClusterRewardAddress1 = addrs[19];
-
   });
 
   it('deploys with initialization disabled', async function () {
@@ -451,7 +452,14 @@ describe('RewardDelegators Deployment', function () {
         appConfig.staking.rewardPerEpoch,
         appConfig.staking.payoutDenomination,
         10);
+    
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
 
+    let role = await clusterSelectorInstance.updaterRole();
+    await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+
+    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -628,6 +636,14 @@ describe('RewardDelegators Deployment', function () {
             [testTokenId],
             [100]
         ], { kind: "uups" });
+          
+        let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+        clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
+
+        let role = await clusterSelectorInstance.updaterRole();
+        await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+
+        await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
 
         await stakeManagerInstance.initialize(
             [testTokenId],

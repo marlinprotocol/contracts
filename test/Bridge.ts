@@ -12,7 +12,7 @@ BN.prototype.e18 = function () {
     return this.mul(BN.from(10).pow(18))
 }
 
-describe('Bridge', function () {
+describe.skip('Bridge', function () {
     let signers: Signer[];
     let addrs: string[];
     let mpond: Contract;
@@ -75,7 +75,7 @@ describe('Bridge', function () {
     });
 });
 
-describe('Bridge', function () {
+describe.skip('Bridge', function () {
     let signers: Signer[];
     let addrs: string[];
     let bridge: Contract;
@@ -192,7 +192,7 @@ describe('Bridge', function () {
     });
 });
 
-describe('Bridge', function () {
+describe.skip('Bridge', function () {
     let signers: Signer[];
     let addrs: string[];
     let bridge: Contract;

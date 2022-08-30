@@ -470,6 +470,7 @@ describe('StakeManager', function() {
   let pondInstance: Contract;
   let mpondInstance: Contract;
   let rewardDelegatorsInstance: Contract;
+  let clusterSelectorInstance: Contract;
   let clusterRewardsInstance: Contract;
   let clusterRegistryInstance: Contract;
   let pondTokenId: String;
@@ -524,6 +525,14 @@ describe('StakeManager', function() {
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     );
+
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
+
+    let role = await clusterSelectorInstance.updaterRole();
+    await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+
+    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
 
     clusterRewardsInstance.initialize(
       addrs[7],
@@ -982,6 +991,7 @@ describe('StakeManager Deployment', function () {
   let clusterRegistryInstance: Contract;
   let clusterRewardsInstance: Contract;
   let rewardDelegatorsInstance: Contract;
+  let clusterSelectorInstance: Contract;
   const COMMISSION_LOCK = "0x7877e81172e1242eb265a9ff5a14c913d44197a6e15e0bc1d984f40be9096403";
   const SWITCH_NETWORK_LOCK = "0x18981a75d138782f14f3fbd4153783a0dc1558f28dc5538bf045e7de84cb2ae2";
   const UNREGISTER_LOCK = "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a73cc8c7080c";
@@ -1079,6 +1089,14 @@ describe('StakeManager Deployment', function () {
       [PONDTokenId, MPONDTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     );
+
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
+
+    let role = await clusterSelectorInstance.updaterRole();
+    await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+
+    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
 
     clusterRewardsInstance.initialize(
       feeder,

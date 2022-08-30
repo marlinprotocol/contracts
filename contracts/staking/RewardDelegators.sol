@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IClusterRewards.sol";
 import "./IClusterRegistry.sol";
+import "./IClusterSelector.sol";
 
 
 contract RewardDelegators is
@@ -224,6 +225,7 @@ contract RewardDelegators is
     ) internal returns(uint256 _aggregateReward) {
         _updateRewards(_cluster);
 
+
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
             uint256 _amount = _amounts[i];
@@ -246,6 +248,24 @@ contract RewardDelegators is
 
             _aggregateReward = _aggregateReward + _reward;
         }
+
+        uint256 totalDelegations;
+        for (uint256 index = 0; index < _tokens.length; index++) {
+            bytes32 _token = _tokens[index];
+            
+            // assuming this is pond
+            if(_token == tokenList[0]){
+                totalDelegations += clusters[_cluster].totalDelegations[_token];
+            }
+            // assuming this is MPond
+            else if(_token == tokenList[1]){
+                totalDelegations += (1_000_000 * clusters[_cluster].totalDelegations[_token]);
+            }else{
+                revert("Resolve this issue");
+            }
+        }
+
+        clusterSelector.insert(_cluster, totalDelegations);
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -410,5 +430,17 @@ contract RewardDelegators is
                 _updateBalances(_cluster, _delegator, _tokens[_tidx], _amounts[_tidx], _isDelegation);
             }
         }
+    }
+    
+    IClusterSelector public clusterSelector;
+    event ClusterSelectorUpdated(IClusterSelector newClusterSelector);
+    
+    function updateClusterSelector(IClusterSelector _clusterSelector) onlyAdmin external{
+        _updateClusterSelector(_clusterSelector);
+    }
+
+    function _updateClusterSelector(IClusterSelector _clusterSelector) internal {
+        clusterSelector = _clusterSelector;
+        emit ClusterSelectorUpdated(_clusterSelector);
     }
 }
