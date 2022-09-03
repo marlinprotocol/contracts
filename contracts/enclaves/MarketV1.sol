@@ -9,6 +9,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../lock/Lock.sol";
 
 
 contract MarketV1 is Lock {
@@ -28,9 +30,9 @@ contract MarketV1 is Lock {
 
     event ProviderAdded(address provider, string cp);
     event ProviderRemoved(address provider);
-    event ProviderUpdatedWithCp(address provider, uint256 newCp);
+    event ProviderUpdatedWithCp(address provider, string newCp);
 
-    function _providerAdd(address _provider, string _cp) internal {
+    function _providerAdd(address _provider, string memory _cp) internal {
         providers[_provider] = Provider(_cp);
 
         emit ProviderAdded(_provider, _cp);
@@ -42,13 +44,13 @@ contract MarketV1 is Lock {
         emit ProviderRemoved(_provider);
     }
 
-    function _providerUpdateWithCp(address _provider, string _cp) internal {
+    function _providerUpdateWithCp(address _provider, string memory _cp) internal {
         providers[_provider].cp = _cp;
 
-        emit ProviderUpdatedWithCp(_provider);
+        emit ProviderUpdatedWithCp(_provider, _cp);
     }
 
-    function providerAdd(string _cp) external {
+    function providerAdd(string memory _cp) external {
         return _providerAdd(msg.sender, _cp);
     }
 
@@ -56,7 +58,7 @@ contract MarketV1 is Lock {
         return _providerRemove(msg.sender);
     }
 
-    function providerUpdateWithCp(string _cp) external {
+    function providerUpdateWithCp(string memory _cp) external {
         return _providerUpdateWithCp(msg.sender, _cp);
     }
 
@@ -72,9 +74,9 @@ contract MarketV1 is Lock {
         uint256 rate;
         uint256 balance;
         uint256 lastSettled;
-    };
+    }
 
-    mapping(uint256 => address) public jobs;
+    mapping(uint256 => Job) public jobs;
     uint256 jobIndex;
 
     IERC20 token;
@@ -105,7 +107,7 @@ contract MarketV1 is Lock {
         jobIndex = _jobIndex + 1;
         jobs[_jobIndex] = Job(_owner, _provider, _rate, _balance, block.timestamp);
 
-        emit JobOpened(_jobIndex, _owner, _provider, _rate, _timestamp);
+        emit JobOpened(_jobIndex, _owner, _provider, _rate, block.timestamp);
     }
 
     function _jobSettle(uint256 _job) internal {
@@ -121,7 +123,7 @@ contract MarketV1 is Lock {
             _amount = _balance;
             _balance = 0;
         } else {
-            _balance -= amount;
+            _balance -= _amount;
         }
 
         _withdraw(_provider, _amount);
@@ -134,9 +136,9 @@ contract MarketV1 is Lock {
 
     function _jobClose(uint256 _job) internal {
         _jobSettle(_job);
-        uint256 _balance = jobs[_job]._balance;
+        uint256 _balance = jobs[_job].balance;
         if(_balance > 0) {
-            address _owner = jobs[_job]._owner;
+            address _owner = jobs[_job].owner;
             _withdraw(_owner, _balance);
         }
 
