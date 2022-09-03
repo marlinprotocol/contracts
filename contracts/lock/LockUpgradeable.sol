@@ -2,8 +2,14 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
-contract Lock {
+
+contract LockUpgradeable is
+    Initializable,  // initializer
+    ContextUpgradeable  // _msgSender, _msgData
+{
 
     struct Lock {
         uint256 unlockTime;
@@ -22,6 +28,10 @@ contract Lock {
     event LockWaitTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
     event LockCreated(bytes32 indexed selector, bytes32 indexed key, uint256 iValue, uint256 unlockTime);
     event LockDeleted(bytes32 indexed selector, bytes32 indexed key, uint256 iValue);
+
+    function __Lock_init_unchained(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) internal onlyInitializing {
+        _updateLockWaitTimes(_selectors, _lockWaitTimes);
+    }
 
     function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
@@ -77,9 +87,17 @@ contract Lock {
         emit LockCreated(_selector, _toKey, _iValue, _unlockTime);
     }
 
-    function _updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) internal {
-        emit LockWaitTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
-        lockWaitTime[_selector] = _updatedWaitTime;
+    function _updateLockWaitTime(bytes32 _selector, uint256 _newLockWaitTime) internal {
+        emit LockWaitTimeUpdated(_selector, lockWaitTime[_selector], _newLockWaitTime);
+        lockWaitTime[_selector] = _newLockWaitTime;
+    }
+
+    function _updateLockWaitTimes(bytes32[] memory _selectors, uint256[] memory _newLockWaitTimes) internal {
+        require(_selectors.length == _newLockWaitTimes.length, "Lock: length mismatch");
+
+        for(uint256 _i = 0; _i < _selectors.length; _i++) {
+            _updateLockWaitTime(_selectors[_i], _newLockWaitTimes[_i]);
+        }
     }
 }
 
