@@ -10,15 +10,83 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../lock/Lock.sol";
+import "../lock/LockUpgradeable.sol";
 
 
-contract MarketV1 is Lock {
-//-------------------------------- Constructor start --------------------------------//
+contract MarketV1 is
+    Initializable,  // initializer
+    ContextUpgradeable,  // _msgSender, _msgData
+    ERC165Upgradeable,  // supportsInterface
+    AccessControlUpgradeable,  // RBAC
+    AccessControlEnumerableUpgradeable,  // RBAC enumeration
+    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable,  // public upgrade
+    LockUpgradeable  // time locks
+{
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap0;
 
-    constructor() {}
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor() initializer {}
 
-//-------------------------------- Constructor end --------------------------------//
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+//-------------------------------- Overrides start --------------------------------//
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
+    }
+
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
+    }
+
+    function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
+
+//-------------------------------- Overrides end --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
+
+    uint256[50] private __gap1;
+
+    function initialize(
+        IERC20 _token,
+        bytes32[] memory _selectors,
+        uint256[] memory _lockWaitTimes
+    )
+        initializer
+        public
+    {
+        require(
+            _selectors.length == _lockWaitTimes.length
+        );
+
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+        __Lock_init_unchained(_selectors, _lockWaitTimes);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
+        _updateToken(_token);
+    }
+
+//-------------------------------- Initializer end --------------------------------//
 
 //-------------------------------- Providers start --------------------------------//
 
@@ -27,6 +95,8 @@ contract MarketV1 is Lock {
     }
 
     mapping(address => Provider) providers;
+
+    uint256[49] private __gap2;
 
     event ProviderAdded(address provider, string cp);
     event ProviderRemoved(address provider);
@@ -51,15 +121,15 @@ contract MarketV1 is Lock {
     }
 
     function providerAdd(string memory _cp) external {
-        return _providerAdd(msg.sender, _cp);
+        return _providerAdd(_msgSender(), _cp);
     }
 
     function providerRemove() external {
-        return _providerRemove(msg.sender);
+        return _providerRemove(_msgSender());
     }
 
     function providerUpdateWithCp(string memory _cp) external {
-        return _providerUpdateWithCp(msg.sender, _cp);
+        return _providerUpdateWithCp(_msgSender(), _cp);
     }
 
 //-------------------------------- Providers end --------------------------------//
@@ -81,6 +151,10 @@ contract MarketV1 is Lock {
 
     IERC20 token;
 
+    uint256[47] private __gap3;
+
+    event TokenUpdated(IERC20 oldToken, IERC20 newToken);
+
     event JobOpened(uint256 job, address owner, address provider, uint256 rate, uint256 timestamp);
     event JobSettled(uint256 job, uint256 amount);
     event JobClosed(uint256 job);
@@ -89,8 +163,13 @@ contract MarketV1 is Lock {
     event JobRevisedRate(uint256 job, uint256 newRate);
 
     modifier onlyJobOwner(uint256 _job) {
-        require(jobs[_job].owner == msg.sender, "only job owner");
+        require(jobs[_job].owner == _msgSender(), "only job owner");
         _;
+    }
+
+    function _updateToken(IERC20 _token) internal {
+        emit TokenUpdated(token, _token);
+        token = _token;
     }
 
     function _deposit(address _from, uint256 _amount) internal {
@@ -172,7 +251,7 @@ contract MarketV1 is Lock {
     }
 
     function jobOpen(address _provider, uint256 _rate, uint256 _balance) external {
-        return _jobOpen(msg.sender, _provider, _rate, _balance);
+        return _jobOpen(_msgSender(), _provider, _rate, _balance);
     }
 
     function jobSettle(uint256 _job) external {
@@ -187,18 +266,18 @@ contract MarketV1 is Lock {
 
         // non-0 rate jobs can be closed after proper notice
         uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, bytes32(_job));
-        // 0 rate implies closing ot the control plane
+        // 0 rate implies closing to the control plane
         require(_newRate == 0);
 
         return _jobClose(_job);
     }
 
     function jobDeposit(uint256 _job, uint256 _amount) external {
-        return _jobDeposit(_job, msg.sender, _amount);
+        return _jobDeposit(_job, _msgSender(), _amount);
     }
 
     function jobWithdraw(uint256 _job, uint256 _amount) external onlyJobOwner(_job) {
-        return _jobWithdraw(_job, msg.sender, _amount);
+        return _jobWithdraw(_job, _msgSender(), _amount);
     }
 
     function jobReviseRateInitiate(uint256 _job, uint256 _newRate) external onlyJobOwner(_job) {
@@ -206,6 +285,7 @@ contract MarketV1 is Lock {
     }
 
     function jobReviseRateCancel(uint256 _job) external onlyJobOwner(_job) {
+        require(_lockStatus(RATE_LOCK_SELECTOR, bytes32(_job)) != LockStatus.None);
         _revertLock(RATE_LOCK_SELECTOR, bytes32(_job));
     }
 
