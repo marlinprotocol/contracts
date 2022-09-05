@@ -48,11 +48,12 @@ contract Pond is
         __UUPSUpgradeable_init_unchained();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setRoleAdmin(BRIDGE_ROLE, DEFAULT_ADMIN_ROLE);
         _mint(_msgSender(), 10000000000e18);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
-        return super.supportsInterface(interfaceId);
+        return interfaceId == type(IArbToken).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {

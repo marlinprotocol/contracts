@@ -105,6 +105,16 @@ describe('Pond', function () {
     const iid = makeInterfaceId(interfaces);
     expect(await pond.supportsInterface(iid)).to.be.true;
   });
+
+  it('supports IArbToken', async function () {
+    let interfaces = [
+      'bridgeMint(address,uint256)',
+      'bridgeBurn(address,uint256)',
+      'l1Address()',
+    ];
+    const iid = makeInterfaceId(interfaces);
+    expect(await pond.supportsInterface(iid)).to.be.true;
+  });
 });
 
 describe('Pond', function () {
