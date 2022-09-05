@@ -103,6 +103,16 @@ describe('MPond', function () {
     const iid = makeInterfaceId(interfaces);
     expect(await mpond.supportsInterface(iid)).to.be.true;
   });
+
+  it('supports IArbToken', async function () {
+    let interfaces = [
+      'bridgeMint(address,uint256)',
+      'bridgeBurn(address,uint256)',
+      'l1Address()',
+    ];
+    const iid = makeInterfaceId(interfaces);
+    expect(await mpond.supportsInterface(iid)).to.be.true;
+  });
 });
 
 describe('MPond', function () {
