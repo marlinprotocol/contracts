@@ -532,7 +532,7 @@ describe('StakeManager', function() {
     let role = await clusterSelectorInstance.updaterRole();
     await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
+    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
 
     clusterRewardsInstance.initialize(
       addrs[7],
@@ -1096,7 +1096,7 @@ describe('StakeManager Deployment', function () {
     let role = await clusterSelectorInstance.updaterRole();
     await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
+    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
 
     clusterRewardsInstance.initialize(
       feeder,

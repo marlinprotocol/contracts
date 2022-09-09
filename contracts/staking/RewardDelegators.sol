@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IClusterRewards.sol";
 import "./IClusterRegistry.sol";
-import "./IClusterSelector.sol";
+import "./EpochSelector.sol";
 
 
 contract RewardDelegators is
@@ -265,7 +265,7 @@ contract RewardDelegators is
             }
         }
 
-        clusterSelector.insert(_cluster, totalDelegations);
+        epochSelector.insert(_cluster, totalDelegations);
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -432,15 +432,15 @@ contract RewardDelegators is
         }
     }
     
-    IClusterSelector public clusterSelector;
-    event ClusterSelectorUpdated(IClusterSelector newClusterSelector);
+    IEpochSelector public epochSelector;
+    event EpochSelectorUpdated(IEpochSelector newEpochSelector);
     
-    function updateClusterSelector(IClusterSelector _clusterSelector) onlyAdmin external{
-        _updateClusterSelector(_clusterSelector);
+    function updateEpochSelector(IEpochSelector _epochSelector) onlyAdmin external{
+        _updateEpochSelector(_epochSelector);
     }
 
-    function _updateClusterSelector(IClusterSelector _clusterSelector) internal {
-        clusterSelector = _clusterSelector;
-        emit ClusterSelectorUpdated(_clusterSelector);
+    function _updateEpochSelector(IEpochSelector _epochSelector) internal {
+        epochSelector = _epochSelector;
+        emit EpochSelectorUpdated(_epochSelector);
     }
 }

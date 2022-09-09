@@ -459,7 +459,7 @@ describe('RewardDelegators Deployment', function () {
     let role = await clusterSelectorInstance.updaterRole();
     await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
+    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -643,7 +643,7 @@ describe('RewardDelegators Deployment', function () {
         let role = await clusterSelectorInstance.updaterRole();
         await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-        await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
+        await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
 
         await stakeManagerInstance.initialize(
             [testTokenId],
