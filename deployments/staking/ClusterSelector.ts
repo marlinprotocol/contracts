@@ -17,8 +17,8 @@ async function main() {
     addresses[chainId] = {};
   }
 
-  if (addresses[chainId]["ClusterSelector"] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]["ClusterSelector"]);
+  if (addresses[chainId]["EpochSelector"] !== undefined) {
+    console.log("Existing deployment:", addresses[chainId]["EpochSelector"]);
     return;
   }
 
@@ -27,12 +27,12 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-  const clusterSelector = await ClusterSelector.deploy(owner);
+  const EpochSelector = await ethers.getContractFactory("EpochSelector");
+  const epochSelector = await EpochSelector.deploy(owner);
 
-  console.log("Deployed addr:", clusterSelector.address);
+  console.log("Deployed addr:", epochSelector.address);
 
-  addresses[chainId]["ClusterSelector"] = clusterSelector.address;
+  addresses[chainId]["EpochSelector"] = epochSelector.address;
 
   fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
 }

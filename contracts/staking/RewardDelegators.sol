@@ -22,7 +22,7 @@ contract RewardDelegators is
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable  // public upgrade
-{
+{   
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -265,7 +265,14 @@ contract RewardDelegators is
             }
         }
 
-        epochSelector.insert(_cluster, totalDelegations);
+        // if total delegation is more than 0.5 million pond, than insert into selector
+        if(totalDelegations >= 500_000){
+            epochSelector.insert(_cluster, sqrt(totalDelegations));
+        }
+        // if not, update it to zero
+        else{
+            epochSelector.insert(_cluster, 0);
+        }
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -442,5 +449,14 @@ contract RewardDelegators is
     function _updateEpochSelector(IEpochSelector _epochSelector) internal {
         epochSelector = _epochSelector;
         emit EpochSelectorUpdated(_epochSelector);
+    }
+
+    function sqrt(uint256 x) public pure returns (uint256 y) {
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
     }
 }

@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-// import "./ClusterSelector.sol";
-
 interface IClusterSelector {
     struct Node {
         address cluster; // sorting condition
@@ -25,6 +23,8 @@ interface IEpochSelector is IClusterSelector {
 
     function getCurrentClusters() external returns (address[] memory nodes);
 }
+
+// import "./ClusterSelector.sol";
 
 // OpenZeppelin Contracts (last updated v4.7.0) (access/AccessControl.sol)
 
@@ -931,20 +931,32 @@ abstract contract SelectorHelper is IClusterSelector {
     //     console2.log("************************************");
     // }
 
-    // function _printArray(string memory data, address[] memory array) internal view {
+    // function _printArray(string memory data, bytes memory arrayBytes) internal view {
     //     console2.log(data);
+    //     address[] memory array = abi.decode(arrayBytes, (address[]));
     //     console2.log("[");
     //     for (uint256 index = 0; index < array.length; index++) {
-    //         console2.log(array[index]);
+    //         console2.log(index, array[index]);
     //     }
     //     console2.log("]");
     // }
 
-    // function _printArray(string memory data, address[256] memory array) internal view {
+    // function _printArray(string memory data, address[] memory array) internal view {
     //     console2.log(data);
     //     console2.log("[");
     //     for (uint256 index = 0; index < array.length; index++) {
-    //         console2.log(array[index]);
+    //         console2.log(index, array[index]);
+    //     }
+    //     console2.log("]");
+    // }
+
+    // function _printPaths(string memory data, bytes[] memory bytesdata) internal view {
+    //     console2.log(data);
+
+    //     console2.log("[");
+    //     for (uint256 index = 0; index < bytesdata.length; index++) {
+    //         address[] memory _paths = abi.decode(bytesdata[index], (address[]));
+    //         _printArray("subarray ", _paths);
     //     }
     //     console2.log("]");
     // }
@@ -1145,6 +1157,7 @@ contract ClusterSelector is SingleSelector {
             (address _node, bytes memory _path) = _selectTopCluster(root, searchNumber, selectedNodes, pathToSelectedNodes, currentPath, 0);
             selectedNodes[index] = _node;
             pathToSelectedNodes[index] = _path;
+            // console2.log("length of path selected", _path.length);
             // _printArray("path that I need to check", pathToSelectedNodes[index]);
         }
         return selectedNodes;
@@ -1158,11 +1171,14 @@ contract ClusterSelector is SingleSelector {
         bytes memory currentNodePath,
         uint256 parentIndex
     ) internal view returns (address, bytes memory) {
+        // console2.log("====================================================================================");
         // console2.log("finding cluster", _root);
         // console2.log("searchNumber", searchNumber);
         // console2.log("parentIndex", parentIndex);
+        // _printNode(_root);
         // console2.log("length of parent path", currentNodePath.length);
         // _printArray("Selected clusters", selectedNodes);
+        // _printPaths("paths to selected clusters", pathsToSelectedNodes);
 
         Node memory node = nodes[_root];
         (uint256 leftWeight, uint256 rightWeight) = _getModifiedWeightes(node, selectedNodes, pathsToSelectedNodes);
@@ -1175,6 +1191,7 @@ contract ClusterSelector is SingleSelector {
             // console2.log("_root is already selected", _root);
             // console2.log("searchNumber", searchNumber);
             // _printArray("selected nodes this _root", selectedNodes);
+
             (uint256 index1, uint256 index2) = ClusterLib._getOnlyTwoIndexesWithWeight(leftWeight, rightWeight);
 
             // console2.log("leftWeight", leftWeight);
@@ -1186,10 +1203,12 @@ contract ClusterSelector is SingleSelector {
             currentNodePath = _addAddressToEncodedArray(currentNodePath, _root);
 
             if (searchNumber <= index1) {
+                // console2.log(_root, "Selected and moved to left");
                 // currentNodePath[parentIndex] = _root;
                 parentIndex++;
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else if (searchNumber > index1 && searchNumber <= index2) {
+                // console2.log(_root, "Selected and moved to right");
                 // currentNodePath[parentIndex] = _root;
                 parentIndex++;
                 return
@@ -1213,17 +1232,18 @@ contract ClusterSelector is SingleSelector {
             currentNodePath = _addAddressToEncodedArray(currentNodePath, _root);
 
             if (searchNumber <= index1) {
-                // console2.log("case 1");
+                // console2.log(_root, "Not select and moved to left");
                 // currentNodePath[parentIndex] = _root;
                 parentIndex++;
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else if (searchNumber > index1 && searchNumber <= index2) {
+                // console2.log(_root, "Wow!, Selected");
                 // console2.log("case 2");
                 // currentNodePath[parentIndex] = _root;
                 // parentIndex++;
                 return (_root, currentNodePath);
             } else if (searchNumber > index2 && searchNumber <= index3) {
-                // console2.log("case 3");
+                // console2.log(_root, "Not select and moved to right");
                 // currentNodePath[parentIndex] = _root;
                 parentIndex++;
                 return
@@ -1277,7 +1297,7 @@ contract ClusterSelector is SingleSelector {
             _newNodePath[index] = _currentNodePath[index];
         }
         _newNodePath[lengthOfNewPath - 1] = toAdd;
-        return abi.encode(_currentNodePath);
+        return abi.encode(_newNodePath);
     }
 
     function sumOfBalancesOfSelectedNodes(address[] memory _nodes) internal view returns (uint256) {
@@ -1307,14 +1327,15 @@ contract EpochSelector is ClusterSelector, IEpochSelector {
         return (block.timestamp - startTime) / epochLength;
     }
 
-    function getCurrentClusters() public override returns (address[] memory nodes) {
+    function getCurrentClusters() public override returns (address[] memory) {
         uint256 epoch = getCurrentEpoch();
-        nodes = clustersSelected[epoch];
+        address[] memory nodes = clustersSelected[epoch];
         if (nodes.length == 0) {
             // select and save from the tree
             clustersSelected[epoch] = selectTopNClusters(block.timestamp, numberOfClustersToSelect);
+            nodes = clustersSelected[epoch];
         }
-        nodes = clustersSelected[epoch];
+        return nodes;
     }
 }
 
