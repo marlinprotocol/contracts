@@ -271,7 +271,7 @@ contract RewardDelegators is
         }
         // if not, update it to zero
         else{
-            epochSelector.insert(_cluster, 0);
+            epochSelector.deleteNode(_cluster);
         }
 
         if(_aggregateReward != 0) {
