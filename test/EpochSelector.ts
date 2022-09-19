@@ -6,6 +6,8 @@ import { expect } from "chai";
 import { Contract } from "ethers";
 import dotenv from "dotenv";
 
+dotenv.config();
+
 type Balances = {
   user: string;
   balance: string;
