@@ -25,12 +25,14 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfElementsInTree = 50;
-  let numberOfSelections: number = 2;
   let numberOfAddressesWithLargeBalances = 2;
+  let numberOfElementsInTree = 20 - numberOfAddressesWithLargeBalances;
+  let numberOfSelections: number = 10;
 
   if (process.env.TEST_ENV == "prod") {
-    numberOfElementsInTree = 20000;
+    numberOfAddressesWithLargeBalances = 10;
+    numberOfClustersToSelect = 5;
+    numberOfElementsInTree = 20000 - numberOfAddressesWithLargeBalances;
     numberOfSelections = 1000;
   }
 
@@ -96,6 +98,9 @@ describe("Testing Epoch Selector", function () {
         .add(data.sumOfLeftBalances)
         .toString();
 
+      let totalElementsInTree = (
+        await epochSelector.callStatic.totalElements()
+      ).toNumber();
       let counter: Counter[] = [];
       for (let index = 0; index < numberOfSelections; index++) {
         let selected = await getSelectedClusters(updater, epochSelector);
@@ -122,7 +127,8 @@ describe("Testing Epoch Selector", function () {
               selectionProbability: balToSelectionProbability(
                 value.balance,
                 totalValueInTree,
-                numberOfClustersToSelect
+                numberOfClustersToSelect,
+                totalElementsInTree
               ),
             });
           }
@@ -171,20 +177,26 @@ function randomAddressGenerator(rand: string): string {
 function balToSelectionProbability(
   bal: string | number,
   total: string | number,
-  numberOfClustersToSelect: string | number
+  numberOfClustersToSelect: string | number,
+  totalElementsInTree: string | number
 ): string {
   const balance = new BN(bal);
-  const totalBalance = new BN(total);
+  let totalBalance = new BN(total);
+  const avgBalance = new BN(total).div(totalElementsInTree);
 
-  const peNotSelected = new BN(1).minus(balance.dividedBy(totalBalance));
+  let peNotSelected = new BN(1).minus(balance.dividedBy(totalBalance));
 
-  return new BN(1)
-    .minus(peNotSelected.exponentiatedBy(numberOfClustersToSelect))
-    .toPrecision(8);
+  for (let index = 0; index < numberOfClustersToSelect; index++) {
+    totalBalance = totalBalance.minus(avgBalance);
+    peNotSelected = peNotSelected.multipliedBy(
+      new BN(1).minus(balance.dividedBy(totalBalance))
+    );
+  }
+  return new BN(1).minus(peNotSelected).toPrecision(8);
 }
 
 function getRandomNumber(): number {
-  return Math.floor(Math.random() * 1000000) + 1;
+  return Math.floor(Math.random() * 10000000000000) + 1;
 }
 
 async function addAddressWithLargeBalance(
