@@ -10,6 +10,7 @@
     "test": "npx hardhat test",
     "solhint": "solhint -f table contracts/**/*.sol",
     "compile": "npx hardhat compile",
+    "clean":"npx hardhat clean",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
     "prettify:test": "npx prettier --write test/*.js"
   },

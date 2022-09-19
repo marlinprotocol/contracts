@@ -363,7 +363,8 @@ describe('RewardDelegators Deployment', function () {
   let delegator4: Signer;
   let registeredClusterRewardAddress1: string;
 
-  let clusterSelectorInstance: Contract;
+  let epochSelectorInstance: Contract;
+  let numberOfClustersToSelect: number = 5;
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -453,13 +454,13 @@ describe('RewardDelegators Deployment', function () {
         appConfig.staking.payoutDenomination,
         10);
     
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect);
 
-    let role = await clusterSelectorInstance.updaterRole();
-    await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+    let role = await epochSelectorInstance.updaterRole();
+    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
+    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -637,13 +638,13 @@ describe('RewardDelegators Deployment', function () {
             [100]
         ], { kind: "uups" });
           
-        let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-        clusterSelectorInstance = await ClusterSelector.deploy(addrs[0]);
+        let EpochSelector = await ethers.getContractFactory("EpochSelector");
+        epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect);
 
-        let role = await clusterSelectorInstance.updaterRole();
-        await clusterSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+        let role = await epochSelectorInstance.updaterRole();
+        await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-        await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(clusterSelectorInstance.address);
+        await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
 
         await stakeManagerInstance.initialize(
             [testTokenId],

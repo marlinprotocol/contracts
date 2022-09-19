@@ -2,46 +2,6 @@
 
 pragma solidity ^0.8.0;
 
-interface IClusterSelector {
-    /// @notice Address of the node
-    /// @param node Address of the node
-    /// @param balance Balance of the node
-    /// @param left Address of the node left of node
-    /// @param right Address of the node right of the node
-    /// @param sumOfLeftBalances Sum of the balance of nodes on left of the node
-    /// @param sumOfRightBalances Sum of the balance of the nodes of right of the node
-    /// @param height Height of the current node
-    struct Node {
-        address node; // sorting condition
-        uint256 balance;
-        address left;
-        address right;
-        uint256 sumOfLeftBalances;
-        uint256 sumOfRightBalances;
-        uint256 height;
-    }
-
-    /// @notice Add an element to tree. If the element already exists, it will be updated
-    /// @param newNode Address of the node to add
-    /// @param balance Balance of the node
-    function insert(address newNode, uint256 balance) external;
-
-    /// @notice Update the balance of the node
-    /// @param cluster Address of the existing node
-    /// @param clusterBalance new balance of the node
-    function update(address cluster, uint256 clusterBalance) external;
-
-    /// @notice Delete a node from the tree
-    /// @param key Address of the node to delete
-    function deleteNode(address key) external;
-}
-
-interface IEpochSelector is IClusterSelector {
-    function getCurrentEpoch() external view returns (uint256);
-
-    function getCurrentClusters() external returns (address[] memory nodes);
-}
-
 // OpenZeppelin Contracts (last updated v4.7.0) (access/AccessControl.sol)
 
 // OpenZeppelin Contracts v4.4.1 (access/IAccessControl.sol)
@@ -511,160 +471,44 @@ abstract contract AccessControl is Context, IAccessControl, ERC165 {
     }
 }
 
-library ClusterLib {
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[16] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[17] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[20] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[256] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[32] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[64] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-            if (element == address(0)) {
-                break;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Returns indexes when only left and right weights are provided
-    /// @param sumOfLeftBalances Sum of balances of nodes on the left
-    /// @param sumOfRightBalances Sum of balances of nodes on the right
-    /// @return First index of the search
-    /// @return Second index of the search
-    function _getOnlyTwoIndexesWithWeight(uint256 sumOfLeftBalances, uint256 sumOfRightBalances) internal pure returns (uint256, uint256) {
-        return (sumOfLeftBalances, sumOfLeftBalances + sumOfRightBalances);
-    }
-
-    /// @notice Returns indexes when only balances and left and right weights are provided
-    /// @param sumOfLeftBalances Sum of balances of nodes on the left
+interface IClusterSelector {
+    /// @notice Address of the node
+    /// @param node Address of the node
     /// @param balance Balance of the node
-    /// @param sumOfRightBalances Sum of balances of nodes on the right
-    /// @return First index of the search
-    /// @return Second index of the search
-    /// @return Third index of the search
-    function _getIndexesWithWeights(
-        uint256 sumOfLeftBalances,
-        uint256 balance,
-        uint256 sumOfRightBalances
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
+    /// @param left Address of the node left of node
+    /// @param right Address of the node right of the node
+    /// @param sumOfLeftBalances Sum of the balance of nodes on left of the node
+    /// @param sumOfRightBalances Sum of the balance of the nodes of right of the node
+    /// @param height Height of the current node
+    struct Node {
+        address node; // sorting condition
+        uint256 balance;
+        address left;
+        address right;
+        uint256 sumOfLeftBalances;
+        uint256 sumOfRightBalances;
+        uint256 height;
     }
 
-    /// @notice Add element to array
-    /// @param array Array to which the element must be added
-    /// @param toAdd Element to add
-    /// @return A new array with element added to it
-    function _addAddressToEncodedArray(bytes memory array, address toAdd) internal pure returns (bytes memory) {
-        address[] memory _currentNodePath = abi.decode(array, (address[]));
-        uint256 lengthOfNewPath = _currentNodePath.length + 1;
+    /// @notice Add an element to tree. If the element already exists, it will be updated
+    /// @param newNode Address of the node to add
+    /// @param balance Balance of the node
+    function insert(address newNode, uint256 balance) external;
 
-        address[] memory _newNodePath = new address[](lengthOfNewPath);
+    /// @notice Update the balance of the node
+    /// @param cluster Address of the existing node
+    /// @param clusterBalance new balance of the node
+    function update(address cluster, uint256 clusterBalance) external;
 
-        for (uint256 index = 0; index < lengthOfNewPath - 1; index++) {
-            _newNodePath[index] = _currentNodePath[index];
-        }
-        _newNodePath[lengthOfNewPath - 1] = toAdd;
-        return abi.encode(_newNodePath);
-    }
+    /// @notice Delete a node from the tree
+    /// @param key Address of the node to delete
+    function deleteNode(address key) external;
+}
+
+interface IEpochSelector is IClusterSelector {
+    function getCurrentEpoch() external view returns (uint256);
+
+    function getCurrentClusters() external returns (address[] memory nodes);
 }
 
 // OpenZeppelin Contracts (last updated v4.7.0) (utils/math/Math.sol)
@@ -891,6 +735,174 @@ library Math {
     }
 }
 
+library ClusterLib {
+    string public constant CANNOT_RR_ADDRESS_ZERO = "1";
+    string public constant CANNOT_LR_ADDRESS_ZERO = "2";
+    string public constant CANNOT_BE_ADDRESS_ZERO = "3";
+    string public constant NODE_NOT_PRESENT_IN_THE_TREE = "4";
+    string public constant ERROR_OCCURED_DURING_WEIGHTED_SEARCH = "5";
+    string public constant ERROR_OCCURED_DURING_UPDATE = "6";
+    string public constant CANNOT_INSERT_DUPLICATE_ELEMENT_INTO_TREE = "7";
+    string public constant ERROR_OCCURED_DURING_DELETE = "8";
+    string public constant INSUFFICIENT_ELEMENTS_IN_TREE = "9";
+    string public constant ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE = "10";
+    string public constant ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE = "11";
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[16] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[17] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[20] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[256] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[32] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[64] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+            if (element == address(0)) {
+                break;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Returns indexes when only left and right weights are provided
+    /// @param sumOfLeftBalances Sum of balances of nodes on the left
+    /// @param sumOfRightBalances Sum of balances of nodes on the right
+    /// @return First index of the search
+    /// @return Second index of the search
+    function _getOnlyTwoIndexesWithWeight(uint256 sumOfLeftBalances, uint256 sumOfRightBalances) internal pure returns (uint256, uint256) {
+        return (sumOfLeftBalances, sumOfLeftBalances + sumOfRightBalances);
+    }
+
+    /// @notice Returns indexes when only balances and left and right weights are provided
+    /// @param sumOfLeftBalances Sum of balances of nodes on the left
+    /// @param balance Balance of the node
+    /// @param sumOfRightBalances Sum of balances of nodes on the right
+    /// @return First index of the search
+    /// @return Second index of the search
+    /// @return Third index of the search
+    function _getIndexesWithWeights(
+        uint256 sumOfLeftBalances,
+        uint256 balance,
+        uint256 sumOfRightBalances
+    )
+        internal
+        pure
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
+    }
+
+    /// @notice Add element to array
+    /// @param array Array to which the element must be added
+    /// @param toAdd Element to add
+    /// @return A new array with element added to it
+    function _addAddressToEncodedArray(bytes memory array, address toAdd) internal pure returns (bytes memory) {
+        address[] memory _currentNodePath = abi.decode(array, (address[]));
+        uint256 lengthOfNewPath = _currentNodePath.length + 1;
+
+        address[] memory _newNodePath = new address[](lengthOfNewPath);
+
+        for (uint256 index = 0; index < lengthOfNewPath - 1; index++) {
+            _newNodePath[index] = _currentNodePath[index];
+        }
+        _newNodePath[lengthOfNewPath - 1] = toAdd;
+        return abi.encode(_newNodePath);
+    }
+}
+
 // import "forge-std/console2.sol";
 
 abstract contract SelectorHelper is IClusterSelector {
@@ -930,7 +942,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @return Returns the new root after the rotation
     function _rightRotate(address addressOfZ) internal returns (address) {
         if (addressOfZ == address(0)) {
-            revert("trying to RR 0");
+            revert(ClusterLib.CANNOT_RR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
 
@@ -960,7 +972,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @return Returns the new root after the rotation
     function _leftRotate(address addressOfZ) internal returns (address) {
         if (addressOfZ == address(0)) {
-            revert("trying to LR 0");
+            revert(ClusterLib.CANNOT_LR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
 
@@ -1012,6 +1024,18 @@ abstract contract SelectorHelper is IClusterSelector {
         return node.balance + node.sumOfLeftBalances + node.sumOfRightBalances;
     }
 
+    /// @notice Returns the sum of balances of given nodes
+    /// @param _nodes List of nodes
+    /// @return Sum of balances of given nodes
+    function sumOfBalancesOfSelectedNodes(address[] memory _nodes) internal view returns (uint256) {
+        uint256 total;
+        for (uint256 index = 0; index < _nodes.length; index++) {
+            Node memory node = nodes[_nodes[index]];
+            total += node.balance;
+        }
+        return total;
+    }
+
     // function _printNode(address _node) internal view {
     //     Node memory node = nodes[_node];
     //     console2.log("************************************");
@@ -1056,21 +1080,12 @@ abstract contract SelectorHelper is IClusterSelector {
     // }
 }
 
-contract SingleSelector is AccessControl, SelectorHelper {
-    /// @notice ID for update role
-    bytes32 public updaterRole = keccak256(abi.encode("updater")); // find standard format for this
-
-    /// @notice ID for updater admin role
-    bytes32 public updaterAdminRole = keccak256(abi.encode("updater admin")); // find standard format for this
-
-    constructor(address _admin) {
-        AccessControl._setRoleAdmin(updaterRole, updaterAdminRole);
-        AccessControl._grantRole(updaterAdminRole, _admin);
-    }
+contract SingleSelector is SelectorHelper {
+    constructor() {}
 
     /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint256 balance) public override onlyRole(updaterRole) {
-        require(newNode != address(0), "address(0) not permitted into entry");
+    function insert(address newNode, uint256 balance) public virtual override {
+        require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         Node memory node = nodes[newNode];
         if (node.node == address(0)) {
             root = _insert(root, newNode, balance);
@@ -1082,11 +1097,8 @@ contract SingleSelector is AccessControl, SelectorHelper {
     }
 
     /// @inheritdoc IClusterSelector
-    function deleteNode(address key) public override onlyRole(updaterRole) {
-        if (key == address(0)) {
-            return;
-        }
-
+    function deleteNode(address key) public virtual override {
+        require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         Node memory node = nodes[key];
         if (node.node == key) {
             // delete node
@@ -1096,11 +1108,10 @@ contract SingleSelector is AccessControl, SelectorHelper {
     }
 
     /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint256 newBalance) public override onlyRole(updaterRole) {
-        require(existingNode != address(0), "address(0) not permitted into entry");
+    function update(address existingNode, uint256 newBalance) public virtual override {
+        require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         if (nodes[existingNode].node == address(0)) {
-            //
-            revert("Can't update if it is not inserted already");
+            revert(ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
         } else {
             int256 differenceInKeyBalance = int256(newBalance) - int256(nodes[existingNode].balance);
             _update(root, existingNode, differenceInKeyBalance);
@@ -1137,7 +1148,7 @@ contract SingleSelector is AccessControl, SelectorHelper {
             // _printNode(_node);
             // console2.log("indexes", index1, index2, index3);
             // console2.log("search number", searchNumber);
-            revert("CS: during single weighted search");
+            revert(ClusterLib.ERROR_OCCURED_DURING_WEIGHTED_SEARCH);
         }
     }
 
@@ -1179,7 +1190,7 @@ contract SingleSelector is AccessControl, SelectorHelper {
             diff > 0 ? currentNode.sumOfRightBalances += uint256(diff) : currentNode.sumOfRightBalances -= uint256(-diff);
             _update(currentNode.right, key, diff);
         } else {
-            revert("This case should not occur");
+            revert(ClusterLib.ERROR_OCCURED_DURING_UPDATE);
         }
     }
 
@@ -1205,7 +1216,7 @@ contract SingleSelector is AccessControl, SelectorHelper {
             currentNode.right = _insert(currentNode.right, key, keyBalance);
             currentNode.sumOfRightBalances += keyBalance;
         } else {
-            revert("Duplicate address being tried to insert in the tree");
+            revert(ClusterLib.CANNOT_INSERT_DUPLICATE_ELEMENT_INTO_TREE);
         }
 
         // 2. update the height
@@ -1302,7 +1313,7 @@ contract SingleSelector is AccessControl, SelectorHelper {
                 delete nodes[_root];
                 return address(0);
             } else {
-                revert("DN: this case should not occur");
+                revert(ClusterLib.ERROR_OCCURED_DURING_DELETE);
             }
         }
 
@@ -1331,6 +1342,9 @@ contract SingleSelector is AccessControl, SelectorHelper {
         return (_root);
     }
 
+    /// @notice Internal function to delete when there exists a left node but no right node
+    /// @param _node Address of Node to delete
+    /// @return Address of node to replace the deleted node
     function _case3OnDelete(address _node) internal returns (address) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
@@ -1339,6 +1353,9 @@ contract SingleSelector is AccessControl, SelectorHelper {
         return SND.node;
     }
 
+    ///@notice Internal function to delete when there exist a right node but no left node
+    /// @param _node Address of Node to delete
+    /// @return Address of node to replace the deleted node
     function _case2OnDelete(address _node) internal returns (address) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
@@ -1347,6 +1364,9 @@ contract SingleSelector is AccessControl, SelectorHelper {
         return SND.node;
     }
 
+    /// @notice Internal function to delete when both left and right node are defined.
+    /// @param _node Address of Node to delete
+    /// @return Address of node to replace the deleted node
     function _case1OnDelete(address _node) internal returns (address) {
         // update deletion here
 
@@ -1387,6 +1407,9 @@ contract SingleSelector is AccessControl, SelectorHelper {
         }
     }
 
+    /// @notice Find the least minimum node for given node
+    /// @param _node Address of node from which least min node has to be found
+    /// @return Copy of Node that will be replaced
     function _findLeastMinNodeForCase1(address _node) internal view returns (Node memory) {
         Node memory node = nodes[_node];
 
@@ -1402,12 +1425,12 @@ contract ClusterSelector is SingleSelector {
     using ClusterLib for address[];
     using ClusterLib for bytes;
 
-    constructor(address _admin) SingleSelector(_admin) {}
+    constructor() SingleSelector() {}
 
     /// @notice Select top N clusters
     /// @return List of addresses selected
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory) {
-        require(N <= totalElements, "Can't select more than available elements");
+        require(N <= totalElements, ClusterLib.INSUFFICIENT_ELEMENTS_IN_TREE);
 
         address[] memory _emptyPath = new address[](0);
         address[] memory selectedNodes = new address[](N);
@@ -1495,7 +1518,7 @@ contract ClusterSelector is SingleSelector {
                 return
                     _selectTopCluster(node.right, searchNumber - index1, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else {
-                revert("CS: when node is selected");
+                revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE);
             }
         }
         // if not selected then, check if it lies between the indexes
@@ -1530,7 +1553,7 @@ contract ClusterSelector is SingleSelector {
                 return
                     _selectTopCluster(node.right, searchNumber - index2, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else {
-                revert("CS: when node is not selected");
+                revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE);
             }
         }
     }
@@ -1563,22 +1586,10 @@ contract ClusterSelector is SingleSelector {
             }
         }
     }
-
-    /// @notice Returns the sum of balances of given nodes
-    /// @param _nodes List of nodes
-    /// @return Sum of balances of given nodes
-    function sumOfBalancesOfSelectedNodes(address[] memory _nodes) internal view returns (uint256) {
-        uint256 total;
-        for (uint256 index = 0; index < _nodes.length; index++) {
-            Node memory node = nodes[_nodes[index]];
-            total += node.balance;
-        }
-        return total;
-    }
 }
 
 /// @title Contract to select the top 5 clusters in an epoch
-contract EpochSelector is ClusterSelector, IEpochSelector {
+contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @notice Event emitted when Cluster is selected
     /// @param epoch Number of Epoch
     /// @param cluster Address of cluster
@@ -1591,13 +1602,22 @@ contract EpochSelector is ClusterSelector, IEpochSelector {
     uint256 public immutable startTime;
 
     /// @notice Number of clusters selected in every epoch
-    uint256 public constant numberOfClustersToSelect = 5;
+    uint256 public immutable numberOfClustersToSelect;
 
     /// @notice clusters selected during each epoch
     mapping(uint256 => address[]) public clustersSelected;
 
-    constructor(address _admin) ClusterSelector(_admin) {
+    /// @notice ID for update role
+    bytes32 public constant updaterRole = keccak256(abi.encode("updater")); // find standard format for this
+
+    /// @notice ID for updater admin role
+    bytes32 public constant updaterAdminRole = keccak256(abi.encode("updater admin")); // find standard format for this
+
+    constructor(address _admin, uint256 _numberOfClustersToSelect) ClusterSelector() {
         startTime = block.timestamp;
+        numberOfClustersToSelect = _numberOfClustersToSelect;
+        AccessControl._setRoleAdmin(updaterRole, updaterAdminRole);
+        AccessControl._grantRole(updaterAdminRole, _admin);
     }
 
     /// @notice Current Epoch
@@ -1619,6 +1639,45 @@ contract EpochSelector is ClusterSelector, IEpochSelector {
             }
         }
         return nodes;
+    }
+
+    /// @inheritdoc IClusterSelector
+    function insert(address newNode, uint256 balance) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
+        require(newNode != address(0), "address(0) not permitted into entry");
+        Node memory node = nodes[newNode];
+        if (node.node == address(0)) {
+            root = _insert(root, newNode, balance);
+            totalElements++;
+        } else {
+            // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
+            _update(root, newNode, int256(balance) - int256(node.balance));
+        }
+    }
+
+    /// @inheritdoc IClusterSelector
+    function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
+        if (key == address(0)) {
+            return;
+        }
+
+        Node memory node = nodes[key];
+        if (node.node == key) {
+            // delete node
+            (root) = _deleteNode(root, key, node.balance);
+            totalElements--;
+        }
+    }
+
+    /// @inheritdoc IClusterSelector
+    function update(address existingNode, uint256 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
+        require(existingNode != address(0), "address(0) not permitted into entry");
+        if (nodes[existingNode].node == address(0)) {
+            //
+            revert("Can't update if it is not inserted already");
+        } else {
+            int256 differenceInKeyBalance = int256(newBalance) - int256(nodes[existingNode].balance);
+            _update(root, existingNode, differenceInKeyBalance);
+        }
     }
 }
 
