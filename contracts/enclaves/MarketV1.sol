@@ -98,9 +98,9 @@ contract MarketV1 is
 
     uint256[49] private __gap2;
 
-    event ProviderAdded(address provider, string cp);
-    event ProviderRemoved(address provider);
-    event ProviderUpdatedWithCp(address provider, string newCp);
+    event ProviderAdded(address indexed provider, string cp);
+    event ProviderRemoved(address indexed provider);
+    event ProviderUpdatedWithCp(address indexed provider, string newCp);
 
     function _providerAdd(address _provider, string memory _cp) internal {
         providers[_provider] = Provider(_cp);
@@ -153,14 +153,14 @@ contract MarketV1 is
 
     uint256[47] private __gap3;
 
-    event TokenUpdated(IERC20 oldToken, IERC20 newToken);
+    event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event JobOpened(bytes32 job, address owner, address provider, uint256 rate, uint256 timestamp);
-    event JobSettled(bytes32 job, uint256 amount);
-    event JobClosed(bytes32 job);
-    event JobDeposited(bytes32 job, address from, uint256 amount);
-    event JobWithdrew(bytes32 job, address to, uint256 amount);
-    event JobRevisedRate(bytes32 job, uint256 newRate);
+    event JobOpened(bytes32 indexed job, address indexed owner, address indexed provider, uint256 rate, uint256 timestamp);
+    event JobSettled(bytes32 indexed job, uint256 amount);
+    event JobClosed(bytes32 indexed job);
+    event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
+    event JobWithdrew(bytes32 indexed job, address indexed to, uint256 amount);
+    event JobRevisedRate(bytes32 indexed job, uint256 newRate);
 
     modifier onlyJobOwner(bytes32 _job) {
         require(jobs[_job].owner == _msgSender(), "only job owner");
