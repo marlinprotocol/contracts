@@ -12,23 +12,23 @@ export default {
   networks: {
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.ETH_DEPLOYER_KEY],
+      accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_DEPLOYER_KEY] : undefined,
     },
     arbitrumRinkeby: {
       url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY] : undefined,
     },
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.RINKEBY_DEPLOYER_KEY] : undefined,
     },
     ftm: {
       url: "https://rpc.ftm.tools/",
-      accounts: [process.env.FANTOM_DEPLOYER_KEY],
+      accounts: process.env.FANTOM_DEPLOYER_KEY !== undefined ? [process.env.FANTOM_DEPLOYER_KEY] : undefined,
     },
   },
   solidity: {
