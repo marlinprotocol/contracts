@@ -267,11 +267,11 @@ contract RewardDelegators is
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations >= 500_000){
-            epochSelector.insert(_cluster, sqrt(totalDelegations));
+            epochSelector.insert(_cluster, uint96(sqrt(totalDelegations)));
         }
         // if not, update it to zero
         else{
-            epochSelector.deleteNode(_cluster);
+            epochSelector.deleteNodeIfPresent(_cluster);
         }
 
         if(_aggregateReward != 0) {
