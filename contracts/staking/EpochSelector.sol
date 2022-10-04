@@ -1047,18 +1047,6 @@ abstract contract SelectorHelper is IClusterSelector {
         return node.balance + node.sumOfLeftBalances + node.sumOfRightBalances;
     }
 
-    /// @notice Returns the sum of balances of given nodes
-    /// @param _nodes List of nodes
-    /// @return Sum of balances of given nodes
-    function sumOfBalancesOfSelectedNodes(address[] memory _nodes) internal view returns (uint256) {
-        uint256 total;
-        for (uint256 index = 0; index < _nodes.length; index++) {
-            Node memory node = nodes[_nodes[index]];
-            total += node.balance;
-        }
-        return total;
-    }
-
     function calculateUpdatedHeight(Node memory node) internal view returns (uint256) {
         return Math.max(height(node.right), height(node.left)) + 1;
     }
@@ -1233,29 +1221,29 @@ contract SingleSelector is SelectorHelper {
         currentNode.height = calculateUpdatedHeight(currentNode);
 
         // 3. Get the balance factor
-        int256 balance = getHeightDifference(node);
+        int256 heightDifference = getHeightDifference(node);
 
         // Left Left Case
-        if (balance > 1 && key < currentNode.left) {
+        if (heightDifference > 1 && key < currentNode.left) {
             // console2.log("_insert LL Case", keyBalance);
             return _rightRotate(node);
         }
 
         // Right Right Case
-        if (balance < -1 && key > currentNode.right) {
+        if (heightDifference < -1 && key > currentNode.right) {
             // console2.log("_insert RR Case", keyBalance);
             return _leftRotate(node);
         }
 
         // Left Right Case
-        if (balance > 1 && key > currentNode.left) {
+        if (heightDifference > 1 && key > currentNode.left) {
             // console2.log("_insert LR Case", keyBalance);
             currentNode.left = _leftRotate(currentNode.left);
             return _rightRotate(node);
         }
 
         // Right Left Case
-        if (balance < -1 && key < currentNode.right) {
+        if (heightDifference < -1 && key < currentNode.right) {
             // console2.log("_insert RL Case", keyBalance);
             currentNode.right = _rightRotate(currentNode.right);
             return _leftRotate(node);
@@ -1312,39 +1300,39 @@ contract SingleSelector is SelectorHelper {
 
             if (node.left != address(0) && node.right != address(0)) {
                 // console2.log("case 1");
-                return _case1OnDelete(_root);
+                return _replaceWithLeastMinimumNode(_root);
             } else if (node.left == address(0) && node.right != address(0)) {
                 // console2.log("case 2");
-                return _case2OnDelete(_root);
+                return _deleteNodeAndReturnRight(_root);
             } else if (node.left != address(0) && node.right == address(0)) {
                 // console2.log("case 3");
-                return _case3OnDelete(_root);
-            } else if (node.left == address(0) && node.right == address(0)) {
+                return _deleteNodeAndReturnLeft(_root);
+            }
+            // last case == (node.left == address(0) && node.right == address(0))
+            else {
                 delete nodes[_root];
                 return address(0);
-            } else {
-                revert(ClusterLib.ERROR_OCCURED_DURING_DELETE);
             }
         }
 
         node.height = calculateUpdatedHeight(node);
 
-        int256 balance = getHeightDifference(_root);
+        int256 heightDifference = getHeightDifference(_root);
 
-        if (balance > 1 && getHeightDifference(node.left) >= 0) {
+        if (heightDifference > 1 && getHeightDifference(node.left) >= 0) {
             return (_rightRotate(_root));
         }
 
-        if (balance > 1 && getHeightDifference(node.right) < 0) {
+        if (heightDifference > 1 && getHeightDifference(node.right) < 0) {
             node.left = _leftRotate(node.left);
             return (_rightRotate(_root));
         }
 
-        if (balance < -1 && getHeightDifference(node.right) <= 0) {
+        if (heightDifference < -1 && getHeightDifference(node.right) <= 0) {
             return (_leftRotate(_root));
         }
 
-        if (balance < -1 && getHeightDifference(node.right) > 0) {
+        if (heightDifference < -1 && getHeightDifference(node.right) > 0) {
             node.right = _rightRotate(node.right);
             return (_leftRotate(_root));
         }
@@ -1355,7 +1343,7 @@ contract SingleSelector is SelectorHelper {
     /// @notice Internal function to delete when there exists a left node but no right node
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _case3OnDelete(address _node) internal returns (address) {
+    function _deleteNodeAndReturnLeft(address _node) internal returns (address) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
 
@@ -1366,7 +1354,7 @@ contract SingleSelector is SelectorHelper {
     ///@notice Internal function to delete when there exist a right node but no left node
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _case2OnDelete(address _node) internal returns (address) {
+    function _deleteNodeAndReturnRight(address _node) internal returns (address) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
 
@@ -1377,7 +1365,7 @@ contract SingleSelector is SelectorHelper {
     /// @notice Internal function to delete when both left and right node are defined.
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _case1OnDelete(address _node) internal returns (address) {
+    function _replaceWithLeastMinimumNode(address _node) internal returns (address) {
         // update deletion here
 
         Node memory C_ND = nodes[_node];
@@ -1397,7 +1385,7 @@ contract SingleSelector is SelectorHelper {
             // nodes[_node].balance = 0;
             // return _node
 
-            Node memory leastMinNode = _findLeastMinNodeForCase1(C_ND.right);
+            Node memory leastMinNode = _findLeastMinNode(C_ND.right);
 
             C_ND.right = _deleteNode(C_ND.right, leastMinNode.node, leastMinNode.balance);
             delete nodes[_node];
@@ -1422,11 +1410,11 @@ contract SingleSelector is SelectorHelper {
     /// @notice Find the least minimum node for given node
     /// @param _node Address of node from which least min node has to be found
     /// @return Copy of Node that will be replaced
-    function _findLeastMinNodeForCase1(address _node) internal view returns (Node memory) {
+    function _findLeastMinNode(address _node) internal view returns (Node memory) {
         Node memory node = nodes[_node];
 
         if (node.left != address(0)) {
-            return _findLeastMinNodeForCase1(node.left);
+            return _findLeastMinNode(node.left);
         }
 
         return (node);
@@ -1444,27 +1432,38 @@ contract ClusterSelector is SingleSelector {
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory) {
         require(N <= totalElements, ClusterLib.INSUFFICIENT_ELEMENTS_IN_TREE);
 
-        address[] memory _emptyPath = new address[](0);
+        bytes memory _emptyPath = abi.encode(new address[](0));
         address[] memory selectedNodes = new address[](N);
         bytes[] memory pathToSelectedNodes = new bytes[](N);
 
         for (uint256 index = 0; index < N; index++) {
-            pathToSelectedNodes[index] = abi.encode(_emptyPath);
+            pathToSelectedNodes[index] = _emptyPath;
         }
+
+        Node memory _root = nodes[root];
+        uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
+        uint256 _sumOfBalancesOfSelectedNodes;
 
         for (uint256 index = 0; index < N; index++) {
             randomizer = uint256(keccak256(abi.encode(randomizer, index)));
-            Node memory _root = nodes[root];
-            uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
-            uint256 _sumOfBalancesOfSelectedNodes = sumOfBalancesOfSelectedNodes(selectedNodes);
             uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
             // console2.log("============= search number in iter", index, searchNumber);
             // console2.log("============= _sumOfBalancesOfSelectedNodes", _sumOfBalancesOfSelectedNodes);
 
-            bytes memory currentPath = abi.encode(_emptyPath);
-            (address _node, bytes memory _path) = _selectTopCluster(root, searchNumber, selectedNodes, pathToSelectedNodes, currentPath, 0);
+            bytes memory currentPath = _emptyPath;
+            (address _node, uint256 _selectedNodeBalance, bytes memory _path) = _selectTopCluster(
+                root,
+                searchNumber,
+                selectedNodes,
+                pathToSelectedNodes,
+                currentPath,
+                0
+            );
+
             selectedNodes[index] = _node;
             pathToSelectedNodes[index] = _path;
+
+            _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
             // console2.log("length of path selected", _path.length);
             // _printArray("path that I need to check", pathToSelectedNodes[index]);
         }
@@ -1479,6 +1478,7 @@ contract ClusterSelector is SingleSelector {
     /// @param currentNodePath Stores the current path to the selected node from the root
     /// @param  parentIndex Distance of the selected node from the root
     /// @return Address of the selected node
+    /// @return Balance of selected node
     /// @return Path to the selected node
     function _selectTopCluster(
         address _root,
@@ -1487,7 +1487,15 @@ contract ClusterSelector is SingleSelector {
         bytes[] memory pathsToSelectedNodes,
         bytes memory currentNodePath,
         uint256 parentIndex
-    ) internal view returns (address, bytes memory) {
+    )
+        internal
+        view
+        returns (
+            address,
+            uint256,
+            bytes memory
+        )
+    {
         // console2.log("====================================================================================");
         // console2.log("finding cluster", _root);
         // console2.log("searchNumber", searchNumber);
@@ -1498,7 +1506,8 @@ contract ClusterSelector is SingleSelector {
         // _printPaths("paths to selected clusters", pathsToSelectedNodes);
 
         Node memory node = nodes[_root];
-        (uint256 leftWeight, uint256 rightWeight) = _getModifiedWeightes(node, selectedNodes, pathsToSelectedNodes);
+        // stored in existing variable to conserve memory
+        (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeightes(node, selectedNodes, pathsToSelectedNodes);
 
         // console2.log("leftWeight used for search", leftWeight);
         // console2.log("rightWeight used for searching", rightWeight);
@@ -1509,7 +1518,7 @@ contract ClusterSelector is SingleSelector {
             // console2.log("searchNumber", searchNumber);
             // _printArray("selected nodes this _root", selectedNodes);
 
-            (uint256 index1, , uint256 index2) = ClusterLib._getIndexesWithWeights(leftWeight, 0, rightWeight);
+            (uint256 index1, , uint256 index2) = ClusterLib._getIndexesWithWeights(node.sumOfLeftBalances, 0, node.sumOfRightBalances);
 
             // console2.log("leftWeight", leftWeight);
             // console2.log("node.balance", node.balance);
@@ -1518,16 +1527,13 @@ contract ClusterSelector is SingleSelector {
             // console2.log("index2", index2);
 
             currentNodePath = currentNodePath._addAddressToEncodedArray(_root);
+            parentIndex++;
 
             if (searchNumber <= index1) {
                 // console2.log(_root, "Selected and moved to left");
-                // currentNodePath[parentIndex] = _root;
-                parentIndex++;
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else if (searchNumber > index1 && searchNumber <= index2) {
                 // console2.log(_root, "Selected and moved to right");
-                // currentNodePath[parentIndex] = _root;
-                parentIndex++;
                 return
                     _selectTopCluster(node.right, searchNumber - index1, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else {
@@ -1539,7 +1545,11 @@ contract ClusterSelector is SingleSelector {
             // console2.log("_root is not selected", _root);
             // console2.log("searchNumber", searchNumber);
             // _printArray("selected nodes this _root", selectedNodes);
-            (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(leftWeight, node.balance, rightWeight);
+            (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(
+                node.sumOfLeftBalances,
+                node.balance,
+                node.sumOfRightBalances
+            );
 
             // console2.log("leftWeight", leftWeight);
             // console2.log("node.balance", node.balance);
@@ -1547,22 +1557,16 @@ contract ClusterSelector is SingleSelector {
             // console2.log("index1", index1);
 
             currentNodePath = currentNodePath._addAddressToEncodedArray(_root);
+            parentIndex++;
 
             if (searchNumber <= index1) {
                 // console2.log(_root, "Not select and moved to left");
-                // currentNodePath[parentIndex] = _root;
-                parentIndex++;
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else if (searchNumber > index1 && searchNumber <= index2) {
                 // console2.log(_root, "Wow!, Selected");
-                // console2.log("case 2");
-                // currentNodePath[parentIndex] = _root;
-                // parentIndex++;
-                return (_root, currentNodePath);
+                return (_root, node.balance, currentNodePath);
             } else if (searchNumber > index2 && searchNumber <= index3) {
                 // console2.log(_root, "Not select and moved to right");
-                // currentNodePath[parentIndex] = _root;
-                parentIndex++;
                 return
                     _selectTopCluster(node.right, searchNumber - index2, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
             } else {
@@ -1581,7 +1585,7 @@ contract ClusterSelector is SingleSelector {
         Node memory node,
         address[] memory selectedNodes,
         bytes[] memory pathsToSelectedNodes
-    ) internal view returns (uint256 leftWeight, uint256 rightWeight) {
+    ) internal view returns (uint96 leftWeight, uint96 rightWeight) {
         leftWeight = node.sumOfLeftBalances;
         rightWeight = node.sumOfRightBalances;
 
@@ -1702,4 +1706,3 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         }
     }
 }
-
