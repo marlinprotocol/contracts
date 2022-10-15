@@ -20,6 +20,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+import "./IArbToken.sol";
 
 // do not use any of the OpenZeppelin ERC20 contracts or extensions
 contract MPond is
@@ -29,7 +30,8 @@ contract MPond is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IArbToken  // Arbitrum bridge support
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -42,7 +44,7 @@ contract MPond is
 //-------------------------------- Overrides start --------------------------------//
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
-        return super.supportsInterface(interfaceId);
+        return interfaceId == type(IArbToken).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
@@ -726,5 +728,42 @@ contract MPond is
 
 //-------------------------------- uint96 math end --------------------------------//
 
+//-------------------------------- Bridge start --------------------------------//
+
+    // bridge mint/burn functions are implemented using transfers to/from the token contract itself
+    // limits exposure to contract balance in case the bridge is compromised
+
+    bytes32 public constant BRIDGE_ROLE = keccak256("BRIDGE_ROLE");
+
+    address public l1Address;
+    uint256[49] private __gap7;
+
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+    modifier onlyBridge() {
+        require(hasRole(BRIDGE_ROLE, _msgSender()));
+        _;
+    }
+
+    function setL1Address(address _l1Address) external onlyAdmin {
+        l1Address = _l1Address;
+    }
+
+    function bridgeMint(address _account, uint256 _amount) external onlyBridge {
+        _transferTokens(address(this), _account, safe96(_amount, "MPond: amount exceeds 96 bits"));
+    }
+
+    function bridgeBurn(address _account, uint256 _amount) external onlyBridge {
+        _transferTokens(_account, address(this), safe96(_amount, "MPond: amount exceeds 96 bits"));
+    }
+
+    function withdraw(uint256 _amount) external onlyAdmin {
+        _transferTokens(address(this), _msgSender(), safe96(_amount, "MPond: amount exceeds 96 bits"));
+    }
+
+//-------------------------------- Bridge end --------------------------------//
 }
 

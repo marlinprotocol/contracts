@@ -103,6 +103,16 @@ describe('MPond', function () {
     const iid = makeInterfaceId(interfaces);
     expect(await mpond.supportsInterface(iid)).to.be.true;
   });
+
+  it('supports IArbToken', async function () {
+    let interfaces = [
+      'bridgeMint(address,uint256)',
+      'bridgeBurn(address,uint256)',
+      'l1Address()',
+    ];
+    const iid = makeInterfaceId(interfaces);
+    expect(await mpond.supportsInterface(iid)).to.be.true;
+  });
 });
 
 describe('MPond', function () {
@@ -612,32 +622,201 @@ describe('MPond', function () {
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(10000).e18());
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(10000).e18());
   });
+});
 
-  describe('MPond', function () {
-    let signers: Signer[];
-    let addrs: string[];
-    let mpond: Contract;
-    let WHITELIST_ROLE: string;
-  
-    beforeEach(async function () {
-      signers = await ethers.getSigners();
-      addrs = await Promise.all(signers.map(a => a.getAddress()));
-      const MPond = await ethers.getContractFactory('MPond');
-      mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
-      WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
-    });
+describe('MPond', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let mpond: Contract;
+  let WHITELIST_ROLE: string;
 
-    it('can get delegation for 0 address', async function() {
-      expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-      expect(await mpond.getDelegates(addrs[0], '0x0000000000000000000000000000000000000000')).to.equal(BN.from(10000).e18());
-    });
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const MPond = await ethers.getContractFactory('MPond');
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
+  });
 
-    it('can get delegation for non zero address', async function() {
-      expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-      expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
-      await mpond.delegate(addrs[1], 1234);
-      expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
-    });
+  it('can get delegation for 0 address', async function() {
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], '0x0000000000000000000000000000000000000000')).to.equal(BN.from(10000).e18());
+  });
+
+  it('can get delegation for non zero address', async function() {
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
+    await mpond.delegate(addrs[1], 1234);
+    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
+  });
+});
+
+describe('MPond', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let mpond: Contract;
+  let BRIDGE_ROLE: string;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const MPond = await ethers.getContractFactory('MPond');
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    BRIDGE_ROLE = await mpond.BRIDGE_ROLE();
+  });
+
+  it('admin can grant bridge role', async function () {
+    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
+  });
+
+  it('non admin cannot grant bridge role', async function () {
+    await expect(mpond.connect(signers[1]).grantRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('admin can revoke bridge role', async function () {
+    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
+
+    await mpond.revokeRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
+  });
+
+  it('non admin cannot revoke bridge role', async function () {
+    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
+
+    await expect(mpond.connect(signers[2]).revokeRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
+  });
+
+  it('bridge signer can renounce own bridge role', async function () {
+    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
+
+    await mpond.connect(signers[1]).renounceRole(BRIDGE_ROLE, addrs[1]);
+    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
+  });
+});
+
+describe('MPond', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let mpond: Contract;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const MPond = await ethers.getContractFactory('MPond');
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    await mpond.grantRole(await mpond.WHITELIST_ROLE(), addrs[0]);
+  });
+
+  it('admin can set l1 address', async function () {
+    await mpond.setL1Address(addrs[1]);
+    expect(await mpond.l1Address()).to.equal(addrs[1]);
+  });
+
+  it('non admin cannot set l1 address', async function () {
+    await expect(mpond.connect(signers[1]).setL1Address(addrs[1])).to.be.reverted;
+  });
+
+  it('admin can withdraw', async function () {
+    let balance = await mpond.balanceOf(addrs[0]);
+    await mpond.transfer(mpond.address, 1000);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(1000);
+    expect(await mpond.balanceOf(addrs[0])).to.equal(balance.sub(1000));
+
+    await mpond.withdraw(200);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(800);
+    expect(await mpond.balanceOf(addrs[0])).to.equal(balance.sub(800));
+  });
+
+  it('non admin cannot withdraw', async function () {
+    await mpond.transfer(mpond.address, 1000);
+    await expect(mpond.connect(signers[1]).withdraw(200)).to.be.reverted;
+  });
+});
+
+describe('MPond', function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let mpond: Contract;
+
+  beforeEach(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    const MPond = await ethers.getContractFactory('MPond');
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    await mpond.grantRole(await mpond.BRIDGE_ROLE(), addrs[1]);
+    await mpond.grantRole(await mpond.WHITELIST_ROLE(), addrs[0]);
+    await mpond.transfer(mpond.address, 1000);
+  });
+
+  it('non bridge cannot mint', async function () {
+    await expect(mpond.connect(signers[2]).bridgeMint(addrs[2], 100)).to.be.reverted;
+  });
+
+  it('bridge can mint up to its balance', async function () {
+    expect(await mpond.balanceOf(addrs[2])).to.equal(0);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(0);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(1000);
+
+    await mpond.connect(signers[1]).bridgeMint(addrs[2], 100);
+
+    expect(await mpond.balanceOf(addrs[2])).to.equal(100);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(0);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(900);
+
+    await mpond.connect(signers[1]).bridgeMint(addrs[3], 900);
+
+    expect(await mpond.balanceOf(addrs[2])).to.equal(100);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(900);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(0);
+  });
+
+  it('bridge cannot mint beyond its balance', async function () {
+    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 1001)).to.be.reverted;
+
+    await mpond.connect(signers[1]).bridgeMint(addrs[2], 100);
+
+    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 901)).to.be.reverted;
+  });
+
+  it('non bridge cannot burn', async function () {
+    await mpond.transfer(addrs[2], 1000);
+    await mpond.transfer(addrs[3], 1000);
+    await expect(mpond.connect(signers[2]).bridgeBurn(addrs[2], 100)).to.be.reverted;
+  });
+
+  it('bridge can burn up to users balance', async function () {
+    await mpond.transfer(addrs[2], 1000);
+    await mpond.transfer(addrs[3], 1000);
+    expect(await mpond.balanceOf(addrs[2])).to.equal(1000);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(1000);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(1000);
+
+    await mpond.connect(signers[1]).bridgeBurn(addrs[2], 100);
+    await mpond.connect(signers[1]).bridgeBurn(addrs[3], 600);
+
+    expect(await mpond.balanceOf(addrs[2])).to.equal(900);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(400);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(1700);
+
+    await mpond.connect(signers[1]).bridgeBurn(addrs[2], 900);
+    await mpond.connect(signers[1]).bridgeBurn(addrs[3], 400);
+
+    expect(await mpond.balanceOf(addrs[2])).to.equal(0);
+    expect(await mpond.balanceOf(addrs[3])).to.equal(0);
+    expect(await mpond.balanceOf(mpond.address)).to.equal(3000);
+  });
+
+  it('bridge cannot burn beyond users balance', async function () {
+    await mpond.transfer(addrs[2], 1000);
+    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 1001)).to.be.reverted;
+
+    await mpond.connect(signers[1]).bridgeBurn(addrs[2], 100);
+
+    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 901)).to.be.reverted;
   });
 });
 
