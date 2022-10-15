@@ -139,6 +139,7 @@ contract MarketV1 is
     bytes32 public constant RATE_LOCK_SELECTOR = keccak256("RATE_LOCK");
 
     struct Job {
+        string metadata;
         address owner;
         address provider;
         uint256 rate;
@@ -155,7 +156,7 @@ contract MarketV1 is
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event JobOpened(bytes32 indexed job, address indexed owner, address indexed provider, uint256 rate, uint256 timestamp);
+    event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 _balance, uint256 timestamp);
     event JobSettled(bytes32 indexed job, uint256 amount);
     event JobClosed(bytes32 indexed job);
     event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
@@ -180,14 +181,14 @@ contract MarketV1 is
         token.transfer(_to, _amount);
     }
 
-    function _jobOpen(address _owner, address _provider, uint256 _rate, uint256 _balance) internal {
+    function _jobOpen(string memory _metadata, address _owner, address _provider, uint256 _rate, uint256 _balance) internal {
         _deposit(_owner, _balance);
         uint256 _jobIndex = jobIndex;
         jobIndex = _jobIndex + 1;
         bytes32 _job = bytes32(_jobIndex);
-        jobs[_job] = Job(_owner, _provider, _rate, _balance, block.timestamp);
+        jobs[_job] = Job(_metadata, _owner, _provider, _rate, _balance, block.timestamp);
 
-        emit JobOpened(_job, _owner, _provider, _rate, block.timestamp);
+        emit JobOpened(_job, _metadata, _owner, _provider, _rate, _balance, block.timestamp);
     }
 
     function _jobSettle(bytes32 _job) internal {
@@ -251,8 +252,8 @@ contract MarketV1 is
         emit JobRevisedRate(_job, _newRate);
     }
 
-    function jobOpen(address _provider, uint256 _rate, uint256 _balance) external {
-        return _jobOpen(_msgSender(), _provider, _rate, _balance);
+    function jobOpen(string calldata _metadata, address _provider, uint256 _rate, uint256 _balance) external {
+        return _jobOpen(_metadata, _msgSender(), _provider, _rate, _balance);
     }
 
     function jobSettle(bytes32 _job) external {
