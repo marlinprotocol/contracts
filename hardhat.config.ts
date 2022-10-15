@@ -18,6 +18,14 @@ export default {
       url: "https://arb1.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_DEPLOYER_KEY] : undefined,
     },
+    goerli: {
+      url: "https://rpc.goerli.dev",
+      accounts: process.env.GOERLI_DEPLOYER_KEY !== undefined ? [process.env.GOERLI_DEPLOYER_KEY] : undefined,
+    },
+    arbg: {
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
+    },
     arbitrumRinkeby: {
       url: "https://rinkeby.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY] : undefined,
