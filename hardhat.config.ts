@@ -68,9 +68,20 @@ export default {
     },
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
-    // apiKey: process.env.ARBISCAN_API_KEY,
-    // apiKey: process.env.FTMSCAN_API_KEY,
-  }
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      // arb1: process.env.ARBISCAN_API_KEY,
+      arbg: process.env.ARBISCAN_API_KEY,
+      // ftm: process.env.FTMSCAN_API_KEY,
+    },
+    customChains: [{
+      network: "arbg",
+      chainId: 421613,
+      urls: {
+        apiURL: "https://api-goerli.arbiscan.io/api",
+        browserURL: "https://goerli.arbiscan.io",
+      },
+    }],
+  },
 };
 
