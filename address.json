@@ -34,5 +34,9 @@
     "RewardDelegators": "0x2ea3Ba8e1564b2925579e864D6F65606293DcdB4",
     "ClusterRewards": "0x6ffACC200e0dCb607b9Be64077eb0f8eEc00e73a",
     "StakeManager": "0x0EC28b2250574c18839E6723a276A2A89D9E5a50"
+  },
+  "421613": {
+    "Pond": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
+    "MarketV1": "0x29cbA3c69CB4Cf89a4e8b5f698df7C607A488e4f"
   }
 }
