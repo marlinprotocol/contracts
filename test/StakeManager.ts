@@ -68,7 +68,6 @@ describe('StakeManager', function() {
     expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
     expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
     expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
-    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[4])).to.be.true;
   });
 
   it('upgrades', async function() {
@@ -98,7 +97,6 @@ describe('StakeManager', function() {
     expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
     expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
     expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
-    expect(await stakeManager.hasRole(ethers.utils.id('GATEWAY_ROLE'), addrs[4])).to.be.true;
   });
 
   it('does not upgrade without admin', async()=> {
