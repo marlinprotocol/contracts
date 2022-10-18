@@ -53,7 +53,8 @@ describe('RewardDelegators', function() {
 
   it('deploys with initialization disabled', async()=> {
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    let rewardDelegators = await RewardDelegators.deploy();
+    console.log({pondTokenId, mpondTokenId})
+    let rewardDelegators = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
 
     await expect(rewardDelegators.initialize(
       stakeManagerInstance.address,
@@ -67,7 +68,7 @@ describe('RewardDelegators', function() {
 
   it('deploy as proxy and initializes', async()=> {
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
+    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups', initializer: false});
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
@@ -82,7 +83,7 @@ describe('RewardDelegators', function() {
 
   it('upgrades', async()=> {
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
+    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups', initializer: false});
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
@@ -91,14 +92,14 @@ describe('RewardDelegators', function() {
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
-    await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, {kind: 'uups'});
+    await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, {constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups'});
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId,mpondTokenId]);
   });
 
   it('does not upgrade without admin', async()=> {
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
+    let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups', initializer: false});
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
@@ -107,7 +108,7 @@ describe('RewardDelegators', function() {
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
     )
-    await expect(upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {kind: 'uups'})).to.be.reverted;
+    await expect(upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups'})).to.be.reverted;
   });
 });
 
@@ -147,7 +148,7 @@ describe('RewardDelegators', function() {
     stakeManagerInstance = await upgrades.deployProxy(StakeManager, {kind: 'uups', initializer: false});
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, { constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups', initializer: false});
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
@@ -263,7 +264,7 @@ describe('RewardDelegators', function() {
     stakeManagerInstance = await upgrades.deployProxy(StakeManager, {kind: 'uups', initializer: false});
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {kind: 'uups', initializer: false});
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, { constructorArgs:[pondTokenId, mpondTokenId], kind: 'uups', initializer: false});
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
@@ -408,7 +409,7 @@ describe('RewardDelegators Deployment', function () {
     await clusterRegistryInstance.initialize(lockWaitTimes);
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    rewardDelegatorsInstance = await RewardDelegators.deploy();
+    rewardDelegatorsInstance = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
 
     const ClusterRewards = await ethers.getContractFactory('ClusterRewards');
     clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
@@ -434,7 +435,7 @@ describe('RewardDelegators Deployment', function () {
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
-    ], { kind: "uups" });
+    ], { kind: "uups", constructorArgs:[pondTokenId, mpondTokenId] });
 
     await stakeManagerInstance.initialize(
         [pondTokenId, mpondTokenId],
@@ -473,13 +474,13 @@ describe('RewardDelegators Deployment', function () {
   it('upgrades', async function () {
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    await upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(rewardDelegatorsOwner), {kind: "uups"});
+    await upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(rewardDelegatorsOwner), {kind: "uups", constructorArgs:[pondTokenId, mpondTokenId]});
   });
 
   it('does not upgrade without admin', async function () {
 
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    await expect(upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(signers[1]), {kind: "uups"})).to.be.reverted;
+    await expect(upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(signers[1]), {kind: "uups", constructorArgs:[pondTokenId, mpondTokenId]})).to.be.reverted;
   });
 
   it("update rewards", async () => {
@@ -636,7 +637,7 @@ describe('RewardDelegators Deployment', function () {
             pondInstance.address,
             [testTokenId],
             [100]
-        ], { kind: "uups" });
+        ], { kind: "uups", constructorArgs:[testTokenId, testTokenId] });
           
         let EpochSelector = await ethers.getContractFactory("EpochSelector");
         epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect);

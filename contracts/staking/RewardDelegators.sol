@@ -29,7 +29,10 @@ contract RewardDelegators is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor() initializer {}
+    constructor(bytes32 _pondToken, bytes32 _mpondToken) initializer {
+        mpondToken = _mpondToken;
+        pondToken = _pondToken;
+    }
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
@@ -136,6 +139,14 @@ contract RewardDelegators is
     event ClusterRegistryUpdated(address _updatedClusterRegistry);
     event PONDAddressUpdated(address _updatedPOND);
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable pondToken;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable mpondToken;
+
+    uint256 public constant thresholdForSelection = 500_000; // 0.5 million POND or equivalent
+
     modifier onlyStake() {
         require(_msgSender() == stakeAddress, "RD:OS-only stake contract can invoke");
         _;
@@ -225,6 +236,7 @@ contract RewardDelegators is
     ) internal returns(uint256 _aggregateReward) {
         _updateRewards(_cluster);
 
+        uint256 totalDelegations;
 
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
@@ -247,26 +259,21 @@ contract RewardDelegators is
             );
 
             _aggregateReward = _aggregateReward + _reward;
-        }
 
-        uint256 totalDelegations;
-        for (uint256 index = 0; index < _tokens.length; index++) {
-            bytes32 _token = _tokens[index];
-            
             // assuming this is pond
-            if(_token == tokenList[0]){
-                totalDelegations += clusters[_cluster].totalDelegations[_token];
+            if(_tokenId == pondToken){
+                totalDelegations += clusters[_cluster].totalDelegations[_tokenId];
             }
             // assuming this is MPond
-            else if(_token == tokenList[1]){
-                totalDelegations += (1_000_000 * clusters[_cluster].totalDelegations[_token]);
+            else if(_tokenId == mpondToken){
+                totalDelegations += (1_000_000 * clusters[_cluster].totalDelegations[_tokenId]);
             }else{
-                revert("Resolve this issue");
+                revert("Token Not Listed");
             }
         }
 
         // if total delegation is more than 0.5 million pond, than insert into selector
-        if(totalDelegations >= 500_000){
+        if(totalDelegations >= thresholdForSelection){
             epochSelector.insert(_cluster, uint96(sqrt(totalDelegations)));
         }
         // if not, update it to zero
