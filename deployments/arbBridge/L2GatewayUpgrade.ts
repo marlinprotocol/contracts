@@ -14,6 +14,9 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
+  let name = process.env.NAME || 'PondGateway';
+  console.log(name);
+
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -22,7 +25,7 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined || addresses[chainId]['MPondGateway'] === undefined) {
+  if(addresses[chainId] === undefined || addresses[chainId][name] === undefined) {
     console.log("Missing dependencies");
     return;
   }
@@ -33,7 +36,7 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const L2Gateway = await ethers.getContractFactory('L2Gateway');
-  let l2Gateway = await upgrades.upgradeProxy(addresses[chainId]["MPondGateway"], L2Gateway, { kind: "uups" });
+  let l2Gateway = await upgrades.upgradeProxy(addresses[chainId][name], L2Gateway, { kind: "uups" });
 
   console.log("Deployed addr:", l2Gateway.address);
 }
