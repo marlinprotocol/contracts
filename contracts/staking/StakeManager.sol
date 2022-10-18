@@ -67,7 +67,7 @@ contract StakeManager is
         address _rewardDelegatorsAddress,
         uint256 _redelegationWaitTime,
         uint256 _undelegationWaitTime,
-        address _gatewayL1
+        address _unused
     )
         initializer
         public
@@ -94,7 +94,6 @@ contract StakeManager is
         _updateRewardDelegators(_rewardDelegatorsAddress);
         _updateLockWaitTime(REDELEGATION_LOCK_SELECTOR, _redelegationWaitTime);
         _updateLockWaitTime(UNDELEGATION_LOCK_SELECTOR, _undelegationWaitTime);
-        _setupRole(GATEWAY_ROLE, _gatewayL1);
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -268,8 +267,6 @@ contract StakeManager is
                 _delegator,
                 uint96(_amount)
             );
-
-            stashes[_stashId].govDelegations[_tokenId] = _delegator;
         }
     }
 
@@ -278,14 +275,12 @@ contract StakeManager is
             return;
         }
         address tokenAddress = tokens[_tokenId];
-        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress) && stashes[_stashId].govDelegations[_tokenId] != address(0)) {
+        if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
             MPond(tokenAddress).undelegate(
                 _delegator,
                 uint96(_amount)
             );
-
-            delete stashes[_stashId].govDelegations[_tokenId];
         }
         require(
             IERC20Upgradeable(tokenAddress).transfer(
@@ -303,7 +298,7 @@ contract StakeManager is
         address staker;
         address delegatedCluster;
         mapping(bytes32 => uint256) amounts;
-        mapping(bytes32 => address) govDelegations;
+        mapping(bytes32 => address) __unused_govDelegations;
     }
 
     // stashId to stash
@@ -676,70 +671,7 @@ contract StakeManager is
         return stashes[_stashId].amounts[_tokenId];
     }
 
-    function transfer(bytes32 _stashId, address _to) external onlyAdmin {
-        bytes32[] memory _tokens = tokenList;
-        uint256[] memory _amounts = new uint256[](_tokens.length);
-        for(uint256 i=0; i < _tokens.length; i++) {
-            _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
-        }
-
-        address _from = stashes[_stashId].staker;
-        address _delegatedCluster = stashes[_stashId].delegatedCluster;
-
-        _undelegate(_from, _stashId, _tokens, _amounts, _delegatedCluster);
-        bytes32 _newStashId = _newStash(_to);
-        _move(_stashId, _newStashId, _tokens, _amounts);
-        _delegate(_to, _newStashId, _tokens, _amounts, _delegatedCluster);
-    }
-
 //-------------------------------- Stash externals end --------------------------------//
 
-//-------------------------------- Gateway start --------------------------------//
-
-    bytes32 public constant GATEWAY_ROLE = keccak256("GATEWAY_ROLE");
-    uint160 constant diff = uint160(0x1111000000000000000000000000000000001111);
-
     uint256[50] private __gap6;
-
-    modifier onlyGatewayL1() {
-        unchecked {
-            require(
-                hasRole(GATEWAY_ROLE, address(uint160(_msgSender()) - diff))
-            );
-        }
-        _;
-    }
-
-    function transferL2(
-        address _staker,
-        bytes32[] calldata _tokenIds,
-        uint256[] calldata _allAmounts,
-        address[] calldata _delegatedClusters
-    ) external onlyGatewayL1 {
-        uint256 _stashCount = _delegatedClusters.length;
-        for(uint256 _sidx = 0; _sidx < _stashCount; _sidx++) {
-            // create stash
-            bytes32 _stashId = _newStash(_staker);
-            uint256[] memory _amounts = _allAmounts[(_sidx*_tokenIds.length):((_sidx+1)*_tokenIds.length)];
-            for(uint256 _tidx=0; _tidx < _tokenIds.length; _tidx++) {
-                bytes32 _tokenId = _tokenIds[_tidx];
-                uint256 _amount = _amounts[_tidx];
-                if(_amount == 0) {
-                    continue;
-                }
-                stashes[_stashId].amounts[_tokenId] = _amount;
-            }
-            stashes[_stashId].staker = _staker;
-
-            emit StashDeposit(_stashId, _tokenIds, _amounts);
-
-            // delegate
-            if(_delegatedClusters[_sidx] != address(0)) {
-                _delegate(_staker, _stashId, _tokenIds, _amounts, _delegatedClusters[_sidx]);
-            }
-        }
-    }
-
-//-------------------------------- Gateway end --------------------------------//
-
 }
