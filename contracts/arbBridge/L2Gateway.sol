@@ -120,6 +120,7 @@ contract L2Gateway is
         address _to,
         uint256 _amount
     ) external returns (uint256) {
+        revert("Temporarily suspended");
         tokenL2.transferFrom(_msgSender(), address(this), _amount);
         bytes memory _data = abi.encodeWithSignature(
             "transferL1(address,uint256)",
