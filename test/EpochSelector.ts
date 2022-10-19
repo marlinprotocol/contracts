@@ -1,4 +1,4 @@
-import { ethers, upgrades } from "hardhat";
+import { ethers, network, upgrades } from "hardhat";
 import { BigNumber as BN } from "bignumber.js";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { isAddress, keccak256 } from "ethers/lib/utils";
@@ -40,10 +40,14 @@ describe("Testing Epoch Selector", function () {
 
   beforeEach(async () => {
     [admin, user, updater] = await ethers.getSigners();
+    const blockNum = await ethers.provider.getBlockNumber();
+    const blockData = await ethers.provider.getBlock(blockNum);
+
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     epochSelector = await EpochSelector.deploy(
       admin.address,
-      numberOfClustersToSelect
+      numberOfClustersToSelect,
+      blockData.timestamp
     );
   });
 

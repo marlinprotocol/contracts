@@ -456,7 +456,9 @@ describe('RewardDelegators Deployment', function () {
         10);
     
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect);
+    const blockNum = await ethers.provider.getBlockNumber();
+    const blockData = await ethers.provider.getBlock(blockNum);
+    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp);
 
     let role = await epochSelectorInstance.updaterRole();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
@@ -640,7 +642,9 @@ describe('RewardDelegators Deployment', function () {
         ], { kind: "uups", constructorArgs:[testTokenId, testTokenId] });
           
         let EpochSelector = await ethers.getContractFactory("EpochSelector");
-        epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect);
+        const blockNum = await ethers.provider.getBlockNumber();
+        const blockData = await ethers.provider.getBlock(blockNum);
+        epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp);
 
         let role = await epochSelectorInstance.updaterRole();
         await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);

@@ -29,9 +29,9 @@ contract RewardDelegators is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor(bytes32 _pondToken, bytes32 _mpondToken) initializer {
-        mpondToken = _mpondToken;
-        pondToken = _pondToken;
+    constructor(bytes32 _pondTokenId, bytes32 _mpondTokenId) initializer {
+        pondTokenId = _pondTokenId;
+        mpondTokenId = _mpondTokenId;
     }
 
     modifier onlyAdmin() {
@@ -140,12 +140,14 @@ contract RewardDelegators is
     event PONDAddressUpdated(address _updatedPOND);
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable pondToken;
+    bytes32 public immutable pondTokenId;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable mpondToken;
+    bytes32 public immutable mpondTokenId;
 
     uint256 public constant thresholdForSelection = 500_000; // 0.5 million POND or equivalent
+
+    uint256 private constant one_million = 1_000_000;
 
     modifier onlyStake() {
         require(_msgSender() == stakeAddress, "RD:OS-only stake contract can invoke");
@@ -261,12 +263,12 @@ contract RewardDelegators is
             _aggregateReward = _aggregateReward + _reward;
 
             // assuming this is pond
-            if(_tokenId == pondToken){
+            if(_tokenId == pondTokenId){
                 totalDelegations += clusters[_cluster].totalDelegations[_tokenId];
             }
             // assuming this is MPond
-            else if(_tokenId == mpondToken){
-                totalDelegations += (1_000_000 * clusters[_cluster].totalDelegations[_tokenId]);
+            else if(_tokenId == mpondTokenId){
+                totalDelegations += (one_million * clusters[_cluster].totalDelegations[_tokenId]);
             }else{
                 revert("Token Not Listed");
             }
