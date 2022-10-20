@@ -156,7 +156,7 @@ contract MarketV1 is
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 _balance, uint256 timestamp);
+    event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 balance, uint256 timestamp);
     event JobSettled(bytes32 indexed job, uint256 amount, uint256 timestamp);
     event JobClosed(bytes32 indexed job);
     event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
