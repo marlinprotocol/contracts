@@ -107,6 +107,8 @@ contract RewardDelegators is
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
+
+        _updateThresholdForSelection(500_000); //0.5 million pond
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -138,16 +140,6 @@ contract RewardDelegators is
     event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
     event ClusterRegistryUpdated(address _updatedClusterRegistry);
     event PONDAddressUpdated(address _updatedPOND);
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable pondTokenId;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable mpondTokenId;
-
-    uint256 public constant thresholdForSelection = 500_000; // 0.5 million POND or equivalent
-
-    uint256 private constant one_million = 1_000_000;
 
     modifier onlyStake() {
         require(_msgSender() == stakeAddress, "RD:OS-only stake contract can invoke");
@@ -470,6 +462,43 @@ contract RewardDelegators is
             }
         } else if (y != 0) {
             z = 1;
+        }
+    }
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable pondTokenId;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable mpondTokenId;
+
+    uint256 private constant one_million = 1_000_000;
+
+    uint256 public thresholdForSelection; // 0.5 million POND or equivalent (value is assigned in initializer)
+    event UpdateThresholdForSelection(uint256 newThreshold);
+
+    function updateThresholdForSelection(uint256 newThreshold) onlyAdmin external {
+        _updateThresholdForSelection(newThreshold);
+    }
+
+    function _updateThresholdForSelection(uint256 _newThreshold) internal {
+        thresholdForSelection = _newThreshold;
+        emit UpdateThresholdForSelection(_newThreshold);
+    }
+
+    event RefreshClusterDelegation(address cluster);
+    function refreshClusterDelegation(address[] calldata clusterList) onlyAdmin external {
+        for (uint256 index = 0; index < clusterList.length; index++) {
+            address cluster = clusterList[index];
+
+            uint256 totalDelegations;
+
+            totalDelegations = clusters[cluster].totalDelegations[pondTokenId] + clusters[cluster].totalDelegations[mpondTokenId];
+
+            if(totalDelegations >= thresholdForSelection){
+                epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
+            }
+
+            emit RefreshClusterDelegation(cluster);   
         }
     }
 }
