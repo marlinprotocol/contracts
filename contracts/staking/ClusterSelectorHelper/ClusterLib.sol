@@ -63,13 +63,12 @@ library ClusterLib {
         address[] memory _currentNodePath = abi.decode(array, (address[]));
         uint256 lengthOfNewPath = _currentNodePath.length + 1;
 
-        address[] memory _newNodePath = new address[](lengthOfNewPath);
-
-        for (uint256 index = 0; index < lengthOfNewPath - 1; index++) {
-            _newNodePath[index] = _currentNodePath[index];
+        assembly {
+            mstore(_currentNodePath, lengthOfNewPath)
         }
-        _newNodePath[lengthOfNewPath - 1] = toAdd;
-        return abi.encode(_newNodePath);
+
+        _currentNodePath[lengthOfNewPath - 1] = toAdd;
+        return abi.encode(_currentNodePath);
     }
 
     function _getAddressesFromEncodedArray(bytes memory array) internal pure returns (address[] memory) {
