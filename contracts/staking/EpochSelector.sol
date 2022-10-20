@@ -3,21 +3,32 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IEpochSelector.sol";
 import "./ClusterSelector_wih_abi_encode.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
+
+    using SafeERC20 for IERC20;
+
     /// @notice Event emitted when Cluster is selected
     /// @param epoch Number of Epoch
     /// @param cluster Address of cluster
     event ClusterSelected(uint256 indexed epoch, address indexed cluster);
 
     /// @notice Event emited when the number of clusters to select is updated
-    /// @param epoch epoch number when this happens
-    /// @param oldNumberOfClusters Previous number of clusters selected
     /// @param newNumberOfClusters New number of clusters selected
-    event UpdateNumberOfClustersToSelect(uint256 indexed epoch, uint256 oldNumberOfClusters, uint256 newNumberOfClusters);
+    event UpdateNumberOfClustersToSelect(uint256 newNumberOfClusters);
+
+    /// @notice Event emited when the reward is updated
+    /// @param newReward New Reward For selecting the tokens
+    event UpdateRewardForSelectingTheNodes(uint256 newReward);
+
+    /// @notice Event emited when the reward token is emitted
+    /// @param _newRewardToken Address of the new reward token
+    event UpdateRewardToken(address _newRewardToken);
 
     /// @notice length of epoch
     uint256 public constant epochLength = 4 hours;
@@ -34,14 +45,29 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @notice ID for update role
     bytes32 public constant updaterRole = keccak256(abi.encode("updater")); // find standard format for this
 
-    /// @notice ID for updater admin role
-    bytes32 public constant updaterAdminRole = keccak256(abi.encode("updater admin")); // find standard format for this
+    /// @notice ID for admin role
+    bytes32 public constant adminRole = keccak256(abi.encode("admin")); // find standard format for this
 
-    constructor(address _admin, uint256 _numberOfClustersToSelect, uint256 _startTime) ClusterSelector() {
+    /// @notice ID for reward control
+    bytes32 public constant rewardControllerRole = keccak256(abi.encode("reward-control")); // find standard format for this
+
+    /// @notice Reward that the msg.sender recevies when cluster are selected for the epoch;
+    uint256 public rewardForSelectingClusters = 100 * 10**18; 
+
+    /// @notice Reward Token
+    address public rewardToken;
+    
+    constructor(address _admin, uint256 _numberOfClustersToSelect, uint256 _startTime, address _rewardToken) ClusterSelector() {
         startTime = _startTime;
         numberOfClustersToSelect = _numberOfClustersToSelect;
-        AccessControl._setRoleAdmin(updaterRole, updaterAdminRole);
-        AccessControl._grantRole(updaterAdminRole, _admin);
+        
+        AccessControl._setRoleAdmin(updaterRole, adminRole);
+        AccessControl._setRoleAdmin(rewardControllerRole, adminRole);
+
+        AccessControl._grantRole(adminRole, _admin);
+        AccessControl._grantRole(rewardControllerRole, _admin);
+
+        rewardToken = _rewardToken;
     }
 
 
@@ -63,6 +89,8 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
             for (uint256 index = 0; index < nodes.length; index++) {
                 emit ClusterSelected(epoch, nodes[index]);
             }
+
+            _dispenseReward(msg.sender);
         }
         return nodes;
     }
@@ -136,12 +164,32 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
     /// @inheritdoc IEpochSelector
     function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external onlyRole(updaterRole) {
-        uint256 oldNumberOfClusters = numberOfClustersToSelect;
-        require(_numberOfClusters!= 0 && oldNumberOfClusters != _numberOfClusters, "Should be a valid number");
-        uint256 currentEpoch = getCurrentEpoch();
+        require(_numberOfClusters!= 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
         numberOfClustersToSelect = _numberOfClusters;
+        emit UpdateNumberOfClustersToSelect(_numberOfClusters);
+    }
 
-        emit UpdateNumberOfClustersToSelect(currentEpoch, oldNumberOfClusters, _numberOfClusters);
+    /// @notice Updates the reward token
+    /// @param _rewardToken Address of the reward token
+    function updateRewardToken(address _rewardToken) external onlyRole(adminRole) {
+        require(_rewardToken == rewardToken, "Update reward token");
+        rewardToken = _rewardToken;
+        emit UpdateRewardToken(_rewardToken);
+    }
 
+    function _dispenseReward(address _to) internal {
+        IERC20 _rewardToken = IERC20(rewardToken);
+        if(_rewardToken.balanceOf(address(this)) >=  rewardForSelectingClusters) {
+            _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
+        }
+    }
+
+    function flushTokens(address token, address to) external onlyRole(adminRole) {
+        IERC20 _token = IERC20(token);
+        
+        uint256 remaining = _token.balanceOf(address(this));
+        if(remaining >0){
+            _token.safeTransfer(to, remaining);
+        }
     }
 }

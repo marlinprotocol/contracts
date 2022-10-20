@@ -11,6 +11,5 @@ cache
 artifacts
 coverage
 coverage.json
-.openzeppelin/unknown-31337.json
 .gitsigners
 gasReport.md

@@ -530,7 +530,7 @@ describe('StakeManager', function() {
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp);
+    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address);
 
     let role = await epochSelectorInstance.updaterRole();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
@@ -1097,7 +1097,7 @@ describe('StakeManager Deployment', function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp);
+    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address);
 
     let role = await epochSelectorInstance.updaterRole();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);

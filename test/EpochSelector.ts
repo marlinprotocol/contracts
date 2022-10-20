@@ -38,16 +38,21 @@ describe("Testing Epoch Selector", function () {
     numberOfSelections = 1000;
   }
 
+
   beforeEach(async () => {
     [admin, user, updater] = await ethers.getSigners();
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
 
+    const Pond = await ethers.getContractFactory('Pond');
+    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"],{ kind: "uups" });
+
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     epochSelector = await EpochSelector.deploy(
       admin.address,
       numberOfClustersToSelect,
-      blockData.timestamp
+      blockData.timestamp,
+      pond.address
     );
   });
 
