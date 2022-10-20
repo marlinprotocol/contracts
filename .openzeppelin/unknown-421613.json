@@ -325,7 +325,7 @@
           {
             "contract": "LockUpgradeable",
             "label": "locks",
-            "type": "t_mapping(t_bytes32,t_struct(Lock)10168_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(Lock)10172_storage)",
             "src": "contracts/lock/LockUpgradeable.sol:19"
           },
           {
@@ -349,7 +349,7 @@
           {
             "contract": "MarketV1",
             "label": "providers",
-            "type": "t_mapping(t_address,t_struct(Provider)9444_storage)",
+            "type": "t_mapping(t_address,t_struct(Provider)9448_storage)",
             "src": "contracts/enclaves/MarketV1.sol:97"
           },
           {
@@ -361,7 +361,7 @@
           {
             "contract": "MarketV1",
             "label": "jobs",
-            "type": "t_mapping(t_bytes32,t_struct(Job)9576_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(Job)9580_storage)",
             "src": "contracts/enclaves/MarketV1.sol:150"
           },
           {
@@ -393,13 +393,13 @@
           "t_array(t_uint256)50_storage": {
             "label": "uint256[50]"
           },
-          "t_mapping(t_address,t_struct(Provider)9444_storage)": {
+          "t_mapping(t_address,t_struct(Provider)9448_storage)": {
             "label": "mapping(address => struct MarketV1.Provider)"
           },
           "t_address": {
             "label": "address"
           },
-          "t_struct(Provider)9444_storage": {
+          "t_struct(Provider)9448_storage": {
             "label": "struct MarketV1.Provider",
             "members": [
               {
@@ -414,13 +414,13 @@
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]"
           },
-          "t_mapping(t_bytes32,t_struct(Job)9576_storage)": {
+          "t_mapping(t_bytes32,t_struct(Job)9580_storage)": {
             "label": "mapping(bytes32 => struct MarketV1.Job)"
           },
           "t_bytes32": {
             "label": "bytes32"
           },
-          "t_struct(Job)9576_storage": {
+          "t_struct(Job)9580_storage": {
             "label": "struct MarketV1.Job",
             "members": [
               {
@@ -455,10 +455,10 @@
           "t_array(t_uint256)47_storage": {
             "label": "uint256[47]"
           },
-          "t_mapping(t_bytes32,t_struct(Lock)10168_storage)": {
+          "t_mapping(t_bytes32,t_struct(Lock)10172_storage)": {
             "label": "mapping(bytes32 => struct LockUpgradeable.Lock)"
           },
-          "t_struct(Lock)10168_storage": {
+          "t_struct(Lock)10172_storage": {
             "label": "struct LockUpgradeable.Lock",
             "members": [
               {
@@ -1753,6 +1753,276 @@
           },
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)199_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"
+          },
+          "t_struct(RoleData)199_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "ff97f74dcaea513498d02dcba99f1479293fbe0ba7bb52845cfe77d658e76bb3": {
+      "address": "0x9cB8964130BA745f8d2453cfdE8fEF7935ea10BF",
+      "txHash": "0x915bab7cfd37a412db61f1e9ed496163fcfb4ecb8ac3b9b95856ff689174d161",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "_initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:39"
+          },
+          {
+            "contract": "Initializable",
+            "label": "_initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:44"
+          },
+          {
+            "contract": "ContextUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:31"
+          },
+          {
+            "contract": "ERC165Upgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:36"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)199_storage)",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:64"
+          },
+          {
+            "contract": "AccessControlUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:232"
+          },
+          {
+            "contract": "AccessControlEnumerableUpgradeable",
+            "label": "_roleMembers",
+            "type": "t_mapping(t_bytes32,t_struct(AddressSet)3181_storage)",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol:26"
+          },
+          {
+            "contract": "AccessControlEnumerableUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol:74"
+          },
+          {
+            "contract": "ERC1967UpgradeUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:215"
+          },
+          {
+            "contract": "UUPSUpgradeable",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:81"
+          },
+          {
+            "contract": "LockUpgradeable",
+            "label": "locks",
+            "type": "t_mapping(t_bytes32,t_struct(Lock)10173_storage)",
+            "src": "contracts/lock/LockUpgradeable.sol:19"
+          },
+          {
+            "contract": "LockUpgradeable",
+            "label": "lockWaitTime",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "src": "contracts/lock/LockUpgradeable.sol:20"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "__gap0",
+            "type": "t_array(t_uint256)500_storage",
+            "src": "contracts/enclaves/MarketV1.sol:27"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "__gap1",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "contracts/enclaves/MarketV1.sol:62"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "providers",
+            "type": "t_mapping(t_address,t_struct(Provider)9448_storage)",
+            "src": "contracts/enclaves/MarketV1.sol:97"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "__gap2",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "contracts/enclaves/MarketV1.sol:99"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "jobs",
+            "type": "t_mapping(t_bytes32,t_struct(Job)9580_storage)",
+            "src": "contracts/enclaves/MarketV1.sol:150"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "jobIndex",
+            "type": "t_uint256",
+            "src": "contracts/enclaves/MarketV1.sol:151"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "token",
+            "type": "t_contract(IERC20)3546",
+            "src": "contracts/enclaves/MarketV1.sol:153"
+          },
+          {
+            "contract": "MarketV1",
+            "label": "__gap3",
+            "type": "t_array(t_uint256)47_storage",
+            "src": "contracts/enclaves/MarketV1.sol:155"
+          }
+        ],
+        "types": {
+          "t_array(t_uint256)500_storage": {
+            "label": "uint256[500]"
+          },
+          "t_uint256": {
+            "label": "uint256"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_mapping(t_address,t_struct(Provider)9448_storage)": {
+            "label": "mapping(address => struct MarketV1.Provider)"
+          },
+          "t_address": {
+            "label": "address"
+          },
+          "t_struct(Provider)9448_storage": {
+            "label": "struct MarketV1.Provider",
+            "members": [
+              {
+                "label": "cp",
+                "type": "t_string_storage"
+              }
+            ]
+          },
+          "t_string_storage": {
+            "label": "string"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_mapping(t_bytes32,t_struct(Job)9580_storage)": {
+            "label": "mapping(bytes32 => struct MarketV1.Job)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(Job)9580_storage": {
+            "label": "struct MarketV1.Job",
+            "members": [
+              {
+                "label": "metadata",
+                "type": "t_string_storage"
+              },
+              {
+                "label": "owner",
+                "type": "t_address"
+              },
+              {
+                "label": "provider",
+                "type": "t_address"
+              },
+              {
+                "label": "rate",
+                "type": "t_uint256"
+              },
+              {
+                "label": "balance",
+                "type": "t_uint256"
+              },
+              {
+                "label": "lastSettled",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_contract(IERC20)3546": {
+            "label": "contract IERC20"
+          },
+          "t_array(t_uint256)47_storage": {
+            "label": "uint256[47]"
+          },
+          "t_mapping(t_bytes32,t_struct(Lock)10173_storage)": {
+            "label": "mapping(bytes32 => struct LockUpgradeable.Lock)"
+          },
+          "t_struct(Lock)10173_storage": {
+            "label": "struct LockUpgradeable.Lock",
+            "members": [
+              {
+                "label": "unlockTime",
+                "type": "t_uint256"
+              },
+              {
+                "label": "iValue",
+                "type": "t_uint256"
+              }
+            ]
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_mapping(t_bytes32,t_struct(AddressSet)3181_storage)": {
+            "label": "mapping(bytes32 => struct EnumerableSetUpgradeable.AddressSet)"
+          },
+          "t_struct(AddressSet)3181_storage": {
+            "label": "struct EnumerableSetUpgradeable.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)2880_storage"
+              }
+            ]
+          },
+          "t_struct(Set)2880_storage": {
+            "label": "struct EnumerableSetUpgradeable.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
           },
           "t_mapping(t_bytes32,t_struct(RoleData)199_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)"

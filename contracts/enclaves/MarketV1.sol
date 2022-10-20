@@ -210,7 +210,7 @@ contract MarketV1 is
         _withdraw(_provider, _amount);
 
         jobs[_job].balance = _balance;
-        jobs[_job].lastSettled = _lastSettled;
+        jobs[_job].lastSettled = block.timestamp;
 
         emit JobSettled(_job, _amount);
     }
