@@ -77,11 +77,12 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         return (block.timestamp - startTime) / epochLength;
     }
 
-    /// @notice Returns the list of selected clusters for the next coming epoch
+    /// @notice Returns the list of selected clusters for the next
     /// @return List of the clusters selected
     function selectClusters() public override returns (address[] memory) {
         uint256 nextEpoch = getCurrentEpoch() + 1;
         address[] memory nodes = clustersSelected[nextEpoch];
+
         if (nodes.length == 0) {
             // select and save from the tree
             clustersSelected[nextEpoch] = selectTopNClusters(uint256(blockhash(block.number)), numberOfClustersToSelect);
@@ -92,6 +93,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
             _dispenseReward(msg.sender);
         }
+        
         return nodes;
     }
 

@@ -230,8 +230,6 @@ contract RewardDelegators is
     ) internal returns(uint256 _aggregateReward) {
         _updateRewards(_cluster);
 
-        uint256 totalDelegations;
-
         for(uint256 i = 0; i < _tokens.length; i++) {
             bytes32 _tokenId = _tokens[i];
             uint256 _amount = _amounts[i];
@@ -253,18 +251,8 @@ contract RewardDelegators is
             );
 
             _aggregateReward = _aggregateReward + _reward;
-
-            // assuming this is pond
-            if(_tokenId == POND_TOKEN_ID){
-                totalDelegations += clusters[_cluster].totalDelegations[_tokenId];
-            }
-            // assuming this is MPond
-            else if(_tokenId == MPOND_TOKEN_ID){
-                totalDelegations += (ONE_MILLION * clusters[_cluster].totalDelegations[_tokenId]);
-            }else{
-                revert("Token Not Listed");
-            }
         }
+        uint256 totalDelegations = _getTotalDelegations(_cluster);
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations >= thresholdForSelection){
@@ -490,9 +478,7 @@ contract RewardDelegators is
         for (uint256 index = 0; index < clusterList.length; index++) {
             address cluster = clusterList[index];
 
-            uint256 totalDelegations;
-
-            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
+            uint256 totalDelegations = _getTotalDelegations(cluster);
 
             if(totalDelegations >= thresholdForSelection){
                 epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
@@ -500,5 +486,9 @@ contract RewardDelegators is
 
             emit RefreshClusterDelegation(cluster);   
         }
+    }
+
+    function _getTotalDelegations(address cluster) internal returns(uint256 totalDelegations){
+        totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
     }
 }
