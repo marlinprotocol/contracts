@@ -161,10 +161,10 @@ async function getSelectedClusters(
   account: SignerWithAddress,
   epochSelector: Contract
 ): Promise<Balances[]> {
-  await epochSelector.connect(account).getCurrentClusters();
+  await epochSelector.connect(account).selectClusters();
   const clustersSelected = await epochSelector
     .connect(account)
-    .callStatic.getCurrentClusters();
+    .callStatic.selectClusters();
 
   const balances: Balances[] = [];
 

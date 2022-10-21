@@ -30,8 +30,8 @@ contract RewardDelegators is
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
     constructor(bytes32 _pondTokenId, bytes32 _mpondTokenId) initializer {
-        pondTokenId = _pondTokenId;
-        mpondTokenId = _mpondTokenId;
+        POND_TOKEN_ID = _pondTokenId;
+        MPOND_TOKEN_ID = _mpondTokenId;
     }
 
     modifier onlyAdmin() {
@@ -255,12 +255,12 @@ contract RewardDelegators is
             _aggregateReward = _aggregateReward + _reward;
 
             // assuming this is pond
-            if(_tokenId == pondTokenId){
+            if(_tokenId == POND_TOKEN_ID){
                 totalDelegations += clusters[_cluster].totalDelegations[_tokenId];
             }
             // assuming this is MPond
-            else if(_tokenId == mpondTokenId){
-                totalDelegations += (one_million * clusters[_cluster].totalDelegations[_tokenId]);
+            else if(_tokenId == MPOND_TOKEN_ID){
+                totalDelegations += (ONE_MILLION * clusters[_cluster].totalDelegations[_tokenId]);
             }else{
                 revert("Token Not Listed");
             }
@@ -466,12 +466,12 @@ contract RewardDelegators is
     }
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable pondTokenId;
+    bytes32 public immutable POND_TOKEN_ID;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable mpondTokenId;
+    bytes32 public immutable MPOND_TOKEN_ID;
 
-    uint256 private constant one_million = 1_000_000;
+    uint256 private constant ONE_MILLION = 1_000_000;
 
     uint256 public thresholdForSelection; // 0.5 million POND or equivalent (value is assigned in initializer)
     event UpdateThresholdForSelection(uint256 newThreshold);
@@ -492,7 +492,7 @@ contract RewardDelegators is
 
             uint256 totalDelegations;
 
-            totalDelegations = clusters[cluster].totalDelegations[pondTokenId] + clusters[cluster].totalDelegations[mpondTokenId];
+            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
 
             if(totalDelegations >= thresholdForSelection){
                 epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));

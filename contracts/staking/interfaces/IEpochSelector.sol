@@ -5,7 +5,7 @@ import "./IClusterSelector.sol";
 interface IEpochSelector is IClusterSelector {
     function getCurrentEpoch() external view returns (uint256);
 
-    function getCurrentClusters() external returns (address[] memory nodes);
+    function selectClusters() external returns (address[] memory nodes);
 
     /// @notice Delete a node from tree if it is stored
     /// @param key Address of the node
