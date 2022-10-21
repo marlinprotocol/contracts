@@ -10,7 +10,7 @@ import "../interfaces/IClusterSelector.sol";
 
 abstract contract SelectorHelper is IClusterSelector {
     /// @notice List of all nodes
-    mapping(address => Node) public nodes;
+    mapping(address => Node) nodes;
 
     /// @notice Total number of all nodes in the tree
     uint256 public totalElements;
@@ -69,7 +69,7 @@ abstract contract SelectorHelper is IClusterSelector {
             // console2.log("RR: not because y is 0 ");
             return z.node;
         }
-        Node storage T3 = nodes[y.right];
+        Node memory T3 = nodes[y.right];
 
         // cut z.left
         z.sumOfLeftBalances = _getTotalBalancesIncludingWeight(T3);
@@ -112,7 +112,7 @@ abstract contract SelectorHelper is IClusterSelector {
             // console2.log("LR: not because y is 0 ");
             return z.node;
         }
-        Node storage T2 = nodes[y.left];
+        Node memory T2 = nodes[y.left];
 
         // cut z.right
         z.sumOfRightBalances = _getTotalBalancesIncludingWeight(T2);
@@ -126,9 +126,9 @@ abstract contract SelectorHelper is IClusterSelector {
         return y.node;
     }
 
-    /// @notice Returns the node balance i.e difference in heights of left and right nodes
-    /// @param node Address of the node to get balance of
-    /// @return Balance of the node
+    /// @notice Returns the (node balance) i.e difference in heights of left and right nodes
+    /// @param node Address of the node to get height difference of
+    /// @return Height Difference of the node
     function getHeightDifference(address node) public view returns (int256) {
         if (node == address(0)) return 0;
 

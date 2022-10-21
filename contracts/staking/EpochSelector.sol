@@ -154,12 +154,9 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @inheritdoc IClusterSelector
     function update(address existingNode, uint96 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
         require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        if (nodes[existingNode].node == address(0)) {
-            assert(false);
-        } else {
-            int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
-            _update(root, existingNode, differenceInKeyBalance);
-        }
+        assert(nodes[existingNode].node == existingNode);
+        int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
+        _update(root, existingNode, differenceInKeyBalance);
     }
 
     /// @inheritdoc IEpochSelector

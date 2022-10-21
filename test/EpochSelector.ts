@@ -103,7 +103,7 @@ describe("Testing Epoch Selector", function () {
       );
 
       let root = await epochSelector.root();
-      let data = await epochSelector.callStatic.nodes(root);
+      let data = await epochSelector.callStatic.nodeData(root);
       const totalValueInTree = data.sumOfRightBalances
         .add(data.balance)
         .add(data.sumOfLeftBalances)
@@ -170,7 +170,7 @@ async function getSelectedClusters(
 
   for (let index = 0; index < clustersSelected.length; index++) {
     const element = clustersSelected[index];
-    const data = await epochSelector.callStatic.nodes(element);
+    const data = await epochSelector.callStatic.nodeData(element);
 
     balances.push({ user: element, balance: data.balance.toString() });
   }
@@ -220,7 +220,7 @@ async function addAddressWithLargeBalance(
     let largeBalAddress = randomAddressGenerator("some string" + index);
 
     let root = await epochSelector.root();
-    let data = await epochSelector.callStatic.nodes(root);
+    let data = await epochSelector.callStatic.nodeData(root);
     let largeBalance = data.sumOfRightBalances
       .add(data.balance)
       .add(data.sumOfLeftBalances)

@@ -128,7 +128,7 @@ contract SingleSelector is SelectorHelper {
         // 2. update the height
         currentNode.height = calculateUpdatedHeight(currentNode);
 
-        // 3. Get the balance factor
+        // 3. Get the height difference
         int256 heightDifference = getHeightDifference(node);
 
         // Left Left Case

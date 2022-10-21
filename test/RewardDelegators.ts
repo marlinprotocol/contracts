@@ -53,7 +53,6 @@ describe('RewardDelegators', function() {
 
   it('deploys with initialization disabled', async()=> {
     const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
-    console.log({pondTokenId, mpondTokenId})
     let rewardDelegators = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
 
     await expect(rewardDelegators.initialize(
