@@ -45,7 +45,6 @@ contract ClusterSelector is SingleSelector {
 
             selectedNodes[index] = _node;
             pathToSelectedNodes[index] = _path;
-
             _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
             // console2.log("length of path selected", _path.length);
             // _printArray("path that I need to check", pathToSelectedNodes[index]);
@@ -90,7 +89,7 @@ contract ClusterSelector is SingleSelector {
 
         Node memory node = nodes[_root];
         // stored in existing variable to conserve memory
-        (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeightes(node, selectedNodes, pathsToSelectedNodes);
+        (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeights(node, selectedNodes, pathsToSelectedNodes);
 
         // console2.log("leftWeight used for search", leftWeight);
         // console2.log("rightWeight used for searching", rightWeight);
@@ -164,7 +163,7 @@ contract ClusterSelector is SingleSelector {
     /// @param pathsToSelectedNodes Paths to the selected nodes
     /// @return leftWeight reduced left weight of the node
     /// @return rightWeight reduced right weight of the node
-    function _getModifiedWeightes(
+    function _getModifiedWeights(
         Node memory node,
         address[] memory selectedNodes,
         bytes[] memory pathsToSelectedNodes
