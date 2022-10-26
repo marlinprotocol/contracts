@@ -27,9 +27,9 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfAddressesWithLargeBalances = 2;
-  let numberOfElementsInTree = 20 - numberOfAddressesWithLargeBalances;
-  let numberOfSelections: number = 10;
+  let numberOfAddressesWithLargeBalances = 1;
+  let numberOfElementsInTree = 200 - numberOfAddressesWithLargeBalances;
+  let numberOfSelections: number = 100;
 
   if (process.env.TEST_ENV == "prod") {
     numberOfAddressesWithLargeBalances = 10;
@@ -154,7 +154,14 @@ describe("Testing Epoch Selector", function () {
       counter = counter.sort((a, b) =>
         b.count == a.count ? b.balance - a.balance : b.count - a.count
       );
-      console.table(counter);
+      console.table(
+        counter.map((a) => {
+          return {
+            ...a,
+            count: `${a.count}/${numberOfSelections}`,
+          };
+        })
+      );
     });
   });
 });

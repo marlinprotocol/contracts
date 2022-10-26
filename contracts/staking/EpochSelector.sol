@@ -86,7 +86,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
         if (nodes.length == 0) {
             // select and save from the tree
-            clustersSelected[nextEpoch] = selectTopNClusters(uint256(blockhash(block.number)), numberOfClustersToSelect);
+            clustersSelected[nextEpoch] = selectTopNClusters(block.timestamp, numberOfClustersToSelect);
             nodes = clustersSelected[nextEpoch];
             for (uint256 index = 0; index < nodes.length; index++) {
                 emit ClusterSelected(nextEpoch, nodes[index]);
