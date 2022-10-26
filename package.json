@@ -10,7 +10,7 @@
     "test": "npx hardhat test",
     "solhint": "solhint -f table contracts/**/*.sol",
     "compile": "npx hardhat compile",
-    "clean":"npx hardhat clean",
+    "clean": "npx hardhat clean",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
     "prettify:test": "npx prettier --write test/*.js"
   },
@@ -25,7 +25,8 @@
   "homepage": "https://github.com/marlinprotocol/contracts",
   "dependencies": {
     "@openzeppelin/contracts": "4.4.1",
-    "@openzeppelin/contracts-upgradeable": "4.4.1"
+    "@openzeppelin/contracts-upgradeable": "4.4.1",
+    "ethereumjs-wallet": "^1.0.2"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.3",

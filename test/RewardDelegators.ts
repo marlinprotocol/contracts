@@ -1,6 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 import { expect, util } from 'chai';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { BigNumber as BN, Signer, Contract, BigNumber } from 'ethers';
 import exp from 'constants';
 import { Sign, sign } from 'crypto';
 import cluster, { Address } from 'cluster';
@@ -457,9 +457,9 @@ describe('RewardDelegators Deployment', function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address);
+    epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address, BigNumber.from(10).pow(20));
 
-    let role = await epochSelectorInstance.updaterRole();
+    let role = await epochSelectorInstance.UPDATER_ROLE();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
@@ -643,9 +643,9 @@ describe('RewardDelegators Deployment', function () {
         let EpochSelector = await ethers.getContractFactory("EpochSelector");
         const blockNum = await ethers.provider.getBlockNumber();
         const blockData = await ethers.provider.getBlock(blockNum);
-        epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address);
+        epochSelectorInstance = await EpochSelector.deploy(addrs[0], numberOfClustersToSelect, blockData.timestamp, pondInstance.address, BigNumber.from(10).pow(20));
 
-        let role = await epochSelectorInstance.updaterRole();
+        let role = await epochSelectorInstance.UPDATER_ROLE();
         await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
         await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);

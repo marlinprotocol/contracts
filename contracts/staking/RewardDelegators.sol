@@ -255,7 +255,7 @@ contract RewardDelegators is
         uint256 totalDelegations = _getTotalDelegations(_cluster);
 
         // if total delegation is more than 0.5 million pond, than insert into selector
-        if(totalDelegations >= thresholdForSelection){
+        if(totalDelegations != 0){
             epochSelector.insert(_cluster, uint96(sqrt(totalDelegations)));
         }
         // if not, update it to zero
@@ -429,7 +429,7 @@ contract RewardDelegators is
     }
     
     IEpochSelector public epochSelector;
-    event EpochSelectorUpdated(IEpochSelector newEpochSelector);
+    event EpochSelectorUpdated(IEpochSelector indexed newEpochSelector);
     
     function updateEpochSelector(IEpochSelector _epochSelector) onlyAdmin external{
         _updateEpochSelector(_epochSelector);
@@ -459,9 +459,9 @@ contract RewardDelegators is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     bytes32 public immutable MPOND_TOKEN_ID;
 
-    uint256 private constant ONE_MILLION = 1_000_000;
+    uint256 private constant POND_PER_MPOND = 1_000_000;
 
-    uint256 public thresholdForSelection; // 0.5 million POND or equivalent (value is assigned in initializer)
+    uint256 public thresholdForSelection; // 0.5 MPOND
     event UpdateThresholdForSelection(uint256 newThreshold);
 
     function updateThresholdForSelection(uint256 newThreshold) onlyAdmin external {
@@ -473,14 +473,14 @@ contract RewardDelegators is
         emit UpdateThresholdForSelection(_newThreshold);
     }
 
-    event RefreshClusterDelegation(address cluster);
+    event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(address[] calldata clusterList) onlyAdmin external {
         for (uint256 index = 0; index < clusterList.length; index++) {
             address cluster = clusterList[index];
 
             uint256 totalDelegations = _getTotalDelegations(cluster);
 
-            if(totalDelegations >= thresholdForSelection){
+            if(totalDelegations != 0){
                 epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
             }
 
@@ -488,7 +488,11 @@ contract RewardDelegators is
         }
     }
 
-    function _getTotalDelegations(address cluster) internal returns(uint256 totalDelegations){
-        totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
+    function _getTotalDelegations(address cluster) internal view returns(uint256 totalDelegations){
+        uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
+        if(numberOfMPond >= thresholdForSelection){
+            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
+        }
+        // else totalDelegations should be considered 0
     }
 }

@@ -38,21 +38,23 @@ describe("Testing Epoch Selector", function () {
     numberOfSelections = 1000;
   }
 
-
   beforeEach(async () => {
     [admin, user, updater] = await ethers.getSigners();
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
 
-    const Pond = await ethers.getContractFactory('Pond');
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"],{ kind: "uups" });
+    const Pond = await ethers.getContractFactory("Pond");
+    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
 
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     epochSelector = await EpochSelector.deploy(
       admin.address,
       numberOfClustersToSelect,
       blockData.timestamp,
-      pond.address
+      pond.address,
+      new BN(10).pow(20).toString()
     );
   });
 
@@ -62,7 +64,7 @@ describe("Testing Epoch Selector", function () {
 
   it("User can't insert", async () => {
     const address = randomAddressGenerator("1");
-    let role = await epochSelector.updaterRole();
+    let role = await epochSelector.UPDATER_ROLE();
     await expect(
       epochSelector.connect(user).insert(address, 1)
     ).to.be.revertedWith(
@@ -72,7 +74,7 @@ describe("Testing Epoch Selector", function () {
 
   describe("Test after inserting", function () {
     beforeEach(async () => {
-      let role = await epochSelector.updaterRole();
+      let role = await epochSelector.UPDATER_ROLE();
       await epochSelector.connect(admin).grantRole(role, updater.address);
     });
 
@@ -93,7 +95,7 @@ describe("Testing Epoch Selector", function () {
       }
 
       const epochLength = parseInt(
-        (await epochSelector.epochLength()).toString()
+        (await epochSelector.EPOCH_LENGTH()).toString()
       );
 
       await addAddressWithLargeBalance(

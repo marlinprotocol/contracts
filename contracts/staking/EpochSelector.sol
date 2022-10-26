@@ -31,10 +31,10 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     event UpdateRewardToken(address _newRewardToken);
 
     /// @notice length of epoch
-    uint256 public constant epochLength = 4 hours;
+    uint256 public constant EPOCH_LENGTH = 4 hours;
 
     /// @notice timestamp when the selector starts
-    uint256 public immutable startTime;
+    uint256 public immutable START_TIME;
 
     /// @notice Number of clusters selected in every epoch
     uint256 public numberOfClustersToSelect;
@@ -43,38 +43,39 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     mapping(uint256 => address[]) public clustersSelected;
 
     /// @notice ID for update role
-    bytes32 public constant updaterRole = keccak256(abi.encode("updater")); // find standard format for this
+    bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
 
     /// @notice ID for admin role
-    bytes32 public constant adminRole = keccak256(abi.encode("admin")); // find standard format for this
+    bytes32 public constant ADMIN_ROLE = keccak256(abi.encode("admin"));
 
     /// @notice ID for reward control
-    bytes32 public constant rewardControllerRole = keccak256(abi.encode("reward-control")); // find standard format for this
+    bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
 
     /// @notice Reward that the msg.sender recevies when cluster are selected for the epoch;
-    uint256 public rewardForSelectingClusters = 100 * 10**18; 
+    uint256 public rewardForSelectingClusters;
 
     /// @notice Reward Token
     address public rewardToken;
     
-    constructor(address _admin, uint256 _numberOfClustersToSelect, uint256 _startTime, address _rewardToken) ClusterSelector() {
-        startTime = _startTime;
+    constructor(address _admin, uint256 _numberOfClustersToSelect, uint256 _startTime, address _rewardToken, uint256 _rewardForSelectingClusters) ClusterSelector() {
+        START_TIME = _startTime;
         numberOfClustersToSelect = _numberOfClustersToSelect;
         
-        AccessControl._setRoleAdmin(updaterRole, adminRole);
-        AccessControl._setRoleAdmin(rewardControllerRole, adminRole);
+        AccessControl._setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
+        AccessControl._setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
 
-        AccessControl._grantRole(adminRole, _admin);
-        AccessControl._grantRole(rewardControllerRole, _admin);
+        AccessControl._grantRole(ADMIN_ROLE, _admin);
+        AccessControl._grantRole(REWARD_CONTROLLER_ROLE, _admin);
 
         rewardToken = _rewardToken;
+        rewardForSelectingClusters = _rewardForSelectingClusters;
     }
 
 
 
     /// @notice Current Epoch
     function getCurrentEpoch() public view override returns (uint256) {
-        return (block.timestamp - startTime) / epochLength;
+        return (block.timestamp - START_TIME) / EPOCH_LENGTH;
     }
 
     /// @notice Returns the list of selected clusters for the next
@@ -123,7 +124,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint96 balance) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
+    function insert(address newNode, uint96 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
         require(newNode != address(0), "address(0) not permitted into entry");
         Node memory node = nodes[newNode];
         if (node.node == address(0)) {
@@ -136,12 +137,12 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) { 
+    function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) { 
         require(deleteNodeIfPresent(key), ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
     }
 
     /// @inheritdoc IEpochSelector
-    function deleteNodeIfPresent(address key) public override onlyRole(updaterRole) returns (bool) {
+    function deleteNodeIfPresent(address key) public override onlyRole(UPDATER_ROLE) returns (bool) {
         require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         Node memory node = nodes[key];
         if (node.node == key) {
@@ -154,7 +155,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint96 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(updaterRole) {
+    function update(address existingNode, uint96 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
         require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         assert(nodes[existingNode].node == existingNode);
         int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
@@ -162,7 +163,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IEpochSelector
-    function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external onlyRole(updaterRole) {
+    function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external onlyRole(UPDATER_ROLE) {
         require(_numberOfClusters!= 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
         numberOfClustersToSelect = _numberOfClusters;
         emit UpdateNumberOfClustersToSelect(_numberOfClusters);
@@ -170,7 +171,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
     /// @notice Updates the reward token
     /// @param _rewardToken Address of the reward token
-    function updateRewardToken(address _rewardToken) external onlyRole(adminRole) {
+    function updateRewardToken(address _rewardToken) external onlyRole(REWARD_CONTROLLER_ROLE) {
         require(_rewardToken == rewardToken, "Update reward token");
         rewardToken = _rewardToken;
         emit UpdateRewardToken(_rewardToken);
@@ -183,7 +184,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         }
     }
 
-    function flushTokens(address token, address to) external onlyRole(adminRole) {
+    function flushTokens(address token, address to) external onlyRole(REWARD_CONTROLLER_ROLE) {
         IERC20 _token = IERC20(token);
         
         uint256 remaining = _token.balanceOf(address(this));
