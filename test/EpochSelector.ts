@@ -65,9 +65,7 @@ describe("Testing Epoch Selector", function () {
   it("User can't insert", async () => {
     const address = randomAddressGenerator("1");
     let role = await epochSelector.UPDATER_ROLE();
-    await expect(
-      epochSelector.connect(user).insert(address, 1)
-    ).to.be.revertedWith(
+    await expect(epochSelector.connect(user).insert(address, 1)).to.be.revertedWith(
       `AccessControl: account ${user.address.toLowerCase()} is missing role ${role}`
     );
   });
@@ -84,17 +82,17 @@ describe("Testing Epoch Selector", function () {
       expect(await epochSelector.search(address)).eq(true);
     });
 
-    it("Multiple entry call", async() => {
-      const addresses =[];
+    it("Multiple entry call", async () => {
+      const addresses = [];
       const balances = [];
       for (let index = 0; index < 200; index++) {
         const address = randomAddressGenerator("salt" + index);
         addresses.push(address);
-        balances.push(getRandomNumber())
+        balances.push(getRandomNumber());
       }
 
       await epochSelector.connect(updater).insertMultiple(addresses, balances);
-    })
+    });
 
     it("Multiple entries", async () => {
       for (let index = 0; index < numberOfElementsInTree; index++) {
@@ -106,26 +104,15 @@ describe("Testing Epoch Selector", function () {
         }
       }
 
-      const epochLength = parseInt(
-        (await epochSelector.EPOCH_LENGTH()).toString()
-      );
+      const epochLength = parseInt((await epochSelector.EPOCH_LENGTH()).toString());
 
-      await addAddressWithLargeBalance(
-        numberOfAddressesWithLargeBalances,
-        epochSelector,
-        updater
-      );
+      await addAddressWithLargeBalance(numberOfAddressesWithLargeBalances, epochSelector, updater);
 
       let root = await epochSelector.root();
       let data = await epochSelector.callStatic.nodeData(root);
-      const totalValueInTree = data.sumOfRightBalances
-        .add(data.balance)
-        .add(data.sumOfLeftBalances)
-        .toString();
+      const totalValueInTree = data.sumOfRightBalances.add(data.balance).add(data.sumOfLeftBalances).toString();
 
-      let totalElementsInTree = (
-        await epochSelector.callStatic.totalElements()
-      ).toNumber();
+      let totalElementsInTree = (await epochSelector.callStatic.totalElements()).toNumber();
       let counter: Counter[] = [];
       for (let index = 0; index < numberOfSelections; index++) {
         let selected = await getSelectedClusters(updater, epochSelector);
@@ -149,12 +136,7 @@ describe("Testing Epoch Selector", function () {
               address: value.user,
               count: 1,
               balance: parseInt(value.balance),
-              expected_P_e: balToSelectionProbability(
-                value.balance,
-                totalValueInTree,
-                numberOfClustersToSelect,
-                totalElementsInTree
-              ),
+              expected_P_e: balToSelectionProbability(value.balance, totalValueInTree, numberOfClustersToSelect, totalElementsInTree),
             });
           }
         });
@@ -163,9 +145,7 @@ describe("Testing Epoch Selector", function () {
           console.log(`Searches Complete ${index}/${numberOfSelections}`);
         }
       }
-      counter = counter.sort((a, b) =>
-        b.count == a.count ? b.balance - a.balance : b.count - a.count
-      );
+      counter = counter.sort((a, b) => (b.count == a.count ? b.balance - a.balance : b.count - a.count));
       console.table(
         counter.map((a) => {
           return {
@@ -178,14 +158,9 @@ describe("Testing Epoch Selector", function () {
   });
 });
 
-async function getSelectedClusters(
-  account: SignerWithAddress,
-  epochSelector: Contract
-): Promise<Balances[]> {
+async function getSelectedClusters(account: SignerWithAddress, epochSelector: Contract): Promise<Balances[]> {
   await epochSelector.connect(account).selectClusters();
-  const clustersSelected = await epochSelector
-    .connect(account)
-    .callStatic.selectClusters();
+  const clustersSelected = await epochSelector.connect(account).callStatic.selectClusters();
 
   const balances: Balances[] = [];
 
@@ -222,9 +197,7 @@ function balToSelectionProbability(
 
   for (let index = 0; index < numberOfClustersToSelect; index++) {
     totalBalance = totalBalance.minus(avgBalance);
-    peNotSelected = peNotSelected.multipliedBy(
-      new BN(1).minus(balance.dividedBy(totalBalance))
-    );
+    peNotSelected = peNotSelected.multipliedBy(new BN(1).minus(balance.dividedBy(totalBalance)));
   }
   return new BN(1).minus(peNotSelected).toPrecision(8);
 }
@@ -233,22 +206,14 @@ function getRandomNumber(): number {
   return Math.floor(Math.random() * 10000000000000) + 1;
 }
 
-async function addAddressWithLargeBalance(
-  numberOfAddressesWithLargeBalances: number,
-  epochSelector: Contract,
-  updater: SignerWithAddress
-) {
+async function addAddressWithLargeBalance(numberOfAddressesWithLargeBalances: number, epochSelector: Contract, updater: SignerWithAddress) {
   for (let index = 0; index < numberOfAddressesWithLargeBalances; index++) {
     const rndInt = Math.floor(Math.random() * 20) + 1;
     let largeBalAddress = randomAddressGenerator("some string" + index);
 
     let root = await epochSelector.root();
     let data = await epochSelector.callStatic.nodeData(root);
-    let largeBalance = data.sumOfRightBalances
-      .add(data.balance)
-      .add(data.sumOfLeftBalances)
-      .div(rndInt)
-      .toString();
+    let largeBalance = data.sumOfRightBalances.add(data.balance).add(data.sumOfLeftBalances).div(rndInt).toString();
 
     await epochSelector.connect(updater).insert(largeBalAddress, "1");
     await epochSelector.connect(updater).update(largeBalAddress, largeBalance);
