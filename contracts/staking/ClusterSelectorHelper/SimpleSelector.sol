@@ -20,6 +20,14 @@ contract SingleSelector is SelectorHelper {
     }
 
     /// @inheritdoc IClusterSelector
+    function insertMultiple(address[] calldata newNodes, uint96[] calldata balances) public virtual override {
+        require(newNodes.length == balances.length, "arity mismatch");
+        for (uint256 index = 0; index < newNodes.length; index++) {
+            insert(newNodes[index], balances[index]);
+        }
+    }
+
+    /// @inheritdoc IClusterSelector
     function deleteNode(address key) public virtual override {
         require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
         Node memory node = nodes[key];

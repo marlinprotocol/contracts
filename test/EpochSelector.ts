@@ -17,7 +17,7 @@ type Counter = {
   address: string;
   balance: number;
   count: number;
-  selectionProbability: string;
+  expected_P_e: string;
 };
 
 describe("Testing Epoch Selector", function () {
@@ -27,7 +27,7 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfAddressesWithLargeBalances = 1;
+  let numberOfAddressesWithLargeBalances = 10;
   let numberOfElementsInTree = 200 - numberOfAddressesWithLargeBalances;
   let numberOfSelections: number = 100;
 
@@ -84,6 +84,18 @@ describe("Testing Epoch Selector", function () {
       expect(await epochSelector.search(address)).eq(true);
     });
 
+    it("Multiple entry call", async() => {
+      const addresses =[];
+      const balances = [];
+      for (let index = 0; index < 200; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber())
+      }
+
+      await epochSelector.connect(updater).insertMultiple(addresses, balances);
+    })
+
     it("Multiple entries", async () => {
       for (let index = 0; index < numberOfElementsInTree; index++) {
         const address = randomAddressGenerator("salt" + index);
@@ -137,7 +149,7 @@ describe("Testing Epoch Selector", function () {
               address: value.user,
               count: 1,
               balance: parseInt(value.balance),
-              selectionProbability: balToSelectionProbability(
+              expected_P_e: balToSelectionProbability(
                 value.balance,
                 totalValueInTree,
                 numberOfClustersToSelect,
@@ -158,7 +170,7 @@ describe("Testing Epoch Selector", function () {
         counter.map((a) => {
           return {
             ...a,
-            count: `${a.count}/${numberOfSelections}`,
+            observed_P_e: `${a.count}/${numberOfSelections}`,
           };
         })
       );
@@ -190,7 +202,9 @@ async function getSelectedClusters(
 }
 
 function randomAddressGenerator(rand: string): string {
-  let address = keccak256(Buffer.from(rand)).toString().slice(0, 42);
+  let address = keccak256(Buffer.from(rand + new Date().valueOf().toString()))
+    .toString()
+    .slice(0, 42);
   return address;
 }
 

@@ -11,10 +11,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./IClusterRewards.sol";
 import "./IClusterRegistry.sol";
-import "./EpochSelector.sol";
 
 
-contract RewardDelegators is
+contract RewardDelegatorsOld is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
     ERC165Upgradeable,  // supportsInterface
@@ -22,17 +21,14 @@ contract RewardDelegators is
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable  // public upgrade
-{   
+{
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor(bytes32 _pondTokenId, bytes32 _mpondTokenId) initializer {
-        POND_TOKEN_ID = _pondTokenId;
-        MPOND_TOKEN_ID = _mpondTokenId;
-    }
+    constructor() initializer {}
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
@@ -107,8 +103,6 @@ contract RewardDelegators is
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
-
-        _updateThresholdForSelection(500_000); //0.5 million pond
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -251,16 +245,6 @@ contract RewardDelegators is
             );
 
             _aggregateReward = _aggregateReward + _reward;
-        }
-        uint256 totalDelegations = _getTotalDelegations(_cluster);
-
-        // if total delegation is more than 0.5 million pond, than insert into selector
-        if(totalDelegations != 0){
-            epochSelector.insert(_cluster, uint96(sqrt(totalDelegations)));
-        }
-        // if not, update it to zero
-        else{
-            epochSelector.deleteNodeIfPresent(_cluster);
         }
 
         if(_aggregateReward != 0) {
@@ -426,83 +410,5 @@ contract RewardDelegators is
                 _updateBalances(_cluster, _delegator, _tokens[_tidx], _amounts[_tidx], _isDelegation);
             }
         }
-    }
-    
-    IEpochSelector public epochSelector;
-    event EpochSelectorUpdated(IEpochSelector indexed newEpochSelector);
-    
-    function updateEpochSelector(IEpochSelector _epochSelector) onlyAdmin external{
-        _updateEpochSelector(_epochSelector);
-    }
-
-    function _updateEpochSelector(IEpochSelector _epochSelector) internal {
-        epochSelector = _epochSelector;
-        emit EpochSelectorUpdated(_epochSelector);
-    }
-
-    function sqrt(uint y) internal pure returns (uint z) {
-        if (y > 3) {
-            z = y;
-            uint x = y / 2 + 1;
-            while (x < z) {
-                z = x;
-                x = (y / x + x) / 2;
-            }
-        } else if (y != 0) {
-            z = 1;
-        }
-    }
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable POND_TOKEN_ID;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable MPOND_TOKEN_ID;
-
-    uint256 private constant POND_PER_MPOND = 1_000_000;
-
-    uint256 public thresholdForSelection; // 0.5 MPOND
-    event UpdateThresholdForSelection(uint256 newThreshold);
-
-    function updateThresholdForSelection(uint256 newThreshold) onlyAdmin external {
-        _updateThresholdForSelection(newThreshold);
-    }
-
-    function _updateThresholdForSelection(uint256 _newThreshold) internal {
-        thresholdForSelection = _newThreshold;
-        emit UpdateThresholdForSelection(_newThreshold);
-    }
-
-    event RefreshClusterDelegation(address indexed cluster);
-    function refreshClusterDelegation(address[] calldata clusterList) onlyAdmin external {
-        address[] memory filteredClustersList;
-        uint96[] memory balances;
-
-        uint256 addressIndex=0;
-        for (uint256 index = 0; index < clusterList.length; index++) {
-            address cluster = clusterList[index];
-
-            uint256 totalDelegations = _getTotalDelegations(cluster);
-
-            if(totalDelegations != 0){
-                // epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
-                filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint96(sqrt(totalDelegations));
-                addressIndex++;
-                emit RefreshClusterDelegation(cluster);   
-            }
-
-        }
-
-        epochSelector.insertMultiple(filteredClustersList, balances);
-
-    }
-
-    function _getTotalDelegations(address cluster) internal view returns(uint256 totalDelegations){
-        uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
-        if(numberOfMPond >= thresholdForSelection){
-            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
-        }
-        // else totalDelegations should be considered 0
     }
 }

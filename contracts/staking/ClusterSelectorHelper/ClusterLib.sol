@@ -21,12 +21,12 @@ library ClusterLib {
     /// @param array Array to check
     /// @param element Element to check in the array
     function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
+        if (element == address(0)) {
+            return false;
+        }
         for (uint256 index = 0; index < array.length; index++) {
             if (element == array[index]) {
                 return true;
-            }
-            if (element == address(0)) {
-                break;
             }
         }
         return false;
@@ -74,6 +74,12 @@ library ClusterLib {
     function _getAddressesFromEncodedArray(bytes memory array) internal pure returns (address[] memory) {
         return abi.decode(array, (address[]));
     }
+
+    // function _addAddressToEncodedArray(address[] memory array, address toAdd) internal pure returns (address[] memory) {
+    //     let _array = new address[](array.length
+    //     array.push(toAdd);
+    //     return _array;
+    // }
 
     // function _addAddressToEncodedArray(bytes memory array, address toAdd) internal pure returns (bytes memory) {
     //     return abi.encodePacked(array, toAdd);

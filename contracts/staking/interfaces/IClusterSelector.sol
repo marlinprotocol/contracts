@@ -26,6 +26,11 @@ interface IClusterSelector {
     /// @param balance Balance of the node
     function insert(address newNode, uint96 balance) external;
 
+    /// @notice function add multiple addresses in one call
+    /// @param newNodes newNodes of the node nodes
+    /// @param balances Balances of the new nodes.
+    function insertMultiple(address[] calldata newNodes, uint96[] calldata balances) external;
+
     /// @notice Update the balance of the node
     /// @param cluster Address of the existing node
     /// @param clusterBalance new balance of the node

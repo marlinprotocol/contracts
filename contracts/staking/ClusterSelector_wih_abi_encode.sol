@@ -15,13 +15,13 @@ contract ClusterSelector is SingleSelector {
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory) {
         require(N <= totalElements, ClusterLib.INSUFFICIENT_ELEMENTS_IN_TREE);
 
-        bytes memory _emptyPath = abi.encode(new address[](0));
         address[] memory selectedNodes = new address[](N);
-        bytes[] memory pathToSelectedNodes = new bytes[](N);
+        address[17][] memory pathToSelectedNodes = new address[17][](N);
+        uint256[] memory pidxs = new uint256[](N);
 
-        for (uint256 index = 0; index < N; index++) {
-            pathToSelectedNodes[index] = _emptyPath;
-        }
+        // for (uint256 index = 0; index < N; index++) {
+        //     pathToSelectedNodes[index] = _emptyPath;
+        // }
 
         Node memory _root = nodes[root];
         uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
@@ -33,18 +33,17 @@ contract ClusterSelector is SingleSelector {
             // console2.log("============= search number in iter", index, searchNumber);
             // console2.log("============= _sumOfBalancesOfSelectedNodes", _sumOfBalancesOfSelectedNodes);
 
-            bytes memory currentPath = _emptyPath;
-            (address _node, uint256 _selectedNodeBalance, bytes memory _path) = _selectTopCluster(
+            (address _node, uint256 _selectedNodeBalance) = _selectTopCluster(
                 root,
                 searchNumber,
                 selectedNodes,
                 pathToSelectedNodes,
-                currentPath,
-                0
+                pidxs,
+                index
             );
 
             selectedNodes[index] = _node;
-            pathToSelectedNodes[index] = _path;
+            // pidxs[index] = pidx;
             _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
             // console2.log("length of path selected", _path.length);
             // _printArray("path that I need to check", pathToSelectedNodes[index]);
@@ -57,27 +56,16 @@ contract ClusterSelector is SingleSelector {
     /// @param searchNumber a random number used to navigate through the tree
     /// @param selectedNodes List of already selected nodes. This node have to ignored while traversing the tree
     /// @param pathsToSelectedNodes Paths to the selected nodes.
-    /// @param currentNodePath Stores the current path to the selected node from the root
-    /// @param  parentIndex Distance of the selected node from the root
     /// @return Address of the selected node
     /// @return Balance of selected node
-    /// @return Path to the selected node
     function _selectTopCluster(
         address _root,
         uint256 searchNumber,
         address[] memory selectedNodes,
-        bytes[] memory pathsToSelectedNodes,
-        bytes memory currentNodePath,
-        uint256 parentIndex
-    )
-        internal
-        view
-        returns (
-            address,
-            uint256,
-            bytes memory
-        )
-    {
+        address[17][] memory pathsToSelectedNodes,
+        uint256[] memory pidxs,
+        uint256 index
+    ) internal view returns (address, uint256) {
         // console2.log("====================================================================================");
         // console2.log("finding cluster", _root);
         // console2.log("searchNumber", searchNumber);
@@ -89,7 +77,7 @@ contract ClusterSelector is SingleSelector {
 
         Node memory node = nodes[_root];
         // stored in existing variable to conserve memory
-        (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeights(node, selectedNodes, pathsToSelectedNodes);
+        (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeights(node, selectedNodes, pathsToSelectedNodes, pidxs, index);
 
         // console2.log("leftWeight used for search", leftWeight);
         // console2.log("rightWeight used for searching", rightWeight);
@@ -108,16 +96,15 @@ contract ClusterSelector is SingleSelector {
             // console2.log("index1", index1);
             // console2.log("index2", index2);
 
-            currentNodePath = currentNodePath._addAddressToEncodedArray(_root);
-            parentIndex++;
+            pathsToSelectedNodes[index][pidxs[index]] = _root;
+            pidxs[index]++;
 
             if (searchNumber <= index1) {
                 // console2.log(_root, "Selected and moved to left");
-                return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
+                return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else if (searchNumber > index1 && searchNumber <= index2) {
                 // console2.log(_root, "Selected and moved to right");
-                return
-                    _selectTopCluster(node.right, searchNumber - index1, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
+                return _selectTopCluster(node.right, searchNumber - index1, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else {
                 revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE);
             }
@@ -138,19 +125,18 @@ contract ClusterSelector is SingleSelector {
             // console2.log("rightWeight", rightWeight);
             // console2.log("index1", index1);
 
-            currentNodePath = currentNodePath._addAddressToEncodedArray(_root);
-            parentIndex++;
+            pathsToSelectedNodes[index][pidxs[index]] = _root;
+            pidxs[index]++;
 
             if (searchNumber <= index1) {
                 // console2.log(_root, "Not select and moved to left");
-                return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
+                return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else if (searchNumber > index1 && searchNumber <= index2) {
                 // console2.log(_root, "Wow!, Selected");
-                return (_root, node.balance, currentNodePath);
+                return (_root, node.balance);
             } else if (searchNumber > index2 && searchNumber <= index3) {
                 // console2.log(_root, "Not select and moved to right");
-                return
-                    _selectTopCluster(node.right, searchNumber - index2, selectedNodes, pathsToSelectedNodes, currentNodePath, parentIndex);
+                return _selectTopCluster(node.right, searchNumber - index2, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else {
                 revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE);
             }
@@ -166,22 +152,26 @@ contract ClusterSelector is SingleSelector {
     function _getModifiedWeights(
         Node memory node,
         address[] memory selectedNodes,
-        bytes[] memory pathsToSelectedNodes
+        address[17][] memory pathsToSelectedNodes,
+        uint256[] memory pidxs,
+        uint256 _index
     ) internal view returns (uint96 leftWeight, uint96 rightWeight) {
         leftWeight = node.sumOfLeftBalances;
         rightWeight = node.sumOfRightBalances;
 
-        for (uint256 index = 0; index < selectedNodes.length; index++) {
-            address[] memory _pathsToSelectedNodes = ClusterLib._getAddressesFromEncodedArray(pathsToSelectedNodes[index]);
+        for (uint256 index = 0; index < _index; index++) {
+            address[17] memory _pathsToSelectedNodes = pathsToSelectedNodes[index];
 
-            if (_pathsToSelectedNodes.ifArrayHasElement(node.left)) {
-                Node memory selectedNode = nodes[selectedNodes[index]];
-                leftWeight -= selectedNode.balance;
-            }
-
-            if (_pathsToSelectedNodes.ifArrayHasElement(node.right)) {
-                Node memory selectedNode = nodes[selectedNodes[index]];
-                rightWeight -= selectedNode.balance;
+            for (uint256 _idx = 0; _idx < pidxs[index]; _idx++) {
+                if (_pathsToSelectedNodes[_idx] == node.left) {
+                    Node memory selectedNode = nodes[selectedNodes[index]];
+                    leftWeight -= selectedNode.balance;
+                    break;
+                } else if (_pathsToSelectedNodes[_idx] == node.right) {
+                    Node memory selectedNode = nodes[selectedNodes[index]];
+                    rightWeight -= selectedNode.balance;
+                    break;
+                }
             }
         }
     }
