@@ -4,18 +4,21 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
 
 contract ReceiverStaking is 
     Initializable,
     ERC20SnapshotUpgradeable,
+    AccessControlEnumerableUpgradeable,
     UUPSUpgradeable
 {
 
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
-    IERC20Upgradeable immutable STAKING_TOKEN;
+    IERC20Upgradeable public stakingToken;
+
     uint256 immutable START_TIME;
     uint256 immutable EPOCH_LENGTH;
     
@@ -24,21 +27,39 @@ contract ReceiverStaking is
         EPOCH_LENGTH = _epochLength;
     }
 
+    modifier onlyAdmin() {
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
     function initialize(address _stakingToken) initializer public {
-        STAKING_TOKEN = IERC20Upgradeable(_stakingToken);
+        stakingToken = IERC20Upgradeable(_stakingToken);
+    }
+
+    event StakingTokenUpdated(address indexed newStakingToken);
+
+    function updateStakingToken(address _newStakingToken) external onlyAdmin {
+        _updateStakingToken(_newStakingToken);
+    }
+
+    function _updateStakingToken(address _newStakingToken) internal {
+        address _currentStakingToken = address(stakingToken);
+        require(_newStakingToken != _currentStakingToken, "no change");
+        stakingToken = IERC20Upgradeable(_newStakingToken);
+        emit StakingTokenUpdated(_newStakingToken);
     }
 
     function deposit(uint256 amount) external {
-        STAKING_TOKEN.transferFrom(msg.sender, address(this), amount);
+        stakingToken.transferFrom(msg.sender, address(this), amount);
         _mint(msg.sender, amount);
     }
 
     function withdraw(uint256 amount) external {
         _burn(msg.sender, amount);
-        STAKING_TOKEN.transfer(msg.sender, amount);
+        stakingToken.transfer(msg.sender, amount);
     }
 
-    function _getCurrentSnapshotId() internal view virtual returns (uint256) {
+    function _getCurrentSnapshotId() internal view override returns (uint256) {
         return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
     }
 
@@ -66,4 +87,6 @@ contract ReceiverStaking is
             }
         }
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
 }
