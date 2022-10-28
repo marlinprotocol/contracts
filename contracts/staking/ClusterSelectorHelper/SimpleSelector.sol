@@ -102,7 +102,7 @@ contract SingleSelector is SelectorHelper {
         if (root == key) {
             diff > 0 ? currentNode.balance += uint96(diff) : currentNode.balance -= uint96(-diff);
         } else if (key < root) {
-            diff > 0 ? currentNode.sumOfLeftBalances += uint96(diff) : currentNode.sumOfLeftBalances -= uint96(-diff);
+            diff > 0 ? currentNode.sumOfLeftBalances += uint88(int88(diff)) : currentNode.sumOfLeftBalances -= uint88(-int88(diff));
             _update(currentNode.left, key, diff);
         } else {
             diff > 0 ? currentNode.sumOfRightBalances += uint96(diff) : currentNode.sumOfRightBalances -= uint96(-diff);
@@ -127,14 +127,14 @@ contract SingleSelector is SelectorHelper {
         Node storage currentNode = nodes[node];
         if (key < node) {
             currentNode.left = _insert(currentNode.left, key, keyBalance);
-            currentNode.sumOfLeftBalances += keyBalance;
+            currentNode.sumOfLeftBalances += uint88(keyBalance);
         } else {
             currentNode.right = _insert(currentNode.right, key, keyBalance);
             currentNode.sumOfRightBalances += keyBalance;
         }
 
         // 2. update the height
-        currentNode.height = calculateUpdatedHeight(currentNode);
+        currentNode.height = uint8(calculateUpdatedHeight(currentNode));
 
         // 3. Get the height difference
         int256 heightDifference = getHeightDifference(node);
@@ -198,7 +198,7 @@ contract SingleSelector is SelectorHelper {
         Node storage node = nodes[_root];
         if (key < _root) {
             // console2.log("Moving to left");
-            node.sumOfLeftBalances -= existingBalanceOfKey;
+            node.sumOfLeftBalances -= uint88(existingBalanceOfKey);
             (node.left) = _deleteNode(node.left, key, existingBalanceOfKey);
             // console2.log("After Moving to left");
         } else if (key > _root) {
@@ -231,7 +231,7 @@ contract SingleSelector is SelectorHelper {
             }
         }
 
-        node.height = calculateUpdatedHeight(node);
+        node.height = uint8(calculateUpdatedHeight(node));
 
         int256 heightDifference = getHeightDifference(_root);
 
@@ -292,7 +292,7 @@ contract SingleSelector is SelectorHelper {
 
             nodeRightStorage.left = C_ND.left;
             nodeRightStorage.sumOfLeftBalances = C_ND.sumOfLeftBalances;
-            nodeRightStorage.height = 1 + Math.max(height(nodeRightStorage.left), height(nodeRightStorage.right));
+            nodeRightStorage.height = uint8(1 + Math.max(height(nodeRightStorage.left), height(nodeRightStorage.right)));
 
             delete nodes[_node];
 
@@ -317,7 +317,7 @@ contract SingleSelector is SelectorHelper {
 
             Node memory C_ND_right = nodes[C_ND.right];
             lmnStore.sumOfRightBalances = _getTotalBalancesIncludingWeight(C_ND_right);
-            lmnStore.height = calculateUpdatedHeight(lmnStore);
+            lmnStore.height = uint8(calculateUpdatedHeight(lmnStore));
 
             return leastMinNode.node;
         }

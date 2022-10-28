@@ -37,7 +37,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @param balance Balance of the new node
     /// @return newNode Empty node with address and balance
     function _newNode(address node, uint96 balance) internal pure returns (Node memory newNode) {
-        newNode = Node(node, balance, address(0), 0, address(0), 0, 1);
+        newNode = Node(node, balance, address(0), 0, 1, address(0), 0);
     }
 
     /// @notice Right rotate a given node
@@ -72,14 +72,14 @@ abstract contract SelectorHelper is IClusterSelector {
         Node memory T3 = nodes[y.right];
 
         // cut z.left
-        z.sumOfLeftBalances = _getTotalBalancesIncludingWeight(T3);
+        z.sumOfLeftBalances = uint88(_getTotalBalancesIncludingWeight(T3));
         z.left = T3.node;
         // cut y.right
         y.sumOfRightBalances = _getTotalBalancesIncludingWeight(z);
         y.right = z.node;
 
-        z.height = calculateUpdatedHeight(z);
-        y.height = calculateUpdatedHeight(y);
+        z.height = uint8(calculateUpdatedHeight(z));
+        y.height = uint8(calculateUpdatedHeight(y));
         return y.node;
     }
 
@@ -118,11 +118,11 @@ abstract contract SelectorHelper is IClusterSelector {
         z.sumOfRightBalances = _getTotalBalancesIncludingWeight(T2);
         z.right = T2.node;
         // cut y.left
-        y.sumOfLeftBalances = _getTotalBalancesIncludingWeight(z);
+        y.sumOfLeftBalances = uint88(_getTotalBalancesIncludingWeight(z));
         y.left = z.node;
 
-        z.height = calculateUpdatedHeight(z);
-        y.height = calculateUpdatedHeight(y);
+        z.height = uint8(calculateUpdatedHeight(z));
+        y.height = uint8(calculateUpdatedHeight(y));
         return y.node;
     }
 
@@ -148,7 +148,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @param node Node to calculate total weight for
     /// @return Total weight of the node
     function _getTotalBalancesIncludingWeight(Node memory node) internal pure returns (uint96) {
-        return node.balance + node.sumOfLeftBalances + node.sumOfRightBalances;
+        return node.balance + uint96(node.sumOfLeftBalances) + node.sumOfRightBalances;
     }
 
     function calculateUpdatedHeight(Node memory node) internal view returns (uint256) {

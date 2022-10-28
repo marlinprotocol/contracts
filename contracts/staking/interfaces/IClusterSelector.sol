@@ -15,10 +15,10 @@ interface IClusterSelector {
         address node; // sorting condition
         uint96 balance;
         address left;
-        uint96 sumOfLeftBalances;
+        uint88 sumOfLeftBalances;
+        uint8 height;
         address right;
         uint96 sumOfRightBalances;
-        uint256 height;
     }
 
     /// @notice Add an element to tree. If the element already exists, it will be updated
