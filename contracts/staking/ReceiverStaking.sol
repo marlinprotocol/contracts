@@ -2,12 +2,14 @@
 
 pragma solidity ^0.8.0;
 
+import "./interfaces/IReceiverStaking.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
 
 contract ReceiverStaking is 
+    IReceiverStaking,
     Initializable,
     ERC20SnapshotUpgradeable,
     AccessControlEnumerableUpgradeable,
@@ -57,6 +59,12 @@ contract ReceiverStaking is
     function withdraw(uint256 amount) external {
         _burn(msg.sender, amount);
         stakingToken.transfer(msg.sender, amount);
+    }
+
+    function getStakeInfo(address user, uint256 epoch) external view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch) {
+        userStake = balanceOfAt(user, epoch);
+        totalStake = totalSupplyAt(epoch);
+        currentEpoch = _getCurrentSnapshotId();
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
