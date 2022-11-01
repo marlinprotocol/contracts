@@ -10,44 +10,6 @@ contract ClusterSelector is SingleSelector {
     string constant ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE = "10";
     string constant ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE = "11";
 
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
-        if (element == address(0)) {
-            return false;
-        }
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /// @notice Returns indexes when only balances and left and right weights are provided
-    /// @param sumOfLeftBalances Sum of balances of nodes on the left
-    /// @param balance Balance of the node
-    /// @param sumOfRightBalances Sum of balances of nodes on the right
-    /// @return First index of the search
-    /// @return Second index of the search
-    /// @return Third index of the search
-    function _getIndexesWithWeights(
-        uint256 sumOfLeftBalances,
-        uint256 balance,
-        uint256 sumOfRightBalances
-    )
-        internal
-        pure
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
-        return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
-    }
-
     constructor() SingleSelector() {}
 
     /// @notice Select top N clusters
@@ -172,5 +134,43 @@ contract ClusterSelector is SingleSelector {
                 }
             }
         }
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
+        if (element == address(0)) {
+            return false;
+        }
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Returns indexes when only balances and left and right weights are provided
+    /// @param sumOfLeftBalances Sum of balances of nodes on the left
+    /// @param balance Balance of the node
+    /// @param sumOfRightBalances Sum of balances of nodes on the right
+    /// @return First index of the search
+    /// @return Second index of the search
+    /// @return Third index of the search
+    function _getIndexesWithWeights(
+        uint256 sumOfLeftBalances,
+        uint256 balance,
+        uint256 sumOfRightBalances
+    )
+        internal
+        pure
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
     }
 }
