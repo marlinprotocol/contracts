@@ -6,28 +6,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IEpochSelector.sol";
-import "./ClusterSelector_wih_abi_encode.sol";
+import "./ClusterSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     using SafeERC20 for IERC20;
 
-    /// @notice Event emitted when Cluster is selected
-    /// @param epoch Number of Epoch
-    /// @param cluster Address of cluster
-    event ClusterSelected(uint256 indexed epoch, address indexed cluster);
-
-    /// @notice Event emited when the number of clusters to select is updated
-    /// @param newNumberOfClusters New number of clusters selected
-    event UpdateNumberOfClustersToSelect(uint256 newNumberOfClusters);
-
-    /// @notice Event emited when the reward is updated
-    /// @param newReward New Reward For selecting the tokens
-    event UpdateRewardForSelectingTheNodes(uint256 newReward);
-
-    /// @notice Event emited when the reward token is emitted
-    /// @param _newRewardToken Address of the new reward token
-    event UpdateRewardToken(address _newRewardToken);
+    string constant CANNOT_BE_ADDRESS_ZERO = "3";
+    string constant NODE_NOT_PRESENT_IN_THE_TREE = "4";
 
     /// @notice length of epoch
     uint256 public constant EPOCH_LENGTH = 4 hours;
@@ -56,6 +42,23 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @notice Reward Token
     address public rewardToken;
 
+    /// @notice Event emitted when Cluster is selected
+    /// @param epoch Number of Epoch
+    /// @param cluster Address of cluster
+    event ClusterSelected(uint256 indexed epoch, address indexed cluster);
+
+    /// @notice Event emited when the number of clusters to select is updated
+    /// @param newNumberOfClusters New number of clusters selected
+    event NumberOfClustersToSelectUpdated(uint256 newNumberOfClusters);
+
+    /// @notice Event emited when the reward is updated
+    /// @param newReward New Reward For selecting the tokens
+    event RewardForSelectingClustersUpdated(uint256 newReward);
+
+    /// @notice Event emited when the reward token is emitted
+    /// @param _newRewardToken Address of the new reward token
+    event RewardTokenUpdated(address _newRewardToken);
+
     constructor(
         address _admin,
         uint256 _numberOfClustersToSelect,
@@ -65,6 +68,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     ) ClusterSelector() {
         START_TIME = _startTime;
         numberOfClustersToSelect = _numberOfClustersToSelect;
+        emit NumberOfClustersToSelectUpdated(_numberOfClustersToSelect);
 
         AccessControl._setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
         AccessControl._setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
@@ -74,6 +78,8 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
         rewardToken = _rewardToken;
         rewardForSelectingClusters = _rewardForSelectingClusters;
+        emit RewardTokenUpdated(_rewardToken);
+        emit RewardForSelectingClustersUpdated(_rewardForSelectingClusters);
     }
 
     /// @notice Current Epoch
@@ -90,7 +96,6 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         if (nodes.length == 0) {
             // select and save from the tree
             uint256 blockHash = uint256(blockhash(block.number - 1));
-            // console2.log("blockhash of", block.number - 1, blockHash);
             clustersSelected[nextEpoch] = selectTopNClusters(blockHash, numberOfClustersToSelect);
             nodes = clustersSelected[nextEpoch];
             for (uint256 index = 0; index < nodes.length; index++) {
@@ -129,14 +134,13 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint96 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
+    function insert(address newNode, uint96 balance) public override(IClusterSelector) onlyRole(UPDATER_ROLE) {
         require(newNode != address(0), "address(0) not permitted into entry");
         Node memory node = nodes[newNode];
         if (node.node == address(0)) {
             root = _insert(root, newNode, balance);
             totalElements++;
         } else {
-            // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
             _update(root, newNode, int96(balance) - int96(node.balance));
         }
     }
@@ -144,7 +148,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @inheritdoc IClusterSelector
     function insertMultiple(address[] calldata newNodes, uint96[] calldata balances)
         public
-        override(IClusterSelector, SingleSelector)
+        override(IClusterSelector)
         onlyRole(UPDATER_ROLE)
     {
         require(newNodes.length == balances.length, "arity mismatch");
@@ -154,13 +158,13 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(deleteNodeIfPresent(key), ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
+    function deleteNode(address key) public override(IClusterSelector) onlyRole(UPDATER_ROLE) {
+        require(deleteNodeIfPresent(key), NODE_NOT_PRESENT_IN_THE_TREE);
     }
 
     /// @inheritdoc IEpochSelector
     function deleteNodeIfPresent(address key) public override onlyRole(UPDATER_ROLE) returns (bool) {
-        require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(key != address(0), CANNOT_BE_ADDRESS_ZERO);
         Node memory node = nodes[key];
         if (node.node == key) {
             // delete node
@@ -171,19 +175,11 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         return false;
     }
 
-    /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint96 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        assert(nodes[existingNode].node == existingNode);
-        int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
-        _update(root, existingNode, differenceInKeyBalance);
-    }
-
     /// @inheritdoc IEpochSelector
     function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external override onlyRole(ADMIN_ROLE) {
         require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
         numberOfClustersToSelect = _numberOfClusters;
-        emit UpdateNumberOfClustersToSelect(_numberOfClusters);
+        emit NumberOfClustersToSelectUpdated(_numberOfClusters);
     }
 
     /// @notice Updates the reward token
@@ -191,7 +187,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     function updateRewardToken(address _rewardToken) external onlyRole(REWARD_CONTROLLER_ROLE) {
         require(_rewardToken == rewardToken, "Update reward token");
         rewardToken = _rewardToken;
-        emit UpdateRewardToken(_rewardToken);
+        emit RewardTokenUpdated(_rewardToken);
     }
 
     function _dispenseReward(address _to) internal {
@@ -201,6 +197,11 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
                 _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
             }
         }
+    }
+
+    function updateRewardSelectingClusters(uint256 _reward) external onlyRole(REWARD_CONTROLLER_ROLE) {
+        rewardForSelectingClusters = _reward;
+        emit RewardForSelectingClustersUpdated(_reward);
     }
 
     function flushTokens(address token, address to) external onlyRole(REWARD_CONTROLLER_ROLE) {

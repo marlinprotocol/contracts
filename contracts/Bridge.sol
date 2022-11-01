@@ -225,30 +225,30 @@ contract Bridge is
         return _amount * pondPerMpond;
     }
 
-    // function placeRequest(uint256 amount) external returns (uint256, uint256) {
-    //     uint256 epoch = getCurrentEpoch();
-    //     uint256 amountInRequests = totalAmountPlacedInRequests[_msgSender()];
-    //     uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(_msgSender()) +
-    //         mpond.getDelegates(stakingContract, _msgSender()) -
-    //         amountInRequests;
-    //     require(
-    //         amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
-    //         "Request should be placed with amount greater than 0 and less than remainingAmount"
-    //     );
-    //     // require(
-    //     //     amount != 0 && amount <= mpond.balanceOf(_msgSender()),
-    //     //     "Request should be placed with amount greater than 0 and less than the balance of the user"
-    //     // );
-    //     require(
-    //         requests[_msgSender()][epoch].amount == 0,
-    //         "Only one request per epoch is acceptable"
-    //     );
-    //     Requests memory _req = Requests(amount, epoch + lockTimeEpochs);
-    //     requests[_msgSender()][epoch] = _req;
-    //     totalAmountPlacedInRequests[_msgSender()] = amountInRequests + amount;
-    //     emit PlacedRequest(_msgSender(), epoch, _req.releaseEpoch);
-    //     return (epoch, _req.releaseEpoch);
-    // }
+    function placeRequest(uint256 amount) external returns (uint256, uint256) {
+        uint256 epoch = getCurrentEpoch();
+        uint256 amountInRequests = totalAmountPlacedInRequests[_msgSender()];
+        uint256 amountOnWhichRequestCanBePlaced = mpond.balanceOf(_msgSender()) +
+            mpond.getDelegates(stakingContract, _msgSender()) -
+            amountInRequests;
+        require(
+            amount != 0 && amount <= amountOnWhichRequestCanBePlaced,
+            "Request should be placed with amount greater than 0 and less than remainingAmount"
+        );
+        // require(
+        //     amount != 0 && amount <= mpond.balanceOf(_msgSender()),
+        //     "Request should be placed with amount greater than 0 and less than the balance of the user"
+        // );
+        require(
+            requests[_msgSender()][epoch].amount == 0,
+            "Only one request per epoch is acceptable"
+        );
+        Requests memory _req = Requests(amount, epoch + lockTimeEpochs);
+        requests[_msgSender()][epoch] = _req;
+        totalAmountPlacedInRequests[_msgSender()] = amountInRequests + amount;
+        emit PlacedRequest(_msgSender(), epoch, _req.releaseEpoch);
+        return (epoch, _req.releaseEpoch);
+    }
 
     function addLiquidity(uint256 _mpond, uint256 _pond)
         external

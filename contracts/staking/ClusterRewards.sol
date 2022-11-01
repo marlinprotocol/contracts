@@ -199,7 +199,7 @@ contract ClusterRewards is
         (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
 
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
-        require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
+        require(_epochReceiverStake != 0, "CRW:IT-Stake necessary to issue tickets");
 
         address[] memory _selectedClusters = epochSelector.getClusters(_epoch);
 
@@ -207,7 +207,7 @@ contract ClusterRewards is
         uint256 _totalRewardsPerEpoch = totalRewardsPerEpoch * rewardWeight[_networkId] / totalWeight;
 
         for(uint256 i=0; i < _clusters.length; i++) {
-            require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
+            require(ifArrayHasElement(_selectedClusters, _clusters[i]), "CRW:IT-Cluster not selected for epoch");
             clusterRewards[_clusters[i]] = _totalRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
 
             _epochTicketsIssued += _tickets[i];

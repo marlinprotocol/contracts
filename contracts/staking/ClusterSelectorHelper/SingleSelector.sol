@@ -1,107 +1,54 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-import "./SelectorHelper.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract SingleSelector is SelectorHelper {
+contract SingleSelector {
+    /// @notice Address of the node
+    /// @param node Address of the node
+    /// @param balance Balance of the node
+    /// @param left Address of the node left of node
+    /// @param right Address of the node right of the node
+    /// @param sumOfLeftBalances Sum of the balance of nodes on left of the node
+    /// @param sumOfRightBalances Sum of the balance of the nodes of right of the node
+    /// @param height Height of the current node
+    struct Node {
+        address node; // sorting condition
+        uint96 balance;
+        address left;
+        uint96 sumOfLeftBalances;
+        address right;
+        uint96 sumOfRightBalances;
+        uint256 height;
+    }
+
+    string constant CANNOT_RR_ADDRESS_ZERO = "1";
+    string constant CANNOT_LR_ADDRESS_ZERO = "2";
+
+    /// @notice List of all nodes
+    mapping(address => Node) nodes;
+
+    /// @notice Total number of all nodes in the tree
+    uint256 public totalElements;
+
+    /// @notice Address of the current root
+    address public root;
+
     constructor() {}
 
-    /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint96 balance) public virtual override {
-        require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        Node memory node = nodes[newNode];
-        if (node.node == address(0)) {
-            root = _insert(root, newNode, balance);
-            totalElements++;
-        } else {
-            // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
-            _update(root, newNode, int96(balance) - int96(node.balance));
-        }
-    }
-
-    /// @inheritdoc IClusterSelector
-    function insertMultiple(address[] calldata newNodes, uint96[] calldata balances) public virtual override {
-        require(newNodes.length == balances.length, "arity mismatch");
-        for (uint256 index = 0; index < newNodes.length; index++) {
-            insert(newNodes[index], balances[index]);
-        }
-    }
-
-    /// @inheritdoc IClusterSelector
-    function deleteNode(address key) public virtual override {
-        require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        Node memory node = nodes[key];
-        require(node.node == key, ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
-        if (node.node == key) {
-            // delete node
-            (root) = _deleteNode(root, key, node.balance);
-            totalElements--;
-        }
-    }
-
-    /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint96 newBalance) public virtual override {
-        require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        if (nodes[existingNode].node == address(0)) {
-            assert(false);
-        } else {
-            int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
-            _update(root, existingNode, differenceInKeyBalance);
-        }
-    }
-
-    /// @notice Search a single node from the tree. Probability of getting selected is proportional to node's balance
-    /// @param randomizer random number used for traversing the tree
-    /// @return Address of the selected node
-    function weightedSearch(uint256 randomizer) public view returns (address) {
-        Node memory _root = nodes[root];
-        uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
-        uint256 searchNumber = randomizer % totalWeightInTree;
-        // console2.log("totalWeightInTree", totalWeightInTree);
-        // console2.log("searchNumber", searchNumber);
-        return _weightedSearch(root, searchNumber);
-    }
-
-    /// @notice internal function to recursively search the node
-    /// @param _node address of the node
-    /// @param searchNumber random number used for traversing the tree
-    /// @return Address of the selected node
-    function _weightedSearch(address _node, uint256 searchNumber) public view returns (address) {
-        // |-----------sumOfLeftWeight -------|----balance-----|------sumOfRightWeights------|
-        Node memory node = nodes[_node];
-        (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(
-            node.sumOfLeftBalances,
-            node.balance,
-            node.sumOfRightBalances
-        );
-
-        if (searchNumber <= index1) {
-            return _weightedSearch(node.left, searchNumber);
-        } else if (searchNumber > index1 && searchNumber <= index2) {
-            return _node;
-        } else if (searchNumber > index2 && searchNumber <= index3) {
-            return _weightedSearch(node.right, searchNumber - index2);
-        } else {
-            // _printNode(_node);
-            // console2.log("indexes", index1, index2, index3);
-            // console2.log("search number", searchNumber);
-            revert(ClusterLib.ERROR_OCCURED_DURING_WEIGHTED_SEARCH);
-        }
-    }
-
     /// @notice Update the balance of the node
-    /// @param root Address of the current node
+    /// @param node Address of the current node
     /// @param key Address of the key
     /// @param diff Difference in the balance of the key
     function _update(
-        address root,
+        address node,
         address key,
         int96 diff
     ) internal {
-        Node storage currentNode = nodes[root];
-        if (root == key) {
+        Node storage currentNode = nodes[node];
+        if (node == key) {
             diff > 0 ? currentNode.balance += uint96(diff) : currentNode.balance -= uint96(-diff);
-        } else if (key < root) {
+        } else if (key < node) {
             diff > 0 ? currentNode.sumOfLeftBalances += uint96(diff) : currentNode.sumOfLeftBalances -= uint96(-diff);
             _update(currentNode.left, key, diff);
         } else {
@@ -134,49 +81,34 @@ contract SingleSelector is SelectorHelper {
         }
 
         // 2. update the height
-        currentNode.height = calculateUpdatedHeight(currentNode);
+        currentNode.height = _calculateUpdatedHeight(currentNode);
 
         // 3. Get the height difference
         int256 heightDifference = getHeightDifference(node);
 
         // Left Left Case
         if (heightDifference > 1 && key < currentNode.left) {
-            // console2.log("_insert LL Case", keyBalance);
             return _rightRotate(node);
         }
 
         // Right Right Case
         if (heightDifference < -1 && key > currentNode.right) {
-            // console2.log("_insert RR Case", keyBalance);
             return _leftRotate(node);
         }
 
         // Left Right Case
         if (heightDifference > 1 && key > currentNode.left) {
-            // console2.log("_insert LR Case", keyBalance);
             currentNode.left = _leftRotate(currentNode.left);
             return _rightRotate(node);
         }
 
         // Right Left Case
         if (heightDifference < -1 && key < currentNode.right) {
-            // console2.log("_insert RL Case", keyBalance);
             currentNode.right = _rightRotate(currentNode.right);
             return _leftRotate(node);
         }
 
         return node;
-    }
-
-    /// @notice Returns true if the node is present in the tree with non zero balance.
-    /// @param _node Address of the node to search
-    /// @return True if node is present
-    function search(address _node) public view returns (bool) {
-        if (_node == address(0)) {
-            return false;
-        }
-        Node memory node = nodes[_node];
-        return node.node == _node && node.balance != 0;
     }
 
     /// @notice Internal function to delete the node from the key
@@ -188,40 +120,28 @@ contract SingleSelector is SelectorHelper {
         address key,
         uint96 existingBalanceOfKey
     ) internal returns (address) {
-        // console2.log("At node", _root);
-        // console2.log("Element to delete", key);
-        // console2.log("Balance of key to delete", existingBalanceOfKey);
         if (_root == address(0)) {
             return (_root);
         }
 
         Node storage node = nodes[_root];
         if (key < _root) {
-            // console2.log("Moving to left");
             node.sumOfLeftBalances -= existingBalanceOfKey;
             (node.left) = _deleteNode(node.left, key, existingBalanceOfKey);
-            // console2.log("After Moving to left");
         } else if (key > _root) {
-            // console2.log("Moving to right");
-            // console2.log("node.sumOfRightBalances", node.sumOfRightBalances);
             node.sumOfRightBalances -= existingBalanceOfKey;
             (node.right) = _deleteNode(node.right, key, existingBalanceOfKey);
-            // console2.log("After Moving to right");
         } else {
-            // console2.log("Wow! found node to delete");
             // if node.left and node.right are full, select the next smallest element to node.right, replace it with element to be removed
             // if node.right is full and node.left is null, select the next smallest element to node.right, replace it with element to be removed
             // if node.left is full and node.right is null, select node.left, replace it with node.left
             // if node.left and node.right are null, simply delete the element
 
             if (node.left != address(0) && node.right != address(0)) {
-                // console2.log("case 1");
                 return _replaceWithLeastMinimumNode(_root);
             } else if (node.left == address(0) && node.right != address(0)) {
-                // console2.log("case 2");
                 return _deleteNodeAndReturnRight(_root);
             } else if (node.left != address(0) && node.right == address(0)) {
-                // console2.log("case 3");
                 return _deleteNodeAndReturnLeft(_root);
             }
             // last case == (node.left == address(0) && node.right == address(0))
@@ -231,7 +151,7 @@ contract SingleSelector is SelectorHelper {
             }
         }
 
-        node.height = calculateUpdatedHeight(node);
+        node.height = _calculateUpdatedHeight(node);
 
         int256 heightDifference = getHeightDifference(_root);
 
@@ -254,6 +174,94 @@ contract SingleSelector is SelectorHelper {
         }
 
         return (_root);
+    }
+
+    /// @notice Function to create a empty node
+    /// @param node Address of the new node
+    /// @param balance Balance of the new node
+    /// @return newNode Empty node with address and balance
+    function _newNode(address node, uint96 balance) internal pure returns (Node memory newNode) {
+        newNode = Node(node, balance, address(0), 0, address(0), 0, 1);
+    }
+
+    /// @notice Right rotate a given node
+    /// @param addressOfZ address of the node to right rotate
+    /// @return Returns the new root after the rotation
+    /// @notice ----------------------------- z -----------------------------
+    /// @notice --------------------------- /   \ ---------------------------
+    /// @notice -------------------------- y     T4 -------------------------
+    /// @notice ------------------------- / \        ------------------------
+    /// @notice ------------------------ x   T3       -----------------------
+    /// @notice ----------------------- / \            ----------------------
+    /// @notice ---------------------- T1  T2            --------------------
+    /// @notice is rotated to
+    /// @notice ----------------------------- y -----------------------------
+    /// @notice --------------------------- /   \ ---------------------------
+    /// @notice -------------------------- x     z --------------------------
+    /// @notice ------------------------- / \   / \ -------------------------
+    /// @notice ------------------------ T1 T2 T3 T4 ------------------------
+    function _rightRotate(address addressOfZ) internal returns (address) {
+        if (addressOfZ == address(0)) revert(CANNOT_RR_ADDRESS_ZERO);
+
+        Node storage z = nodes[addressOfZ];
+
+        Node storage y = nodes[z.left];
+
+        // do not rotate if left is 0
+        if (y.node == address(0)) return z.node;
+
+        Node memory T3 = nodes[y.right];
+
+        // cut z.left
+        z.sumOfLeftBalances = _getTotalBalancesIncludingWeight(T3);
+        z.left = T3.node;
+        // cut y.right
+        y.sumOfRightBalances = _getTotalBalancesIncludingWeight(z);
+        y.right = z.node;
+
+        z.height = _calculateUpdatedHeight(z);
+        y.height = _calculateUpdatedHeight(y);
+        return y.node;
+    }
+
+    /// @notice Lef rotate a given node
+    /// @param addressOfZ address of the node to left rotate
+    /// @return Returns the new root after the rotation
+    /// @notice ----------------------------- z -----------------------------
+    /// @notice --------------------------- /   \ ---------------------------
+    /// @notice -------------------------- T1    y --------------------------
+    /// @notice -------------------------       / \ -------------------------
+    /// @notice ------------------------      T2   x ------------------------
+    /// @notice -----------------------           / \ -----------------------
+    /// @notice ----------------------           T3  T4 ---------------------
+    /// @notice is rotated to
+    /// @notice ----------------------------- y -----------------------------
+    /// @notice --------------------------- /   \ ---------------------------
+    /// @notice -------------------------- z     x --------------------------
+    /// @notice ------------------------- / \   / \ -------------------------
+    /// @notice ------------------------ T1 T2 T3 T4 ------------------------
+    function _leftRotate(address addressOfZ) internal returns (address) {
+        if (addressOfZ == address(0)) revert(CANNOT_LR_ADDRESS_ZERO);
+
+        Node storage z = nodes[addressOfZ];
+
+        Node storage y = nodes[z.right];
+
+        // do not rotate if right is 0
+        if (y.node == address(0)) return z.node;
+
+        Node memory T2 = nodes[y.left];
+
+        // cut z.right
+        z.sumOfRightBalances = _getTotalBalancesIncludingWeight(T2);
+        z.right = T2.node;
+        // cut y.left
+        y.sumOfLeftBalances = _getTotalBalancesIncludingWeight(z);
+        y.left = z.node;
+
+        z.height = _calculateUpdatedHeight(z);
+        y.height = _calculateUpdatedHeight(y);
+        return y.node;
     }
 
     /// @notice Internal function to delete when there exists a left node but no right node
@@ -298,9 +306,6 @@ contract SingleSelector is SelectorHelper {
 
             return C_ND.right;
         } else {
-            // nodes[_node].balance = 0;
-            // return _node
-
             Node memory leastMinNode = _findLeastMinNode(C_ND.right);
 
             C_ND.right = _deleteNode(C_ND.right, leastMinNode.node, leastMinNode.balance);
@@ -317,7 +322,7 @@ contract SingleSelector is SelectorHelper {
 
             Node memory C_ND_right = nodes[C_ND.right];
             lmnStore.sumOfRightBalances = _getTotalBalancesIncludingWeight(C_ND_right);
-            lmnStore.height = calculateUpdatedHeight(lmnStore);
+            lmnStore.height = _calculateUpdatedHeight(lmnStore);
 
             return leastMinNode.node;
         }
@@ -334,5 +339,60 @@ contract SingleSelector is SelectorHelper {
         }
 
         return (node);
+    }
+
+    /// @notice Get total weight of the node
+    /// @param node Node to calculate total weight for
+    /// @return Total weight of the node
+    function _getTotalBalancesIncludingWeight(Node memory node) internal pure returns (uint96) {
+        return node.balance + node.sumOfLeftBalances + node.sumOfRightBalances;
+    }
+
+    function _calculateUpdatedHeight(Node memory node) internal view returns (uint256) {
+        return Math.max(height(node.right), height(node.left)) + 1;
+    }
+
+
+    /// @notice Height of the tree at a given moment
+    /// @return Height of the tree
+    function heightOfTheTree() public view returns (uint256) {
+        return height(root);
+    }
+
+    /// @notice Height of any node at a given moment
+    /// @param node Address of the node whose height needs to be searched
+    /// @return Height of the node
+    function height(address node) public view returns (uint256) {
+        if (node == address(0)) return 0;
+        return nodes[node].height;
+    }
+
+    /// @notice Returns the (node balance) i.e difference in heights of left and right nodes
+    /// @param node Address of the node to get height difference of
+    /// @return Height Difference of the node
+    function getHeightDifference(address node) public view returns (int256) {
+        if (node == address(0)) return 0;
+
+        Node memory existingNode = nodes[node];
+
+        return int256(height(existingNode.left)) - int256(height(existingNode.right));
+    }
+
+    /// @notice Returns the data of the node
+    /// @param _node Address of the node
+    /// @return node Data of the node
+    function nodeData(address _node) public view returns (Node memory node) {
+        node = nodes[_node];
+    }
+
+    /// @notice Returns true if the node is present in the tree with non zero balance.
+    /// @param _node Address of the node to search
+    /// @return True if node is present
+    function search(address _node) public view returns (bool) {
+        if (_node == address(0)) {
+            return false;
+        }
+        Node memory node = nodes[_node];
+        return node.node == _node && node.balance != 0;
     }
 }

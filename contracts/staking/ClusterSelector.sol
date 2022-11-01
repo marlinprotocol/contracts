@@ -2,26 +2,62 @@
 
 pragma solidity ^0.8.0;
 
-import "./ClusterSelectorHelper/SimpleSelector.sol";
+import "./ClusterSelectorHelper/SingleSelector.sol";
 
 contract ClusterSelector is SingleSelector {
-    using ClusterLib for address[];
-    using ClusterLib for bytes;
+
+    string constant INSUFFICIENT_ELEMENTS_IN_TREE = "9";
+    string constant ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE = "10";
+    string constant ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE = "11";
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
+        if (element == address(0)) {
+            return false;
+        }
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Returns indexes when only balances and left and right weights are provided
+    /// @param sumOfLeftBalances Sum of balances of nodes on the left
+    /// @param balance Balance of the node
+    /// @param sumOfRightBalances Sum of balances of nodes on the right
+    /// @return First index of the search
+    /// @return Second index of the search
+    /// @return Third index of the search
+    function _getIndexesWithWeights(
+        uint256 sumOfLeftBalances,
+        uint256 balance,
+        uint256 sumOfRightBalances
+    )
+        internal
+        pure
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
+    }
 
     constructor() SingleSelector() {}
 
     /// @notice Select top N clusters
     /// @return List of addresses selected
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory) {
-        require(N <= totalElements, ClusterLib.INSUFFICIENT_ELEMENTS_IN_TREE);
+        require(N <= totalElements, INSUFFICIENT_ELEMENTS_IN_TREE);
 
         address[] memory selectedNodes = new address[](N);
         address[17][] memory pathToSelectedNodes = new address[17][](N);
         uint256[] memory pidxs = new uint256[](N);
-
-        // for (uint256 index = 0; index < N; index++) {
-        //     pathToSelectedNodes[index] = _emptyPath;
-        // }
 
         Node memory _root = nodes[root];
         uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
@@ -30,8 +66,6 @@ contract ClusterSelector is SingleSelector {
         for (uint256 index = 0; index < N; index++) {
             randomizer = uint256(keccak256(abi.encode(randomizer, index)));
             uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
-            // console2.log("============= search number in iter", index, searchNumber);
-            // console2.log("============= _sumOfBalancesOfSelectedNodes", _sumOfBalancesOfSelectedNodes);
 
             (address _node, uint256 _selectedNodeBalance) = _selectTopCluster(
                 root,
@@ -43,10 +77,7 @@ contract ClusterSelector is SingleSelector {
             );
 
             selectedNodes[index] = _node;
-            // pidxs[index] = pidx;
             _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
-            // console2.log("length of path selected", _path.length);
-            // _printArray("path that I need to check", pathToSelectedNodes[index]);
         }
         return selectedNodes;
     }
@@ -66,79 +97,46 @@ contract ClusterSelector is SingleSelector {
         uint256[] memory pidxs,
         uint256 index
     ) internal view returns (address, uint256) {
-        // console2.log("====================================================================================");
-        // console2.log("finding cluster", _root);
-        // console2.log("searchNumber", searchNumber);
-        // console2.log("parentIndex", parentIndex);
-        // _printNode(_root);
-        // console2.log("length of parent path", currentNodePath.length);
-        // _printArray("Selected clusters", selectedNodes);
-        // _printPaths("paths to selected clusters", pathsToSelectedNodes);
 
         Node memory node = nodes[_root];
         // stored in existing variable to conserve memory
         (node.sumOfLeftBalances, node.sumOfRightBalances) = _getModifiedWeights(node, selectedNodes, pathsToSelectedNodes, pidxs, index);
 
-        // console2.log("leftWeight used for search", leftWeight);
-        // console2.log("rightWeight used for searching", rightWeight);
+        // if the node is already selected, move either to left or right
+        if (ifArrayHasElement(selectedNodes, _root)) {
 
-        // if the node is already selected, movie either to left or right
-        if (selectedNodes.ifArrayHasElement(_root)) {
-            // console2.log("_root is already selected", _root);
-            // console2.log("searchNumber", searchNumber);
-            // _printArray("selected nodes this _root", selectedNodes);
-
-            (uint256 index1, , uint256 index2) = ClusterLib._getIndexesWithWeights(node.sumOfLeftBalances, 0, node.sumOfRightBalances);
-
-            // console2.log("leftWeight", leftWeight);
-            // console2.log("node.balance", node.balance);
-            // console2.log("rightWeight", rightWeight);
-            // console2.log("index1", index1);
-            // console2.log("index2", index2);
+            (uint256 index1, , uint256 index2) = _getIndexesWithWeights(node.sumOfLeftBalances, 0, node.sumOfRightBalances);
 
             pathsToSelectedNodes[index][pidxs[index]] = _root;
             pidxs[index]++;
 
             if (searchNumber <= index1) {
-                // console2.log(_root, "Selected and moved to left");
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else if (searchNumber > index1 && searchNumber <= index2) {
-                // console2.log(_root, "Selected and moved to right");
                 return _selectTopCluster(node.right, searchNumber - index1, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else {
-                revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE);
+                revert(ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE);
             }
         }
         // if not selected then, check if it lies between the indexes
         else {
-            // console2.log("_root is not selected", _root);
-            // console2.log("searchNumber", searchNumber);
-            // _printArray("selected nodes this _root", selectedNodes);
-            (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(
+            (uint256 index1, uint256 index2, uint256 index3) = _getIndexesWithWeights(
                 node.sumOfLeftBalances,
                 node.balance,
                 node.sumOfRightBalances
             );
 
-            // console2.log("leftWeight", leftWeight);
-            // console2.log("node.balance", node.balance);
-            // console2.log("rightWeight", rightWeight);
-            // console2.log("index1", index1);
-
             pathsToSelectedNodes[index][pidxs[index]] = _root;
             pidxs[index]++;
 
             if (searchNumber <= index1) {
-                // console2.log(_root, "Not select and moved to left");
                 return _selectTopCluster(node.left, searchNumber, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else if (searchNumber > index1 && searchNumber <= index2) {
-                // console2.log(_root, "Wow!, Selected");
                 return (_root, node.balance);
             } else if (searchNumber > index2 && searchNumber <= index3) {
-                // console2.log(_root, "Not select and moved to right");
                 return _selectTopCluster(node.right, searchNumber - index2, selectedNodes, pathsToSelectedNodes, pidxs, index);
             } else {
-                revert(ClusterLib.ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE);
+                revert(ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE);
             }
         }
     }
