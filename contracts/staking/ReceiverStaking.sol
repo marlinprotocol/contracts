@@ -21,9 +21,14 @@ contract ReceiverStaking is
 
     IERC20Upgradeable public stakingToken;
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 immutable START_TIME;
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 immutable EPOCH_LENGTH;
-    
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract
+    // safeguard against takeover of the logic contract
     constructor(uint256 _startTime, uint256 _epochLength) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
@@ -34,8 +39,9 @@ contract ReceiverStaking is
         _;
     }
 
-    function initialize(address _stakingToken) initializer public {
+    function initialize(address _stakingToken, address _admin) initializer public {
         stakingToken = IERC20Upgradeable(_stakingToken);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
     event StakingTokenUpdated(address indexed newStakingToken);
