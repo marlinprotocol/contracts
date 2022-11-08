@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20CappedUp
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "./IArbToken.sol";
+import "./interfaces/IArbToken.sol";
 
 contract Pond is
     Initializable,  // initializer

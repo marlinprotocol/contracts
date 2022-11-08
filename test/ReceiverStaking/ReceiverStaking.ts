@@ -108,6 +108,11 @@ describe('Receiver Staking at start', async () => {
         const amount = parseInt(Math.random()*10+"")+"000000000000000000";
         await stakingToken.approve(receiverStaking.address, amount);
         await receiverStaking.deposit(amount);
+
+        const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+
+        const balance = await receiverStaking.balanceOf(amount);
+        
     });
 
     it("deposit with not enough allowance", async () => {
