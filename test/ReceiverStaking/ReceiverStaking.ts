@@ -104,7 +104,7 @@ describe('Receiver Staking at start', async () => {
         assert(newStakingTokenInContract == newStakingToken, "Staking token not updated");
     });
 
-    it("deposit", async () => {
+    it.skip("deposit", async () => {
         const amount = parseInt(Math.random()*10+"")+"000000000000000000";
         await stakingToken.approve(receiverStaking.address, amount);
         await receiverStaking.deposit(amount);
@@ -115,7 +115,7 @@ describe('Receiver Staking at start', async () => {
         
     });
 
-    it("deposit with not enough allowance", async () => {
+    it.skip("deposit with not enough allowance", async () => {
         
     });
 })

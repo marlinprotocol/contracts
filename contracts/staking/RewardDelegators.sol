@@ -256,7 +256,7 @@ contract RewardDelegators is
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations != 0){
-            epochSelector.insert(_cluster, uint96(sqrt(totalDelegations)));
+            epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)));
         }
         // if not, update it to zero
         else{
@@ -476,7 +476,7 @@ contract RewardDelegators is
     event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(address[] calldata clusterList) onlyAdmin external {
         address[] memory filteredClustersList;
-        uint96[] memory balances;
+        uint32[] memory balances;
 
         uint256 addressIndex=0;
         for (uint256 index = 0; index < clusterList.length; index++) {
@@ -487,7 +487,7 @@ contract RewardDelegators is
             if(totalDelegations != 0){
                 // epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
                 filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint96(sqrt(totalDelegations));
+                balances[addressIndex] = uint32(sqrt(totalDelegations));
                 addressIndex++;
                 emit RefreshClusterDelegation(cluster);   
             }

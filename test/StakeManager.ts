@@ -536,15 +536,25 @@ describe('StakeManager', function() {
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
+    
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600],
+      kind: "uups",
+      initializer: false,
+    });
+
+    await receiverStaking.initialize(pondInstance.address, addrs[0]);
 
     clusterRewardsInstance.initialize(
       addrs[7],
       rewardDelegatorsInstance.address,
+      receiverStaking.address,
+      epochSelectorInstance.address,
       ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
       [100, 100, 100],
-      appConfig.staking.rewardPerEpoch,
-      appConfig.staking.payoutDenomination,
-      10);
+      appConfig.staking.rewardPerEpoch
+    );
 
     await mpondInstance.grantRole(ethers.utils.id('WHITELIST_ROLE'), stakeManager.address);
     await mpondInstance.connect(signers[2]).approve(stakeManager.address, 10000);
@@ -1103,15 +1113,24 @@ describe('StakeManager Deployment', function () {
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
+    
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600],
+      kind: "uups",
+      initializer: false,
+    });
 
+    await receiverStaking.initialize(pondInstance.address, addrs[0]);
+    
     clusterRewardsInstance.initialize(
-      feeder,
+      addrs[7],
       rewardDelegatorsInstance.address,
+      receiverStaking.address,
+      epochSelectorInstance.address,
       ["0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533", "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701", "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f"],
       [100, 100, 100],
-      appConfig.staking.rewardPerEpoch,
-      appConfig.staking.payoutDenomination,
-      10);
+      appConfig.staking.rewardPerEpoch);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
