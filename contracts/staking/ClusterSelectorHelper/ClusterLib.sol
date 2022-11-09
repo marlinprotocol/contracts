@@ -47,6 +47,21 @@ library ClusterLib {
         return false;
     }
 
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(uint256[] memory array, uint256 element) internal pure returns (bool) {
+        if (element == 0) {
+            return false;
+        }
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// @notice Returns indexes when only balances and left and right weights are provided
     /// @param sumOfLeftBalances Sum of balances of nodes on the left
     /// @param balance Balance of the node

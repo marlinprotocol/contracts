@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IEpochSelector.sol";
-import "./ClusterSelector_wih_abi_encode.sol";
+// import "./ClusterSelector_wih_abi_encode.sol";
+import "./ClusterSelector_wih_memory_node.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
@@ -169,7 +170,8 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         uint32 indexKey = addressToIndexMap[key];
 
         Node memory node = nodes[indexKey];
-        if (node.node == indexKey) {
+        
+        if (node.node == indexKey && indexKey != 0) {
             // delete node
             root = _deleteNode(root, indexKey, node.balance);
             totalElements--;
