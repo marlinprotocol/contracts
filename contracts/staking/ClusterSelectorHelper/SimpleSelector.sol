@@ -7,20 +7,25 @@ contract SingleSelector is SelectorHelper {
     constructor() {}
 
     /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint96 balance) public virtual override {
+    function insert(address newNode, uint32 balance) public virtual override {
         require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        Node memory node = nodes[newNode];
-        if (node.node == address(0)) {
-            root = _insert(root, newNode, balance);
+        uint32 nodeIndex = addressToIndexMap[newNode];
+        Node memory node = nodes[nodeIndex];
+
+        if (node.node == 0) {
+            uint32 newIndex = getNewId();
+            root = _insert(root, newIndex, balance);
             totalElements++;
+            indexToAddressMap[newIndex] = newNode;
+            addressToIndexMap[newNode] = newIndex;
         } else {
             // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
-            _update(root, newNode, int96(balance) - int96(node.balance));
+            _update(root, nodeIndex, int32(balance) - int32(node.balance));
         }
     }
 
     /// @inheritdoc IClusterSelector
-    function insertMultiple(address[] calldata newNodes, uint96[] calldata balances) public virtual override {
+    function insertMultiple(address[] calldata newNodes, uint32[] calldata balances) public virtual override {
         require(newNodes.length == balances.length, "arity mismatch");
         for (uint256 index = 0; index < newNodes.length; index++) {
             insert(newNodes[index], balances[index]);
@@ -30,23 +35,30 @@ contract SingleSelector is SelectorHelper {
     /// @inheritdoc IClusterSelector
     function deleteNode(address key) public virtual override {
         require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        Node memory node = nodes[key];
-        require(node.node == key, ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
-        if (node.node == key) {
-            // delete node
-            (root) = _deleteNode(root, key, node.balance);
-            totalElements--;
-        }
+
+        uint32 indexKey = addressToIndexMap[key];
+
+        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+
+        Node memory node = nodes[indexKey];
+        require(node.node == indexKey, ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
+        root = _deleteNode(root, indexKey, node.balance);
+        totalElements--;
+        delete indexToAddressMap[indexKey];
+        delete addressToIndexMap[key];
+        emptyIds.push(indexKey);
     }
 
     /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint96 newBalance) public virtual override {
-        require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        if (nodes[existingNode].node == address(0)) {
+    function update(address existingNode, uint32 newBalance) public virtual override {
+        uint32 indexKey = addressToIndexMap[existingNode];
+
+        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        if (nodes[indexKey].node == 0) {
             assert(false);
         } else {
-            int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
-            _update(root, existingNode, differenceInKeyBalance);
+            int32 differenceInKeyBalance = int32(newBalance) - int32(nodes[indexKey].balance);
+            _update(root, indexKey, differenceInKeyBalance);
         }
     }
 
@@ -59,14 +71,15 @@ contract SingleSelector is SelectorHelper {
         uint256 searchNumber = randomizer % totalWeightInTree;
         // console2.log("totalWeightInTree", totalWeightInTree);
         // console2.log("searchNumber", searchNumber);
-        return _weightedSearch(root, searchNumber);
+        uint32 index = _weightedSearch(root, searchNumber);
+        return indexToAddressMap[index];
     }
 
     /// @notice internal function to recursively search the node
     /// @param _node address of the node
     /// @param searchNumber random number used for traversing the tree
     /// @return Address of the selected node
-    function _weightedSearch(address _node, uint256 searchNumber) public view returns (address) {
+    function _weightedSearch(uint32 _node, uint256 searchNumber) public view returns (uint32) {
         // |-----------sumOfLeftWeight -------|----balance-----|------sumOfRightWeights------|
         Node memory node = nodes[_node];
         (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(
@@ -94,18 +107,18 @@ contract SingleSelector is SelectorHelper {
     /// @param key Address of the key
     /// @param diff Difference in the balance of the key
     function _update(
-        address root,
-        address key,
-        int96 diff
+        uint32 root,
+        uint32 key,
+        int32 diff
     ) internal {
         Node storage currentNode = nodes[root];
         if (root == key) {
-            diff > 0 ? currentNode.balance += uint96(diff) : currentNode.balance -= uint96(-diff);
+            diff > 0 ? currentNode.balance += uint32(diff) : currentNode.balance -= uint32(-diff);
         } else if (key < root) {
-            diff > 0 ? currentNode.sumOfLeftBalances += uint88(int88(diff)) : currentNode.sumOfLeftBalances -= uint88(-int88(diff));
+            diff > 0 ? currentNode.sumOfLeftBalances += uint32(diff) : currentNode.sumOfLeftBalances -= uint32(-diff);
             _update(currentNode.left, key, diff);
         } else {
-            diff > 0 ? currentNode.sumOfRightBalances += uint96(diff) : currentNode.sumOfRightBalances -= uint96(-diff);
+            diff > 0 ? currentNode.sumOfRightBalances += uint32(diff) : currentNode.sumOfRightBalances -= uint32(-diff);
             _update(currentNode.right, key, diff);
         }
     }
@@ -115,11 +128,14 @@ contract SingleSelector is SelectorHelper {
     /// @param key Address to add
     /// @param keyBalance Balance of the key
     function _insert(
-        address node,
-        address key,
-        uint96 keyBalance
-    ) internal returns (address) {
-        if (node == address(0)) {
+        uint32 node,
+        uint32 key,
+        uint32 keyBalance
+    ) internal returns (uint32) {
+        // console2.log("inserting node", node);
+        // console2.log("key", key);
+        // console2.log("keyBalance", keyBalance);
+        if (node == 0) {
             nodes[key] = _newNode(key, keyBalance);
             return nodes[key].node;
         }
@@ -127,7 +143,7 @@ contract SingleSelector is SelectorHelper {
         Node storage currentNode = nodes[node];
         if (key < node) {
             currentNode.left = _insert(currentNode.left, key, keyBalance);
-            currentNode.sumOfLeftBalances += uint88(keyBalance);
+            currentNode.sumOfLeftBalances += keyBalance;
         } else {
             currentNode.right = _insert(currentNode.right, key, keyBalance);
             currentNode.sumOfRightBalances += keyBalance;
@@ -172,11 +188,12 @@ contract SingleSelector is SelectorHelper {
     /// @param _node Address of the node to search
     /// @return True if node is present
     function search(address _node) public view returns (bool) {
-        if (_node == address(0)) {
+        uint32 nodeKey = addressToIndexMap[_node];
+        if (nodeKey == 0) {
             return false;
         }
-        Node memory node = nodes[_node];
-        return node.node == _node && node.balance != 0;
+        Node memory node = nodes[nodeKey];
+        return node.node == nodeKey && node.balance != 0;
     }
 
     /// @notice Internal function to delete the node from the key
@@ -184,21 +201,21 @@ contract SingleSelector is SelectorHelper {
     /// @param key Address of the node to be removed
     /// @param existingBalanceOfKey Balance of the key to be deleted
     function _deleteNode(
-        address _root,
-        address key,
-        uint96 existingBalanceOfKey
-    ) internal returns (address) {
+        uint32 _root,
+        uint32 key,
+        uint32 existingBalanceOfKey
+    ) internal returns (uint32) {
         // console2.log("At node", _root);
         // console2.log("Element to delete", key);
         // console2.log("Balance of key to delete", existingBalanceOfKey);
-        if (_root == address(0)) {
+        if (_root == 0) {
             return (_root);
         }
 
         Node storage node = nodes[_root];
         if (key < _root) {
             // console2.log("Moving to left");
-            node.sumOfLeftBalances -= uint88(existingBalanceOfKey);
+            node.sumOfLeftBalances -= existingBalanceOfKey;
             (node.left) = _deleteNode(node.left, key, existingBalanceOfKey);
             // console2.log("After Moving to left");
         } else if (key > _root) {
@@ -214,20 +231,20 @@ contract SingleSelector is SelectorHelper {
             // if node.left is full and node.right is null, select node.left, replace it with node.left
             // if node.left and node.right are null, simply delete the element
 
-            if (node.left != address(0) && node.right != address(0)) {
+            if (node.left != 0 && node.right != 0) {
                 // console2.log("case 1");
                 return _replaceWithLeastMinimumNode(_root);
-            } else if (node.left == address(0) && node.right != address(0)) {
+            } else if (node.left == 0 && node.right != 0) {
                 // console2.log("case 2");
                 return _deleteNodeAndReturnRight(_root);
-            } else if (node.left != address(0) && node.right == address(0)) {
+            } else if (node.left != 0 && node.right == 0) {
                 // console2.log("case 3");
                 return _deleteNodeAndReturnLeft(_root);
             }
             // last case == (node.left == address(0) && node.right == address(0))
             else {
                 delete nodes[_root];
-                return address(0);
+                return 0;
             }
         }
 
@@ -259,7 +276,7 @@ contract SingleSelector is SelectorHelper {
     /// @notice Internal function to delete when there exists a left node but no right node
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _deleteNodeAndReturnLeft(address _node) internal returns (address) {
+    function _deleteNodeAndReturnLeft(uint32 _node) internal returns (uint32) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
 
@@ -270,7 +287,7 @@ contract SingleSelector is SelectorHelper {
     ///@notice Internal function to delete when there exist a right node but no left node
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _deleteNodeAndReturnRight(address _node) internal returns (address) {
+    function _deleteNodeAndReturnRight(uint32 _node) internal returns (uint32) {
         Node memory C_ND = nodes[_node];
         delete nodes[_node];
 
@@ -281,13 +298,13 @@ contract SingleSelector is SelectorHelper {
     /// @notice Internal function to delete when both left and right node are defined.
     /// @param _node Address of Node to delete
     /// @return Address of node to replace the deleted node
-    function _replaceWithLeastMinimumNode(address _node) internal returns (address) {
+    function _replaceWithLeastMinimumNode(uint32 _node) internal returns (uint32) {
         // update deletion here
 
         Node memory C_ND = nodes[_node];
         Node memory nodeRight = nodes[C_ND.right];
 
-        if (nodeRight.left == address(0)) {
+        if (nodeRight.left == 0) {
             Node storage nodeRightStorage = nodes[C_ND.right];
 
             nodeRightStorage.left = C_ND.left;
@@ -326,10 +343,10 @@ contract SingleSelector is SelectorHelper {
     /// @notice Find the least minimum node for given node
     /// @param _node Address of node from which least min node has to be found
     /// @return Copy of Node that will be replaced
-    function _findLeastMinNode(address _node) internal view returns (Node memory) {
+    function _findLeastMinNode(uint32 _node) internal view returns (Node memory) {
         Node memory node = nodes[_node];
 
-        if (node.left != address(0)) {
+        if (node.left != 0) {
             return _findLeastMinNode(node.left);
         }
 
