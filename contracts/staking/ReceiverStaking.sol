@@ -3,19 +3,13 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IReceiverStaking.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
+import {ERC20SnapshotUpgradeable} from "./ERC20SnapshotUpgradeable.sol";
 
-contract ReceiverStaking is 
-    IReceiverStaking,
-    Initializable,
-    ERC20SnapshotUpgradeable,
-    AccessControlEnumerableUpgradeable,
-    UUPSUpgradeable
-{
-
+contract ReceiverStaking is IReceiverStaking, Initializable, ERC20SnapshotUpgradeable, AccessControlEnumerableUpgradeable, UUPSUpgradeable {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -39,7 +33,7 @@ contract ReceiverStaking is
         _;
     }
 
-    function initialize(address _stakingToken, address _admin) initializer public {
+    function initialize(address _stakingToken, address _admin) public initializer {
         stakingToken = IERC20Upgradeable(_stakingToken);
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
@@ -67,14 +61,23 @@ contract ReceiverStaking is
         stakingToken.transfer(msg.sender, amount);
     }
 
-    function getStakeInfo(address user, uint256 epoch) external view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch) {
+    function getStakeInfo(address user, uint256 epoch)
+        external
+        view
+        override
+        returns (
+            uint256 userStake,
+            uint256 totalStake,
+            uint256 currentEpoch
+        )
+    {
         userStake = balanceOfAt(user, epoch);
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
-        return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
+        return (block.timestamp - START_TIME) / EPOCH_LENGTH + 1;
     }
 
     function _beforeTokenTransfer(
@@ -83,19 +86,19 @@ contract ReceiverStaking is
         uint256 amount
     ) internal virtual override {
         require(from == address(0) || to == address(0), "Staking Positions transfer not allowed");
-        if(block.timestamp < START_TIME) return;
+        if (block.timestamp < START_TIME) return;
         super._beforeTokenTransfer(from, to, amount);
     }
 
     function _afterTokenTransfer(
-        address from, 
-        address to, 
+        address from,
+        address to,
         uint256 amount
     ) internal virtual override {
-        if(to == address(0)) {
+        if (to == address(0)) {
             // burn
             uint256 _updatedBalance = balanceOf(from);
-            if(balanceOfAt(from, _getCurrentSnapshotId()) > _updatedBalance) {
+            if (balanceOfAt(from, _getCurrentSnapshotId()) > _updatedBalance) {
                 // current balance is lowest in epoch
                 _updateSnapshot(_accountBalanceSnapshots[from], _updatedBalance);
             }
