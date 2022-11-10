@@ -20,8 +20,6 @@ type Counter = {
   expected_P_e: string;
 };
 
-const delimiter = new BN(10).pow(12);
-
 describe("Testing Epoch Selector", function () {
   let epochSelector: Contract;
   let admin: SignerWithAddress;
@@ -31,7 +29,7 @@ describe("Testing Epoch Selector", function () {
   let numberOfClustersToSelect: number = 5;
   let numberOfAddressesWithLargeBalances = 10;
   let numberOfElementsInTree = 1000 - numberOfAddressesWithLargeBalances;
-  
+
   let numberOfSelections: number = 1000; // number of trials
 
   if (process.env.TEST_ENV == "prod") {
