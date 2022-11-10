@@ -256,7 +256,7 @@ contract RewardDelegators is
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations != 0){
-            epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)));
+            epochSelector.insert(_cluster, uint32(sqrtAndDelimit(totalDelegations)));
         }
         // if not, update it to zero
         else{
@@ -440,7 +440,7 @@ contract RewardDelegators is
         emit EpochSelectorUpdated(_epochSelector);
     }
 
-    function sqrt(uint y) internal pure returns (uint z) {
+    function sqrtAndDelimit(uint y) internal pure returns (uint z) {
         if (y > 3) {
             z = y;
             uint x = y / 2 + 1;
@@ -451,6 +451,8 @@ contract RewardDelegators is
         } else if (y != 0) {
             z = 1;
         }
+
+        z = z / 1000000;
     }
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -487,7 +489,7 @@ contract RewardDelegators is
             if(totalDelegations != 0){
                 // epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
                 filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint32(sqrt(totalDelegations));
+                balances[addressIndex] = uint32(sqrtAndDelimit(totalDelegations));
                 addressIndex++;
                 emit RefreshClusterDelegation(cluster);   
             }

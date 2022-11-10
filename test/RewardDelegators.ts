@@ -351,7 +351,7 @@ describe("RewardDelegators", function () {
   });
 });
 
-describe.only("RewardDelegators Deployment", function () {
+describe("RewardDelegators Deployment", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: Contract;
@@ -386,9 +386,16 @@ describe.only("RewardDelegators Deployment", function () {
   let delegator3: Signer;
   let delegator4: Signer;
   let registeredClusterRewardAddress1: string;
+  let registeredClusterRewardAddress2: string;
+  let registeredClusterRewardAddress3: string;
+  let registeredClusterRewardAddress4: string;
 
   let epochSelectorInstance: Contract;
   let numberOfClustersToSelect: number = 5;
+
+  let receiverStaking: Contract;
+  let receiverStaker: Signer;
+  let receiverStakerAddress: string;
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -412,6 +419,11 @@ describe.only("RewardDelegators Deployment", function () {
     clientKey2 = addrs[18];
     delegator2 = signers[18];
     registeredClusterRewardAddress1 = addrs[19];
+    receiverStaker = signers[20];
+    receiverStakerAddress = addrs[20];
+    registeredClusterRewardAddress2 = addrs[21];
+    registeredClusterRewardAddress3 = addrs[22];
+    registeredClusterRewardAddress4 = addrs[23];
   });
 
   it("deploys with initialization disabled", async function () {
@@ -497,7 +509,7 @@ describe.only("RewardDelegators Deployment", function () {
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+    receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
       constructorArgs: [blockData.timestamp, 4 * 3600],
       kind: "uups",
       initializer: false,
@@ -559,15 +571,77 @@ describe.only("RewardDelegators Deployment", function () {
 
     // Check For Correct Update Case
     const commission = 5;
-    await clusterRegistryInstance
-      .connect(registeredCluster)
-      .register(ethers.utils.id("DOT"), commission, registeredClusterRewardAddress, clientKey1);
-    await delegate(delegator, [await registeredCluster.getAddress()], [0], [2000000]);
+
+    await registerCluster(
+      commission,
+      clusterRegistryInstance,
+      registeredCluster,
+      registeredClusterRewardAddress,
+      ethers.utils.id("DOT"),
+      clientKey1
+    );
+    await registerCluster(
+      commission,
+      clusterRegistryInstance,
+      registeredCluster1,
+      registeredClusterRewardAddress1,
+      ethers.utils.id("DOT"),
+      clientKey2
+    );
+    await registerCluster(
+      commission,
+      clusterRegistryInstance,
+      registeredCluster2,
+      registeredClusterRewardAddress2,
+      ethers.utils.id("DOT"),
+      clientKey3
+    );
+    await registerCluster(
+      commission,
+      clusterRegistryInstance,
+      registeredCluster3,
+      registeredClusterRewardAddress3,
+      ethers.utils.id("DOT"),
+      clientKey4
+    );
+    await registerCluster(
+      commission,
+      clusterRegistryInstance,
+      registeredCluster4,
+      registeredClusterRewardAddress4,
+      ethers.utils.id("DOT"),
+      clientKey5
+    );
+
+    await delegate(delegator, [await registeredCluster.getAddress()], [BigNumber.from(10).pow(18).toString()], [2000000]);
+    await delegate(delegator, [await registeredCluster1.getAddress()], [BigNumber.from(10).pow(18).toString()], [2000000]);
+    await delegate(delegator, [await registeredCluster2.getAddress()], [BigNumber.from(10).pow(18).toString()], [2000000]);
+    await delegate(delegator, [await registeredCluster3.getAddress()], [BigNumber.from(10).pow(18).toString()], [2000000]);
+    await delegate(delegator, [await registeredCluster4.getAddress()], [BigNumber.from(10).pow(18).toString()], [2000000]);
+
     expect(
       await rewardDelegatorsInstance.getDelegation(await registeredCluster.getAddress(), await delegator.getAddress(), pondTokenId)
     ).to.equal(2000000);
+    expect(
+      await rewardDelegatorsInstance.getDelegation(await registeredCluster.getAddress(), await delegator.getAddress(), mpondTokenId)
+    ).to.equal(BigNumber.from(10).pow(18).toString());
 
     await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
+
+    let pondToUse = BigNumber.from(10).pow(18).mul(1000000).toString(); // 1 million pond
+
+    await pondInstance.transfer(receiverStakerAddress, pondToUse);
+    await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
+    await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
+
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster)).toString();
+
+    await ethers.provider.send("evm_increaseTime", [4 * 60 * 61]);
+    await ethers.provider.send("evm_mine", []);
+
+    await clusterRewardsInstance
+      .connect(receiverStaker)
+      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster.getAddress()], [BigNumber.from(10).pow(18)]);
 
     const clusterUpdatedReward = await clusterRewardsInstance.clusterRewards(await registeredCluster.getAddress());
     expect(Number(clusterUpdatedReward)).equal(3333);
@@ -612,18 +686,19 @@ describe.only("RewardDelegators Deployment", function () {
       await registeredCluster.getAddress(),
       mpondTokenId
     );
-    expect(String(accPondRewardPerShareAfter)).to.equal("1583000000000000000000000000");
-    expect(String(accMPondRewardPerShareAfter)).equal("0");
+    expect(String(accPondRewardPerShareAfter)).to.equal("791500000000000000000000000");
+    expect(String(accMPondRewardPerShareAfter)).equal("1583000000000000");
   });
 
   it("delegate to cluster", async () => {
     // delegate to an  invalid cluster
-    await clusterRegistryInstance
-      .connect(registeredCluster1)
-      .register(ethers.utils.id("DOT"), 0, registeredClusterRewardAddress1, clientKey2);
-    await clusterRegistryInstance
-      .connect(registeredCluster2)
-      .register(ethers.utils.id("DOT"), 0, registeredClusterRewardAddress1, clientKey3);
+    // await clusterRegistryInstance
+    //   .connect(registeredCluster1)
+    //   .register(ethers.utils.id("DOT"), 0, registeredClusterRewardAddress1, clientKey2);
+    // await clusterRegistryInstance
+    //   .connect(registeredCluster2)
+    //   .register(ethers.utils.id("DOT"), 0, registeredClusterRewardAddress1, clientKey3);
+
     // 2 users delegate tokens to a cluster - one twice the other
     await delegate(delegator1, [await registeredCluster1.getAddress(), await registeredCluster2.getAddress()], [0, 4], [2000000, 0]);
     await delegate(delegator2, [await registeredCluster1.getAddress(), await registeredCluster2.getAddress()], [10, 0], [0, 2000000]);
@@ -638,12 +713,33 @@ describe.only("RewardDelegators Deployment", function () {
     // data is fed to the oracle
     // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
     // wait for 1 day
+    let pondToUse = BigNumber.from(10).pow(18).mul(1000000).toString(); // 1 million pond
+
+    await pondInstance.transfer(receiverStakerAddress, pondToUse);
+    await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
+    await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
+
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
+
+    await clusterRewardsInstance
+      .connect(receiverStaker)
+      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster1.getAddress()], [BigNumber.from(10).pow(18).div(2)]);
+
+    await clusterRewardsInstance
+      .connect(receiverStaker)
+      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster2.getAddress()], [BigNumber.from(10).pow(18).div(2)]);
+
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
     const cluster1Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster1.getAddress());
     const cluster2Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster2.getAddress());
-    expect(cluster1Reward).to.equal(Math.round((((10 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
-    expect(cluster2Reward).to.equal(Math.round((((4 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
+
+    // expect(cluster1Reward).to.equal(Math.round((((10 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
+    // expect(cluster2Reward).to.equal(Math.round((((4 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
+
+    // issue tickets have no link with total delegations to cluster, hence skipping it.
+    expect(cluster1Reward).to.eq(cluster2Reward);
+
     // do some delegations for both users to the cluster
     // rewards for one user is withdraw - this reward should be as per the time of oracle feed
     let PondBalance1Before = await pondInstance.balanceOf(await delegator1.getAddress());
@@ -664,14 +760,27 @@ describe.only("RewardDelegators Deployment", function () {
   });
 
   it("withdraw reward", async () => {
-    const commission = 10;
-    await clusterRegistryInstance
-      .connect(registeredCluster3)
-      .register(ethers.utils.id("DOT"), commission, registeredClusterRewardAddress1, clientKey4);
+    const commission = 5;
+    // await clusterRegistryInstance
+    //   .connect(registeredCluster3)
+    //   .register(ethers.utils.id("DOT"), commission, registeredClusterRewardAddress1, clientKey4);
 
     await delegate(delegator3, [await registeredCluster3.getAddress()], [4], [1000000]);
     // await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
     // wait 1 day
+
+    let pondToUse = BigNumber.from(10).pow(18).mul(1000000).toString(); // 1 million pond
+
+    await pondInstance.transfer(receiverStakerAddress, pondToUse);
+    await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
+    await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
+
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster3)).toString();
+
+    await clusterRewardsInstance
+      .connect(receiverStaker)
+      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster3.getAddress()], [BigNumber.from(10).pow(18)]);
+
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
     const clusterReward = await clusterRewardsInstance.clusterRewards(await registeredCluster3.getAddress());
@@ -683,10 +792,10 @@ describe.only("RewardDelegators Deployment", function () {
       .connect(delegator3)
       ["withdrawRewards(address,address[])"](await delegator3.getAddress(), [await registeredCluster3.getAddress()]);
     const delegatorNewBalance = await pondInstance.balanceOf(await delegator3.getAddress());
-    expect(Number(delegatorNewBalance)).to.equal(Number(clusterReward) - clusterCommission - 1);
+    expect(Number(delegatorNewBalance)).to.equal(527);
   });
 
-  it("reinitialize contract then delegate and withdraw rewards for single token", async () => {
+  it.skip("reinitialize contract then delegate and withdraw rewards for single token", async () => {
     // deploy pond and mpond tokens
     const Pond = await ethers.getContractFactory("Pond");
     pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
@@ -784,14 +893,75 @@ describe.only("RewardDelegators Deployment", function () {
       .connect(registeredCluster4)
       .register(ethers.utils.id("DOT"), 10, registeredClusterRewardAddress1, clientKey5);
 
+    await registerCluster(
+      10,
+      clusterRegistryInstance,
+      registeredCluster,
+      registeredClusterRewardAddress,
+      ethers.utils.id("DOT"),
+      clientKey1
+    );
+    await registerCluster(
+      10,
+      clusterRegistryInstance,
+      registeredCluster2,
+      registeredClusterRewardAddress2,
+      ethers.utils.id("DOT"),
+      clientKey2
+    );
+    await registerCluster(
+      10,
+      clusterRegistryInstance,
+      registeredCluster3,
+      registeredClusterRewardAddress3,
+      ethers.utils.id("DOT"),
+      clientKey3
+    );
+    await registerCluster(
+      10,
+      clusterRegistryInstance,
+      registeredCluster1,
+      registeredClusterRewardAddress1,
+      ethers.utils.id("DOT"),
+      clientKey4
+    );
+
     const delegator1BeforeBalance = await pondInstance.balanceOf(await delegator1.getAddress());
 
     // delegate to the cluster
-    await delegateToken(delegator1, [await registeredCluster4.getAddress()], [10], testTokenInstance);
-    await delegateToken(delegator2, [await registeredCluster4.getAddress()], [20], testTokenInstance);
+    await delegateToken(delegator1, [await registeredCluster4.getAddress()], [BigNumber.from(10).pow(18)], testTokenInstance);
+    await delegateToken(delegator2, [await registeredCluster4.getAddress()], [BigNumber.from(10).pow(18).mul(2)], testTokenInstance);
+
+    await delegateToken(delegator1, [await registeredCluster3.getAddress()], [BigNumber.from(10).pow(18)], testTokenInstance);
+    await delegateToken(delegator2, [await registeredCluster3.getAddress()], [BigNumber.from(10).pow(18).mul(2)], testTokenInstance);
+
+    await delegateToken(delegator1, [await registeredCluster2.getAddress()], [BigNumber.from(10).pow(18)], testTokenInstance);
+    await delegateToken(delegator2, [await registeredCluster2.getAddress()], [BigNumber.from(10).pow(18).mul(2)], testTokenInstance);
+
+    await delegateToken(delegator1, [await registeredCluster1.getAddress()], [BigNumber.from(10).pow(18)], testTokenInstance);
+    await delegateToken(delegator2, [await registeredCluster1.getAddress()], [BigNumber.from(10).pow(18).mul(2)], testTokenInstance);
+
+    await delegateToken(delegator1, [await registeredCluster.getAddress()], [BigNumber.from(10).pow(18)], testTokenInstance);
+    await delegateToken(delegator2, [await registeredCluster.getAddress()], [BigNumber.from(10).pow(18).mul(2)], testTokenInstance);
     await skipBlocks(10);
 
     // cluster reward
+
+    let pondToUse = BigNumber.from(10).pow(18).mul(1000000).toString(); // 1 million pond
+
+    await pondInstance.transfer(receiverStakerAddress, pondToUse);
+    await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
+    await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
+
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster4)).toString();
+
+    await clusterRewardsInstance
+      .connect(receiverStaker)
+      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster4.getAddress()], [BigNumber.from(10).pow(18)]);
+
+    await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
+    await ethers.provider.send("evm_mine", []);
+
     const cluster4Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster4.getAddress());
     expect(cluster4Reward).to.equal(10000);
 
@@ -942,5 +1112,45 @@ describe.only("RewardDelegators Deployment", function () {
       }
       await stakeManagerInstance.connect(delegator).createStashAndDelegate(tokens, amounts, clusters[i]);
     }
+  }
+
+  async function mineTillGivenClusterIsSelected(
+    receiverStaking: Contract,
+    epochSelecotor: Contract,
+    registeredCluster: Signer
+  ): Promise<number | string> {
+    let currentEpoch = (await epochSelecotor.getCurrentEpoch()).toString();
+    let elementsInTree = await epochSelecotor.totalElements();
+    console.log({ elementsInTree });
+
+    for (;;) {
+      let clusters = (await epochSelecotor.getClusters(currentEpoch)) as string[];
+      console.log({ clusters, currentEpoch });
+      clusters = clusters.map((a) => a.toLowerCase());
+
+      let registeredClusterAddress = (await registeredCluster.getAddress()).toLowerCase();
+
+      if (clusters.includes(registeredClusterAddress)) {
+        console.log({ clusters, registeredClusterAddress });
+        return currentEpoch;
+      } else {
+        await ethers.provider.send("evm_increaseTime", [4 * 60 * 61]);
+        await ethers.provider.send("evm_mine", []);
+
+        await epochSelecotor.connect(registeredCluster).selectClusters();
+        currentEpoch = BigNumber.from(currentEpoch.toString()).add(1).toString();
+      }
+    }
+  }
+
+  async function registerCluster(
+    commission: number,
+    clusterRegistryInstance: Contract,
+    registeredCluster: Signer,
+    registeredClusterRewardAddress: string,
+    networkId: string,
+    clientKey1: string
+  ) {
+    await clusterRegistryInstance.connect(registeredCluster).register(networkId, commission, registeredClusterRewardAddress, clientKey1);
   }
 });

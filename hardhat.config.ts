@@ -40,6 +40,11 @@ function getHardhatPrivateKeys() {
 
 export default {
   networks: {
+    hardhat : {
+      accounts: {
+        count: 100
+      }
+    },
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: [process.env.ETH_DEPLOYER_KEY],
