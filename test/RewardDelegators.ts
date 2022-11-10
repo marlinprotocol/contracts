@@ -351,7 +351,7 @@ describe("RewardDelegators", function () {
   });
 });
 
-describe("RewardDelegators Deployment", function () {
+describe.only("RewardDelegators Deployment", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: Contract;
@@ -372,7 +372,7 @@ describe("RewardDelegators Deployment", function () {
   let registeredCluster3: Signer;
   let registeredCluster4: Signer;
   let rewardDelegatorsOwner: Signer;
-  let feeder: Signer;
+
   let registeredClusterRewardAddress: string;
   let clientKey1: string;
   let delegator: Signer;
@@ -404,7 +404,6 @@ describe("RewardDelegators Deployment", function () {
     registeredCluster4 = signers[9];
     clientKey4 = addrs[12];
     delegator4 = signers[12];
-    feeder = signers[13];
     rewardDelegatorsOwner = signers[0];
     clientKey5 = addrs[15];
     registeredClusterRewardAddress = addrs[16];
@@ -569,7 +568,6 @@ describe("RewardDelegators Deployment", function () {
     ).to.equal(2000000);
 
     await skipBlocks(10); // skip blocks to ensure feedData has enough time diff between them.
-    await feedData([await registeredCluster.getAddress()], 1);
 
     const clusterUpdatedReward = await clusterRewardsInstance.clusterRewards(await registeredCluster.getAddress());
     expect(Number(clusterUpdatedReward)).equal(3333);
@@ -642,7 +640,6 @@ describe("RewardDelegators Deployment", function () {
     // wait for 1 day
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
-    await feedData([await registeredCluster1.getAddress(), await registeredCluster2.getAddress()], 2);
     const cluster1Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster1.getAddress());
     const cluster2Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster2.getAddress());
     expect(cluster1Reward).to.equal(Math.round((((10 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
@@ -677,7 +674,6 @@ describe("RewardDelegators Deployment", function () {
     // wait 1 day
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
-    await feedData([await registeredCluster3.getAddress()], 3);
     const clusterReward = await clusterRewardsInstance.clusterRewards(await registeredCluster3.getAddress());
     const clusterCommission = Math.ceil((Number(clusterReward) / 100) * commission);
 
@@ -758,14 +754,24 @@ describe("RewardDelegators Deployment", function () {
       appConfig.staking.undelegationWaitTime,
       addrs[0]
     );
+
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600],
+      kind: "uups",
+      initializer: false,
+    });
+
+    await receiverStaking.initialize(pondInstance.address, addrs[0]);
+
     await clusterRewardsInstance.initialize(
-      await feeder.getAddress(),
+      addrs[0],
       rewardDelegatorsInstance.address,
+      receiverStaking.address,
+      epochSelectorInstance.address,
       [ethers.utils.id("testing")],
       [100],
-      appConfig.staking.rewardPerEpoch,
-      appConfig.staking.payoutDenomination,
-      10
+      appConfig.staking.rewardPerEpoch
     );
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
@@ -784,7 +790,6 @@ describe("RewardDelegators Deployment", function () {
     await delegateToken(delegator1, [await registeredCluster4.getAddress()], [10], testTokenInstance);
     await delegateToken(delegator2, [await registeredCluster4.getAddress()], [20], testTokenInstance);
     await skipBlocks(10);
-    await feedTokenData([await registeredCluster4.getAddress()], testTokenInstance, 1);
 
     // cluster reward
     const cluster4Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster4.getAddress());
@@ -910,26 +915,6 @@ describe("RewardDelegators Deployment", function () {
     }
   }
 
-  async function feedData(clusters: string[], epoch: any) {
-    const stakes = [];
-    let totalStake = BN.from(0);
-    let pondPerMpond = BN.from(1000000);
-    let payoutDenomination = BN.from(appConfig.staking.payoutDenomination);
-    for (let i = 0; i < clusters.length; i++) {
-      const mpondClusterStake = await rewardDelegatorsInstance.getClusterDelegation(clusters[i], mpondTokenId);
-      const pondClusterStake = await rewardDelegatorsInstance.getClusterDelegation(clusters[i], pondTokenId);
-      const clusterStake = mpondClusterStake.mul(pondPerMpond).add(pondClusterStake);
-      stakes.push(clusterStake);
-      totalStake = totalStake.add(clusterStake);
-    }
-    const payouts = [];
-    for (let i = 0; i < clusters.length; i++) {
-      const stake = stakes[i];
-      payouts.push(stake.mul(payoutDenomination).div(totalStake).toString());
-    }
-    await clusterRewardsInstance.connect(feeder).feed(ethers.utils.id("DOT"), clusters, payouts, epoch);
-  }
-
   async function skipBlocks(blocks: Number) {
     for (let i = 0; i < blocks; i++) {
       await pondInstance.transfer(addrs[0], 0);
@@ -957,26 +942,5 @@ describe("RewardDelegators Deployment", function () {
       }
       await stakeManagerInstance.connect(delegator).createStashAndDelegate(tokens, amounts, clusters[i]);
     }
-  }
-
-  async function feedTokenData(clusters: string[], tokenInstance: Contract, epoch: Number) {
-    const stakes = [];
-    let totalStake = BN.from(0);
-    let pondPerToken = BN.from(1000000);
-    let payoutDenomination = BN.from(appConfig.staking.payoutDenomination);
-
-    let testTokenId = await ethers.utils.keccak256(tokenInstance.address);
-    for (let i = 0; i < clusters.length; i++) {
-      const tokenClusterStake = await rewardDelegatorsInstance.getClusterDelegation(clusters[i], testTokenId);
-      const clusterStake = tokenClusterStake.mul(pondPerToken);
-      stakes.push(clusterStake);
-      totalStake = totalStake.add(clusterStake);
-    }
-    const payouts = [];
-    for (let i = 0; i < clusters.length; i++) {
-      const stake = stakes[i];
-      payouts.push(stake.mul(payoutDenomination).div(totalStake).toString());
-    }
-    await clusterRewardsInstance.connect(feeder).feed(ethers.utils.id("testing"), clusters, payouts, epoch);
   }
 });

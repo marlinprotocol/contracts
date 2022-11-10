@@ -29,9 +29,9 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfAddressesWithLargeBalances = 1;
-  let numberOfElementsInTree = 25 - numberOfAddressesWithLargeBalances;
-  let numberOfSelections: number = 5;
+  let numberOfAddressesWithLargeBalances = 5;
+  let numberOfElementsInTree = 100 - numberOfAddressesWithLargeBalances;
+  let numberOfSelections: number = 100;
 
   if (process.env.TEST_ENV == "prod") {
     numberOfAddressesWithLargeBalances = 10;
@@ -112,11 +112,9 @@ describe("Testing Epoch Selector", function () {
       let root = await epochSelector.root();
       let data = await epochSelector.callStatic.nodeData(root);
       const totalValueInTree = new BN(data.sumOfRightBalances).plus(data.balance).plus(data.sumOfLeftBalances).toFixed(0);
-      
-      
+
       let totalElementsInTree = (await epochSelector.callStatic.totalElements()).toNumber();
       let counter: Counter[] = [];
-
 
       for (let index = 0; index < numberOfSelections; index++) {
         let selected = await getSelectedClusters(updater, epochSelector);
@@ -144,7 +142,6 @@ describe("Testing Epoch Selector", function () {
             });
           }
         });
-
 
         if (index % 10 == 0 || index == numberOfSelections - 1) {
           console.log(`Searches Complete ${index}/${numberOfSelections}`);

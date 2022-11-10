@@ -197,10 +197,9 @@ describe("ClusterRewards", function () {
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    
+
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-
 
     const Pond = await ethers.getContractFactory("Pond");
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
@@ -273,7 +272,6 @@ describe("ClusterRewards", function () {
   });
 });
 
-
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
@@ -285,10 +283,9 @@ describe("ClusterRewards", function () {
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    
+
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-
 
     const Pond = await ethers.getContractFactory("Pond");
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
@@ -360,10 +357,9 @@ describe("ClusterRewards", function () {
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    
+
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-
 
     const Pond = await ethers.getContractFactory("Pond");
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
@@ -388,7 +384,6 @@ describe("ClusterRewards", function () {
       [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
       { kind: "uups" }
     );
-
   });
 
   it("admin can add network", async function () {
@@ -438,10 +433,9 @@ describe("ClusterRewards", function () {
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    
+
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
-
 
     const Pond = await ethers.getContractFactory("Pond");
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
