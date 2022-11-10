@@ -90,8 +90,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
         if (nodes.length == 0) {
             // select and save from the tree
-            uint32 blockHash = uint32(uint256(blockhash(block.number - 1)));
-            // console2.log("blockhash of", block.number - 1, blockHash);
+            uint256 blockHash = uint256(blockhash(block.number - 1));
             clustersSelected[nextEpoch] = selectTopNClusters(blockHash, numberOfClustersToSelect);
             nodes = clustersSelected[nextEpoch];
             for (uint256 index = 0; index < nodes.length; index++) {
@@ -170,7 +169,6 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         uint32 indexKey = addressToIndexMap[key];
 
         Node memory node = nodes[indexKey];
-        
         if (node.node == indexKey && indexKey != 0) {
             // delete node
             root = _deleteNode(root, indexKey, node.balance);

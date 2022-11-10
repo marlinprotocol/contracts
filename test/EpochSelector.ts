@@ -29,9 +29,10 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfAddressesWithLargeBalances = 4;
+  let numberOfAddressesWithLargeBalances = 10;
   let numberOfElementsInTree = 1000 - numberOfAddressesWithLargeBalances;
-  let numberOfSelections: number = 100;
+  
+  let numberOfSelections: number = 1000; // number of trials
 
   if (process.env.TEST_ENV == "prod") {
     numberOfAddressesWithLargeBalances = 10;
@@ -112,11 +113,9 @@ describe("Testing Epoch Selector", function () {
       let root = await epochSelector.root();
       let data = await epochSelector.callStatic.nodeData(root);
       const totalValueInTree = new BN(data.sumOfRightBalances).plus(data.balance).plus(data.sumOfLeftBalances).toFixed(0);
-      
-      
+
       let totalElementsInTree = (await epochSelector.callStatic.totalElements()).toNumber();
       let counter: Counter[] = [];
-
 
       for (let index = 0; index < numberOfSelections; index++) {
         let selected = await getSelectedClusters(updater, epochSelector);
@@ -145,8 +144,7 @@ describe("Testing Epoch Selector", function () {
           }
         });
 
-
-        if (index % 10 == 0 || index == numberOfSelections - 1) {
+        if (index % 100 == 0 || index == numberOfSelections - 1) {
           console.log(`Searches Complete ${index}/${numberOfSelections}`);
         }
       }
@@ -166,11 +164,26 @@ describe("Testing Epoch Selector", function () {
   });
 });
 
+function containsDuplicates(array: string[]) {
+  if (array.length !== new Set(array).size) {
+    return true;
+  }
+
+  return false;
+}
+
 async function getSelectedClusters(account: SignerWithAddress, epochSelector: Contract): Promise<Balances[]> {
   await epochSelector.connect(account).selectClusters();
   const clustersSelected = await epochSelector.connect(account).callStatic.selectClusters();
 
   const balances: Balances[] = [];
+
+  let selectedOnes = (clustersSelected as string[]).map((a) => a.toLowerCase());
+
+  if (containsDuplicates(selectedOnes)) {
+    console.log({ selectedOnes });
+    throw new Error("Cluster is selected multiple times in same epoch");
+  }
 
   for (let index = 0; index < clustersSelected.length; index++) {
     const element = clustersSelected[index];

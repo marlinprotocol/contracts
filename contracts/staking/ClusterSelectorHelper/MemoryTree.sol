@@ -143,17 +143,13 @@ library MemoryTree {
         }
     }
 
-    function create(
-        MemoryNode[] memory tree,
-        uint256 size
-    ) internal pure {
+    function create(MemoryNode[] memory tree, uint256 size) internal pure {
         assembly {
             let pos := mload(0x40)
             mstore(0x40, add(pos, add(mul(size, 32), 32)))
             mstore(tree, size)
         }
     }
-
 
     // function insert(
     //     MemoryNode[] memory tree,
