@@ -31,8 +31,9 @@ contract ClusterSelector is SingleSelector {
         }
 
         Node memory _root = nodes[root];
+        selectedPathTree[1] = MemoryNode(_root.node, 0, 0, 0, 0, 0);
 
-        uint256 indexOfLastElementInMemoryTree = 0;
+        uint256 indexOfLastElementInMemoryTree = 1;
         // added in next line to save gas and avoid overflow checks
         uint256 totalWeightInTree = _root.balance;
         unchecked {
@@ -51,7 +52,7 @@ contract ClusterSelector is SingleSelector {
                 root,
                 searchNumber,
                 selectedPathTree,
-                0,
+                1,
                 indexOfLastElementInMemoryTree
             );
 

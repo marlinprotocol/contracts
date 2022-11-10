@@ -8,6 +8,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// const RAND = Math.random()*10000000000;
+const RAND = 5429026790.322638;
+console.log("using random number", RAND);
+
 type Balances = {
   user: string;
   balance: string;
@@ -28,7 +32,7 @@ describe("Testing Epoch Selector", function () {
 
   let numberOfClustersToSelect: number = 5;
   let numberOfAddressesWithLargeBalances = 10;
-  let numberOfElementsInTree = 1000 - numberOfAddressesWithLargeBalances;
+  let numberOfElementsInTree = 540 - numberOfAddressesWithLargeBalances;
 
   let numberOfSelections: number = 1000; // number of trials
 
@@ -64,7 +68,7 @@ describe("Testing Epoch Selector", function () {
   });
 
   it("User can't insert", async () => {
-    const address = randomAddressGenerator("1");
+    const address = randomAddressGenerator(RAND + "1");
     let role = await epochSelector.UPDATER_ROLE();
     await expect(epochSelector.connect(user).insert(address, 1)).to.be.revertedWith(
       `AccessControl: account ${user.address.toLowerCase()} is missing role ${role}`
@@ -78,7 +82,7 @@ describe("Testing Epoch Selector", function () {
     });
 
     it("Add a number", async () => {
-      const address = randomAddressGenerator("salt");
+      const address = randomAddressGenerator(RAND + "salt");
       await epochSelector.connect(updater).insert(address, 1);
       expect(await epochSelector.search(address)).eq(true);
     });
@@ -87,9 +91,9 @@ describe("Testing Epoch Selector", function () {
       const addresses = [];
       const balances = [];
       for (let index = 0; index < 200; index++) {
-        const address = randomAddressGenerator("salt" + index);
+        const address = randomAddressGenerator(RAND + "salt" + index);
         addresses.push(address);
-        balances.push(getRandomNumber());
+        balances.push(getRandomNumber(index + ""));
       }
 
       await epochSelector.connect(updater).insertMultiple(addresses, balances);
@@ -97,8 +101,8 @@ describe("Testing Epoch Selector", function () {
 
     it("Multiple entries", async () => {
       for (let index = 0; index < numberOfElementsInTree; index++) {
-        const address = randomAddressGenerator("salt" + index);
-        await epochSelector.connect(updater).insert(address, getRandomNumber());
+        const address = randomAddressGenerator(RAND + "salt" + index);
+        await epochSelector.connect(updater).insert(address, getRandomNumber(index + "multi"));
 
         if (index % 100 == 0 || index == numberOfElementsInTree - 1) {
           console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
@@ -198,7 +202,7 @@ async function getSelectedClusters(account: SignerWithAddress, epochSelector: Co
 }
 
 function randomAddressGenerator(rand: string): string {
-  let address = keccak256(Buffer.from(rand + new Date().valueOf().toString()))
+  let address = keccak256(Buffer.from(rand))
     .toString()
     .slice(0, 42);
   return address;
@@ -223,14 +227,14 @@ function balToSelectionProbability(
   return new BN(1).minus(peNotSelected).toPrecision(8);
 }
 
-function getRandomNumber(): number {
-  return Math.floor(Math.random() * 10000) + 1;
+function getRandomNumber(seed: string, range: number = 10000): number {
+  return parseInt(ethers.BigNumber.from(ethers.utils.keccak256(Buffer.from(RAND + seed))).mod(range).toString()) + 1;
 }
 
 async function addAddressWithLargeBalance(numberOfAddressesWithLargeBalances: number, epochSelector: Contract, updater: SignerWithAddress) {
   for (let index = 0; index < numberOfAddressesWithLargeBalances; index++) {
-    const rndInt = Math.floor(Math.random() * 20) + 1;
-    let largeBalAddress = randomAddressGenerator("some string" + index);
+    const rndInt = getRandomNumber(index+"rand", 20);
+    let largeBalAddress = randomAddressGenerator(RAND + "some string" + index);
 
     let root = await epochSelector.root();
     let data = await epochSelector.callStatic.nodeData(root);
