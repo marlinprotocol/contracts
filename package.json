@@ -10,7 +10,7 @@
     "test": "npx hardhat test",
     "solhint": "solhint -f table contracts/**/*.sol",
     "compile": "npx hardhat compile",
-    "clean": "npx hardhat clean",
+    "clean": "rm ./.openzeppelin/unknown-31337.json && npx hardhat clean",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
     "prettify:test": "npx prettier --write test/*.js"
   },

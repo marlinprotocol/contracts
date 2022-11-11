@@ -1,23 +1,22 @@
-import { ethers, upgrades } from 'hardhat';
-import { expect } from 'chai';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { ethers, upgrades } from "hardhat";
+import { expect } from "chai";
+import { BigNumber as BN, Signer, Contract } from "ethers";
 
-
-declare module 'ethers' {
+declare module "ethers" {
   interface BigNumber {
     e18(this: BigNumber): BigNumber;
   }
 }
 BN.prototype.e18 = function () {
-  return this.mul(BN.from(10).pow(18))
-}
+  return this.mul(BN.from(10).pow(18));
+};
 
 async function skipBlocks(n: number) {
-  await Promise.all([...Array(n)].map(async x => await ethers.provider.send('evm_mine', [])));
+  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
 }
 
 async function skipTime(t: number) {
-  await ethers.provider.send('evm_increaseTime', [t]);
+  await ethers.provider.send("evm_increaseTime", [t]);
   await skipBlocks(1);
 }
 
@@ -27,101 +26,101 @@ const UNREGISTER_LOCK = "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a
 const SELECTORS = [COMMISSION_LOCK, SWITCH_NETWORK_LOCK, UNREGISTER_LOCK];
 const WAIT_TIMES = [20, 30, 40];
 
-describe('ClusterRegistry', function () {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
   });
 
-  it('deploys with initialization disabled', async function () {
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+  it("deploys with initialization disabled", async function () {
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await ClusterRegistry.deploy();
 
     await expect(clusterRegistry.initialize(WAIT_TIMES)).to.be.reverted;
   });
 
-  it('deploys as proxy and initializes', async function () {
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+  it("deploys as proxy and initializes", async function () {
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
 
-    await Promise.all(SELECTORS.map(async (s, idx) => {
-      expect(await clusterRegistry.lockWaitTime(s)).to.equal(WAIT_TIMES[idx]);
-    }));
+    await Promise.all(
+      SELECTORS.map(async (s, idx) => {
+        expect(await clusterRegistry.lockWaitTime(s)).to.equal(WAIT_TIMES[idx]);
+      })
+    );
     expect(await clusterRegistry.hasRole(await clusterRegistry.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
   });
 
-  it('upgrades', async function () {
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+  it("upgrades", async function () {
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
     await upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry, { kind: "uups" });
 
-    await Promise.all(SELECTORS.map(async (s, idx) => {
-      expect(await clusterRegistry.lockWaitTime(s)).to.equal(WAIT_TIMES[idx]);
-    }));
+    await Promise.all(
+      SELECTORS.map(async (s, idx) => {
+        expect(await clusterRegistry.lockWaitTime(s)).to.equal(WAIT_TIMES[idx]);
+      })
+    );
     expect(await clusterRegistry.hasRole(await clusterRegistry.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
   });
 
-  it('does not upgrade without admin', async function () {
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+  it("does not upgrade without admin", async function () {
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
     await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.reverted;
   });
 });
 
-describe('ClusterRegistry', function () {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
   });
 
-  it('supports ERC167', async function () {
-    const iid = ethers.utils.id('supportsInterface(bytes4)').substr(0, 10);
+  it("supports ERC167", async function () {
+    const iid = ethers.utils.id("supportsInterface(bytes4)").substr(0, 10);
     expect(await clusterRegistry.supportsInterface(iid)).to.be.true;
   });
 
-  it('does not support 0xffffffff', async function () {
-    expect(await clusterRegistry.supportsInterface('0xffffffff')).to.be.false;
+  it("does not support 0xffffffff", async function () {
+    expect(await clusterRegistry.supportsInterface("0xffffffff")).to.be.false;
   });
 
   function makeInterfaceId(interfaces: string[]): string {
     return ethers.utils.hexlify(
-      interfaces.map(i => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10)))
-                .reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
+      interfaces.map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10))).reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
     );
   }
 
-  it('supports IAccessControl', async function () {
+  it("supports IAccessControl", async function () {
     let interfaces = [
-      'hasRole(bytes32,address)',
-      'getRoleAdmin(bytes32)',
-      'grantRole(bytes32,address)',
-      'revokeRole(bytes32,address)',
-      'renounceRole(bytes32,address)',
+      "hasRole(bytes32,address)",
+      "getRoleAdmin(bytes32)",
+      "grantRole(bytes32,address)",
+      "revokeRole(bytes32,address)",
+      "renounceRole(bytes32,address)",
     ];
     const iid = makeInterfaceId(interfaces);
     expect(await clusterRegistry.supportsInterface(iid)).to.be.true;
   });
 
-  it('supports IAccessControlEnumerable', async function () {
-    let interfaces = [
-      'getRoleMember(bytes32,uint256)',
-      'getRoleMemberCount(bytes32)',
-    ];
+  it("supports IAccessControlEnumerable", async function () {
+    let interfaces = ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"];
     const iid = makeInterfaceId(interfaces);
     expect(await clusterRegistry.supportsInterface(iid)).to.be.true;
   });
 });
 
-describe('ClusterRegistry', function () {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
@@ -129,22 +128,22 @@ describe('ClusterRegistry', function () {
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
     DEFAULT_ADMIN_ROLE = await clusterRegistry.DEFAULT_ADMIN_ROLE();
   });
 
-  it('admin can grant admin role', async function () {
+  it("admin can grant admin role", async function () {
     await clusterRegistry.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
   });
 
-  it('non admin cannot grant admin role', async function () {
+  it("non admin cannot grant admin role", async function () {
     await expect(clusterRegistry.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
   });
 
-  it('admin can revoke admin role', async function () {
+  it("admin can revoke admin role", async function () {
     await clusterRegistry.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
@@ -152,14 +151,14 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
   });
 
-  it('non admin cannot revoke admin role', async function () {
+  it("non admin cannot revoke admin role", async function () {
     await clusterRegistry.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
     await expect(clusterRegistry.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
   });
 
-  it('admin can renounce own admin role if there are other admins', async function () {
+  it("admin can renounce own admin role if there are other admins", async function () {
     await clusterRegistry.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
@@ -167,11 +166,11 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
   });
 
-  it('admin cannot renounce own admin role if there are no other admins', async function () {
+  it("admin cannot renounce own admin role if there are no other admins", async function () {
     await expect(clusterRegistry.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
   });
 
-  it('admin cannot renounce admin role of other admins', async function () {
+  it("admin cannot renounce admin role of other admins", async function () {
     await clusterRegistry.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
     expect(await clusterRegistry.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
@@ -179,7 +178,7 @@ describe('ClusterRegistry', function () {
   });
 });
 
-describe('ClusterRegistry', function () {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
@@ -187,8 +186,8 @@ describe('ClusterRegistry', function () {
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
   });
 
@@ -251,7 +250,7 @@ describe('ClusterRegistry', function () {
   });
 });
 
-describe('ClusterRegistry', function () {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
@@ -259,8 +258,8 @@ describe('ClusterRegistry', function () {
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
     await clusterRegistry.register(DOTHASH, 7, addrs[1], addrs[2]);
   });
@@ -355,4 +354,3 @@ describe('ClusterRegistry', function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
   });
 });
-

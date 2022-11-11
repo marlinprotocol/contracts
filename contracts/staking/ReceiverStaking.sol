@@ -21,9 +21,15 @@ contract ReceiverStaking is
 
     IERC20Upgradeable public stakingToken;
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 immutable START_TIME;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 immutable EPOCH_LENGTH;
     
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
     constructor(uint256 _startTime, uint256 _epochLength) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
