@@ -14,3 +14,4 @@ coverage.json
 .gitsigners
 gasReport.md
 bin
+*-31337.json

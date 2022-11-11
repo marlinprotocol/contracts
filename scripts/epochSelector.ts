@@ -29,11 +29,11 @@ async function deploy() {
   );
 
   console.log("waiting for the transaction to deploy");
-  await epochSelector.deployTransaction.wait(6);
-  console.log("epoch selectors tx deploy complete");
+  await epochSelector.deployTransaction.wait(5);
+  console.log("EpochSelector Contract deploy complete");
 
+  
   let role = await epochSelector.UPDATER_ROLE();
-
   let tx = await epochSelector.grantRole(role, addrs[0].address);
   await tx.wait();
   console.log("update role complete");
@@ -53,7 +53,7 @@ async function deploy() {
   return epochSelector.address;
 }
 
-// deploy().then(pump).then(console.log);
+deploy().then(pump).then(console.log);
 
 async function pump(contractAddress = epochSelectorAddress) {
   const EpochSelector = await ethers.getContractFactory("EpochSelector");
@@ -63,7 +63,7 @@ async function pump(contractAddress = epochSelectorAddress) {
   const addresses = [];
   const balances = [];
 
-  const times = 100;
+  const times = 2;
 
   for (let j_index = 0; j_index < times; j_index++) {
     for (let index = 0; index < addressesPerBatch; index++) {
@@ -77,10 +77,16 @@ async function pump(contractAddress = epochSelectorAddress) {
 
     console.log(`Complete ${j_index}/${times}`);
   }
+
+  console.log("Selecting clusters");
+  const tx = await epochSelector.selectClusters();
+  await tx.wait();
+  console.log("Selecting clusters complete");
+
   return "Done";
 }
 
-pump().then(console.log);
+// pump().then(console.log);
 
 function randomAddressGenerator(rand: string): string {
   let address = keccak256(Buffer.from(rand)).toString().slice(0, 42);
@@ -88,5 +94,5 @@ function randomAddressGenerator(rand: string): string {
 }
 
 function getRandomNumber(): number {
-  return Math.floor(Math.random() * 10000000000000) + 1;
+  return Math.floor(Math.random() * 1000) + 1;
 }

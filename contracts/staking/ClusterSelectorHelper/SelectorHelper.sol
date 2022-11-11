@@ -9,14 +9,20 @@ import "../interfaces/IClusterSelector.sol";
 // import "forge-std/console2.sol";
 
 abstract contract SelectorHelper is IClusterSelector {
+    uint32 public idCounters;
+    uint32[] public emptyIds;
+
+    mapping(address => uint32) public addressToIndexMap;
+    mapping(uint32 => address) public indexToAddressMap;
+
     /// @notice List of all nodes
-    mapping(address => Node) nodes;
+    mapping(uint32 => Node) nodes;
 
     /// @notice Total number of all nodes in the tree
     uint256 public totalElements;
 
     /// @notice Address of the current root
-    address public root;
+    uint32 public root;
 
     /// @notice Height of the tree at a given moment
     /// @return Height of the tree
@@ -27,8 +33,8 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @notice Height of any node at a given moment
     /// @param node Address of the node whose height needs to be searched
     /// @return Height of the node
-    function height(address node) public view returns (uint256) {
-        if (node == address(0)) return 0;
+    function height(uint32 node) public view returns (uint32) {
+        if (node == 0) return 0;
         return nodes[node].height;
     }
 
@@ -36,8 +42,8 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @param node Address of the new node
     /// @param balance Balance of the new node
     /// @return newNode Empty node with address and balance
-    function _newNode(address node, uint96 balance) internal pure returns (Node memory newNode) {
-        newNode = Node(node, balance, address(0), 0, address(0), 0, 1);
+    function _newNode(uint32 node, uint32 balance) internal pure returns (Node memory newNode) {
+        newNode = Node(node, balance, 0, 0, 1, 0, 0);
     }
 
     /// @notice Right rotate a given node
@@ -56,8 +62,8 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @notice -------------------------- x     z --------------------------
     /// @notice ------------------------- / \   / \ -------------------------
     /// @notice ------------------------ T1 T2 T3 T4 ------------------------
-    function _rightRotate(address addressOfZ) internal returns (address) {
-        if (addressOfZ == address(0)) {
+    function _rightRotate(uint32 addressOfZ) internal returns (uint32) {
+        if (addressOfZ == 0) {
             revert(ClusterLib.CANNOT_RR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
@@ -65,7 +71,7 @@ abstract contract SelectorHelper is IClusterSelector {
         Node storage y = nodes[z.left];
 
         // do not rotate if left is 0
-        if (y.node == address(0)) {
+        if (y.node == 0) {
             // console2.log("RR: not because y is 0 ");
             return z.node;
         }
@@ -78,8 +84,8 @@ abstract contract SelectorHelper is IClusterSelector {
         y.sumOfRightBalances = _getTotalBalancesIncludingWeight(z);
         y.right = z.node;
 
-        z.height = calculateUpdatedHeight(z);
-        y.height = calculateUpdatedHeight(y);
+        z.height = uint8(calculateUpdatedHeight(z));
+        y.height = uint8(calculateUpdatedHeight(y));
         return y.node;
     }
 
@@ -99,8 +105,8 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @notice -------------------------- z     x --------------------------
     /// @notice ------------------------- / \   / \ -------------------------
     /// @notice ------------------------ T1 T2 T3 T4 ------------------------
-    function _leftRotate(address addressOfZ) internal returns (address) {
-        if (addressOfZ == address(0)) {
+    function _leftRotate(uint32 addressOfZ) internal returns (uint32) {
+        if (addressOfZ == 0) {
             revert(ClusterLib.CANNOT_LR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
@@ -108,7 +114,7 @@ abstract contract SelectorHelper is IClusterSelector {
         Node storage y = nodes[z.right];
 
         // do not rotate if right is 0
-        if (y.node == address(0)) {
+        if (y.node == 0) {
             // console2.log("LR: not because y is 0 ");
             return z.node;
         }
@@ -121,38 +127,50 @@ abstract contract SelectorHelper is IClusterSelector {
         y.sumOfLeftBalances = _getTotalBalancesIncludingWeight(z);
         y.left = z.node;
 
-        z.height = calculateUpdatedHeight(z);
-        y.height = calculateUpdatedHeight(y);
+        z.height = uint8(calculateUpdatedHeight(z));
+        y.height = uint8(calculateUpdatedHeight(y));
         return y.node;
     }
 
     /// @notice Returns the (node balance) i.e difference in heights of left and right nodes
     /// @param node Address of the node to get height difference of
     /// @return Height Difference of the node
-    function getHeightDifference(address node) public view returns (int256) {
-        if (node == address(0)) return 0;
+    function getHeightDifference(uint32 node) public view returns (int32) {
+        if (node == 0) return 0;
 
         Node memory existingNode = nodes[node];
 
-        return int256(height(existingNode.left)) - int256(height(existingNode.right));
+        return int32(height(existingNode.left)) - int32(height(existingNode.right));
     }
 
     /// @notice Returns the data of the node
     /// @param _node Address of the node
     /// @return node Data of the node
-    function nodeData(address _node) public view returns (Node memory node) {
+    function nodeData(uint32 _node) public view returns (Node memory node) {
         node = nodes[_node];
     }
 
     /// @notice Get total weight of the node
     /// @param node Node to calculate total weight for
     /// @return Total weight of the node
-    function _getTotalBalancesIncludingWeight(Node memory node) internal pure returns (uint96) {
+    function _getTotalBalancesIncludingWeight(Node memory node) internal pure returns (uint32) {
         return node.balance + node.sumOfLeftBalances + node.sumOfRightBalances;
     }
 
     function calculateUpdatedHeight(Node memory node) internal view returns (uint256) {
         return Math.max(height(node.right), height(node.left)) + 1;
+    }
+
+    // optimise this whole function
+    function getNewId() internal returns (uint32) {
+        if (emptyIds.length > 0) {
+            uint32 id = emptyIds[emptyIds.length - 1];
+            emptyIds.pop();
+            return id;
+        } else {
+            uint32 id = ++idCounters;
+            return id;
+        }
     }
 
     // function _printNode(address _node) internal view {

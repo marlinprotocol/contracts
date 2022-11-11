@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IEpochSelector.sol";
-import "./ClusterSelector_wih_abi_encode.sol";
+// import "./ClusterSelector_wih_abi_encode.sol";
+import "./ClusterSelector_wih_memory_node.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
@@ -90,7 +91,6 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         if (nodes.length == 0) {
             // select and save from the tree
             uint256 blockHash = uint256(blockhash(block.number - 1));
-            // console2.log("blockhash of", block.number - 1, blockHash);
             clustersSelected[nextEpoch] = selectTopNClusters(blockHash, numberOfClustersToSelect);
             nodes = clustersSelected[nextEpoch];
             for (uint256 index = 0; index < nodes.length; index++) {
@@ -129,20 +129,25 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint96 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(newNode != address(0), "address(0) not permitted into entry");
-        Node memory node = nodes[newNode];
-        if (node.node == address(0)) {
-            root = _insert(root, newNode, balance);
+    function insert(address newNode, uint32 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
+        require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        uint32 nodeIndex = addressToIndexMap[newNode];
+        Node memory node = nodes[nodeIndex];
+
+        if (node.node == 0) {
+            uint32 newIndex = getNewId();
+            root = _insert(root, newIndex, balance);
             totalElements++;
+            indexToAddressMap[newIndex] = newNode;
+            addressToIndexMap[newNode] = newIndex;
         } else {
             // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
-            _update(root, newNode, int96(balance) - int96(node.balance));
+            _update(root, nodeIndex, int32(balance) - int32(node.balance));
         }
     }
 
     /// @inheritdoc IClusterSelector
-    function insertMultiple(address[] calldata newNodes, uint96[] calldata balances)
+    function insertMultiple(address[] calldata newNodes, uint32[] calldata balances)
         public
         override(IClusterSelector, SingleSelector)
         onlyRole(UPDATER_ROLE)
@@ -161,22 +166,32 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @inheritdoc IEpochSelector
     function deleteNodeIfPresent(address key) public override onlyRole(UPDATER_ROLE) returns (bool) {
         require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        Node memory node = nodes[key];
-        if (node.node == key) {
+        uint32 indexKey = addressToIndexMap[key];
+
+        Node memory node = nodes[indexKey];
+        if (node.node == indexKey && indexKey != 0) {
             // delete node
-            (root) = _deleteNode(root, key, node.balance);
+            root = _deleteNode(root, indexKey, node.balance);
             totalElements--;
+            delete indexToAddressMap[indexKey];
+            delete addressToIndexMap[key];
+            emptyIds.push(indexKey);
             return true;
         }
         return false;
     }
 
     /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint96 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(existingNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
-        assert(nodes[existingNode].node == existingNode);
-        int96 differenceInKeyBalance = int96(newBalance) - int96(nodes[existingNode].balance);
-        _update(root, existingNode, differenceInKeyBalance);
+    function update(address existingNode, uint32 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
+        uint32 indexKey = addressToIndexMap[existingNode];
+
+        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        if (nodes[indexKey].node == 0) {
+            assert(false);
+        } else {
+            int32 differenceInKeyBalance = int32(newBalance) - int32(nodes[indexKey].balance);
+            _update(root, indexKey, differenceInKeyBalance);
+        }
     }
 
     /// @inheritdoc IEpochSelector

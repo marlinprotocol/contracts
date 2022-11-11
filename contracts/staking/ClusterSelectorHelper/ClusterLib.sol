@@ -32,6 +32,36 @@ library ClusterLib {
         return false;
     }
 
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(uint32[] memory array, uint32 element) internal pure returns (bool) {
+        if (element == 0) {
+            return false;
+        }
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(uint256[] memory array, uint256 element) internal pure returns (bool) {
+        if (element == 0) {
+            return false;
+        }
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// @notice Returns indexes when only balances and left and right weights are provided
     /// @param sumOfLeftBalances Sum of balances of nodes on the left
     /// @param balance Balance of the node
@@ -40,16 +70,16 @@ library ClusterLib {
     /// @return Second index of the search
     /// @return Third index of the search
     function _getIndexesWithWeights(
-        uint256 sumOfLeftBalances,
-        uint256 balance,
-        uint256 sumOfRightBalances
+        uint32 sumOfLeftBalances,
+        uint32 balance,
+        uint32 sumOfRightBalances
     )
         internal
         pure
         returns (
-            uint256,
-            uint256,
-            uint256
+            uint32,
+            uint32,
+            uint32
         )
     {
         return (sumOfLeftBalances, sumOfLeftBalances + balance, sumOfLeftBalances + balance + sumOfRightBalances);
