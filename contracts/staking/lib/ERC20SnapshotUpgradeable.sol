@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ArraysUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
+// NOTE: This is a slightly modified version of ERC20SnapshotUpgradeable OZ contract(changes are mentioned at relevant lines)
+
 /**
  * @dev This contract extends an ERC20 token with a snapshot mechanism. When a snapshot is created, the balances and
  * total supply at the time are recorded for later access.
@@ -111,6 +113,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
     /**
      * @dev Returns the balance snapshots of an account
      */
+    //  NOTE: Exposes a getter for balance snapshots of an account which is not present in standard OZ contract
     function _getAccountBalanceSnapshot(address account) internal view virtual returns(Snapshots storage) {
         return _accountBalanceSnapshots[account];
     }

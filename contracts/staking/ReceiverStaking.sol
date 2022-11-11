@@ -84,7 +84,7 @@ contract ReceiverStaking is
     function _afterTokenTransfer(
         address from, 
         address to, 
-        uint256 amount
+        uint256
     ) internal virtual override {
         if(to == address(0)) {
             // burn

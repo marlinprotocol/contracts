@@ -256,7 +256,8 @@ contract RewardDelegators is
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations != 0){
-            epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)));
+            // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
+            epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
         }
         // if not, update it to zero
         else{
