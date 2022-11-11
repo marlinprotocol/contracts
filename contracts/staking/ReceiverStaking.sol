@@ -40,8 +40,9 @@ contract ReceiverStaking is
         _;
     }
 
-    function initialize(address _stakingToken) initializer public {
+    function initialize(address _stakingToken, address _admin) initializer public {
         stakingToken = IERC20Upgradeable(_stakingToken);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
     event StakingTokenUpdated(address indexed newStakingToken);

@@ -52,7 +52,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.initialize(pond.address, addrs[0]);
   });
 
-  it.only("deploys with initialization disabled", async function () {
+  it("deploys with initialization disabled", async function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewards = await ClusterRewards.deploy();
 
