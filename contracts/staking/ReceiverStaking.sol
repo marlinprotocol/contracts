@@ -6,7 +6,7 @@ import "./interfaces/IReceiverStaking.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20SnapshotUpgradeable.sol";
+import "./lib/ERC20SnapshotUpgradeable.sol";
 
 contract ReceiverStaking is 
     IReceiverStaking,
@@ -91,7 +91,7 @@ contract ReceiverStaking is
             uint256 _updatedBalance = balanceOf(from);
             if(balanceOfAt(from, _getCurrentSnapshotId()) > _updatedBalance) {
                 // current balance is lowest in epoch
-                _updateSnapshot(_accountBalanceSnapshots[from], _updatedBalance);
+                _updateSnapshot(_getAccountBalanceSnapshot(from), _updatedBalance);
             }
         }
     }
