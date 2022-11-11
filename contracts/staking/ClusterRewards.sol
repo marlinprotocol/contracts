@@ -204,11 +204,11 @@ contract ClusterRewards is
         address[] memory _selectedClusters = epochSelector.getClusters(_epoch);
 
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
-        uint256 _totalRewardsPerEpoch = totalRewardsPerEpoch * rewardWeight[_networkId] / totalWeight;
+        uint256 _totalNetworkRewardsPerEpoch = totalRewardsPerEpoch * rewardWeight[_networkId] / totalWeight;
 
         for(uint256 i=0; i < _clusters.length; i++) {
             require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
-            clusterRewards[_clusters[i]] = _totalRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+            clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
 
             _epochTicketsIssued += _tickets[i];
         }
