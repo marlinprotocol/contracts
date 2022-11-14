@@ -19,14 +19,6 @@ contract ReceiverStaking is
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
-    IERC20Upgradeable public stakingToken;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 immutable START_TIME;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 immutable EPOCH_LENGTH;
-    
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
@@ -34,6 +26,16 @@ contract ReceiverStaking is
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
     }
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 immutable START_TIME;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 immutable EPOCH_LENGTH;
+
+    IERC20Upgradeable public stakingToken;
+
+    event StakingTokenUpdated(address indexed newStakingToken);
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
@@ -44,8 +46,6 @@ contract ReceiverStaking is
         stakingToken = IERC20Upgradeable(_stakingToken);
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
-
-    event StakingTokenUpdated(address indexed newStakingToken);
 
     function updateStakingToken(address _newStakingToken) external onlyAdmin {
         _updateStakingToken(_newStakingToken);
@@ -98,7 +98,8 @@ contract ReceiverStaking is
             uint256 _updatedBalance = balanceOf(from);
             if(balanceOfAt(from, _getCurrentSnapshotId()) > _updatedBalance) {
                 // current balance is lowest in epoch
-                _updateSnapshot(_getAccountBalanceSnapshot(from), _updatedBalance);
+                Snapshots storage userSnapshots = _getAccountBalanceSnapshot(from);
+                userSnapshots.values[_userSnapshots.values.length - 1] = _updatedBalance;
             }
         }
     }

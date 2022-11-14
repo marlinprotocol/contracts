@@ -113,7 +113,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
     /**
      * @dev Returns the balance snapshots of an account
      */
-    //  NOTE: Exposes a getter for balance snapshots of an account which is not present in standard OZ contract
+    //  NOTE: Exposes balance snapshots of an account which is not present in standard OZ contract
     function _getAccountBalanceSnapshot(address account) internal view virtual returns(Snapshots storage) {
         return _accountBalanceSnapshots[account];
     }
@@ -195,8 +195,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         _updateSnapshot(_totalSupplySnapshots, totalSupply());
     }
 
-    // NOTE: This function is made internal compared to private in standard OZ library
-    function _updateSnapshot(Snapshots storage snapshots, uint256 currentValue) internal {
+    function _updateSnapshot(Snapshots storage snapshots, uint256 currentValue) private {
         uint256 currentId = _getCurrentSnapshotId();
         if (_lastSnapshotId(snapshots.ids) < currentId) {
             snapshots.ids.push(currentId);
