@@ -8,7 +8,7 @@ contract SingleSelector is SelectorHelper {
 
     /// @inheritdoc IClusterSelector
     function insert(address newNode, uint32 balance) public virtual override {
-        require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(newNode != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
         uint32 nodeIndex = addressToIndexMap[newNode];
         Node memory node = nodes[nodeIndex];
 
@@ -34,14 +34,14 @@ contract SingleSelector is SelectorHelper {
 
     /// @inheritdoc IClusterSelector
     function deleteNode(address key) public virtual override {
-        require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(key != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
 
         uint32 indexKey = addressToIndexMap[key];
 
-        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(indexKey != 0, Errors.CANNOT_BE_ADDRESS_ZERO);
 
         Node memory node = nodes[indexKey];
-        require(node.node == indexKey, ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
+        require(node.node == indexKey, Errors.NODE_NOT_PRESENT_IN_THE_TREE);
         root = _deleteNode(root, indexKey, node.balance);
         totalElements--;
         delete indexToAddressMap[indexKey];
@@ -53,7 +53,7 @@ contract SingleSelector is SelectorHelper {
     function update(address existingNode, uint32 newBalance) public virtual override {
         uint32 indexKey = addressToIndexMap[existingNode];
 
-        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(indexKey != 0, Errors.CANNOT_BE_ADDRESS_ZERO);
         if (nodes[indexKey].node == 0) {
             assert(false);
         } else {
@@ -82,11 +82,9 @@ contract SingleSelector is SelectorHelper {
     function _weightedSearch(uint32 _node, uint256 searchNumber) public view returns (uint32) {
         // |-----------sumOfLeftWeight -------|----balance-----|------sumOfRightWeights------|
         Node memory node = nodes[_node];
-        (uint256 index1, uint256 index2, uint256 index3) = ClusterLib._getIndexesWithWeights(
-            node.sumOfLeftBalances,
-            node.balance,
-            node.sumOfRightBalances
-        );
+        uint256 index1 = node.sumOfLeftBalances;
+        uint256 index2 = index1 + node.balance;
+        uint256 index3 = index2 + node.sumOfRightBalances;
 
         if (searchNumber <= index1) {
             return _weightedSearch(node.left, searchNumber);
@@ -98,7 +96,7 @@ contract SingleSelector is SelectorHelper {
             // _printNode(_node);
             // console2.log("indexes", index1, index2, index3);
             // console2.log("search number", searchNumber);
-            revert(ClusterLib.ERROR_OCCURED_DURING_WEIGHTED_SEARCH);
+            revert(Errors.ERROR_OCCURED_DURING_WEIGHTED_SEARCH);
         }
     }
 

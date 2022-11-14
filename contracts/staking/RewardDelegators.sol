@@ -121,6 +121,16 @@ contract RewardDelegators is
         mapping(bytes32 => uint256) accRewardPerShare;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable POND_TOKEN_ID;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable MPOND_TOKEN_ID;
+
+    uint256 private constant POND_PER_MPOND = 1_000_000;
+
+    uint256 public constant delimiter = 10**12;
+
     mapping(address => Cluster) clusters;
 
     address public stakeAddress;
@@ -130,6 +140,9 @@ contract RewardDelegators is
     IClusterRewards public clusterRewards;
     IClusterRegistry public clusterRegistry;
     IERC20Upgradeable public PONDToken;
+
+    IEpochSelector public epochSelector;
+    uint256 public thresholdForSelection;
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -428,8 +441,7 @@ contract RewardDelegators is
             }
         }
     }
-    
-    IEpochSelector public epochSelector;
+
     event EpochSelectorUpdated(IEpochSelector indexed newEpochSelector);
     
     function updateEpochSelector(IEpochSelector _epochSelector) onlyAdmin external{
@@ -454,19 +466,7 @@ contract RewardDelegators is
         }
     }
 
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable POND_TOKEN_ID;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable MPOND_TOKEN_ID;
-
-    uint256 private constant POND_PER_MPOND = 1_000_000;
-
-    uint256 public thresholdForSelection; // 0.5 MPOND
     event UpdateThresholdForSelection(uint256 newThreshold);
-
-    uint256 public constant delimiter = 10**12;
-
     function updateThresholdForSelection(uint256 newThreshold) onlyAdmin external {
         _updateThresholdForSelection(newThreshold);
     }

@@ -3,10 +3,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "./ClusterLib.sol";
+import "./Errors.sol";
 import "../interfaces/IClusterSelector.sol";
-
-// import "forge-std/console2.sol";
 
 abstract contract SelectorHelper is IClusterSelector {
     uint32 public idCounters;
@@ -64,7 +62,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @notice ------------------------ T1 T2 T3 T4 ------------------------
     function _rightRotate(uint32 addressOfZ) internal returns (uint32) {
         if (addressOfZ == 0) {
-            revert(ClusterLib.CANNOT_RR_ADDRESS_ZERO);
+            revert(Errors.CANNOT_RR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
 
@@ -107,7 +105,7 @@ abstract contract SelectorHelper is IClusterSelector {
     /// @notice ------------------------ T1 T2 T3 T4 ------------------------
     function _leftRotate(uint32 addressOfZ) internal returns (uint32) {
         if (addressOfZ == 0) {
-            revert(ClusterLib.CANNOT_LR_ADDRESS_ZERO);
+            revert(Errors.CANNOT_LR_ADDRESS_ZERO);
         }
         Node storage z = nodes[addressOfZ];
 

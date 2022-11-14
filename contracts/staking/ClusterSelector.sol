@@ -20,7 +20,7 @@ contract ClusterSelector is SingleSelector {
     /// @param N number of clusters to select
     /// @return selectedNodes List of addresses selected
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory selectedNodes) {
-        require(N <= totalElements, ClusterLib.INSUFFICIENT_ELEMENTS_IN_TREE);
+        require(N <= totalElements, Errors.INSUFFICIENT_ELEMENTS_IN_TREE);
         MemoryNode[] memory selectedPathTree;
         // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
         // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node

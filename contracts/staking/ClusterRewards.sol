@@ -108,12 +108,20 @@ contract ClusterRewards is
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
     uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
 
-    IReceiverStaking public receiverStaking;
-    IEpochSelector public epochSelector;
+    mapping(address => uint256) public clusterRewards;
 
     mapping(bytes32 => uint256) public rewardWeight;
     uint256 public totalWeight;
     uint256 public totalRewardsPerEpoch;
+    uint256 public __unused_1;
+
+    mapping(uint256 => uint256) public __unused_2;
+    uint256 public __unused_3;
+    uint256 public __unused_4;
+
+    mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
+    IReceiverStaking public receiverStaking;
+    IEpochSelector public epochSelector;
 
     modifier onlyClaimer() {
         require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
@@ -187,10 +195,6 @@ contract ClusterRewards is
 //-------------------------------- Admin functions end --------------------------------//
 
 //-------------------------------- User functions start --------------------------------//
-
-    mapping(address => uint256) public clusterRewards;
-    mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
-
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
     function issueTickets(bytes32 _networkId, uint256 _epoch, address[] memory _clusters, uint256[] memory _tickets) external {

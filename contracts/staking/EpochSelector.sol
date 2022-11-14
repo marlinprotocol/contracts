@@ -127,7 +127,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
     /// @inheritdoc IClusterSelector
     function insert(address newNode, uint32 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(newNode != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(newNode != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
         uint32 nodeIndex = addressToIndexMap[newNode];
         Node memory node = nodes[nodeIndex];
 
@@ -157,12 +157,12 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
     /// @inheritdoc IClusterSelector
     function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(deleteNodeIfPresent(key), ClusterLib.NODE_NOT_PRESENT_IN_THE_TREE);
+        require(deleteNodeIfPresent(key), Errors.NODE_NOT_PRESENT_IN_THE_TREE);
     }
 
     /// @inheritdoc IEpochSelector
     function deleteNodeIfPresent(address key) public override onlyRole(UPDATER_ROLE) returns (bool) {
-        require(key != address(0), ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(key != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
         uint32 indexKey = addressToIndexMap[key];
 
         Node memory node = nodes[indexKey];
@@ -182,7 +182,7 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     function update(address existingNode, uint32 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
         uint32 indexKey = addressToIndexMap[existingNode];
 
-        require(indexKey != 0, ClusterLib.CANNOT_BE_ADDRESS_ZERO);
+        require(indexKey != 0, Errors.CANNOT_BE_ADDRESS_ZERO);
         if (nodes[indexKey].node == 0) {
             assert(false);
         } else {
