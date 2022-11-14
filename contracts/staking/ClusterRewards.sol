@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import "./interfaces/IEpochSelector.sol";
-import "./interfaces/IReceiverStaking.sol";
-import "./interfaces/IClusterRewards.sol";
-
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+import "./interfaces/IEpochSelector.sol";
+import "./interfaces/IReceiverStaking.sol";
+import "./interfaces/IClusterRewards.sol";
 
 
 contract ClusterRewards is
@@ -125,12 +125,18 @@ contract ClusterRewards is
     IReceiverStaking public receiverStaking;
     IEpochSelector public epochSelector;
 
+    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
+    event NetworkRemoved(bytes32 networkId);
+    event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
+    event ReceiverStakingUpdated(address receiverStaking);
+    event EpochSelectorUpdated(address epochSelector);
+    event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
+    event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
+
     modifier onlyClaimer() {
         require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
         _;
     }
-
-    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
@@ -140,8 +146,6 @@ contract ClusterRewards is
         emit NetworkAdded(_networkId, _rewardWeight);
     }
 
-    event NetworkRemoved(bytes32 networkId);
-
     function removeNetwork(bytes32 _networkId) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:RN-Network doesnt exist");
@@ -149,8 +153,6 @@ contract ClusterRewards is
         totalWeight -= networkWeight;
         emit NetworkRemoved(_networkId);
     }
-
-    event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
 
     function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
@@ -161,8 +163,6 @@ contract ClusterRewards is
         emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
     }
 
-    event ReceiverStakingUpdated(address _receiverStaking);
-
     function updateReceiverStaking(address _receiverStaking) external onlyAdmin {
         _updateReceiverStaking(_receiverStaking);
     }
@@ -172,8 +172,6 @@ contract ClusterRewards is
         emit ReceiverStakingUpdated(_receiverStaking);
     }
 
-    event EpochSelectorUpdated(address epochSelector);
-
     function updateEpochSelector(address _epochSelector) external onlyAdmin {
         _updateEpochSelector(_epochSelector);
     }
@@ -182,8 +180,6 @@ contract ClusterRewards is
         epochSelector = IEpochSelector(_epochSelector);
         emit EpochSelectorUpdated(_epochSelector);
     }
-
-    event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
 
     function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyAdmin {
         _changeRewardPerEpoch(_updatedRewardPerEpoch);
@@ -197,9 +193,17 @@ contract ClusterRewards is
 //-------------------------------- Admin functions end --------------------------------//
 
 //-------------------------------- User functions start --------------------------------//
-    event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
-    function issueTickets(bytes32 _networkId, uint256 _epoch, address[] memory _clusters, uint256[] memory _tickets) external {
+    function issueTickets(bytes32 _networkId, uint256[] memory _epoch, address[][] memory _clusters, uint256[][] memory _tickets) external {
+        uint256 numberOfEpochs = _epoch.length;
+        require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
+        require(numberOfEpochs == _clusters.length, "CRW:MIT-invalid inputs");
+        for(uint256 i=0; i < numberOfEpochs; i++) {
+            issueTickets(_networkId, _epoch[i], _clusters[i], _tickets[i]);
+        }
+    }
+
+    function issueTickets(bytes32 _networkId, uint256 _epoch, address[] memory _clusters, uint256[] memory _tickets) public {
         require(_clusters.length == _tickets.length, "CRW:IT-invalid inputs");
 
         (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
@@ -210,7 +214,7 @@ contract ClusterRewards is
         address[] memory _selectedClusters = epochSelector.getClusters(_epoch);
 
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
-        uint256 _totalNetworkRewardsPerEpoch = totalRewardsPerEpoch * rewardWeight[_networkId] / totalWeight;
+        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
 
         for(uint256 i=0; i < _clusters.length; i++) {
             require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
@@ -235,7 +239,7 @@ contract ClusterRewards is
         return 0;
     }
 
-    function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256) {
+    function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
         return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
     }
 
