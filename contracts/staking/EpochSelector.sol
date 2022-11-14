@@ -6,8 +6,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IEpochSelector.sol";
-// import "./ClusterSelector_wih_abi_encode.sol";
-import "./ClusterSelector_wih_memory_node.sol";
+import "./ClusterSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
@@ -83,24 +82,22 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     }
 
     /// @notice Returns the list of selected clusters for the next
-    /// @return List of the clusters selected
-    function selectClusters() public override returns (address[] memory) {
+    /// @return selectedClusters List of the clusters selected
+    function selectClusters() public override returns (address[] memory selectedClusters) {
         uint256 nextEpoch = getCurrentEpoch() + 1;
-        address[] memory nodes = clustersSelected[nextEpoch];
+        selectedClusters = clustersSelected[nextEpoch];
 
-        if (nodes.length == 0) {
+        if (selectedClusters.length == 0) {
             // select and save from the tree
-            uint256 blockHash = uint256(blockhash(block.number - 1));
-            clustersSelected[nextEpoch] = selectTopNClusters(blockHash, numberOfClustersToSelect);
-            nodes = clustersSelected[nextEpoch];
-            for (uint256 index = 0; index < nodes.length; index++) {
-                emit ClusterSelected(nextEpoch, nodes[index]);
+            uint256 randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
+            selectedClusters = selectTopNClusters(randomizer, numberOfClustersToSelect);
+            clustersSelected[nextEpoch] = selectedClusters;
+            for (uint256 index = 0; index < selectedClusters.length; index++) {
+                emit ClusterSelected(nextEpoch, selectedClusters[index]);
             }
 
             _dispenseReward(msg.sender);
         }
-
-        return nodes;
     }
 
     /// @notice Updates the missing cluster in case epoch was not selected by anyone

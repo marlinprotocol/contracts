@@ -129,6 +129,8 @@ contract ClusterSelector is SingleSelector {
                         indexOfRootOfMemoryTree,
                         indexOfLastElementInMemoryTree
                     );
+            } else {
+                revert("search number is more than weight");
             }
         }
     }
