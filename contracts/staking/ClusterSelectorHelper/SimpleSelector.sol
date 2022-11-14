@@ -19,7 +19,6 @@ contract SingleSelector is SelectorHelper {
             indexToAddressMap[newIndex] = newNode;
             addressToIndexMap[newNode] = newIndex;
         } else {
-            // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
             _update(root, nodeIndex, int32(balance) - int32(node.balance));
         }
     }
@@ -69,8 +68,6 @@ contract SingleSelector is SelectorHelper {
         Node memory _root = nodes[root];
         uint256 totalWeightInTree = _getTotalBalancesIncludingWeight(_root);
         uint256 searchNumber = randomizer % totalWeightInTree;
-        // console2.log("totalWeightInTree", totalWeightInTree);
-        // console2.log("searchNumber", searchNumber);
         uint32 index = _weightedSearch(root, searchNumber);
         return indexToAddressMap[index];
     }
@@ -93,9 +90,6 @@ contract SingleSelector is SelectorHelper {
         } else if (searchNumber > index2 && searchNumber <= index3) {
             return _weightedSearch(node.right, searchNumber - index2);
         } else {
-            // _printNode(_node);
-            // console2.log("indexes", index1, index2, index3);
-            // console2.log("search number", searchNumber);
             revert(Errors.ERROR_OCCURED_DURING_WEIGHTED_SEARCH);
         }
     }
@@ -130,9 +124,6 @@ contract SingleSelector is SelectorHelper {
         uint32 key,
         uint32 keyBalance
     ) internal returns (uint32) {
-        // console2.log("inserting node", node);
-        // console2.log("key", key);
-        // console2.log("keyBalance", keyBalance);
         if (node == 0) {
             nodes[key] = _newNode(key, keyBalance);
             return nodes[key].node;
@@ -155,26 +146,22 @@ contract SingleSelector is SelectorHelper {
 
         // Left Left Case
         if (heightDifference > 1 && key < currentNode.left) {
-            // console2.log("_insert LL Case", keyBalance);
             return _rightRotate(node);
         }
 
         // Right Right Case
         if (heightDifference < -1 && key > currentNode.right) {
-            // console2.log("_insert RR Case", keyBalance);
             return _leftRotate(node);
         }
 
         // Left Right Case
         if (heightDifference > 1 && key > currentNode.left) {
-            // console2.log("_insert LR Case", keyBalance);
             currentNode.left = _leftRotate(currentNode.left);
             return _rightRotate(node);
         }
 
         // Right Left Case
         if (heightDifference < -1 && key < currentNode.right) {
-            // console2.log("_insert RL Case", keyBalance);
             currentNode.right = _rightRotate(currentNode.right);
             return _leftRotate(node);
         }
@@ -203,40 +190,28 @@ contract SingleSelector is SelectorHelper {
         uint32 key,
         uint32 existingBalanceOfKey
     ) internal returns (uint32) {
-        // console2.log("At node", _root);
-        // console2.log("Element to delete", key);
-        // console2.log("Balance of key to delete", existingBalanceOfKey);
         if (_root == 0) {
             return (_root);
         }
 
         Node storage node = nodes[_root];
         if (key < _root) {
-            // console2.log("Moving to left");
             node.sumOfLeftBalances -= existingBalanceOfKey;
             (node.left) = _deleteNode(node.left, key, existingBalanceOfKey);
-            // console2.log("After Moving to left");
         } else if (key > _root) {
-            // console2.log("Moving to right");
-            // console2.log("node.sumOfRightBalances", node.sumOfRightBalances);
             node.sumOfRightBalances -= existingBalanceOfKey;
             (node.right) = _deleteNode(node.right, key, existingBalanceOfKey);
-            // console2.log("After Moving to right");
         } else {
-            // console2.log("Wow! found node to delete");
             // if node.left and node.right are full, select the next smallest element to node.right, replace it with element to be removed
             // if node.right is full and node.left is null, select the next smallest element to node.right, replace it with element to be removed
             // if node.left is full and node.right is null, select node.left, replace it with node.left
             // if node.left and node.right are null, simply delete the element
 
             if (node.left != 0 && node.right != 0) {
-                // console2.log("case 1");
                 return _replaceWithLeastMinimumNode(_root);
             } else if (node.left == 0 && node.right != 0) {
-                // console2.log("case 2");
                 return _deleteNodeAndReturnRight(_root);
             } else if (node.left != 0 && node.right == 0) {
-                // console2.log("case 3");
                 return _deleteNodeAndReturnLeft(_root);
             }
             // last case == (node.left == address(0) && node.right == address(0))
@@ -313,9 +288,6 @@ contract SingleSelector is SelectorHelper {
 
             return C_ND.right;
         } else {
-            // nodes[_node].balance = 0;
-            // return _node
-
             Node memory leastMinNode = _findLeastMinNode(C_ND.right);
 
             C_ND.right = _deleteNode(C_ND.right, leastMinNode.node, leastMinNode.balance);

@@ -108,7 +108,7 @@ contract RewardDelegators is
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
 
-        _updateThresholdForSelection(500_000); //0.5 million pond
+        _updateThresholdForSelection(500_000); //0.5 MPond
     }
 
 //-------------------------------- Initializer end --------------------------------//

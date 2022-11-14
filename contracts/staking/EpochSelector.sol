@@ -32,15 +32,6 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @notice length of epoch
     uint256 public constant EPOCH_LENGTH = 4 hours;
 
-    /// @notice timestamp when the selector starts
-    uint256 public immutable START_TIME;
-
-    /// @notice Number of clusters selected in every epoch
-    uint256 public numberOfClustersToSelect;
-
-    /// @notice clusters selected during each epoch
-    mapping(uint256 => address[]) private clustersSelected;
-
     /// @notice ID for update role
     bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
 
@@ -49,6 +40,15 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
 
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
+
+    /// @notice timestamp when the selector starts
+    uint256 public immutable START_TIME;
+
+    /// @notice Number of clusters selected in every epoch
+    uint256 public numberOfClustersToSelect;
+
+    /// @notice clusters selected during each epoch
+    mapping(uint256 => address[]) private clustersSelected;
 
     /// @notice Reward that the msg.sender recevies when cluster are selected for the epoch;
     uint256 public rewardForSelectingClusters;

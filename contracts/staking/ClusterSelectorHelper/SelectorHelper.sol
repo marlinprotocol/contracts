@@ -70,7 +70,6 @@ abstract contract SelectorHelper is IClusterSelector {
 
         // do not rotate if left is 0
         if (y.node == 0) {
-            // console2.log("RR: not because y is 0 ");
             return z.node;
         }
         Node memory T3 = nodes[y.right];
@@ -113,7 +112,6 @@ abstract contract SelectorHelper is IClusterSelector {
 
         // do not rotate if right is 0
         if (y.node == 0) {
-            // console2.log("LR: not because y is 0 ");
             return z.node;
         }
         Node memory T2 = nodes[y.left];
@@ -159,7 +157,7 @@ abstract contract SelectorHelper is IClusterSelector {
         return Math.max(height(node.right), height(node.left)) + 1;
     }
 
-    // optimise this whole function
+    // TODO: optimise this whole function
     function getNewId() internal returns (uint32) {
         if (emptyIds.length > 0) {
             uint32 id = emptyIds[emptyIds.length - 1];
@@ -170,47 +168,4 @@ abstract contract SelectorHelper is IClusterSelector {
             return id;
         }
     }
-
-    // function _printNode(address _node) internal view {
-    //     Node memory node = nodes[_node];
-    //     console2.log("************************************");
-    //     console2.log("cluster", node.node);
-    //     console2.log("balance", node.balance);
-    //     console2.log("left", node.left);
-    //     console2.log("right", node.right);
-    //     console2.log("sumOfLeftBalances", node.sumOfLeftBalances);
-    //     console2.log("sumOfRightBalances", node.sumOfRightBalances);
-    //     console2.log(" height", node.height);
-    //     console2.log("************************************");
-    // }
-
-    // function _printArray(string memory data, bytes memory arrayBytes) internal view {
-    //     console2.log(data);
-    //     address[] memory array = abi.decode(arrayBytes, (address[]));
-    //     console2.log("[");
-    //     for (uint256 index = 0; index < array.length; index++) {
-    //         console2.log(index, array[index]);
-    //     }
-    //     console2.log("]");
-    // }
-
-    // function _printArray(string memory data, address[] memory array) internal view {
-    //     console2.log(data);
-    //     console2.log("[");
-    //     for (uint256 index = 0; index < array.length; index++) {
-    //         console2.log(index, array[index]);
-    //     }
-    //     console2.log("]");
-    // }
-
-    // function _printPaths(string memory data, bytes[] memory bytesdata) internal view {
-    //     console2.log(data);
-
-    //     console2.log("[");
-    //     for (uint256 index = 0; index < bytesdata.length; index++) {
-    //         address[] memory _paths = abi.decode(bytesdata[index], (address[]));
-    //         _printArray("subarray ", _paths);
-    //     }
-    //     console2.log("]");
-    // }
 }
