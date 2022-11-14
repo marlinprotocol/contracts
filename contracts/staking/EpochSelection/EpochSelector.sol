@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IEpochSelector.sol";
+import "../interfaces/IEpochSelector.sol";
 import "./ClusterSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch

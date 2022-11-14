@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./interfaces/IClusterRewards.sol";
 import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
-import "./EpochSelector.sol";
+import "./EpochSelection/EpochSelector.sol";
 
 
 contract RewardDelegators is
