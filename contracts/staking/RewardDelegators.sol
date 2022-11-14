@@ -110,7 +110,7 @@ contract RewardDelegators is
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
 
-        _updateThresholdForSelection(500_000); //0.5 MPond
+        _updateThresholdForSelection(500_000 ether); //0.5 MPond
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -504,8 +504,9 @@ contract RewardDelegators is
     }
 
     function _getTotalDelegations(address cluster) internal view returns(uint256 totalDelegations){
+        // TODO generalize total delegation calculation using token weights
         uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
-        if(numberOfMPond >= thresholdForSelection){
+        if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection){
             totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
         }
         // else totalDelegations should be considered 0
