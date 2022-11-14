@@ -131,8 +131,6 @@ contract RewardDelegators is
 
     uint256 private constant POND_PER_MPOND = 1_000_000;
 
-    uint256 public constant delimiter = 10**12;
-
     mapping(address => Cluster) clusters;
 
     address public stakeAddress;
