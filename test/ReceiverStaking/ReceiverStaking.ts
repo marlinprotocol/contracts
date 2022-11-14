@@ -122,6 +122,22 @@ describe("Receiver Staking at start", async () => {
         await expect(receiverStaking.connect(user).deposit(amount)).to.be.reverted;
     });
 
+    it("deposit with enough allowance check before snapshot", async () => {
+        const user = signers[5];
+        const userAddress = await user.getAddress();
+        const amount = parseInt(Math.random() * 10 + "") + "000000000000000000";
+        await stakingToken.transfer(userAddress, amount);
+        await stakingToken.connect(user).approve(receiverStaking.address, amount);
+        await receiverStaking.connect(user).deposit(amount);
+
+        const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+
+        const balance = await receiverStaking.balanceOf(userAddress);
+        expect(balance).to.equal(amount, "incorrect balance after deposit");
+        const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch.toString());
+        expect(epochBalance).to.equal(0, `incorrect epoch balance after deposit expected: 0, got: ${epochBalance}`);
+    });
+
     it("deposit with enough allowance", async () => {
         const user = signers[5];
         const userAddress = await user.getAddress();
@@ -137,6 +153,25 @@ describe("Receiver Staking at start", async () => {
         expect(balance).to.equal(amount, "incorrect balance after deposit");
         const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch.toString());
         expect(epochBalance).to.equal(amount, `incorrect epoch balance after deposit expected: ${amount}, got: ${epochBalance}`);
+    });
+
+    it("deposit and withdraw check before transfer", async () => {
+        const user = signers[7];
+        const userAddress = await user.getAddress();
+        const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
+        await stakingToken.transfer(userAddress, amount);
+        await stakingToken.connect(user).approve(receiverStaking.address, amount);
+        await receiverStaking.connect(user).deposit(amount);
+
+        const withdrawalAmount = amount.div(3);
+        await receiverStaking.connect(user).withdraw(withdrawalAmount);
+
+        const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+
+        const balance = await receiverStaking.balanceOf(userAddress);
+        expect(balance).to.equal(amount.sub(withdrawalAmount), "incorrect balance after deposit");
+        const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch.toString());
+        expect(epochBalance).to.equal(0, "incorrect epoch balance after deposit");
     });
 
     it("deposit and withdraw", async () => {
