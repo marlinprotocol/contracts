@@ -28,7 +28,12 @@ interface IClusterRegistry {
     function getNetwork(address _cluster) external returns(bytes32);
     function getRewardAddress(address _cluster) external view returns(address);
     function getClientKey(address _cluster) external view returns(address);
-    function getCluster(address _cluster) external;
+    function getCluster(address _cluster) external returns(
+        uint256 commission,
+        address rewardAddress,
+        address clientKey,
+        bytes32 networkId,
+        bool isValidCluster
+    );
     function getRewardInfo(address _cluster) external returns(uint256, address);
-    function addClientKeys(address[] calldata _clusters) external;
 }

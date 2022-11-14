@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./interfaces/IClusterRegistry.sol";
 
 contract ClusterRegistry is
     Initializable,  // initializer
@@ -16,7 +17,8 @@ contract ClusterRegistry is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade,
+    IClusterRegistry  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;

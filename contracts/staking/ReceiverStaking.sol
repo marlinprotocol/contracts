@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "./lib/ERC20SnapshotUpgradeable.sol";
 
 contract ReceiverStaking is 
-    IReceiverStaking,
+    IReceiverStaking,  // interface
     Initializable,
     ERC20SnapshotUpgradeable,
     AccessControlEnumerableUpgradeable,

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "./Errors.sol";
+import "../../Errors.sol";
 import "../interfaces/IClusterSelector.sol";
 
 abstract contract SelectorHelper is IClusterSelector {

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IEpochSelector.sol";
 import "./interfaces/IReceiverStaking.sol";
+import "./interfaces/IClusterRewards.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
@@ -20,7 +21,8 @@ contract ClusterRewards is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IClusterRewards  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
