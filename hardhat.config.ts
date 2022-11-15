@@ -42,7 +42,7 @@ export default {
   networks: {
     hardhat: {
       accounts: {
-        count: 100
+        count: 200
       }
     },
     eth: {
@@ -120,7 +120,7 @@ export default {
     timeout: 1000000000,
   },
   gasReporter: {
-    enabled: true,
+    enabled: false,
     // outputFile: 'gasReport.md',
     // noColors: true,
     gasPrice: 100,

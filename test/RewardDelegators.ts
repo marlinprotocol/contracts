@@ -726,7 +726,6 @@ describe("RewardDelegators Deployment", function () {
 
     let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
 
-    console.log(clusterRewardsInstance.connect(receiverStaker));
     await clusterRewardsInstance
       .connect(receiverStaker)
       ["issueTickets(bytes32,uint256,address[],uint256[])"](

@@ -108,8 +108,8 @@ contract StakeManager is
         uint256 iValue;
     }
 
-    mapping(bytes32 => Lock) public locks;
-    mapping(bytes32 => uint256) public lockWaitTime;
+    mapping(bytes32 => Lock) public override locks;
+    mapping(bytes32 => uint256) public override lockWaitTime;
 
     uint256[48] private __gap2;
 
