@@ -418,7 +418,7 @@ describe("StakeManager", function () {
     const Pond = await ethers.getContractFactory("Pond");
     let pondTestInstance = await upgrades.deployProxy(Pond, { kind: "uups", initializer: false });
     let pondTestTokenId = ethers.utils.keccak256(pondTestInstance.address);
-    await expect(stakeManager.addToken(pondTestTokenId, 0)).to.be.reverted;
+    await expect(stakeManager.addToken(pondTestTokenId, ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("non admin cannot add token", async () => {
@@ -477,7 +477,7 @@ describe("StakeManager", function () {
   });
 
   it("cannot update token address to zero", async () => {
-    await expect(stakeManager.updateToken(pondTokenId, 0)).to.be.reverted;
+    await expect(stakeManager.updateToken(pondTokenId, ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("non admin cannot update token", async () => {
@@ -660,7 +660,7 @@ describe("StakeManager", function () {
     await stakeManager.connect(signers[2]).createStash([pondTokenId, mpondTokenId], [100, 101]);
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
 
-    await expect(stakeManager.connect(signers[2]).delegateStash(stashId, 0)).to.be.reverted;
+    await expect(stakeManager.connect(signers[2]).delegateStash(stashId, ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("staker can delegate stash", async () => {
@@ -702,7 +702,7 @@ describe("StakeManager", function () {
     await clusterRegistryInstance.connect(signers[10]).register(ethers.utils.id("DOT"), 5, addrs[11], addrs[12]);
     await stakeManager.connect(signers[2]).createStashAndDelegate([pondTokenId, mpondTokenId], [100, 101], addrs[10]);
 
-    await expect(stakeManager.connect(signers[2]).requestStashRedelegation(stashId, 0)).to.be.reverted;
+    await expect(stakeManager.connect(signers[2]).requestStashRedelegation(stashId, ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("staker can request redelegate", async () => {

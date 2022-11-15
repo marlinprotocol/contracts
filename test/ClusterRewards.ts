@@ -57,7 +57,7 @@ describe("ClusterRewards", function () {
     let clusterRewards = await ClusterRewards.deploy();
 
     await expect(
-      clusterRewards.initialize([addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000])
+      clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000)
     ).to.be.reverted;
   });
 

@@ -185,7 +185,7 @@ describe("RewardDelegators", function () {
   });
 
   it("cannot update PondAddress to 0", async () => {
-    await expect(rewardDelegators.updatePONDAddress(0)).to.be.reverted;
+    await expect(rewardDelegators.updatePONDAddress(ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("owner can update PondAddress", async () => {
@@ -202,7 +202,7 @@ describe("RewardDelegators", function () {
   });
 
   it("cannot update ClusterRegistry to 0", async () => {
-    await expect(rewardDelegators.updateClusterRegistry(0)).to.be.reverted;
+    await expect(rewardDelegators.updateClusterRegistry(ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("owner can update ClusterRegistry", async () => {
@@ -219,7 +219,7 @@ describe("RewardDelegators", function () {
   });
 
   it("cannot update ClusterRewards to 0", async () => {
-    await expect(rewardDelegators.updateClusterRewards(0)).to.be.reverted;
+    await expect(rewardDelegators.updateClusterRewards(ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("owner can update ClusterRewards", async () => {
@@ -236,7 +236,7 @@ describe("RewardDelegators", function () {
   });
 
   it("cannot update StakeManager to 0", async () => {
-    await expect(rewardDelegators.updateStakeAddress(0)).to.be.reverted;
+    await expect(rewardDelegators.updateStakeAddress(ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("owner can update StakeManager", async () => {

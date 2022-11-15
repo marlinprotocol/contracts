@@ -63,7 +63,8 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         uint256[] values;
     }
 
-    mapping(address => Snapshots) private _accountBalanceSnapshots;
+    //  NOTE: Exposes balance snapshots of an account which is not present in standard OZ contract
+    mapping(address => Snapshots) _accountBalanceSnapshots;
     Snapshots private _totalSupplySnapshots;
 
     // Snapshot ids increase monotonically, with the first value being 1. An id of 0 is invalid.
@@ -108,14 +109,6 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
      */
     function _getCurrentSnapshotId() internal view virtual returns (uint256) {
         return _currentSnapshotId.current();
-    }
-
-    /**
-     * @dev Returns the balance snapshots of an account
-     */
-    //  NOTE: Exposes balance snapshots of an account which is not present in standard OZ contract
-    function _getAccountBalanceSnapshot(address account) internal view virtual returns(Snapshots storage) {
-        return _accountBalanceSnapshots[account];
     }
 
     /**
@@ -203,7 +196,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         }
     }
 
-    function _lastSnapshotId(uint256[] storage ids) internal view returns (uint256) {
+    function _lastSnapshotId(uint256[] storage ids) private view returns (uint256) {
         if (ids.length == 0) {
             return 0;
         } else {
