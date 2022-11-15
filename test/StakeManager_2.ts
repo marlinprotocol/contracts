@@ -110,7 +110,7 @@ describe("StakeManager 2", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
@@ -123,7 +123,7 @@ describe("StakeManager 2", function () {
       pond.address,
       BN.from(10).pow(20).toString()
     );
-    await receiverStaking.initialize(pond.address, await receiverStakingAdmin.getAddress());
+    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
 
     await clusterRewards.initialize(
       await clusterRewardsAdmin.getAddress(),
@@ -413,7 +413,7 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it.only("Only 1 receiver, tickets ratio 1:2:3:4:5", async () => {
+        it("Only 1 receiver, tickets ratio 1:2:3:4:5", async () => {
           const receiver = receivers[0];
           let fration = BN.from(10).pow(18).div(15);
           const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), fration.mul(5)];
@@ -425,17 +425,17 @@ describe("StakeManager 2", function () {
             weights
           );
 
-          console.log(pondRewards.map(a => a.toString()));
-          console.log(mpondRewards.map(a => a.toString()));
-          
+          console.log(pondRewards.map((a) => a.toString()));
+          console.log(mpondRewards.map((a) => a.toString()));
+
           const scaler = BN.from(10).pow(18);
-          for (let index = 0; index < pondRewards.length ; index++) {
+          for (let index = 0; index < pondRewards.length; index++) {
             const element = pondRewards[index];
             expect(element).gt(0);
             expect(element.mul(scaler).div(pondRewards[0])).to.be.eq(scaler.mul(index + 1));
           }
 
-          for (let index = 0; index < mpondRewards.length ; index++) {
+          for (let index = 0; index < mpondRewards.length; index++) {
             const element = mpondRewards[index];
             expect(element).gt(0);
             expect(element.mul(scaler).div(mpondRewards[0])).to.be.eq(scaler.mul(index + 1));

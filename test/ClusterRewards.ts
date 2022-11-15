@@ -44,21 +44,20 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
   });
 
   it("deploys with initialization disabled", async function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewards = await ClusterRewards.deploy();
 
-    await expect(
-      clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000)
-    ).to.be.reverted;
+    await expect(clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000))
+      .to.be.reverted;
   });
 
   it("deploys as proxy and initializes", async function () {
@@ -137,12 +136,12 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
@@ -211,12 +210,12 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
@@ -297,12 +296,12 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
@@ -371,12 +370,12 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
@@ -447,12 +446,12 @@ describe("ClusterRewards", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pond.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(

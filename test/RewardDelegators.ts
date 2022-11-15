@@ -510,12 +510,12 @@ describe("RewardDelegators Deployment", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pondInstance.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     await clusterRewardsInstance.initialize(
       addrs[0],
@@ -886,12 +886,12 @@ describe("RewardDelegators Deployment", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
       kind: "uups",
       initializer: false,
     });
 
-    await receiverStaking.initialize(pondInstance.address, addrs[0]);
+    await receiverStaking.initialize(addrs[0]);
 
     await clusterRewardsInstance.initialize(
       addrs[0],
