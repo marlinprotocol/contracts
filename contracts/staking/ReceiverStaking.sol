@@ -96,7 +96,7 @@ contract ReceiverStaking is
         if(to == address(0)) {
             // burn
             uint256 _updatedBalance = balanceOf(from);
-            Snapshots storage userSnapshots = _getAccountBalanceSnapshot(from);
+            Snapshots storage userSnapshots = _accountBalanceSnapshots[from];
             if(userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
                 // current balance is lowest in epoch
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
