@@ -641,7 +641,12 @@ describe("RewardDelegators Deployment", function () {
 
     await clusterRewardsInstance
       .connect(receiverStaker)
-      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster.getAddress()], [BigNumber.from(10).pow(18)]);
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+        ethers.utils.id("DOT"),
+        epoch,
+        [await registeredCluster.getAddress()],
+        [BigNumber.from(10).pow(18)]
+      );
 
     const clusterUpdatedReward = await clusterRewardsInstance.clusterRewards(await registeredCluster.getAddress());
     expect(Number(clusterUpdatedReward)).equal(3333);
@@ -721,13 +726,24 @@ describe("RewardDelegators Deployment", function () {
 
     let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
 
+    console.log(clusterRewardsInstance.connect(receiverStaker));
     await clusterRewardsInstance
       .connect(receiverStaker)
-      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster1.getAddress()], [BigNumber.from(10).pow(18).div(2)]);
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+        ethers.utils.id("DOT"),
+        epoch,
+        [await registeredCluster1.getAddress()],
+        [BigNumber.from(10).pow(18).div(2)]
+      );
 
     await clusterRewardsInstance
       .connect(receiverStaker)
-      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster2.getAddress()], [BigNumber.from(10).pow(18).div(2)]);
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+        ethers.utils.id("DOT"),
+        epoch,
+        [await registeredCluster2.getAddress()],
+        [BigNumber.from(10).pow(18).div(2)]
+      );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
@@ -779,7 +795,12 @@ describe("RewardDelegators Deployment", function () {
 
     await clusterRewardsInstance
       .connect(receiverStaker)
-      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster3.getAddress()], [BigNumber.from(10).pow(18)]);
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+        ethers.utils.id("DOT"),
+        epoch,
+        [await registeredCluster3.getAddress()],
+        [BigNumber.from(10).pow(18)]
+      );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
@@ -957,7 +978,12 @@ describe("RewardDelegators Deployment", function () {
 
     await clusterRewardsInstance
       .connect(receiverStaker)
-      .issueTickets(ethers.utils.id("DOT"), epoch, [await registeredCluster4.getAddress()], [BigNumber.from(10).pow(18)]);
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+        ethers.utils.id("DOT"),
+        epoch,
+        [await registeredCluster4.getAddress()],
+        [BigNumber.from(10).pow(18)]
+      );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
