@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import "./interfaces/IReceiverStaking.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "./lib/ERC20SnapshotUpgradeable.sol";
+import "./interfaces/IReceiverStaking.sol";
 
 contract ReceiverStaking is 
     IReceiverStaking,  // interface
