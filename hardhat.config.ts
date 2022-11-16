@@ -42,7 +42,7 @@ export default {
   networks: {
     hardhat: {
       accounts: {
-        count: 200
+        count: 350
       }
     },
     eth: {
