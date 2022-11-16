@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 interface IRewardDelegators {
-    function thresholdForSelection() external returns(uint256);
+    function thresholdForSelection(bytes32 networkId) external returns(uint256);
     function MPOND_TOKEN_ID() external returns(bytes32);
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external;
     function removeRewardFactor(bytes32 _tokenId) external;
@@ -24,7 +24,7 @@ interface IRewardDelegators {
     function withdrawRewards(address _delegator, address _cluster) external returns(uint256);
     function getClusterDelegation(address _cluster, bytes32 _tokenId) external view returns(uint256);
     function getDelegation(address _cluster, address _delegator, bytes32 _tokenId) external view returns(uint256);
-    function updateThresholdForSelection(uint256 thresholdForSelection) external;
+    function updateThresholdForSelection(bytes32 networkId, uint256 thresholdForSelection) external;
     function updateStakeAddress(address _updatedStakeAddress) external;
     function updateClusterRewards(address _updatedClusterRewards) external;
     function updateClusterRegistry(address _updatedClusterRegistry) external;

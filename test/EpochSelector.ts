@@ -99,6 +99,29 @@ describe("Testing Epoch Selector", function () {
       await epochSelector.connect(updater).insertMultiple(addresses, balances);
     });
 
+    it("Total Clusters less than clusters to select", async () => {
+      const allAddresses = [];
+      numberOfElementsInTree = Math.floor(Math.random()*numberOfClustersToSelect);
+      for (let index = 0; index < numberOfElementsInTree; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        await epochSelector.connect(updater).insert(address, getRandomNumber());
+
+        if (index % 100 == 0 || index == numberOfElementsInTree - 1) {
+          console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
+        }
+
+        allAddresses.push(address);
+      }
+      for (let index = 0; index < 10; index++) {
+        await epochSelector.selectClusters();
+        const clustersSelected = await epochSelector.callStatic.selectClusters();
+        expect(clustersSelected.length).to.equal(allAddresses.length);
+        for(let j = 0; j < clustersSelected.length; j++) {
+          expect(allAddresses.includes(clustersSelected[j])).to.be.true;
+        }
+      }
+    })
+
     it("Multiple entries", async () => {
       const allAddresses = [];
       for (let index = 0; index < numberOfElementsInTree; index++) {

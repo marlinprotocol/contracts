@@ -109,8 +109,6 @@ contract RewardDelegators is
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
-
-        _updateThresholdForSelection(500_000 ether); //0.5 MPond
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -141,8 +139,7 @@ contract RewardDelegators is
     IClusterRegistry public clusterRegistry;
     IERC20Upgradeable public PONDToken;
 
-    IEpochSelector public epochSelector;
-    uint256 public thresholdForSelection;
+    mapping(bytes32 => uint256) public thresholdForSelection; // networkId -> threshold
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -265,16 +262,18 @@ contract RewardDelegators is
 
             _aggregateReward = _aggregateReward + _reward;
         }
-        uint256 totalDelegations = _getTotalDelegations(_cluster);
+        bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
+        uint256 totalDelegations = _getTotalDelegations(_cluster, _networkId);
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
 
         // if total delegation is more than 0.5 million pond, than insert into selector
         if(totalDelegations != 0){
             // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
-            epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
+            _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
         }
         // if not, update it to zero
         else{
-            epochSelector.deleteNodeIfPresent(_cluster);
+            _epochSelector.deleteNodeIfPresent(_cluster);
         }
 
         if(_aggregateReward != 0) {
@@ -442,17 +441,6 @@ contract RewardDelegators is
         }
     }
 
-    event EpochSelectorUpdated(IEpochSelector indexed newEpochSelector);
-    
-    function updateEpochSelector(IEpochSelector _epochSelector) onlyAdmin external{
-        _updateEpochSelector(_epochSelector);
-    }
-
-    function _updateEpochSelector(IEpochSelector _epochSelector) internal {
-        epochSelector = _epochSelector;
-        emit EpochSelectorUpdated(_epochSelector);
-    }
-
     function sqrt(uint y) internal pure returns (uint z) {
         if (y > 3) {
             z = y;
@@ -466,29 +454,32 @@ contract RewardDelegators is
         }
     }
 
-    event UpdateThresholdForSelection(uint256 newThreshold);
-    function updateThresholdForSelection(uint256 newThreshold) onlyAdmin external {
-        _updateThresholdForSelection(newThreshold);
+    event UpdateThresholdForSelection(bytes32 networkId, uint256 newThreshold);
+    function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) onlyAdmin external {
+        _updateThresholdForSelection(networkId, newThreshold);
     }
 
-    function _updateThresholdForSelection(uint256 _newThreshold) internal {
-        thresholdForSelection = _newThreshold;
-        emit UpdateThresholdForSelection(_newThreshold);
+    function _updateThresholdForSelection(bytes32 _networkId, uint256 _newThreshold) internal {
+        thresholdForSelection[_networkId] = _newThreshold;
+        emit UpdateThresholdForSelection(_networkId, _newThreshold);
     }
 
     event RefreshClusterDelegation(address indexed cluster);
-    function refreshClusterDelegation(address[] calldata clusterList) onlyAdmin external {
+    function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
         address[] memory filteredClustersList;
         uint32[] memory balances;
+
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
 
         uint256 addressIndex=0;
         for (uint256 index = 0; index < clusterList.length; index++) {
             address cluster = clusterList[index];
+            bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
+            require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
 
-            uint256 totalDelegations = _getTotalDelegations(cluster);
+            uint256 totalDelegations = _getTotalDelegations(cluster, _networkId);
 
             if(totalDelegations != 0){
-                // epochSelector.insert(cluster, uint96(sqrt(totalDelegations)));
                 filteredClustersList[addressIndex] = cluster;
                 balances[addressIndex] = uint32(sqrt(totalDelegations));
                 addressIndex++;
@@ -497,14 +488,14 @@ contract RewardDelegators is
 
         }
 
-        epochSelector.insertMultiple(filteredClustersList, balances);
+        _epochSelector.insertMultiple(filteredClustersList, balances);
 
     }
 
-    function _getTotalDelegations(address cluster) internal view returns(uint256 totalDelegations){
+    function _getTotalDelegations(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
         // TODO generalize total delegation calculation using token weights
         uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
-        if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection){
+        if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection[networkId]){
             totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
         }
         // else totalDelegations should be considered 0

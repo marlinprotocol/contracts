@@ -1145,7 +1145,7 @@ describe("RewardDelegators Deployment", function () {
     registeredCluster: Signer
   ): Promise<number | string> {
     let currentEpoch = (await epochSelecotor.getCurrentEpoch()).toString();
-    let elementsInTree = await epochSelecotor.totalElements();
+    let elementsInTree = await epochSelecotor.getTotalElements();
     console.log({ elementsInTree });
 
     for (;;) {

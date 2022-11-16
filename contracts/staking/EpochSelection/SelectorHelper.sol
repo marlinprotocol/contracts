@@ -17,7 +17,7 @@ abstract contract SelectorHelper is IClusterSelector {
     mapping(uint32 => Node) nodes;
 
     /// @notice Total number of all nodes in the tree
-    uint256 public totalElements;
+    uint256 totalElements;
 
     /// @notice Address of the current root
     uint32 public root;

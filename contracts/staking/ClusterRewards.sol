@@ -66,9 +66,9 @@ contract ClusterRewards is
         address _admin,
         address _claimer,
         address _receiverStaking,
-        address _epochSelector,
         bytes32[] memory _networkIds,
         uint256[] memory _rewardWeight,
+        address[] memory _epochSelectors,
         uint256 _totalRewardsPerEpoch
     )
         public
@@ -77,6 +77,10 @@ contract ClusterRewards is
         require(
             _networkIds.length == _rewardWeight.length,
             "CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa"
+        );
+        require(
+            _networkIds.length == _epochSelectors.length,
+            "CRW:I-Each NetworkId need a corresponding epochSelector and vice versa"
         );
 
         __Context_init_unchained();
@@ -90,17 +94,18 @@ contract ClusterRewards is
 
         _setupRole(CLAIMER_ROLE, _claimer);
 
+        _updateReceiverStaking(_receiverStaking);
+
         uint256 _weight = 0;
         for(uint256 i=0; i < _networkIds.length; i++) {
             rewardWeight[_networkIds[i]] = _rewardWeight[i];
+            require(_epochSelectors[i] !=  address(0), "CRW:CN-EpochSelector must exist");
+            epochSelectors[_networkIds[i]] = IEpochSelector(_epochSelectors[i]);
             _weight += _rewardWeight[i];
-            emit NetworkAdded(_networkIds[i], _rewardWeight[i]);
+            emit NetworkAdded(_networkIds[i], _rewardWeight[i], _epochSelectors[i]);
         }
         totalWeight = _weight;
         _changeRewardPerEpoch(_totalRewardsPerEpoch);
-
-        _updateEpochSelector(_epochSelector);
-        _updateReceiverStaking(_receiverStaking);
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -122,14 +127,13 @@ contract ClusterRewards is
     uint256 public __unused_4;
 
     mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
+    mapping(bytes32 => IEpochSelector) public epochSelectors; // networkId -> epochSelector
     IReceiverStaking public receiverStaking;
-    IEpochSelector public epochSelector;
 
-    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
+    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch, address epochSelector);
     event NetworkRemoved(bytes32 networkId);
-    event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
+    event NetworkUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch, address epochSelector);
     event ReceiverStakingUpdated(address receiverStaking);
-    event EpochSelectorUpdated(address epochSelector);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
@@ -138,29 +142,34 @@ contract ClusterRewards is
         _;
     }
 
-    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) external onlyAdmin {
+    function addNetwork(bytes32 _networkId, uint256 _rewardWeight, address _epochSelector) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
         require(_rewardWeight != 0, "CRW:AN-Reward cant be 0");
+        require(_epochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _rewardWeight;
+        epochSelectors[_networkId] = IEpochSelector(_epochSelector);
         totalWeight += _rewardWeight;
-        emit NetworkAdded(_networkId, _rewardWeight);
+        emit NetworkAdded(_networkId, _rewardWeight, _epochSelector);
     }
 
     function removeNetwork(bytes32 _networkId) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
+        delete epochSelectors[_networkId];
         totalWeight -= networkWeight;
         emit NetworkRemoved(_networkId);
     }
 
-    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) external onlyAdmin {
+    function updateNetwork(bytes32 _networkId, uint256 _updatedRewardWeight, address _updatedEpochSelector) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
-        require( networkWeight != 0, "CRW:CNR-Network doesnt exist");
-        require(_updatedRewardWeight != 0, "CRW:CNR-Reward cant be 0");
+        require( networkWeight != 0, "CRW:CN-Network doesnt exist");
+        require(_updatedRewardWeight != 0, "CRW:CN-Reward cant be 0");
+        require(_updatedEpochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _updatedRewardWeight;
+        epochSelectors[_networkId] = IEpochSelector(_updatedEpochSelector);
         totalWeight = totalWeight - networkWeight + _updatedRewardWeight;
-        emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
+        emit NetworkUpdated(_networkId, _updatedRewardWeight, _updatedEpochSelector);
     }
 
     function updateReceiverStaking(address _receiverStaking) external onlyAdmin {
@@ -170,15 +179,6 @@ contract ClusterRewards is
     function _updateReceiverStaking(address _receiverStaking) internal {
         receiverStaking = IReceiverStaking(_receiverStaking);
         emit ReceiverStakingUpdated(_receiverStaking);
-    }
-
-    function updateEpochSelector(address _epochSelector) external onlyAdmin {
-        _updateEpochSelector(_epochSelector);
-    }
-
-    function _updateEpochSelector(address _epochSelector) internal {
-        epochSelector = IEpochSelector(_epochSelector);
-        emit EpochSelectorUpdated(_epochSelector);
     }
 
     function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyAdmin {
@@ -211,7 +211,7 @@ contract ClusterRewards is
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
         require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
 
-        address[] memory _selectedClusters = epochSelector.getClusters(_epoch);
+        address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
 
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);

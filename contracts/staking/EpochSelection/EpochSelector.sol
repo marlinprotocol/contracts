@@ -76,6 +76,10 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         rewardForSelectingClusters = _rewardForSelectingClusters;
     }
 
+    function getTotalElements() public view override returns (uint256) {
+        return totalElements;
+    }
+
     /// @notice Current Epoch
     function getCurrentEpoch() public view override returns (uint256) {
         return (block.timestamp - START_TIME) / EPOCH_LENGTH;
