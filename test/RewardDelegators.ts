@@ -441,10 +441,8 @@ describe("RewardDelegators Deployment", function () {
     stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
 
     const selectors = [COMMISSION_LOCK, SWITCH_NETWORK_LOCK, UNREGISTER_LOCK];
-    const lockWaitTimes = [20, 21, 22];
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
-    await clusterRegistryInstance.initialize(lockWaitTimes);
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegatorsInstance = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
@@ -478,6 +476,8 @@ describe("RewardDelegators Deployment", function () {
       ],
       { kind: "uups", constructorArgs: [pondTokenId, mpondTokenId] }
     );
+    const lockWaitTimes = [20, 21, 22];
+    await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);
 
     await stakeManagerInstance.initialize(
       [pondTokenId, mpondTokenId],
@@ -503,8 +503,6 @@ describe("RewardDelegators Deployment", function () {
     let role = await epochSelectorInstance.UPDATER_ROLE();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
-
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
@@ -521,13 +519,17 @@ describe("RewardDelegators Deployment", function () {
       addrs[0],
       rewardDelegatorsInstance.address,
       receiverStaking.address,
-      epochSelectorInstance.address,
       [
-        "0xa486e4b27cce131bfeacd003018c22a55744bdb94821829f0ff1d4061d8d0533",
-        "0x400c11d24cbc493052ef2bdd6a364730aa6ad3883b7e7d99ba40b34062cf1701",
-        "0x9bd00430e53a5999c7c603cfc04cbdaf68bdbc180f300e4a2067937f57a0534f",
+        ethers.utils.id("DOT"),
+        ethers.utils.id("MATIC"),
+        ethers.utils.id("ETH")
       ],
       [100, 100, 100],
+      [
+        epochSelectorInstance.address,
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        "0x000000000000000000000000000000000000dEaD"  // invalid epoch selector
+      ],
       appConfig.staking.rewardPerEpoch
     );
 
@@ -839,7 +841,6 @@ describe("RewardDelegators Deployment", function () {
     const lockWaitTimes = [20, 21, 22];
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
-    await clusterRegistryInstance.initialize(lockWaitTimes);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
@@ -857,6 +858,8 @@ describe("RewardDelegators Deployment", function () {
       ],
       { kind: "uups", constructorArgs: [testTokenId, testTokenId] }
     );
+
+    await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);
 
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
     const blockNum = await ethers.provider.getBlockNumber();

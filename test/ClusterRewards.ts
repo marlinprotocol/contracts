@@ -56,7 +56,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewards = await ClusterRewards.deploy();
 
-    await expect(clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000))
+    await expect(clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+      "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+      epochSelector.address,
+      "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+    ], 60000))
       .to.be.reverted;
   });
 
@@ -64,7 +68,13 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [
+        addrs[1], addrs[2], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+        ], 60000
+      ],
       { kind: "uups" }
     );
 
@@ -77,7 +87,7 @@ describe("ClusterRewards", function () {
     );
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT);
     expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(60000);
-    expect(await clusterRewards.epochSelector()).to.equal(epochSelector.address);
+    expect(await clusterRewards.epochSelectors(DOTHASH)).to.equal(epochSelector.address);
     expect(await clusterRewards.receiverStaking()).to.equal(receiverStaking.address);
   });
 
@@ -85,7 +95,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
     await upgrades.upgradeProxy(clusterRewards.address, ClusterRewards, { kind: "uups" });
@@ -105,7 +119,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
     await expect(upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), { kind: "uups" })).to.be.reverted;
@@ -146,7 +164,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[1], addrs[2], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
   });
@@ -220,7 +242,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
 
@@ -306,7 +332,11 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        epochSelector.address,
+        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
 
@@ -349,6 +379,7 @@ describe("ClusterRewards", function () {
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
+  let pond: Contract;
   let clusterRewards: Contract;
   let epochSelector: Contract;
   let receiverStaking: Contract;
@@ -361,7 +392,7 @@ describe("ClusterRewards", function () {
     const blockData = await ethers.provider.getBlock(blockNum);
 
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
       kind: "uups",
     });
 
@@ -380,36 +411,62 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        epochSelector.address,
+        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
   });
 
   it("admin can add network", async function () {
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400);
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newEpochSelector.address);
     expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
+    expect(await clusterRewards.epochSelectors(ethers.utils.id("POLYGON"))).to.equal(newEpochSelector.address);
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT + 400);
   });
 
   it("admin cannot add existing network", async function () {
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400);
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newEpochSelector.address);
     expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
+    expect(await clusterRewards.epochSelectors(ethers.utils.id("POLYGON"))).to.equal(newEpochSelector.address);
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT + 400);
-
-    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400)).to.be.reverted;
+    
+    const newBlockData = await ethers.provider.getBlock("latest");
+    newEpochSelector = await EpochSelector.deploy(addrs[0], 5, newBlockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newEpochSelector.address)).to.be.reverted;
   });
 
   it("admin cannot add network with zero weight", async function () {
-    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 0)).to.be.reverted;
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 0, newEpochSelector.address)).to.be.reverted;
   });
 
+  it("admin cannot add network with epochSelector as zero address", async function () {
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 40, ethers.constants.AddressZero)).to.be.reverted;
+  });
+
+
   it("non admin cannot add network", async function () {
-    await expect(clusterRewards.connect(signers[1]).addNetwork(ethers.utils.id("POLYGON"), 400)).to.be.reverted;
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await expect(clusterRewards.connect(signers[1]).addNetwork(ethers.utils.id("POLYGON"), 400, newEpochSelector.address)).to.be.reverted;
   });
 
   it("admin can remove network", async function () {
     await clusterRewards.removeNetwork(ethers.utils.id("DOT"));
     expect(await clusterRewards.rewardWeight(ethers.utils.id("DOT"))).to.equal(0);
+    expect(await clusterRewards.epochSelectors(ethers.utils.id("DOT"))).to.equal(ethers.constants.AddressZero);
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT - DOTWEIGHT);
   });
 
@@ -425,6 +482,7 @@ describe("ClusterRewards", function () {
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
+  let pond: Contract;
   let clusterRewards: Contract;
   let receiverStaking: Contract;
   let epochSelector: Contract;
@@ -437,7 +495,7 @@ describe("ClusterRewards", function () {
     const blockData = await ethers.provider.getBlock(blockNum);
 
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
       kind: "uups",
     });
 
@@ -456,23 +514,45 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, epochSelector.address, NETWORK_IDS, WEIGHTS, 60000],
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        epochSelector.address,
+        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
+      ],60000],
       { kind: "uups" }
     );
   });
 
   it("admin can change network reward", async function () {
-    await clusterRewards.changeNetworkReward(ethers.utils.id("DOT"), 400);
+    await clusterRewards.updateNetwork(ethers.utils.id("DOT"), 400, epochSelector.address);
     expect(await clusterRewards.rewardWeight(ethers.utils.id("DOT"))).to.equal(400);
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT - DOTWEIGHT + 400);
   });
 
+  it("admin can change network reward", async function () {
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await clusterRewards.updateNetwork(ethers.utils.id("DOT"), DOTWEIGHT, newEpochSelector.address);
+    expect(await clusterRewards.epochSelectors(DOTHASH)).to.equal(newEpochSelector.address);
+  });
+
   it("admin cannot change non-existing network reward", async function () {
-    await expect(clusterRewards.changeNetworkReward(ethers.utils.id("POLYGON"), 400)).to.be.reverted;
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), 400, epochSelector.address)).to.be.reverted;
+  });
+
+  it("admin cannot change epochSelector of non-existing network", async function () {
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), DOTWEIGHT, newEpochSelector.address)).to.be.reverted;
   });
 
   it("non admin cannot change network reward", async function () {
-    await expect(clusterRewards.connect(signers[1]).changeNetworkReward(ethers.utils.id("DOT"), 400)).to.be.reverted;
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    const blockData = await ethers.provider.getBlock("latest");
+    let newEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pond.address, new BN(10).pow(18).toString());
+    await expect(clusterRewards.connect(signers[1]).updateNetwork(ethers.utils.id("DOT"), 400, newEpochSelector.address)).to.be.reverted;
   });
 
   it("admin can change rewards per epoch", async function () {

@@ -41,6 +41,11 @@ contract RewardDelegators is
         _;
     }
 
+    modifier onlyClusterRegistry()  {
+        require(address(clusterRegistry) == _msgSender());
+        _;
+    }
+
 //-------------------------------- Overrides start --------------------------------//
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
@@ -262,19 +267,10 @@ contract RewardDelegators is
 
             _aggregateReward = _aggregateReward + _reward;
         }
+        
         bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
-        uint256 totalDelegations = _getTotalDelegations(_cluster, _networkId);
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-
-        // if total delegation is more than 0.5 million pond, than insert into selector
-        if(totalDelegations != 0){
-            // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
-            _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
-        }
-        // if not, update it to zero
-        else{
-            _epochSelector.deleteNodeIfPresent(_cluster);
-        }
+        _updateEpochSelector(_networkId, _cluster, _epochSelector);
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -333,6 +329,34 @@ contract RewardDelegators is
 
         // update the debt for next reward calculation
         clusters[_cluster].rewardDebt[_delegator][_tokenId] = (_accRewardPerShare * _newBalance) / (10**30);
+    }
+
+    function _updateEpochSelector(bytes32 _networkId, address _cluster, IEpochSelector _epochSelector) internal {
+        uint256 totalDelegations = _getTotalDelegations(_cluster, _networkId);
+
+        if(address(_epochSelector) != address(0)) {
+            // if total delegation is more than 0.5 million pond, then insert into selector
+            if(totalDelegations != 0){
+                // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
+                _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
+            }
+            // if not, update it to zero
+            else{
+                _epochSelector.deleteNodeIfPresent(_cluster);
+            }
+        }
+    }
+
+    function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
+        _updateEpochSelector(_networkId, _cluster, _epochSelector);
+    }
+
+    function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
+        _epochSelector.deleteNodeIfPresent(_cluster);
     }
 
     function undelegate(

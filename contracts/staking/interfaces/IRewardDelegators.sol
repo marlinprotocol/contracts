@@ -31,4 +31,6 @@ interface IRewardDelegators {
     function updatePONDAddress(address _updatedPOND) external;
     function tokenList(uint256 index) external view returns (bytes32);
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256);
+    function updateClusterDelegation(address _cluster, bytes32 _networkId) external;
+    function removeClusterDelegation(address _cluster, bytes32 _networkId) external;
 }

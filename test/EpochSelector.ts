@@ -148,7 +148,7 @@ describe("Testing Epoch Selector", function () {
       let data = await epochSelector.callStatic.nodeData(root);
       const totalValueInTree = new BN(data.sumOfRightBalances).plus(data.balance).plus(data.sumOfLeftBalances).toFixed(0);
 
-      let totalElementsInTree = (await epochSelector.callStatic.totalElements()).toNumber();
+      let totalElementsInTree = (await epochSelector.callStatic.getTotalElements()).toNumber();
       let counter: Counter[] = [];
 
       for (let index = 0; index < numberOfSelections; index++) {
