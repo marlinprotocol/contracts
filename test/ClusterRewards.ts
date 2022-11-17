@@ -141,8 +141,7 @@ describe("ClusterRewards", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
+    const blockData = await ethers.provider.getBlock("latest");
 
     const Pond = await ethers.getContractFactory("Pond");
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {

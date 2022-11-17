@@ -1,6 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
+const appConfig = require("../app-config");
 
 declare module "ethers" {
   interface BigNumber {
@@ -29,22 +30,80 @@ const WAIT_TIMES = [20, 30, 40];
 describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
+  let pondInstance: Contract;
+  let pondTokenId: string;
+  let mpondInstance: Contract;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: Contract;
+  let clusterRegistryInstance: Contract;
+  let stakeManagerInstance: Contract;
+  let rewardDelegators: Contract;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const MPond = await ethers.getContractFactory("MPond");
+    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+
+    pondTokenId = ethers.utils.keccak256(pondInstance.address);
+    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
+    clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
   });
 
   it("deploys with initialization disabled", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await ClusterRegistry.deploy();
 
-    await expect(clusterRegistry.initialize(WAIT_TIMES)).to.be.reverted;
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistryInstance.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await expect(clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address)).to.be.reverted;
   });
 
   it("deploys as proxy and initializes", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistryInstance.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
 
     await Promise.all(
       SELECTORS.map(async (s, idx) => {
@@ -56,7 +115,24 @@ describe("ClusterRegistry", function () {
 
   it("upgrades", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistryInstance.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
     await upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry, { kind: "uups" });
 
     await Promise.all(
@@ -69,7 +145,24 @@ describe("ClusterRegistry", function () {
 
   it("does not upgrade without admin", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistryInstance.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
     await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.reverted;
   });
 });
@@ -78,12 +171,52 @@ describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
+  let pondInstance: Contract;
+  let pondTokenId: string;
+  let mpondInstance: Contract;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: Contract;
+  let stakeManagerInstance: Contract;
+  let rewardDelegators: Contract;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const MPond = await ethers.getContractFactory("MPond");
+    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+
+    pondTokenId = ethers.utils.keccak256(pondInstance.address);
+    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
+
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistry.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
   });
 
   it("supports ERC167", async function () {
@@ -124,13 +257,53 @@ describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
+  let pondInstance: Contract;
+  let pondTokenId: string;
+  let mpondInstance: Contract;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: Contract;
+  let stakeManagerInstance: Contract;
+  let rewardDelegators: Contract;
   let DEFAULT_ADMIN_ROLE: string;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const MPond = await ethers.getContractFactory("MPond");
+    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+
+    pondTokenId = ethers.utils.keccak256(pondInstance.address);
+    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
+
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistry.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
     DEFAULT_ADMIN_ROLE = await clusterRegistry.DEFAULT_ADMIN_ROLE();
   });
 
@@ -182,13 +355,90 @@ describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
+  let pondInstance: Contract;
+  let pondTokenId: string;
+  let mpondInstance: Contract;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: Contract;
+  let stakeManagerInstance: Contract;
+  let rewardDelegators: Contract;
+  let dotEpochSelector: Contract;
+  let nearEpochSelector: Contract;
+  let receiverStaking: Contract;
+  const ETHHASH = ethers.utils.id("ETH");
   const DOTHASH = ethers.utils.id("DOT");
+  const NEARHASH = ethers.utils.id("NEAR");
+  const NETWORK_IDS = [ETHHASH, DOTHASH, NEARHASH];
+  const ETHWEIGHT = 100;
+  const DOTWEIGHT = 200;
+  const NEARWEIGHT = 300;
+  const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const MPond = await ethers.getContractFactory("MPond");
+    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+
+    pondTokenId = ethers.utils.keccak256(pondInstance.address);
+    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
+
+    const blockData = await ethers.provider.getBlock("latest");
+
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    dotEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+    nearEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
+      kind: "uups",
+      initializer: false,
+    });
+
+    await receiverStaking.initialize(addrs[0]);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    clusterRewardsInstance = await upgrades.deployProxy(
+      ClusterRewards,
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        dotEpochSelector.address,
+        nearEpochSelector.address
+      ],60000],
+      { kind: "uups" }
+    );
+
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistry.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
+    let UPDATER_ROLE = await nearEpochSelector.UPDATER_ROLE();
+    await nearEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
+    await dotEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
   });
 
   it("can register new cluster", async () => {
@@ -254,13 +504,90 @@ describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
+  let pondInstance: Contract;
+  let pondTokenId: string;
+  let mpondInstance: Contract;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: Contract;
+  let stakeManagerInstance: Contract;
+  let rewardDelegators: Contract;
+  let dotEpochSelector: Contract;
+  let nearEpochSelector: Contract;
+  let receiverStaking: Contract;
+  const ETHHASH = ethers.utils.id("ETH");
   const DOTHASH = ethers.utils.id("DOT");
+  const NEARHASH = ethers.utils.id("NEAR");
+  const NETWORK_IDS = [ETHHASH, DOTHASH, NEARHASH];
+  const ETHWEIGHT = 100;
+  const DOTWEIGHT = 200;
+  const NEARWEIGHT = 300;
+  const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const MPond = await ethers.getContractFactory("MPond");
+    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+
+    pondTokenId = ethers.utils.keccak256(pondInstance.address);
+    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    stakeManagerInstance = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
+
+    const blockData = await ethers.provider.getBlock("latest");
+
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    dotEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+    nearEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
+      kind: "uups",
+      initializer: false,
+    });
+
+    await receiverStaking.initialize(addrs[0]);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    clusterRewardsInstance = await upgrades.deployProxy(
+      ClusterRewards,
+      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        dotEpochSelector.address,
+        nearEpochSelector.address
+      ],60000],
+      { kind: "uups" }
+    );
+
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES], { kind: "uups" });
+    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups",
+      initializer: false,
+    });
+    await rewardDelegators.initialize(
+      stakeManagerInstance.address,
+      clusterRewardsInstance.address,
+      clusterRegistry.address,
+      pondInstance.address,
+      [pondTokenId, mpondTokenId],
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+    );
+
+    await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
+    let UPDATER_ROLE = await nearEpochSelector.UPDATER_ROLE();
+    await nearEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
+    await dotEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
     await clusterRegistry.register(DOTHASH, 7, addrs[1], addrs[2]);
   });
 
