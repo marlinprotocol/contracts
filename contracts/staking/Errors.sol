@@ -14,4 +14,5 @@ library Errors {
     string constant INSUFFICIENT_ELEMENTS_IN_TREE = "9";
     string constant ERROR_OCCURED_DURING_TRAVERSING_SELECTED_NODE = "10";
     string constant ERROR_OCCURED_DURING_TRAVERSING_NON_SELECTED_NODE = "11";
+    string constant CLUSTER_SELECTION_NOT_COMPLETE = "12";
 }

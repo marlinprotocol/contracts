@@ -228,13 +228,20 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         }
     }
 
+    // @dev Clusters are selected only for next epoch in this epoch using selectClusters method.
+    //      If the method is not called within the previous epoch, then the last selected clusters
+    //      are considered as selected for this epoch
     function getClusters(uint256 epochNumber) public view returns (address[] memory) {
+        uint256 _nextEpoch = getCurrentEpoch() + 1;
+        // To ensure invalid data is not provided for epochs where clusters are not selected
+        require(epochNumber <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
         if (epochNumber == 0) {
             return new address[](0);
         }
         address[] memory clusters = clustersSelected[epochNumber];
 
         if (clusters.length == 0) {
+            require(epochNumber != _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
             return getClusters(epochNumber - 1);
         } else {
             return clusters;

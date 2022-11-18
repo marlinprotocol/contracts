@@ -67,7 +67,6 @@ contract ClusterSelector is SingleSelector {
 
     /// @notice Select top N Clusters
     function _selectTopCluster(
-        // TODO: use uint256
         uint32 rootIndex,
         uint256 searchNumber,
         MemoryNode[] memory selectedPathTree,

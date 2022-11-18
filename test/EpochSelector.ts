@@ -101,13 +101,13 @@ describe("Testing Epoch Selector", function () {
 
     it("Total Clusters less than clusters to select", async () => {
       const allAddresses = [];
-      numberOfElementsInTree = Math.floor(Math.random()*numberOfClustersToSelect);
-      for (let index = 0; index < numberOfElementsInTree; index++) {
+      const noOfElements = Math.floor(Math.random()*numberOfClustersToSelect) + 1;
+      for (let index = 0; index < noOfElements; index++) {
         const address = randomAddressGenerator("salt" + index);
         await epochSelector.connect(updater).insert(address, getRandomNumber());
 
-        if (index % 100 == 0 || index == numberOfElementsInTree - 1) {
-          console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
+        if (index % 100 == 0 || index == noOfElements - 1) {
+          console.log(`Elements in tree ${index}/${noOfElements}`);
         }
 
         allAddresses.push(ethers.utils.getAddress(address));
