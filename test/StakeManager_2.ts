@@ -764,6 +764,7 @@ describe("StakeManager 2", function () {
         }
       });
 
+      
       describe("Post moving to required epochs", async () => {
         let numberOfClustersPerNetworkToTest = 2;
         let numberOfReceiverStakerPerNetworkToTest = 10;
