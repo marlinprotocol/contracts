@@ -110,15 +110,14 @@ describe("Testing Epoch Selector", function () {
           console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
         }
 
-        allAddresses.push(address);
+        allAddresses.push(ethers.utils.getAddress(address));
       }
-      for (let index = 0; index < 10; index++) {
-        await epochSelector.selectClusters();
-        const clustersSelected = await epochSelector.callStatic.selectClusters();
-        expect(clustersSelected.length).to.equal(allAddresses.length);
-        for(let j = 0; j < clustersSelected.length; j++) {
-          expect(allAddresses.includes(clustersSelected[j])).to.be.true;
-        }
+      
+      await epochSelector.selectClusters();
+      const clustersSelected = await epochSelector.callStatic.selectClusters();
+      expect(clustersSelected.length).to.equal(allAddresses.length);
+      for(let j = 0; j < clustersSelected.length; j++) {
+        expect(allAddresses.includes(clustersSelected[j])).to.be.true;
       }
     })
 

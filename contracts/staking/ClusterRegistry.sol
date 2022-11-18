@@ -11,8 +11,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
 
-import "hardhat/console.sol";
-
 contract ClusterRegistry is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -245,7 +243,6 @@ contract ClusterRegistry is
     }
 
     function updateClientKey(address _clientKey) public {
-        // TODO: Add delay to client key updates as well
         require(
             isClusterValid(_msgSender()),
             "CR:UCK-Cluster not registered"
