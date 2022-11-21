@@ -600,16 +600,12 @@ describe("StakeManager", function () {
       addrs[7],
       rewardDelegatorsInstance.address,
       receiverStaking.address,
-      [
-        ethers.utils.id("DOT"),
-        ethers.utils.id("NEAR"),
-        ethers.utils.id("ETH")
-      ],
+      [ethers.utils.id("DOT"), ethers.utils.id("NEAR"), ethers.utils.id("ETH")],
       [100, 100, 100],
       [
         dotEpochSelectorInstance.address,
         nearEpochSelectorInstance.address, // invalid epoch selector
-        "0x000000000000000000000000000000000000dEaD"  // invalid epoch selector
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
       ],
       appConfig.staking.rewardPerEpoch
     );
@@ -1224,16 +1220,12 @@ describe("StakeManager Deployment", function () {
       addrs[7],
       rewardDelegatorsInstance.address,
       receiverStaking.address,
-      [
-        ethers.utils.id("DOT"),
-        ethers.utils.id("NEAR"),
-        ethers.utils.id("ETH")
-      ],
+      [ethers.utils.id("DOT"), ethers.utils.id("NEAR"), ethers.utils.id("ETH")],
       [100, 100, 100],
       [
         dotEpochSelectorInstance.address,
         nearEpochSelectorInstance.address, // invalid epoch selector
-        "0x000000000000000000000000000000000000dEaD"  // invalid epoch selector
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
       ],
       appConfig.staking.rewardPerEpoch
     );
@@ -2401,7 +2393,7 @@ describe("StakeManager Deployment", function () {
     expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(0);
   });
 
-  it("")
+  it("");
 
   async function createStash(mpondAmount: Number, pondAmount: Number) {
     const tokens = [];

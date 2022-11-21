@@ -392,10 +392,21 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    dotEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
-    nearEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+    dotEpochSelector = await EpochSelector.deploy(
+      addrs[0],
+      5,
+      blockData.timestamp,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    );
+    nearEpochSelector = await EpochSelector.deploy(
+      addrs[0],
+      5,
+      blockData.timestamp,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    );
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
@@ -409,11 +420,19 @@ describe("ClusterRegistry", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        dotEpochSelector.address,
-        nearEpochSelector.address
-      ],60000],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          dotEpochSelector.address,
+          nearEpochSelector.address,
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
 
@@ -541,10 +560,21 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    dotEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
-    nearEpochSelector = await EpochSelector.deploy(addrs[0], 5, blockData.timestamp, pondInstance.address, ethers.utils.parseEther("1").toString());
+    dotEpochSelector = await EpochSelector.deploy(
+      addrs[0],
+      5,
+      blockData.timestamp,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    );
+    nearEpochSelector = await EpochSelector.deploy(
+      addrs[0],
+      5,
+      blockData.timestamp,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    );
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
@@ -558,11 +588,19 @@ describe("ClusterRegistry", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        dotEpochSelector.address,
-        nearEpochSelector.address
-      ],60000],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          dotEpochSelector.address,
+          nearEpochSelector.address,
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
 

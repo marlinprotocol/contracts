@@ -13,6 +13,7 @@ import "./interfaces/IEpochSelector.sol";
 import "./interfaces/IReceiverStaking.sol";
 import "./interfaces/IClusterRewards.sol";
 
+// import "hardhat/console.sol";
 
 contract ClusterRewards is
     Initializable,  // initializer
@@ -207,20 +208,36 @@ contract ClusterRewards is
         require(_clusters.length == _tickets.length, "CRW:IT-invalid inputs");
 
         (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
+        // console.log("_epochReceiverStake", _epochReceiverStake);
+        // console.log("_epochTotalStake", _epochTotalStake);
+        // console.log("_currentEpoch", _currentEpoch);
+        // console.log("_epoch", _epoch);
 
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
         require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
 
         address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
 
+        // for (uint256 index = 0; index < _clusters.length; index++) {
+        //     console.log("_clusters_to_issue_tickets_to[index]", _clusters[index]);
+        // }
+        
+        // for (uint256 index = 0; index < _selectedClusters.length; index++) {
+        //     console.log("_selectedClusters[index]", _selectedClusters[index]);
+        // }
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
+        // console.log("_epochTicketsIssued", _epochTicketsIssued);
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+        // console.log("_totalNetworkRewardsPerEpoch", _totalNetworkRewardsPerEpoch);
 
         for(uint256 i=0; i < _clusters.length; i++) {
             require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
             clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
 
             _epochTicketsIssued += _tickets[i];
+
+            // console.log("for every input cluster clusterRewards[_clusters[i]]", clusterRewards[_clusters[i]]);
+            // console.log("_epochTicketsIssued", _epochTicketsIssued);
         }
 
         require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Excessive tickets issued");

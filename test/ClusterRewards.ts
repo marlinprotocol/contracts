@@ -56,12 +56,21 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewards = await ClusterRewards.deploy();
 
-    await expect(clusterRewards.initialize(addrs[1], addrs[2], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-      "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-      epochSelector.address,
-      "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-    ], 60000))
-      .to.be.reverted;
+    await expect(
+      clusterRewards.initialize(
+        addrs[1],
+        addrs[2],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000
+      )
+    ).to.be.reverted;
   });
 
   it("deploys as proxy and initializes", async function () {
@@ -69,11 +78,17 @@ describe("ClusterRewards", function () {
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
       [
-        addrs[1], addrs[2], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
+        addrs[1],
+        addrs[2],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
           "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
           epochSelector.address,
-          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-        ], 60000
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
       ],
       { kind: "uups" }
     );
@@ -95,11 +110,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
           epochSelector.address,
-          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
     await upgrades.upgradeProxy(clusterRewards.address, ClusterRewards, { kind: "uups" });
@@ -119,11 +142,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
           epochSelector.address,
-          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
     await expect(upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), { kind: "uups" })).to.be.reverted;
@@ -163,11 +194,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
           epochSelector.address,
-          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
   });
@@ -241,11 +280,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
           epochSelector.address,
-          "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
 
@@ -331,11 +378,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        epochSelector.address,
-        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
 
@@ -410,11 +465,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        epochSelector.address,
-        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
   });
@@ -437,7 +500,7 @@ describe("ClusterRewards", function () {
     expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
     expect(await clusterRewards.epochSelectors(ethers.utils.id("POLYGON"))).to.equal(newEpochSelector.address);
     expect(await clusterRewards.totalWeight()).to.equal(TOTALWEIGHT + 400);
-    
+
     const newBlockData = await ethers.provider.getBlock("latest");
     newEpochSelector = await EpochSelector.deploy(addrs[0], 5, newBlockData.timestamp, pond.address, new BN(10).pow(18).toString());
     await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newEpochSelector.address)).to.be.reverted;
@@ -453,7 +516,6 @@ describe("ClusterRewards", function () {
   it("admin cannot add network with epochSelector as zero address", async function () {
     await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 40, ethers.constants.AddressZero)).to.be.reverted;
   });
-
 
   it("non admin cannot add network", async function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelector");
@@ -513,11 +575,19 @@ describe("ClusterRewards", function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        epochSelector.address,
-        "0x000000000000000000000000000000000000dEaD" // invalid epoch selector
-      ],60000],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          epochSelector.address,
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        ],
+        60000,
+      ],
       { kind: "uups" }
     );
   });

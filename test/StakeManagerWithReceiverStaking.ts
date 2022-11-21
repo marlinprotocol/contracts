@@ -8,7 +8,7 @@ const REDELEGATION_WAIT_TIME = 21600;
 // const REWARD_PER_EPOCH = appConfig.staking.rewardPerEpoch;
 const REWARD_PER_EPOCH = BN.from(10).pow(21).mul(35);
 
-describe("StakeManager 2", function () {
+describe("StakeManager With Received Staking", function () {
   let signers: Signer[];
 
   let snapshot: any;
@@ -56,7 +56,7 @@ describe("StakeManager 2", function () {
   const supportedNetworksWeights = [50, 30, 20];
   const supportedNetworkIds = supportedNetworks.map((a) => ethers.utils.id(a));
   const lockWaitTimes = [20, 21, 22];
-  let epochSelectors: Contract[] = [];
+  const epochSelectors: Contract[] = [];
 
   // derived data;
   let clusterAddresses: string[];
@@ -82,7 +82,7 @@ describe("StakeManager 2", function () {
     await skipTime(1); // extra 1 second for safety
   };
 
-  before(async () => {
+  before(async function () {
     signers = await ethers.getSigners();
 
     clusterRewardsAdmin = signers[1];
@@ -117,7 +117,7 @@ describe("StakeManager 2", function () {
     delegatorAddresss = await Promise.all(delegators.map((a) => a.getAddress()));
     receiverAddresses = await Promise.all(receivers.map((a) => a.getAddress()));
 
-    ethClusterAddresses = clusterAddresses;
+    ethClusterAddresses = await Promise.all(ethClusters.map((a) => a.getAddress()));
     dotClusterAddresses = await Promise.all(dotClusters.map((a) => a.getAddress()));
     maticClusterAddresses = await Promise.all(maticClusters.map((a) => a.getAddress()));
 
@@ -220,121 +220,22 @@ describe("StakeManager 2", function () {
     await epochSelectors[2].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
   });
 
-  beforeEach(async () => {
+  beforeEach(async function () {
     snapshot = await network.provider.request({
       method: "evm_snapshot",
       params: [],
     });
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
     await network.provider.request({
       method: "evm_revert",
       params: [snapshot],
     });
   });
 
-  async function populateEpochReward() {
-    await pond.connect(pondHoldingAddress).transfer(rewardDelegators.address, REWARD_PER_EPOCH);
-  }
-
-  async function receiverDeposit(receiver: Signer, amount: BN) {
-    await pond.connect(receiver).approve(receiverStaking.address, amount);
-    await receiverStaking.connect(receiver).deposit(amount); //n
-  }
-
-  async function newDelegation(delegator: Signer, pondToUse: BN | string, mpondToUse: BN | string, clusterAddress: string) {
-    await pond.connect(delegator).approve(stakeManager.address, pondToUse.toString());
-    await mpond.connect(delegator).approve(stakeManager.address, mpondToUse.toString());
-    await stakeManager
-      .connect(delegator)
-      .createStashAndDelegate([pondTokenId, mpondTokenId], [pondToUse.toString(), mpondToUse.toString()], clusterAddress);
-  }
-
-  async function issueTicketsForClusters(
-    epochSelectorInstance: Contract,
-    receiver: Signer,
-    networkIds: string[],
-    clustersToIssueTicketsTo: string[],
-    weights: BN[],
-    currentEpoch: string
-  ): Promise<[BN[], BN[], BN[]]> {
-    let currentPlusOne = BN.from(currentEpoch).add(1).toString();
-    await epochSelectorInstance.connect(epochSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
-
-    const clusterCommisionReceived: BN[] = [];
-    for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
-      const element = clustersToIssueTicketsTo[index];
-      clusterCommisionReceived.push(await pond.balanceOf(element));
-    }
-
-    await skipEpoch(); // this should not effect other operations
-    await skipEpoch(); // this should not effect other operations
-
-    for (let index = 0; index < networkIds.length; index++) {
-      const networkId = networkIds[index];
-      // console.log({currentPlusOne, networkId, weights: weights.map(a => a.toString()), clustersToIssueTicketsTo});
-      await clusterRewards
-        .connect(receiver)
-        ["issueTickets(bytes32,uint256,address[],uint256[])"](networkId, currentPlusOne, clustersToIssueTicketsTo, weights);
-    }
-
-    const pondRewardsPerShare: BN[] = [];
-    const mpondRewardsPerShare: BN[] = [];
-
-    for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
-      const cluster = clustersToIssueTicketsTo[index];
-      await rewardDelegators._updateRewards(cluster);
-      pondRewardsPerShare.push(await rewardDelegators.getAccRewardPerShare(cluster, pondTokenId));
-      mpondRewardsPerShare.push(await rewardDelegators.getAccRewardPerShare(cluster, mpondTokenId));
-    }
-
-    for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
-      const element = clustersToIssueTicketsTo[index];
-      const clusterNewBalance = await pond.balanceOf(element);
-      clusterCommisionReceived[index] = clusterNewBalance.sub(clusterCommisionReceived[index]);
-    }
-
-    return [pondRewardsPerShare, mpondRewardsPerShare, clusterCommisionReceived];
-  }
-
-  async function withdrawRewards(delegatorsList: string[], clustersToClaimRewardFrom: string[]): Promise<BN[]> {
-    const delegatorRewardsRecevied: BN[] = [];
-
-    for (let index = 0; index < delegatorsList.length; index++) {
-      const delegatorAddress = delegatorsList[index];
-      const balanceBefore = await pond.balanceOf(delegatorAddress);
-      await rewardDelegators["withdrawRewards(address,address[])"](delegatorAddress, clustersToClaimRewardFrom);
-      const balanceAfter = await pond.balanceOf(delegatorAddress);
-      delegatorRewardsRecevied.push(balanceAfter.sub(balanceBefore));
-    }
-
-    return delegatorRewardsRecevied;
-  }
-  async function populateBalances() {
-    await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), await mpondWhiteListedAddress.getAddress());
-
-    const clusterAddresses: string[] = [...ethClusterAddresses, ...dotClusterAddresses, ...maticClusterAddresses];
-    for (let index = 0; index < clusterAddresses.length; index++) {
-      const clusterAddress = clusterAddresses[index];
-      await mpond.connect(mpondWhiteListedAddress).transfer(clusterAddress, random(minMPondToUse, maxMPondToUse));
-      await pond.connect(pondHoldingAddress).transfer(clusterAddress, random(minPondToUse, maxPondToUse));
-    }
-
-    for (let index = 0; index < delegatorAddresss.length; index++) {
-      const delegatorAddress = delegatorAddresss[index];
-      await mpond.connect(mpondWhiteListedAddress).transfer(delegatorAddress, random(minMPondToUse, maxMPondToUse));
-      await pond.connect(pondHoldingAddress).transfer(delegatorAddress, random(minPondToUse, maxPondToUse));
-    }
-
-    for (let index = 0; index < receiverAddresses.length; index++) {
-      const receiver = receiverAddresses[index];
-      await pond.connect(pondHoldingAddress).transfer(receiver, random(minPondToUseByReceiver, maxPondToUseByReeiver));
-    }
-  }
-
-  describe("Check Initialization", async () => {
-    it("Stake Manager", async () => {
+  describe("Check Initialization", async function () {
+    it("Stake Manager", async function () {
       const DEFAULT_ADMIN_ROLE = await stakeManager.DEFAULT_ADMIN_ROLE();
 
       const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
@@ -354,7 +255,7 @@ describe("StakeManager 2", function () {
       expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, mpond.address)).to.be.true;
     });
 
-    it("Reward Delegators", async () => {
+    it("Reward Delegators", async function () {
       expect(await rewardDelegators.stakeAddress()).to.be.eq(stakeManager.address);
       expect(await rewardDelegators.clusterRegistry()).to.be.eq(clusterRegistry.address);
       expect(await rewardDelegators.clusterRewards()).to.be.eq(clusterRewards.address);
@@ -366,7 +267,7 @@ describe("StakeManager 2", function () {
       expect(await rewardDelegators.rewardFactor(mpondTokenId)).to.eq(appConfig.staking.MPondRewardFactor);
     });
 
-    it("Cluster Rewards", async () => {
+    it("Cluster Rewards", async function () {
       const DEFAULT_ADMIN_ROLE = await clusterRewards.DEFAULT_ADMIN_ROLE();
       const CLAIMER_ROLE = await clusterRewards.CLAIMER_ROLE();
 
@@ -390,12 +291,28 @@ describe("StakeManager 2", function () {
     });
   });
 
-  describe("Simulation", async () => {
-    beforeEach(async () => {
-      await populateBalances();
+  describe("Simulation", async function () {
+    beforeEach(async function () {
+      await populateBalances(
+        mpond,
+        pond,
+        mpondWhiteListedAddress,
+        pondHoldingAddress,
+        ethClusterAddresses,
+        dotClusterAddresses,
+        maticClusterAddresses,
+        minMPondToUse,
+        maxMPondToUse,
+        minPondToUse,
+        maxPondToUse,
+        delegatorAddresss,
+        receiverAddresses,
+        minPondToUseByReceiver,
+        maxPondToUseByReeiver
+      );
     });
 
-    it("Ensure Balances", async () => {
+    it("Ensure Balances", async function () {
       for (let index = 0; index < clusterAddresses.length; index++) {
         const cluster = clusterAddresses[index];
         const mpondBalance = await mpond.balanceOf(cluster);
@@ -413,24 +330,24 @@ describe("StakeManager 2", function () {
       }
     });
 
-    describe("Only ETH Delegations, All Commissions equal", async () => {
-      beforeEach(async () => {
-        for (let index = 0; index < clusters.length; index++) {
-          const cluster = clusters[index];
+    describe("Only ETH Delegations, All Commissions equal", async function () {
+      beforeEach(async function () {
+        for (let index = 0; index < ethClusters.length; index++) {
+          const cluster = ethClusters[index];
           const commission = 15;
 
           await clusterRegistry
             .connect(cluster)
-            .register(supportedNetworkIds[0], commission, clusterAddresses[index], clusterAddresses[index]);
+            .register(supportedNetworkIds[0], commission, ethClusterAddresses[index], ethClusterAddresses[index]);
         }
-        await populateEpochReward();
+        await populateEpochReward(pond, pondHoldingAddress, rewardDelegators);
       });
 
       describe("5 clusters, All Equal Delegations (by delegators)", async function () {
         const totalClusters = 5;
         const delegatorsToUse = 20;
 
-        beforeEach(async () => {
+        beforeEach(async function () {
           for (let index = 0; index < delegatorsToUse; index++) {
             const delegator = delegators[index];
             const clusterToDelegate = clusterAddresses[index % totalClusters];
@@ -443,7 +360,7 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it("Check Delegatios", async () => {
+        it("Check Delegatios", async function () {
           const clustersToVerify = clusterAddresses.slice(0, totalClusters);
           for (let index = 0; index < clustersToVerify.length; index++) {
             const cluster = clustersToVerify[index];
@@ -454,7 +371,7 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it("All 5 clusters should be selected", async () => {
+        it("All 5 clusters should be selected", async function () {
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
           let nextEpoch = BN.from(currentEpoch).add(1).toString();
 
@@ -473,20 +390,29 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it("Only 1 receiver, all cluster should get equal reward", async () => {
+        it("Only 1 receiver, all cluster should get equal reward", async function () {
           const receiver = receivers[0];
           let equiWeightedTickets = BN.from(10).pow(18).div(totalClusters);
           const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets];
-          await receiverDeposit(receiver, minPondToUseByReceiver);
+          await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver,
             [supportedNetworkIds[0]],
             clusterAddresses.slice(0, totalClusters),
             weights,
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
 
           for (let index = 0; index < pondRewards.length - 1; index++) {
@@ -502,21 +428,30 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it("Only 1 receiver, tickets ratio 1:2:3:4:5", async () => {
+        it("Only 1 receiver, tickets ratio 1:2:3:4:5", async function () {
           const receiver = receivers[0];
           let fration = BN.from(10).pow(18).div(15);
           const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), fration.mul(5)];
-          await receiverDeposit(receiver, minPondToUseByReceiver);
+          await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
 
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver,
             [supportedNetworkIds[0]],
             clusterAddresses.slice(0, totalClusters),
             weights,
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
 
           // console.log(pondRewards.map((a) => a.toString()));
@@ -536,21 +471,30 @@ describe("StakeManager 2", function () {
           }
         });
 
-        it("Only 1 receiver, tickets ratio 0:0:0:0:1", async () => {
+        it("Only 1 receiver, tickets ratio 0:0:0:0:1", async function () {
           const receiver = receivers[0];
           let fration = BN.from(10).pow(18);
           const zero = BN.from(0);
           const weights = [zero, zero, zero, zero, fration];
-          await receiverDeposit(receiver, minPondToUseByReceiver);
+          await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver,
             [supportedNetworkIds[0]],
             clusterAddresses.slice(0, totalClusters),
             weights,
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
 
           // console.log(pondRewards.map((a) => a.toString()));
@@ -569,26 +513,35 @@ describe("StakeManager 2", function () {
           expect(mpondRewards[mpondRewards.length - 1]).gt(0);
         });
 
-        describe("Failure Cases", async () => {
-          it("Submit tickets to unselected cluster", async () => {
+        describe("Failure Cases", async function () {
+          it("Submit tickets to unselected cluster", async function () {
             const receiver = receivers[0];
             const fraction = BN.from(10).pow(18);
-            await receiverDeposit(receiver, minPondToUseByReceiver);
+            await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
             await skipEpoch();
             let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
             await expect(
               issueTicketsForClusters(
                 epochSelectors[0],
+                rewardDelegators,
+                clusterRegistry,
+                pond,
                 receiver,
                 [supportedNetworkIds[0]],
                 [clusterAddresses[5]],
                 [fraction],
-                currentEpoch
+                currentEpoch,
+                epochSelectorAdmin,
+                skipEpoch,
+                clusterRewards,
+                mpondWhiteListedAddress,
+                pondTokenId,
+                mpondTokenId
               )
             ).to.be.revertedWith("Invalid cluster to issue ticket");
           });
 
-          it("Invalid Receiver can't submit tickets", async () => {
+          it("Invalid Receiver can't submit tickets", async function () {
             const receiver = invalidReceivers[0];
             const fraction = BN.from(10).pow(18);
             await skipEpoch();
@@ -610,23 +563,34 @@ describe("StakeManager 2", function () {
           });
         });
 
-        it("1 receiver, ticket ratio 1:1:1:1:1, all delegator get equal rewards, totalReward < rewardPerEpoch", async () => {
+        it("1 receiver, ticket ratio 1:1:1:1:1, all delegator get equal rewards, totalReward < rewardPerEpoch", async function () {
           const receiver = receivers[0];
           let equiWeightedTickets = BN.from(10).pow(18).div(totalClusters);
           const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets];
-          await receiverDeposit(receiver, minPondToUseByReceiver);
+          await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
           const [, , clusterCommisionReceived] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver,
             [supportedNetworkIds[0]],
             clusterAddresses.slice(0, totalClusters),
             weights,
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
 
           const delegatorRewardsRecevied = await withdrawRewards(
+            pond,
+            rewardDelegators,
             delegatorAddresss.slice(0, delegatorsToUse),
             clusterAddresses.slice(0, totalClusters)
           );
@@ -644,34 +608,52 @@ describe("StakeManager 2", function () {
           expect(totalExpectedRewardToBeDistributed).is.closeTo(totalPondDistributed, 10);
         });
 
-        it("2 Receiver Stake 1:2, Tickets: 1:1 to their respective cluster, delegator reward should be 1:2", async () => {
+        it("2 Receiver Stake 1:2, Tickets: 1:1 to their respective cluster, delegator reward should be 1:2", async function () {
           const [receiver1, receiver2] = getRandomElementsFromArray(receivers, 2);
           const [clusterAddress1, clusterAddress2] = getRandomElementsFromArray(clusterAddresses.slice(0, 5), 2);
 
-          await receiverDeposit(receiver1, minPondToUseByReceiver.div(2));
-          await receiverDeposit(receiver2, minPondToUseByReceiver);
+          await receiverDeposit(pond, receiverStaking, receiver1, minPondToUseByReceiver.div(2));
+          await receiverDeposit(pond, receiverStaking, receiver2, minPondToUseByReceiver);
           const fraction = BN.from(10).pow(18);
           await skipEpoch();
           let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
 
           const [, , clusterCommisionReceived1] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver1,
             [supportedNetworkIds[0]],
             [clusterAddress1],
             [fraction],
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
           const [, , clusterCommisionReceived2] = await issueTicketsForClusters(
             epochSelectors[0],
+            rewardDelegators,
+            clusterRegistry,
+            pond,
             receiver2,
             [supportedNetworkIds[0]],
             [clusterAddress2],
             [fraction],
-            currentEpoch
+            currentEpoch,
+            epochSelectorAdmin,
+            skipEpoch,
+            clusterRewards,
+            mpondWhiteListedAddress,
+            pondTokenId,
+            mpondTokenId
           );
 
-          const delegatorRewardsRecevied = await withdrawRewards(delegatorAddresss.slice(0, delegatorsToUse), [
+          const delegatorRewardsRecevied = await withdrawRewards(pond, rewardDelegators, delegatorAddresss.slice(0, delegatorsToUse), [
             clusterAddress1,
             clusterAddress2,
           ]);
@@ -688,12 +670,16 @@ describe("StakeManager 2", function () {
       });
     });
 
-    describe("All Network, with different commissions", async () => {
-      beforeEach(async () => {
-        expect(ethClusters.length == dotClusters.length, "In these tests number of eth clusters should to equal to dot clusters").to.be
-          .true;
-        expect(maticClusters.length == dotClusters.length, "In these tests number of matic clusters should to equal to dot clusters").to.be
-          .true;
+    describe("All Network, with different commissions", async function () {
+      beforeEach(async function () {
+        expect(
+          ethClusters.length == dotClusters.length,
+          "In these tests number of eth clusters should to equal to dot clusters"
+        ).to.be.true;
+        expect(
+          maticClusters.length == dotClusters.length,
+          "In these tests number of matic clusters should to equal to dot clusters"
+        ).to.be.true;
 
         for (let index = 0; index < ethClusters.length; index++) {
           const ethCluster = ethClusters[index];
@@ -743,7 +729,7 @@ describe("StakeManager 2", function () {
         await skipEpoch();
       });
 
-      it("Check Delegatios", async () => {
+      it("Check Delegatios", async function () {
         const clustersToVerify = [...ethClusterAddresses, ...dotClusterAddresses, ...maticClusterAddresses];
         for (let index = 0; index < clustersToVerify.length; index++) {
           const cluster = clustersToVerify[index];
@@ -754,7 +740,7 @@ describe("StakeManager 2", function () {
         }
       });
 
-      it("Check Selection Func", async () => {
+      it("Check Selection Func", async function () {
         const randomMaticClusters = getRandomElementsFromArray(maticClusterAddresses, 1);
         const [, selectedMaticClusters] = await mineTillGivenClustersAreSelected(epochSelectors[2], randomMaticClusters, skipEpoch);
 
@@ -764,8 +750,7 @@ describe("StakeManager 2", function () {
         }
       });
 
-      
-      describe("Post moving to required epochs", async () => {
+      describe("Post moving to required epochs", async function () {
         let numberOfClustersPerNetworkToTest = 2;
         let numberOfReceiverStakerPerNetworkToTest = 10;
         let numberOfDelegatorsPerCluster = 3;
@@ -801,7 +786,7 @@ describe("StakeManager 2", function () {
         let mpondDelegatedByDotDelegators: string[] = [];
         let mpondDelegatedByMaticDelegators: string[] = [];
 
-        beforeEach(async () => {
+        beforeEach(async function () {
           randomEthClusters = getRandomElementsFromArray(ethClusterAddresses, numberOfClustersPerNetworkToTest);
           randomDotClusters = getRandomElementsFromArray(dotClusterAddresses, numberOfClustersPerNetworkToTest);
           randomMaticClusters = getRandomElementsFromArray(maticClusterAddresses, numberOfClustersPerNetworkToTest);
@@ -829,17 +814,17 @@ describe("StakeManager 2", function () {
 
           for (let index = 0; index < ethReceiversToUse.length; index++) {
             const receiver = ethReceiversToUse[index];
-            await receiverDeposit(receiver, BN.from(ethReceiversStakeAmount[index]));
+            await receiverDeposit(pond, receiverStaking, receiver, BN.from(ethReceiversStakeAmount[index]));
           }
 
           for (let index = 0; index < dotReceiversToUse.length; index++) {
             const receiver = dotReceiversToUse[index];
-            await receiverDeposit(receiver, BN.from(dotReceiversStakeAmount[index]));
+            await receiverDeposit(pond, receiverStaking, receiver, BN.from(dotReceiversStakeAmount[index]));
           }
 
           for (let index = 0; index < maticReceiversToUse.length; index++) {
             const receiver = maticReceiversToUse[index];
-            await receiverDeposit(receiver, BN.from(maticReceiversStakeAmount[index]));
+            await receiverDeposit(pond, receiverStaking, receiver, BN.from(maticReceiversStakeAmount[index]));
           }
 
           await skipEpoch();
@@ -848,19 +833,49 @@ describe("StakeManager 2", function () {
             const delegator = ethDelegatorsToUse[index];
             const clusterUsed = randomEthClusters[index % randomEthClusters.length];
 
-            await newDelegation(delegator, pondDelegatedByEthDelegators[index], mpondDelegatedByEthDelegators[index], clusterUsed);
+            await newDelegation(
+              pond,
+              mpond,
+              delegator,
+              pondDelegatedByEthDelegators[index],
+              mpondDelegatedByEthDelegators[index],
+              clusterUsed,
+              stakeManager,
+              pondTokenId,
+              mpondTokenId
+            );
           }
 
           for (let index = 0; index < dotDelegatorsToUse.length; index++) {
             const delegator = dotDelegatorsToUse[index];
             const clusterUsed = randomDotClusters[index % randomDotClusters.length];
-            await newDelegation(delegator, pondDelegatedByDotDelegators[index], mpondDelegatedByDotDelegators[index], clusterUsed);
+            await newDelegation(
+              pond,
+              mpond,
+              delegator,
+              pondDelegatedByDotDelegators[index],
+              mpondDelegatedByDotDelegators[index],
+              clusterUsed,
+              stakeManager,
+              pondTokenId,
+              mpondTokenId
+            );
           }
 
           for (let index = 0; index < maticDelegatorsToUse.length; index++) {
             const delegator = maticDelegatorsToUse[index];
             const clusterUsed = randomMaticClusters[index % randomMaticClusters.length];
-            await newDelegation(delegator, pondDelegatedByMaticDelegators[index], mpondDelegatedByMaticDelegators[index], clusterUsed);
+            await newDelegation(
+              pond,
+              mpond,
+              delegator,
+              pondDelegatedByMaticDelegators[index],
+              mpondDelegatedByMaticDelegators[index],
+              clusterUsed,
+              stakeManager,
+              pondTokenId,
+              mpondTokenId
+            );
           }
 
           for (let index = 0; index < randomEthClusters.length; index++) {
@@ -891,29 +906,26 @@ describe("StakeManager 2", function () {
           [dotClustersSelectedAt] = await mineTillGivenClustersAreSelected(epochSelectors[1], randomDotClusters, skipEpoch);
           [maticClustersSelectedAt] = await mineTillGivenClustersAreSelected(epochSelectors[2], randomMaticClusters, skipEpoch);
 
-          await populateEpochReward();
+          await populateEpochReward(pond, pondHoldingAddress, rewardDelegators);
           await skipEpoch();
           await skipEpoch();
-        });
 
-        it("Print the epochs used for every network", async () => {
           // console.log({ ethClustersSelectedAt, dotClustersSelectedAt, maticClustersSelectedAt });
-          // console.log({
-          //   randomEthClustersTotalMPondDelegation,
-          //   randomEthClustersTotalPondDelegation,
-          //   randomDotClustersTotalPondDelegation,
-          //   randomDotClustersTotalMPondDelegation,
-          //   randomMaticClustersTotalPondDelegation,
-          //   randomMaticClustersTotalMPondDelegation,
-          // });
         });
 
-        it("Commission received proportional to (issued tickets * commission percent)", async () => {
-          const epoch = BN.from(ethClustersSelectedAt).sub(1).toString();
+        let test_scene = async (
+          clusterSelectedAtEpoch: string,
+          randomClustersSelected: string[],
+          receiversUsedHere: Signer[],
+          epochSelector: Contract,
+          networkId: string,
+          commissionChecker: (comm: string | BN) => void = function () {}
+        ): Promise<void> => {
+          const epoch = BN.from(clusterSelectedAtEpoch).sub(1).toString();
           const weights: BN[] = [];
           let pendingFraction = BN.from(10).pow(18);
 
-          for (let index = 0; index < randomEthClusters.length - 1; index++) {
+          for (let index = 0; index < randomClustersSelected.length - 1; index++) {
             const fraction = random(BN.from(1), pendingFraction);
             weights.push(BN.from(fraction));
             pendingFraction = pendingFraction.sub(fraction);
@@ -921,25 +933,32 @@ describe("StakeManager 2", function () {
           weights.push(pendingFraction);
 
           const clusterCommissions: string[] = [];
-          for (let index = 0; index < randomEthClusters.length; index++) {
-            const cluster = randomEthClusters[index];
+          for (let index = 0; index < randomClustersSelected.length; index++) {
+            const cluster = randomClustersSelected[index];
             const data = await clusterRegistry.callStatic.getCommission(cluster);
             clusterCommissions.push(data.toString());
           }
           // console.log({ clusterCommissions });
 
-          for (let index = 0; index < ethReceiversToUse.length; index++) {
-            const receiver = ethReceiversToUse[index];
-            // console.log({index, receiver: await receiver.getAddress()})
-            // console.log({randomEthClusters, weights: weights.toString(), epoch});
+          for (let index = 0; index < receiversUsedHere.length; index++) {
+            const receiver = receiversUsedHere[index];
 
             const [, , clusterCommisionReceived] = await issueTicketsForClusters(
-              epochSelectors[0],
+              epochSelector,
+              rewardDelegators,
+              clusterRegistry,
+              pond,
               receiver,
-              [supportedNetworkIds[0]],
-              randomEthClusters,
+              [networkId],
+              randomClustersSelected,
               weights,
-              epoch
+              epoch,
+              epochSelectorAdmin,
+              skipEpoch,
+              clusterRewards,
+              mpondWhiteListedAddress,
+              pondTokenId,
+              mpondTokenId
             );
 
             const it_mul_cp = weights.map((val, index) => val.mul(clusterCommissions[index]));
@@ -953,18 +972,40 @@ describe("StakeManager 2", function () {
               const c = clusterCommisionReceived[index].toString();
               expect(t_com.mul(scaler).div(c)).to.be.closeTo(t_it_mul_cp.mul(scaler).div(w), 100000);
             }
+
+            for (let index = 0; index < clusterCommisionReceived.length; index++) {
+              const element = clusterCommisionReceived[index];
+              commissionChecker(element);
+            }
           }
+        };
+        it("Commission received proportional to (issued tickets * commission percent) -- ETH", async function () {
+          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, epochSelectors[0], supportedNetworkIds[0]);
+        });
+
+        it("Commission received proportional to (issued tickets * commission percent) -- DOT", async function () {
+          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, epochSelectors[1], supportedNetworkIds[1]);
+        });
+
+        it("Commission received proportional to (issued tickets * commission percent) -- MATIC", async function () {
+          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, epochSelectors[2], supportedNetworkIds[2]);
+        });
+
+        it("Commission received proportional to (issued tickets * commission percent) -- (ETH,DOT,MATIC)", async function () {
+          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, epochSelectors[0], supportedNetworkIds[0]);
+          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, epochSelectors[1], supportedNetworkIds[1]);
+          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, epochSelectors[2], supportedNetworkIds[2]);
         });
       });
     });
   });
 });
 
-async function mineTillGivenClustersAreSelected(
+const mineTillGivenClustersAreSelected = async (
   epochSelector: Contract,
   clusterAddresses: string[],
   whenNotFound: () => Promise<void>
-): Promise<[string, string[]]> {
+): Promise<[string, string[]]> => {
   let currentEpoch = (await epochSelector.getCurrentEpoch()).toString();
   for (;;) {
     let clusters = (await epochSelector.getClusters(currentEpoch)) as string[];
@@ -985,26 +1026,195 @@ async function mineTillGivenClustersAreSelected(
       currentEpoch = BN.from(currentEpoch.toString()).add(1).toString();
     }
   }
-}
+};
 
-function random(min: BN | string, max: BN | string): string {
+const random = (min: BN | string, max: BN | string): string => {
   const randomizer = ethers.BigNumber.from(ethers.utils.randomBytes(32));
   return randomizer.mod(BN.from(max).sub(min)).add(min).toString();
-}
+};
 
-async function skipTime(t: number) {
+const skipTime = async (t: number) => {
   await ethers.provider.send("evm_increaseTime", [t]);
   await skipBlocks(1);
-}
+};
 
-async function skipBlocks(n: number) {
+const skipBlocks = async (n: number) => {
   await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
-}
+};
 
-function getRandomElementsFromArray<T>(array: T[], noOfElements: number): T[] {
+const getRandomElementsFromArray = <T>(array: T[], noOfElements: number): T[] => {
   if (array.length < noOfElements) {
     throw Error("Insuff Elements in array");
   }
 
   return array.sort(() => 0.5 - Math.random()).slice(0, noOfElements);
-}
+};
+
+const populateEpochReward = async (pondInstance: Contract, pondHoldingAddress: Signer, rewardDelegatorsInstance: Contract) => {
+  await pondInstance.connect(pondHoldingAddress).transfer(rewardDelegatorsInstance.address, REWARD_PER_EPOCH);
+};
+
+const receiverDeposit = async (pondInstance: Contract, receiverStakingInstance: Contract, receiver: Signer, amount: BN) => {
+  await pondInstance.connect(receiver).approve(receiverStakingInstance.address, amount);
+  await receiverStakingInstance.connect(receiver).deposit(amount); //n
+};
+
+const newDelegation = async (
+  pondInstance: Contract,
+  mpondInstance: Contract,
+  delegator: Signer,
+  pondToUse: BN | string,
+  mpondToUse: BN | string,
+  clusterAddress: string,
+  stakeManagerInstance: Contract,
+  pondTokenId: string,
+  mpondTokenId: string
+) => {
+  await pondInstance.connect(delegator).approve(stakeManagerInstance.address, pondToUse.toString());
+  await mpondInstance.connect(delegator).approve(stakeManagerInstance.address, mpondToUse.toString());
+  await stakeManagerInstance
+    .connect(delegator)
+    .createStashAndDelegate([pondTokenId, mpondTokenId], [pondToUse.toString(), mpondToUse.toString()], clusterAddress);
+};
+
+const issueTicketsForClusters = async (
+  epochSelectorInstance: Contract,
+  rewardDelegatorsInstance: Contract,
+  clusterRegistryInstance: Contract,
+  pondInstance: Contract,
+  receiver: Signer,
+  networkIds: string[],
+  clustersToIssueTicketsTo: string[],
+  weights: BN[],
+  currentEpoch: string,
+  epochSelectorAdmin: Signer,
+  skipEpochFunc: () => Promise<void>,
+  clusterRewardsInstance: Contract,
+  anyRandomSigner: Signer,
+  pondTokenId: string,
+  mpondTokenId: string
+): Promise<[BN[], BN[], BN[]]> => {
+  const ethRewardResults = await Promise.all(
+    clustersToIssueTicketsTo.map(async (a) => {
+      let data = await clusterRegistryInstance.callStatic.getRewardInfo(a);
+      return {
+        cluster: a,
+        commission: data[0].toString(),
+        rewardAddress: data[1],
+        clusterRegistryAddress: clusterRegistryInstance.address,
+      };
+    })
+  );
+
+  let currentPlusOne = BN.from(currentEpoch).add(1).toString();
+  await epochSelectorInstance.connect(epochSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
+
+  // console.log({ currentPlusOne, networkIds, weights: weights.map((a) => a.toString()), clustersToIssueTicketsTo });
+  const clusterRewardBalancesBefore: BN[] = [];
+  for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
+    const element = ethRewardResults[index];
+    const clusterOldBalance = await pondInstance.balanceOf(element.rewardAddress);
+    clusterRewardBalancesBefore.push(clusterOldBalance);
+  }
+  // console.log(
+  //   "clusterRewardBalancesBefore",
+  //   clusterRewardBalancesBefore.map((a) => a.toString())
+  // );
+
+  await skipEpochFunc(); // this should not effect other operations
+  await skipEpochFunc(); // this should not effect other operations
+
+  for (let index = 0; index < networkIds.length; index++) {
+    const networkId = networkIds[index];
+    await clusterRewardsInstance
+      .connect(receiver)
+      ["issueTickets(bytes32,uint256,address[],uint256[])"](networkId, currentPlusOne, clustersToIssueTicketsTo, weights);
+  }
+
+  const pondRewardsPerShare: BN[] = [];
+  const mpondRewardsPerShare: BN[] = [];
+
+  for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
+    const cluster = clustersToIssueTicketsTo[index];
+    // console.log({msg: `manually updating rewards for cluster after receiver ${await receiver.getAddress()} issues tickets`, cluster});
+    await rewardDelegatorsInstance.connect(anyRandomSigner)._updateRewards(cluster); // any singer can be used here
+    pondRewardsPerShare.push(await rewardDelegatorsInstance.getAccRewardPerShare(cluster, pondTokenId));
+    mpondRewardsPerShare.push(await rewardDelegatorsInstance.getAccRewardPerShare(cluster, mpondTokenId));
+  }
+
+  const clusterRewardBalancesAfter: BN[] = [];
+  for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
+    const element = ethRewardResults[index];
+    const clusterNewBalance = await pondInstance.balanceOf(element.rewardAddress);
+    clusterRewardBalancesAfter.push(clusterNewBalance);
+  }
+
+  // console.log(
+  //   "clusterRewardBalancesAfter",
+  //   clusterRewardBalancesAfter.map((a) => a.toString())
+  // );
+  const commissionReceived = clusterRewardBalancesAfter.map((a, index) => a.sub(clusterRewardBalancesBefore[index]));
+
+  // console.log(
+  //   "commission received",
+  //   commissionReceived.map((a) => a.toString())
+  // );
+  return [pondRewardsPerShare, mpondRewardsPerShare, commissionReceived];
+};
+
+const withdrawRewards = async (
+  pondInstance: Contract,
+  rewardDelegatorsInstance: Contract,
+  delegatorsList: string[],
+  clustersToClaimRewardFrom: string[]
+): Promise<BN[]> => {
+  const delegatorRewardsRecevied: BN[] = [];
+
+  for (let index = 0; index < delegatorsList.length; index++) {
+    const delegatorAddress = delegatorsList[index];
+    const balanceBefore = await pondInstance.balanceOf(delegatorAddress);
+    await rewardDelegatorsInstance["withdrawRewards(address,address[])"](delegatorAddress, clustersToClaimRewardFrom);
+    const balanceAfter = await pondInstance.balanceOf(delegatorAddress);
+    delegatorRewardsRecevied.push(balanceAfter.sub(balanceBefore));
+  }
+
+  return delegatorRewardsRecevied;
+};
+
+const populateBalances = async (
+  mpondInstance: Contract,
+  pondInstance: Contract,
+  mpondWhiteListedAddress: Signer,
+  pondHoldingAddress: Signer,
+  ethClusterAddresses: string[],
+  dotClusterAddresses: string[],
+  maticClusterAddresses: string[],
+  minMPondToUse: BN | string,
+  maxMPondToUse: BN | string,
+  minPondToUse: BN | string,
+  maxPondToUse: BN | string,
+  delegatorAddresss: string[],
+  receiverAddresses: string[],
+  minPondToUseByReceiver: BN | string,
+  maxPondToUseByReeiver: BN | string
+) => {
+  await mpondInstance.grantRole(ethers.utils.id("WHITELIST_ROLE"), await mpondWhiteListedAddress.getAddress());
+
+  const clusterAddresses: string[] = [...ethClusterAddresses, ...dotClusterAddresses, ...maticClusterAddresses];
+  for (let index = 0; index < clusterAddresses.length; index++) {
+    const clusterAddress = clusterAddresses[index];
+    await mpondInstance.connect(mpondWhiteListedAddress).transfer(clusterAddress, random(minMPondToUse, maxMPondToUse));
+    await pondInstance.connect(pondHoldingAddress).transfer(clusterAddress, random(minPondToUse, maxPondToUse));
+  }
+
+  for (let index = 0; index < delegatorAddresss.length; index++) {
+    const delegatorAddress = delegatorAddresss[index];
+    await mpondInstance.connect(mpondWhiteListedAddress).transfer(delegatorAddress, random(minMPondToUse, maxMPondToUse));
+    await pondInstance.connect(pondHoldingAddress).transfer(delegatorAddress, random(minPondToUse, maxPondToUse));
+  }
+
+  for (let index = 0; index < receiverAddresses.length; index++) {
+    const receiver = receiverAddresses[index];
+    await pondInstance.connect(pondHoldingAddress).transfer(receiver, random(minPondToUseByReceiver, maxPondToUseByReeiver));
+  }
+};
