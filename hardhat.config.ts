@@ -43,6 +43,11 @@ export default {
       url: "https://rpc.ftm.tools/",
       accounts: process.env.FANTOM_DEPLOYER_KEY !== undefined ? [process.env.FANTOM_DEPLOYER_KEY] : undefined,
     },
+    ei: {
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
+      tag: 'ei',
+    },
   },
   solidity: {
     version: "0.8.9",
