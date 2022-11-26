@@ -7,8 +7,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "./Pond.sol";
-import "./MPond.sol";
+import "../token/Pond.sol";
+import "../token/MPond.sol";
+
 
 // convertMultipleEpochs()
 contract Bridge is

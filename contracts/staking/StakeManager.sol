@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./interfaces/IRewardDelegators.sol";
 import "./interfaces/IStakeManager.sol";
-import "../MPond.sol";
+import "../token/MPond.sol";
 
 
 contract StakeManager is

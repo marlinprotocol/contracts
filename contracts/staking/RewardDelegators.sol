@@ -25,7 +25,7 @@ contract RewardDelegators is
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable,  // public upgrade
     IRewardDelegators  // interface
-{   
+{
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -275,7 +275,7 @@ contract RewardDelegators is
 
             _aggregateReward = _aggregateReward + _reward;
         }
-        
+
         bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
         _updateEpochSelector(_networkId, _cluster, _epochSelector);
@@ -516,7 +516,7 @@ contract RewardDelegators is
                 filteredClustersList[addressIndex] = cluster;
                 balances[addressIndex] = uint32(sqrt(totalDelegations));
                 addressIndex++;
-                emit RefreshClusterDelegation(cluster);   
+                emit RefreshClusterDelegation(cluster);
             }
 
         }
@@ -529,7 +529,7 @@ contract RewardDelegators is
         // TODO generalize total delegation calculation using token weights
         uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
         if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection[networkId]){
-            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
+            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond);
         }
         // else totalDelegations should be considered 0
     }
