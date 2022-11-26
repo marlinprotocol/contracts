@@ -70,14 +70,8 @@ describe("StakeManager", function () {
     expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[1])).to.be.false;
     expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[2])).to.be.true;
     expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
-<<<<<<< HEAD
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
-=======
     expect(await stakeManager.lockWaitTime(ethers.utils.id("REDELEGATION_LOCK"))).to.equal(REDELEGATION_WAIT_TIME);
     expect(await stakeManager.lockWaitTime(ethers.utils.id("UNDELEGATION_LOCK"))).to.equal(UNDELEGATION_WAIT_TIME);
-    expect(await stakeManager.hasRole(ethers.utils.id("GATEWAY_ROLE"), addrs[4])).to.be.true;
->>>>>>> github/receiverStaking
   });
 
   it("upgrades", async function () {
@@ -109,14 +103,8 @@ describe("StakeManager", function () {
     expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[1])).to.be.false;
     expect(await stakeManager.hasRole(await stakeManager.DELEGATABLE_TOKEN_ROLE(), addrs[2])).to.be.true;
     expect(await stakeManager.rewardDelegators()).to.equal(addrs[3]);
-<<<<<<< HEAD
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('REDELEGATION_LOCK'))).to.equal(REDELEGATION_WAIT_TIME);
-    expect(await stakeManager.lockWaitTime(ethers.utils.id('UNDELEGATION_LOCK'))).to.equal(UNDELEGATION_WAIT_TIME);
-=======
     expect(await stakeManager.lockWaitTime(ethers.utils.id("REDELEGATION_LOCK"))).to.equal(REDELEGATION_WAIT_TIME);
     expect(await stakeManager.lockWaitTime(ethers.utils.id("UNDELEGATION_LOCK"))).to.equal(UNDELEGATION_WAIT_TIME);
-    expect(await stakeManager.hasRole(ethers.utils.id("GATEWAY_ROLE"), addrs[4])).to.be.true;
->>>>>>> github/receiverStaking
   });
 
   it("does not upgrade without admin", async () => {
