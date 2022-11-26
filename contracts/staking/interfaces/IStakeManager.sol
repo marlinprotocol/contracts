@@ -3,16 +3,12 @@
 pragma solidity ^0.8.0;
 
 interface IStakeManager {
-    function stashes(bytes32 _stashId) external returns(address, address, uint256);
+    function stashes(bytes32 _stashId) external returns(address, address);
     function stashIndex() external returns(uint256);
-    function rewardDelegators() external returns(address);
-    function locks(bytes32 _lockId) external returns(address, bool);
+    function locks(bytes32 _lockId) external returns(uint256, uint256);
     function lockWaitTime(bytes32 _selectorId) external returns(uint256);
     function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external;
-    function changeMPONDTokenAddress(address _MPONDTokenAddress) external;
     function updateRewardDelegators(address _updatedRewardDelegator) external;
-    function updateClusterRegistry(address _updatedClusterRegistry) external;
-    function enableToken(bytes32 _tokenId,address _address) external;
     function disableToken(bytes32 _tokenId) external;
     function createStashAndDelegate(
         bytes32[] calldata _tokens,

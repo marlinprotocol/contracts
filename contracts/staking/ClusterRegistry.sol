@@ -8,6 +8,9 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./interfaces/IClusterRegistry.sol";
+import "./interfaces/IRewardDelegators.sol";
+
 
 contract ClusterRegistry is
     Initializable,  // initializer
@@ -16,7 +19,8 @@ contract ClusterRegistry is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade,
+    IClusterRegistry  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -56,7 +60,7 @@ contract ClusterRegistry is
 
     uint256[50] private __gap1;
 
-    function initialize(uint256[3] calldata _lockWaitTimes)
+    function initialize(uint256[3] calldata _lockWaitTimes, address _rewardDelegators)
         public
         initializer
     {
@@ -74,6 +78,7 @@ contract ClusterRegistry is
             lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
             emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
         }
+        _updateRewardDelegators(_rewardDelegators);
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -100,6 +105,19 @@ contract ClusterRegistry is
 
 //-------------------------------- Locks end --------------------------------//
 
+//-------------------------------- Admin calls start --------------------------------//
+
+    function updateRewardDelegators(address _updatedRewardDelegators) external onlyAdmin {
+        _updateRewardDelegators(_updatedRewardDelegators);
+    }
+
+    function _updateRewardDelegators(address _updatedRewardDelegators) internal {
+        rewardDelegators = IRewardDelegators(_updatedRewardDelegators);
+        emit RewardDelegatorsUpdated(_updatedRewardDelegators);
+    }
+
+//-------------------------------- Admin calls end --------------------------------//
+
 //-------------------------------- Clusters start --------------------------------//
 
     enum Status{NOT_REGISTERED, REGISTERED}
@@ -112,6 +130,8 @@ contract ClusterRegistry is
     }
     mapping(address => Cluster) clusters;
     mapping(address => address) public clientKeys;
+
+    IRewardDelegators public rewardDelegators;
 
     event ClusterRegistered(
         address indexed cluster,
@@ -128,6 +148,7 @@ contract ClusterRegistry is
     event ClientKeyUpdated(address indexed cluster, address clientKey);
     event ClusterUnregisterRequested(address indexed cluster, uint256 effectiveBlock);
     event ClusterUnregistered(address indexed cluster, uint256 updatedAt);
+    event RewardDelegatorsUpdated(address indexed rewardDelegators);
 
     function register(
         bytes32 _networkId,
@@ -148,6 +169,7 @@ contract ClusterRegistry is
         clusters[_msgSender()].status = Status.REGISTERED;
 
         clientKeys[_clientKey] = _msgSender();
+        rewardDelegators.updateClusterDelegation(_msgSender(), _networkId);
 
         emit ClusterRegistered(_msgSender(), _networkId, _commission, _rewardAddress, _clientKey);
     }
@@ -202,7 +224,9 @@ contract ClusterRegistry is
         );
         if(unlockBlock != 0) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
+            rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
             clusters[_msgSender()].networkId = currentNetwork;
+            rewardDelegators.updateClusterDelegation(_msgSender(), currentNetwork);
             emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
         }
         uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
@@ -220,7 +244,6 @@ contract ClusterRegistry is
     }
 
     function updateClientKey(address _clientKey) public {
-        // TODO: Add delay to client key updates as well
         require(
             isClusterValid(_msgSender()),
             "CR:UCK-Cluster not registered"
@@ -250,6 +273,7 @@ contract ClusterRegistry is
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()))];
             delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()))];
+            rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
             return;
         }
         uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
@@ -275,8 +299,10 @@ contract ClusterRegistry is
         uint256 unlockBlock = locks[lockId].unlockBlock;
         if(unlockBlock != 0 && unlockBlock < block.timestamp) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
-            clusters[_msgSender()].networkId = currentNetwork;
-            emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
+            rewardDelegators.removeClusterDelegation(_cluster, clusters[_cluster].networkId);
+            clusters[_cluster].networkId = currentNetwork;
+            rewardDelegators.updateClusterDelegation(_cluster, currentNetwork);
+            emit NetworkSwitched(_cluster, currentNetwork, unlockBlock);
             delete locks[lockId];
             return currentNetwork;
         }
@@ -319,8 +345,9 @@ contract ClusterRegistry is
             delete clientKeys[clusters[_cluster].clientKey];
             emit ClusterUnregistered(_cluster, unlockBlock);
             delete locks[lockId];
-            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, msg.sender))];
-            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, msg.sender))];
+            delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _cluster))];
+            delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _cluster))];
+            rewardDelegators.removeClusterDelegation(_cluster, clusters[_cluster].networkId);
             return false;
         }
         return (clusters[_cluster].status != Status.NOT_REGISTERED);    // returns true if the status is registered

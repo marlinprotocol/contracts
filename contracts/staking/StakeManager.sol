@@ -9,7 +9,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "./IRewardDelegators.sol";
+import "./interfaces/IRewardDelegators.sol";
+import "./interfaces/IStakeManager.sol";
 import "../MPond.sol";
 
 
@@ -20,7 +21,8 @@ contract StakeManager is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IStakeManager  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -105,8 +107,8 @@ contract StakeManager is
         uint256 iValue;
     }
 
-    mapping(bytes32 => Lock) public locks;
-    mapping(bytes32 => uint256) public lockWaitTime;
+    mapping(bytes32 => Lock) public override locks;
+    mapping(bytes32 => uint256) public override lockWaitTime;
 
     uint256[48] private __gap2;
 

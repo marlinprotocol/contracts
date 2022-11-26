@@ -3,11 +3,8 @@
 pragma solidity ^0.8.0;
 
 interface IRewardDelegators {
-    // there's no undelegationWaitTime in rewardDelegators contract
-    function undelegationWaitTime() external returns(uint256);
-    function minMPONDStake() external returns(uint256);
-    function MPONDTokenId() external returns(bytes32);
-    function updateMPONDTokenId(bytes32 _updatedMPONDTokenId) external;
+    function thresholdForSelection(bytes32 networkId) external returns(uint256);
+    function MPOND_TOKEN_ID() external returns(bytes32);
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external;
     function removeRewardFactor(bytes32 _tokenId) external;
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external;
@@ -25,15 +22,15 @@ interface IRewardDelegators {
         uint256[] calldata _amounts
     ) external;
     function withdrawRewards(address _delegator, address _cluster) external returns(uint256);
-    function isClusterActive(address _cluster) external returns(bool);
     function getClusterDelegation(address _cluster, bytes32 _tokenId) external view returns(uint256);
     function getDelegation(address _cluster, address _delegator, bytes32 _tokenId) external view returns(uint256);
-    function updateUndelegationWaitTime(uint256 _undelegationWaitTime) external;
-    function updateMinMPONDStake(uint256 _minMPONDStake) external;
+    function updateThresholdForSelection(bytes32 networkId, uint256 thresholdForSelection) external;
     function updateStakeAddress(address _updatedStakeAddress) external;
     function updateClusterRewards(address _updatedClusterRewards) external;
     function updateClusterRegistry(address _updatedClusterRegistry) external;
     function updatePONDAddress(address _updatedPOND) external;
-    function getFullTokenList() external view returns (bytes32[] memory);
+    function tokenList(uint256 index) external view returns (bytes32);
     function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns(uint256);
+    function updateClusterDelegation(address _cluster, bytes32 _networkId) external;
+    function removeClusterDelegation(address _cluster, bytes32 _networkId) external;
 }

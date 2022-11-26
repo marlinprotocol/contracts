@@ -9,6 +9,11 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
+import "./interfaces/IEpochSelector.sol";
+import "./interfaces/IReceiverStaking.sol";
+import "./interfaces/IClusterRewards.sol";
+
+// import "hardhat/console.sol";
 
 contract ClusterRewards is
     Initializable,  // initializer
@@ -17,7 +22,8 @@ contract ClusterRewards is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IClusterRewards  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -58,19 +64,24 @@ contract ClusterRewards is
     uint256[50] private __gap1;
 
     function initialize(
-        address _feeder,
+        address _admin,
         address _claimer,
+        address _receiverStaking,
         bytes32[] memory _networkIds,
         uint256[] memory _rewardWeight,
-        uint256 _totalRewardsPerEpoch,
-        uint256 _payoutDenomination,
-        uint256 _rewardDistributionWaitTime)
+        address[] memory _epochSelectors,
+        uint256 _totalRewardsPerEpoch
+    )
         public
         initializer
     {
         require(
             _networkIds.length == _rewardWeight.length,
             "CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa"
+        );
+        require(
+            _networkIds.length == _epochSelectors.length,
+            "CRW:I-Each NetworkId need a corresponding epochSelector and vice versa"
         );
 
         __Context_init_unchained();
@@ -80,119 +91,162 @@ contract ClusterRewards is
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         _setupRole(CLAIMER_ROLE, _claimer);
-        _setupRole(FEEDER_ROLE, _feeder);
 
-        uint256 weight = 0;
+        _updateReceiverStaking(_receiverStaking);
+
+        uint256 _weight = 0;
         for(uint256 i=0; i < _networkIds.length; i++) {
             rewardWeight[_networkIds[i]] = _rewardWeight[i];
-            weight = weight + _rewardWeight[i];
-            emit NetworkAdded(_networkIds[i], _rewardWeight[i]);
+            require(_epochSelectors[i] !=  address(0), "CRW:CN-EpochSelector must exist");
+            epochSelectors[_networkIds[i]] = IEpochSelector(_epochSelectors[i]);
+            _weight += _rewardWeight[i];
+            emit NetworkAdded(_networkIds[i], _rewardWeight[i], _epochSelectors[i]);
         }
-        totalWeight = weight;
-        totalRewardsPerEpoch = _totalRewardsPerEpoch;
-        payoutDenomination = _payoutDenomination;
-        rewardDistributionWaitTime = _rewardDistributionWaitTime;
+        totalWeight = _weight;
+        _changeRewardPerEpoch(_totalRewardsPerEpoch);
     }
 
 //-------------------------------- Initializer end --------------------------------//
+
+//-------------------------------- Admin functions start --------------------------------//
+
+    bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
+    uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
 
     mapping(address => uint256) public clusterRewards;
 
     mapping(bytes32 => uint256) public rewardWeight;
     uint256 public totalWeight;
     uint256 public totalRewardsPerEpoch;
-    uint256 public payoutDenomination;
+    uint256 public __unused_1;
 
-    mapping(uint256 => uint256) public rewardDistributedPerEpoch;
-    uint256 public latestNewEpochRewardAt;
-    uint256 public rewardDistributionWaitTime;
+    mapping(uint256 => uint256) public __unused_2;
+    uint256 public __unused_3;
+    uint256 public __unused_4;
 
-    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch);
+    mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
+    mapping(bytes32 => IEpochSelector) public epochSelectors; // networkId -> epochSelector
+    IReceiverStaking public receiverStaking;
+
+    event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch, address epochSelector);
     event NetworkRemoved(bytes32 networkId);
-    event NetworkRewardUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch);
-    event ClusterRewarded(bytes32 networkId);
-    event RewardPerEpochChanged(uint256 _updatedRewardPerEpoch);
-    event PayoutDenominationChanged(uint256 _updatedPayoutDenomination);
-    event RewardDistributionWaitTimeUpdated(uint256 _updatedRewardDistributionWaitTime);
-
-    bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
-    bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
+    event NetworkUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch, address epochSelector);
+    event ReceiverStakingUpdated(address receiverStaking);
+    event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
+    event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
     modifier onlyClaimer() {
         require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
         _;
     }
 
-    modifier onlyFeeder() {
-        require(hasRole(FEEDER_ROLE, _msgSender()), "only feeder");
-        _;
-    }
-
-    function addNetwork(bytes32 _networkId, uint256 _rewardWeight) external onlyAdmin {
+    function addNetwork(bytes32 _networkId, uint256 _rewardWeight, address _epochSelector) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
         require(_rewardWeight != 0, "CRW:AN-Reward cant be 0");
+        require(_epochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _rewardWeight;
-        totalWeight = totalWeight + _rewardWeight;
-        emit NetworkAdded(_networkId, _rewardWeight);
+        epochSelectors[_networkId] = IEpochSelector(_epochSelector);
+        totalWeight += _rewardWeight;
+        emit NetworkAdded(_networkId, _rewardWeight, _epochSelector);
     }
 
     function removeNetwork(bytes32 _networkId) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
         require( networkWeight != 0, "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
-        totalWeight = totalWeight - networkWeight;
+        delete epochSelectors[_networkId];
+        totalWeight -= networkWeight;
         emit NetworkRemoved(_networkId);
     }
 
-    function changeNetworkReward(bytes32 _networkId, uint256 _updatedRewardWeight) external onlyAdmin {
+    function updateNetwork(bytes32 _networkId, uint256 _updatedRewardWeight, address _updatedEpochSelector) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
-        require( networkWeight != 0, "CRW:CNR-Network doesnt exist");
+        require( networkWeight != 0, "CRW:CN-Network doesnt exist");
+        require(_updatedRewardWeight != 0, "CRW:CN-Reward cant be 0");
+        require(_updatedEpochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _updatedRewardWeight;
+        epochSelectors[_networkId] = IEpochSelector(_updatedEpochSelector);
         totalWeight = totalWeight - networkWeight + _updatedRewardWeight;
-        emit NetworkRewardUpdated(_networkId, _updatedRewardWeight);
+        emit NetworkUpdated(_networkId, _updatedRewardWeight, _updatedEpochSelector);
     }
 
-    function feed(
-        bytes32 _networkId,
-        address[] calldata _clusters,
-        uint256[] calldata _payouts,
-        uint256 _epoch
-    ) external onlyFeeder {
-        uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
-        if(rewardDistributed == 0) {
-            require(
-                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime,
-                "CRW:F-Cant distribute reward for new epoch within such short interval"
-            );
-            latestNewEpochRewardAt = block.timestamp;
+    function updateReceiverStaking(address _receiverStaking) external onlyAdmin {
+        _updateReceiverStaking(_receiverStaking);
+    }
+
+    function _updateReceiverStaking(address _receiverStaking) internal {
+        receiverStaking = IReceiverStaking(_receiverStaking);
+        emit ReceiverStakingUpdated(_receiverStaking);
+    }
+
+    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyAdmin {
+        _changeRewardPerEpoch(_updatedRewardPerEpoch);
+    }
+
+    function _changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) internal {
+        totalRewardsPerEpoch = _updatedRewardPerEpoch;
+        emit RewardPerEpochChanged(_updatedRewardPerEpoch);
+    }
+
+//-------------------------------- Admin functions end --------------------------------//
+
+//-------------------------------- User functions start --------------------------------//
+
+    function issueTickets(bytes32 _networkId, uint256[] memory _epoch, address[][] memory _clusters, uint256[][] memory _tickets) external {
+        uint256 numberOfEpochs = _epoch.length;
+        require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
+        require(numberOfEpochs == _clusters.length, "CRW:MIT-invalid inputs");
+        for(uint256 i=0; i < numberOfEpochs; i++) {
+            issueTickets(_networkId, _epoch[i], _clusters[i], _tickets[i]);
         }
-        uint256 totalNetworkWeight = totalWeight;
-        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
-        uint256 currentPayoutDenomination = payoutDenomination;
-        uint256 networkRewardWeight = rewardWeight[_networkId];
+    }
+
+    function issueTickets(bytes32 _networkId, uint256 _epoch, address[] memory _clusters, uint256[] memory _tickets) public {
+        require(_clusters.length == _tickets.length, "CRW:IT-invalid inputs");
+
+        (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
+        // console.log("_epochReceiverStake", _epochReceiverStake);
+        // console.log("_epochTotalStake", _epochTotalStake);
+        // console.log("_currentEpoch", _currentEpoch);
+        // console.log("_epoch", _epoch);
+
+        require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
+        require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
+
+        address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
+
+        // for (uint256 index = 0; index < _clusters.length; index++) {
+        //     console.log("_clusters_to_issue_tickets_to[index]", _clusters[index]);
+        // }
+        
+        // for (uint256 index = 0; index < _selectedClusters.length; index++) {
+        //     console.log("_selectedClusters[index]", _selectedClusters[index]);
+        // }
+        uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
+        // console.log("_epochTicketsIssued", _epochTicketsIssued);
+        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+        // console.log("_totalNetworkRewardsPerEpoch", _totalNetworkRewardsPerEpoch);
+
         for(uint256 i=0; i < _clusters.length; i++) {
-            uint256 clusterReward = ((currentTotalRewardsPerEpoch * networkRewardWeight * _payouts[i]) / totalNetworkWeight) / currentPayoutDenomination;
-            rewardDistributed = rewardDistributed + clusterReward;
-            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
+            require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
+            clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+
+            _epochTicketsIssued += _tickets[i];
+
+            // console.log("for every input cluster clusterRewards[_clusters[i]]", clusterRewards[_clusters[i]]);
+            // console.log("_epochTicketsIssued", _epochTicketsIssued);
         }
-        require(
-            rewardDistributed <= totalRewardsPerEpoch,
-            "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
-        );
-        rewardDistributedPerEpoch[_epoch] = rewardDistributed;
-        emit ClusterRewarded(_networkId);
+
+        require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Excessive tickets issued");
+        ticketsIssued[msg.sender][_epoch] = _epochTicketsIssued;
+
+        emit TicketsIssued(_networkId, _epoch, msg.sender);
     }
 
-    function getRewardPerEpoch(bytes32 _networkId) external view returns(uint256) {
-        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
-    }
-
-    // only cluster registry is necessary because the rewards
-    // should be updated in the cluster registry against the cluster
-    function claimReward(address _cluster) external onlyClaimer returns(uint256) {
+    function claimReward(address _cluster) external onlyRole(CLAIMER_ROLE) returns(uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if(pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards - 1;
@@ -202,18 +256,21 @@ contract ClusterRewards is
         return 0;
     }
 
-    function changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) external onlyAdmin {
-        totalRewardsPerEpoch = _updatedRewardPerEpoch;
-        emit RewardPerEpochChanged(_updatedRewardPerEpoch);
+    function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
+        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
     }
 
-    function changePayoutDenomination(uint256 _updatedPayoutDenomination) external onlyAdmin {
-        payoutDenomination = _updatedPayoutDenomination;
-        emit PayoutDenominationChanged(_updatedPayoutDenomination);
-    }
+//-------------------------------- User functions end --------------------------------//
 
-    function updateRewardDistributionWaitTime(uint256 _updatedRewardDistributionWaitTime) external onlyAdmin {
-        rewardDistributionWaitTime = _updatedRewardDistributionWaitTime;
-        emit RewardDistributionWaitTimeUpdated(_updatedRewardDistributionWaitTime);
+    /// @notice Checks if the array has an element in it
+    /// @param array Array to check
+    /// @param element Element to check in the array
+    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
+        for (uint256 index = 0; index < array.length; index++) {
+            if (element == array[index]) {
+                return true;
+            }
+        }
+        return false;
     }
 }

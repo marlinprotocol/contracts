@@ -9,9 +9,12 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "./IClusterRewards.sol";
-import "./IClusterRegistry.sol";
+import "./interfaces/IClusterRewards.sol";
+import "./interfaces/IClusterRegistry.sol";
+import "./interfaces/IRewardDelegators.sol";
+import "./EpochSelection/EpochSelector.sol";
 
+// import "hardhat/console.sol";
 
 contract RewardDelegators is
     Initializable,  // initializer
@@ -20,18 +23,27 @@ contract RewardDelegators is
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
-{
+    UUPSUpgradeable,  // public upgrade
+    IRewardDelegators  // interface
+{   
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor() initializer {}
+    constructor(bytes32 _pondTokenId, bytes32 _mpondTokenId) initializer {
+        POND_TOKEN_ID = _pondTokenId;
+        MPOND_TOKEN_ID = _mpondTokenId;
+    }
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        _;
+    }
+
+    modifier onlyClusterRegistry()  {
+        require(address(clusterRegistry) == _msgSender());
         _;
     }
 
@@ -115,6 +127,14 @@ contract RewardDelegators is
         mapping(bytes32 => uint256) accRewardPerShare;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable POND_TOKEN_ID;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    bytes32 public immutable MPOND_TOKEN_ID;
+
+    uint256 private constant POND_PER_MPOND = 1_000_000;
+
     mapping(address => Cluster) clusters;
 
     address public stakeAddress;
@@ -124,6 +144,8 @@ contract RewardDelegators is
     IClusterRewards public clusterRewards;
     IClusterRegistry public clusterRegistry;
     IERC20Upgradeable public PONDToken;
+
+    mapping(bytes32 => uint256) public thresholdForSelection; // networkId -> threshold
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -169,15 +191,21 @@ contract RewardDelegators is
     }
 
     function _updateRewards(address _cluster) public {
+        // console.log("================ _update rewards, _cluster", _cluster);
         uint256 reward = clusterRewards.claimReward(_cluster);
+        // console.log("update Rewards _reward", reward);
         if(reward == 0) {
             return;
         }
 
         (uint256 _commission, address _rewardAddress) = clusterRegistry.getRewardInfo(_cluster);
+        // console.log("_update rewards, _commission", _commission);
+        // console.log("================ _update rewards, _rewardAddress", _rewardAddress);
 
         uint256 commissionReward = (reward * _commission) / 100;
         uint256 delegatorReward = reward - commissionReward;
+        // console.log("_update rewards, commissionReward", commissionReward);
+        // console.log("_update rewards, delegatorReward", delegatorReward);
         bytes32[] memory tokens = tokenList;
         uint256[] memory delegations = new uint256[](tokens.length);
         uint256 delegatedTokens = 0;
@@ -201,6 +229,7 @@ contract RewardDelegators is
             }
         }
         if(commissionReward != 0) {
+            // console.log("_update rewards", "trying to transfer commission");
             transferRewards(_rewardAddress, commissionReward);
         }
         emit ClusterRewardDistributed(_cluster);
@@ -246,6 +275,10 @@ contract RewardDelegators is
 
             _aggregateReward = _aggregateReward + _reward;
         }
+        
+        bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        _updateEpochSelector(_networkId, _cluster, _epochSelector);
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -306,6 +339,34 @@ contract RewardDelegators is
         clusters[_cluster].rewardDebt[_delegator][_tokenId] = (_accRewardPerShare * _newBalance) / (10**30);
     }
 
+    function _updateEpochSelector(bytes32 _networkId, address _cluster, IEpochSelector _epochSelector) internal {
+        uint256 totalDelegations = _getTotalDelegations(_cluster, _networkId);
+
+        if(address(_epochSelector) != address(0)) {
+            // if total delegation is more than 0.5 million pond, then insert into selector
+            if(totalDelegations != 0){
+                // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
+                _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
+            }
+            // if not, update it to zero
+            else{
+                _epochSelector.deleteNodeIfPresent(_cluster);
+            }
+        }
+    }
+
+    function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
+        _updateEpochSelector(_networkId, _cluster, _epochSelector);
+    }
+
+    function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
+        _epochSelector.deleteNodeIfPresent(_cluster);
+    }
+
     function undelegate(
         address _delegator,
         address _cluster,
@@ -327,6 +388,7 @@ contract RewardDelegators is
 
     function transferRewards(address _to, uint256 _amount) internal {
         PONDToken.transfer(_to, _amount);
+        // console.log("transfer rewards successful", _amount);
     }
 
     function getClusterDelegation(address _cluster, bytes32 _tokenId)
@@ -410,5 +472,65 @@ contract RewardDelegators is
                 _updateBalances(_cluster, _delegator, _tokens[_tidx], _amounts[_tidx], _isDelegation);
             }
         }
+    }
+
+    function sqrt(uint y) internal pure returns (uint z) {
+        if (y > 3) {
+            z = y;
+            uint x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
+    }
+
+    event UpdateThresholdForSelection(bytes32 networkId, uint256 newThreshold);
+    function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) onlyAdmin external {
+        _updateThresholdForSelection(networkId, newThreshold);
+    }
+
+    function _updateThresholdForSelection(bytes32 _networkId, uint256 _newThreshold) internal {
+        thresholdForSelection[_networkId] = _newThreshold;
+        emit UpdateThresholdForSelection(_networkId, _newThreshold);
+    }
+
+    event RefreshClusterDelegation(address indexed cluster);
+    function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
+        address[] memory filteredClustersList;
+        uint32[] memory balances;
+
+        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+
+        uint256 addressIndex=0;
+        for (uint256 index = 0; index < clusterList.length; index++) {
+            address cluster = clusterList[index];
+            bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
+            require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
+
+            uint256 totalDelegations = _getTotalDelegations(cluster, _networkId);
+
+            if(totalDelegations != 0){
+                filteredClustersList[addressIndex] = cluster;
+                balances[addressIndex] = uint32(sqrt(totalDelegations));
+                addressIndex++;
+                emit RefreshClusterDelegation(cluster);   
+            }
+
+        }
+
+        _epochSelector.insertMultiple(filteredClustersList, balances);
+
+    }
+
+    function _getTotalDelegations(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
+        // TODO generalize total delegation calculation using token weights
+        uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
+        if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection[networkId]){
+            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond); 
+        }
+        // else totalDelegations should be considered 0
     }
 }
