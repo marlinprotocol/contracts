@@ -204,11 +204,7 @@ contract MPond is
             );
         }
 
-        allowances[_msgSender()][spender] = add96(
-            allowances[_msgSender()][spender],
-            amount,
-            "MPond: increaseAllowance allowance value overflows"
-        );
+        allowances[_msgSender()][spender] += amount;
         emit Approval(_msgSender(), spender, allowances[_msgSender()][spender]);
     }
 
@@ -225,11 +221,7 @@ contract MPond is
             );
         }
 
-        allowances[_msgSender()][spender] = sub96(
-            allowances[_msgSender()][spender],
-            amount,
-            "MPond: decreaseAllowance allowance value underflows"
-        );
+        allowances[_msgSender()][spender] -= amount;
         emit Approval(_msgSender(), spender, allowances[_msgSender()][spender]);
     }
 
@@ -288,11 +280,7 @@ contract MPond is
         );
 
         if (spender != src && spenderAllowance != type(uint96).max) {
-            uint96 newAllowance = sub96(
-                spenderAllowance,
-                amount,
-                "MPond::transferFrom: transfer amount exceeds spender allowance"
-            );
+            uint96 newAllowance = spenderAllowance - amount;
             allowances[src][spender] = newAllowance;
 
             emit Approval(src, spender, newAllowance);
@@ -318,29 +306,13 @@ contract MPond is
         );
 
         Balance memory _srcBalance = balances[src];
-        _srcBalance.undelegated = sub96(
-            _srcBalance.undelegated,
-            amount,
-            "MPond::_transferTokens: transfer amount exceeds undelegated balance"
-        );
-        _srcBalance.token = sub96(
-            _srcBalance.token,
-            amount,
-            "MPond::_transferTokens: transfer amount exceeds balance"
-        );
+        _srcBalance.undelegated -= amount;
+        _srcBalance.token -= amount;
         balances[src] = _srcBalance;
 
         Balance memory _dstBalance = balances[dst];
-        _dstBalance.undelegated = add96(
-            _dstBalance.undelegated,
-            amount,
-            "MPond::_transferTokens: undelegated balance overflow"
-        );
-        _dstBalance.token = add96(
-            _dstBalance.token,
-            amount,
-            "MPond::_transferTokens: balance overflow"
-        );
+        _dstBalance.undelegated += amount;
+        _dstBalance.token += amount;
         balances[dst] = _dstBalance;
 
         emit Transfer(src, dst, amount);
@@ -504,18 +476,10 @@ contract MPond is
         uint96 amount
     ) internal {
         Balance memory _srcBalance = balances[delegator];
-        _srcBalance.undelegated = sub96(
-            _srcBalance.undelegated,
-            amount,
-            "MPond: delegates underflow"
-        );
+        _srcBalance.undelegated -= amount;
         balances[delegator] = _srcBalance;
 
-        delegates[delegator][delegatee] = add96(
-            delegates[delegator][delegatee],
-            amount,
-            "MPond: delegates overflow"
-        );
+        delegates[delegator][delegatee] += amount;
 
         emit DelegateChanged(delegator, address(0), delegatee);
 
@@ -527,18 +491,10 @@ contract MPond is
         address delegatee,
         uint96 amount
     ) internal {
-        delegates[delegator][delegatee] = sub96(
-            delegates[delegator][delegatee],
-            amount,
-            "MPond: undelegates underflow"
-        );
+        delegates[delegator][delegatee] -= amount;
 
         Balance memory _srcBalance = balances[delegator];
-        _srcBalance.undelegated = add96(
-            _srcBalance.undelegated,
-            amount,
-            "MPond::_transferTokens: transfer amount exceeds undelegated balance"
-        );
+        _srcBalance.undelegated += amount;
         balances[delegator] = _srcBalance;
 
         emit DelegateChanged(delegator, delegatee, address(0));
@@ -636,11 +592,7 @@ contract MPond is
                 uint96 srcRepOld = srcRepNum != 0
                     ? checkpoints[srcRep][srcRepNum - 1].votes
                     : 0;
-                uint96 srcRepNew = sub96(
-                    srcRepOld,
-                    amount,
-                    "MPond::_moveVotes: vote amount underflows"
-                );
+                uint96 srcRepNew = srcRepOld - amount;
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
@@ -649,11 +601,7 @@ contract MPond is
                 uint96 dstRepOld = dstRepNum != 0
                     ? checkpoints[dstRep][dstRepNum - 1].votes
                     : 0;
-                uint96 dstRepNew = add96(
-                    dstRepOld,
-                    amount,
-                    "MPond::_moveVotes: vote amount overflows"
-                );
+                uint96 dstRepNew = dstRepOld + amount;
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
@@ -709,25 +657,6 @@ contract MPond is
     {
         require(n < 2**96, errorMessage);
         return uint96(n);
-    }
-
-    function add96(
-        uint96 a,
-        uint96 b,
-        string memory errorMessage
-    ) internal pure returns (uint96) {
-        uint96 c = a + b;
-        require(c >= a, errorMessage);
-        return c;
-    }
-
-    function sub96(
-        uint96 a,
-        uint96 b,
-        string memory errorMessage
-    ) internal pure returns (uint96) {
-        require(b <= a, errorMessage);
-        return a - b;
     }
 
 //-------------------------------- uint96 math end --------------------------------//
