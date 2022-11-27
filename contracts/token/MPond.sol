@@ -397,7 +397,7 @@ contract MPond is
         if(delegatee != address(0)) {
             return uint256(delegates[delegator][delegatee]);
         } else{
-            return this.balanceOf(delegator);
+            return this.undelegatedBalanceOf(delegator);
         }
     }
 
