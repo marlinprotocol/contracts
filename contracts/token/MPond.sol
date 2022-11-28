@@ -378,12 +378,10 @@ contract MPond is
      * @param delegatee The address to delegate votes to
      */
     function delegate(address delegatee, uint96 amount) public {
-        require(delegatee != address(0), "MPond: cannot delegate to 0");
         return _delegate(_msgSender(), delegatee, amount);
     }
 
     function undelegate(address delegatee, uint96 amount) public {
-        require(delegatee != address(0), "MPond: cannot undelegate to 0");
         return _undelegate(_msgSender(), delegatee, amount);
     }
 
@@ -405,7 +403,6 @@ contract MPond is
         bytes32 s,
         uint96 amount
     ) public {
-        require(delegatee != address(0), "MPond: cannot delegate to 0");
         bytes32 domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPEHASH,
@@ -442,7 +439,6 @@ contract MPond is
         bytes32 s,
         uint96 amount
     ) public {
-        require(delegatee != address(0), "MPond: cannot undelegate from 0");
         bytes32 domainSeparator = keccak256(
             abi.encode(
                 DOMAIN_TYPEHASH,
@@ -475,6 +471,8 @@ contract MPond is
         address delegatee,
         uint96 amount
     ) internal {
+        // zero address used as undelegated balance
+        require(delegatee != address(0), "MPond: cannot delegate to 0");
         Balance memory _srcBalance = balances[delegator];
         _srcBalance.undelegated -= amount;
         balances[delegator] = _srcBalance;
@@ -491,6 +489,8 @@ contract MPond is
         address delegatee,
         uint96 amount
     ) internal {
+        // zero address used as undelegated balance
+        require(delegatee != address(0), "MPond: cannot undelegate from 0");
         delegates[delegator][delegatee] -= amount;
 
         Balance memory _srcBalance = balances[delegator];
