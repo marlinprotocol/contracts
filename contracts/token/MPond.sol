@@ -588,9 +588,10 @@ contract MPond is
     ) internal {
         if (srcRep != address(0)) {
             uint32 srcRepNum = numCheckpoints[srcRep];
-            uint96 srcRepOld = srcRepNum != 0
-                ? checkpoints[srcRep][srcRepNum - 1].votes
-                : 0;
+            // srcRepNum should never be 0
+            // if it is (due to bugs), tx will revert due to underflow
+            // which matches previous behaviour inherited from compound
+            uint96 srcRepOld = checkpoints[srcRep][srcRepNum - 1].votes;
             uint96 srcRepNew = srcRepOld - amount;
             _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
         }
