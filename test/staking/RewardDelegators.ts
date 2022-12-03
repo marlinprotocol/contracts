@@ -4,7 +4,7 @@ import { BigNumber as BN, Signer, Contract, BigNumber } from "ethers";
 import exp from "constants";
 import { Sign, sign } from "crypto";
 import cluster, { Address } from "cluster";
-const appConfig = require("../app-config");
+const appConfig = require("../../app-config");
 
 declare module "ethers" {
   interface BigNumber {

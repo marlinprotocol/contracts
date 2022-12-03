@@ -1,7 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-const appConfig = require("../app-config");
+const appConfig = require("../../app-config");
 
 declare module "ethers" {
   interface BigNumber {

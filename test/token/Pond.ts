@@ -225,7 +225,7 @@ describe("Pond", function () {
   });
 });
 
-describe("Pond transfer check", function () {
+describe("Pond", function () {
   let signers: Signer[];
   let addrs: string[];
   let pond: Contract;

@@ -1,7 +1,7 @@
 import { ethers, upgrades, network } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-const appConfig = require("../app-config");
+const appConfig = require("../../app-config");
 
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
