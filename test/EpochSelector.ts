@@ -101,7 +101,7 @@ describe("Testing Epoch Selector", function () {
 
     it("Total Clusters less than clusters to select", async () => {
       const allAddresses = [];
-      const noOfElements = Math.floor(Math.random()*numberOfClustersToSelect) + 1;
+      const noOfElements = Math.floor(Math.random() * numberOfClustersToSelect) + 1;
       for (let index = 0; index < noOfElements; index++) {
         const address = randomAddressGenerator("salt" + index);
         await epochSelector.connect(updater).insert(address, getRandomNumber());
@@ -112,14 +112,14 @@ describe("Testing Epoch Selector", function () {
 
         allAddresses.push(ethers.utils.getAddress(address));
       }
-      
+
       await epochSelector.selectClusters();
       const clustersSelected = await epochSelector.callStatic.selectClusters();
       expect(clustersSelected.length).to.equal(allAddresses.length);
-      for(let j = 0; j < clustersSelected.length; j++) {
+      for (let j = 0; j < clustersSelected.length; j++) {
         expect(allAddresses.includes(clustersSelected[j])).to.be.true;
       }
-    })
+    });
 
     it("Multiple entries", async () => {
       const allAddresses = [];

@@ -519,16 +519,12 @@ describe("RewardDelegators Deployment", function () {
       addrs[0],
       rewardDelegatorsInstance.address,
       receiverStaking.address,
-      [
-        ethers.utils.id("DOT"),
-        ethers.utils.id("MATIC"),
-        ethers.utils.id("ETH")
-      ],
+      [ethers.utils.id("DOT"), ethers.utils.id("MATIC"), ethers.utils.id("ETH")],
       [100, 100, 100],
       [
         epochSelectorInstance.address,
         "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        "0x000000000000000000000000000000000000dEaD"  // invalid epoch selector
+        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
       ],
       appConfig.staking.rewardPerEpoch
     );
