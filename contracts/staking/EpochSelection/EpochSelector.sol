@@ -2,41 +2,26 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./SelectorHelper.sol";
 import "../interfaces/IEpochSelector.sol";
-import "./ClusterSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
-contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
+contract EpochSelector is SelectorHelper, IEpochSelector {
     using SafeERC20 for IERC20;
 
-    /// @notice Event emitted when Cluster is selected
-    /// @param epoch Number of Epoch
-    /// @param cluster Address of cluster
-    event ClusterSelected(uint256 indexed epoch, address indexed cluster);
-
-    /// @notice Event emited when the number of clusters to select is updated
-    /// @param newNumberOfClusters New number of clusters selected
-    event UpdateNumberOfClustersToSelect(uint256 newNumberOfClusters);
-
-    /// @notice Event emited when the reward is updated
-    /// @param newReward New Reward For selecting the tokens
-    event UpdateRewardForSelectingTheNodes(uint256 newReward);
-
-    /// @notice Event emited when the reward token is emitted
-    /// @param _newRewardToken Address of the new reward token
-    event UpdateRewardToken(address _newRewardToken);
+    struct MemoryNode {
+        uint256 node; // sorting condition
+        uint256 balance;
+        uint256 left;
+        uint256 sumOfLeftBalances;
+        uint256 right;
+        uint256 sumOfRightBalances;
+    }
 
     /// @notice length of epoch
     uint256 public constant EPOCH_LENGTH = 4 hours;
-
-    /// @notice ID for update role
-    bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
-
-    /// @notice ID for admin role
-    bytes32 public constant ADMIN_ROLE = keccak256(abi.encode("admin"));
 
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
@@ -56,20 +41,38 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
     /// @notice Reward Token
     address public rewardToken;
 
+    /// @notice Event emitted when Cluster is selected
+    /// @param epoch Number of Epoch
+    /// @param cluster Address of cluster
+    event ClusterSelected(uint256 indexed epoch, address indexed cluster);
+
+    /// @notice Event emited when the number of clusters to select is updated
+    /// @param newNumberOfClusters New number of clusters selected
+    event UpdateNumberOfClustersToSelect(uint256 newNumberOfClusters);
+
+    /// @notice Event emited when the reward is updated
+    /// @param newReward New Reward For selecting the tokens
+    event UpdateRewardForSelectingTheNodes(uint256 newReward);
+
+    /// @notice Event emited when the reward token is emitted
+    /// @param _newRewardToken Address of the new reward token
+    event UpdateRewardToken(address _newRewardToken);
+
+    function deleteNodeIfPresent(address key) public override(IEpochSelector, SelectorHelper) returns (bool) {
+        return SelectorHelper.deleteNodeIfPresent(key);
+    }
+
     constructor(
         address _admin,
         uint256 _numberOfClustersToSelect,
         uint256 _startTime,
         address _rewardToken,
         uint256 _rewardForSelectingClusters
-    ) ClusterSelector() {
+    ) SelectorHelper(_admin) {
         START_TIME = _startTime;
         numberOfClustersToSelect = _numberOfClustersToSelect;
 
-        AccessControl._setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
         AccessControl._setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
-
-        AccessControl._grantRole(ADMIN_ROLE, _admin);
         AccessControl._grantRole(REWARD_CONTROLLER_ROLE, _admin);
 
         rewardToken = _rewardToken;
@@ -129,70 +132,227 @@ contract EpochSelector is AccessControl, ClusterSelector, IEpochSelector {
         }
     }
 
-    /// @inheritdoc IClusterSelector
-    function insert(address newNode, uint32 balance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(newNode != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
-        uint32 nodeIndex = addressToIndexMap[newNode];
-        Node memory node = nodes[nodeIndex];
-
-        if (node.node == 0) {
-            uint32 newIndex = getNewId();
-            root = _insert(root, newIndex, balance);
-            totalElements++;
-            indexToAddressMap[newIndex] = newNode;
-            addressToIndexMap[newNode] = newIndex;
-        } else {
-            // int256 differenceInKeyBalance = int256(clusterBalance) - int256(node.balance);
-            _update(root, nodeIndex, int32(balance) - int32(node.balance));
+    /// @notice Weighted random selection of N clusters
+    /// @param randomizer seed for randomness
+    /// @param N number of clusters to select
+    /// @return selectedNodes List of addresses selected
+    function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory selectedNodes) {
+        if(N > totalElements) N = totalElements;
+        MemoryNode[] memory selectedPathTree;
+        // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
+        // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
+        assembly {
+            let pos := mload(0x40)
+            mstore(0x40, add(pos, 2688))
+            mstore(selectedPathTree, 83)
         }
+
+        Node memory _root = nodes[root];
+        selectedPathTree[1] = MemoryNode(_root.node, 0, 0, 0, 0, 0);
+
+        uint256 indexOfLastElementInMemoryTree = 1;
+        // added in next line to save gas and avoid overflow checks
+        uint256 totalWeightInTree = _root.balance;
+        unchecked {
+            totalWeightInTree += _root.sumOfLeftBalances + _root.sumOfRightBalances;
+        }
+        uint256 _sumOfBalancesOfSelectedNodes = 0;
+
+        selectedNodes = new address[](N);
+        for (uint256 index = 0; index < N; ) {
+            randomizer = uint256(keccak256(abi.encode(randomizer, index)));
+            uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
+            uint256 _node;
+            uint256 _selectedNodeBalance;
+
+            (_node, _selectedNodeBalance, , indexOfLastElementInMemoryTree) = _selectTopCluster(
+                root,
+                searchNumber,
+                selectedPathTree,
+                1,
+                indexOfLastElementInMemoryTree
+            );
+
+            selectedNodes[index] = indexToAddressMap[uint32(_node)];
+            unchecked {
+                _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
+                ++index;
+            }
+        }
+        return selectedNodes;
     }
 
-    /// @inheritdoc IClusterSelector
-    function insertMultiple(address[] calldata newNodes, uint32[] calldata balances)
-        public
-        override(IClusterSelector, SingleSelector)
-        onlyRole(UPDATER_ROLE)
+    /// @notice Select top N Clusters
+    function _selectTopCluster(
+        uint32 rootIndex,
+        uint256 searchNumber,
+        MemoryNode[] memory selectedPathTree,
+        uint256 indexOfRootOfMemoryTree,
+        uint256 indexOfLastElementInMemoryTree
+    )
+        internal
+        view
+        returns (
+            uint256, // address of the selected node
+            uint256, // balance of the selected node
+            uint256, // index of the root of memory tree
+            uint256 // updated index of the latest element in the memory tree array
+        )
     {
-        require(newNodes.length == balances.length, "arity mismatch");
-        for (uint256 index = 0; index < newNodes.length; index++) {
-            insert(newNodes[index], balances[index]);
+        unchecked {
+            Node memory _root = nodes[rootIndex];
+            MemoryNode memory mRoot;
+
+            uint256 index1 = _root.sumOfLeftBalances;
+            uint256 index2 = index1 + _root.balance;
+            uint256 index3 = index2 + _root.sumOfRightBalances;
+
+            if (indexOfRootOfMemoryTree != 0) {
+                mRoot = selectedPathTree[indexOfRootOfMemoryTree];
+                (index1, index2, index3) = _getModifiedIndices(index1, index2, index3, mRoot);
+            }
+
+            if (searchNumber <= index1) {
+                // seperated to  avoid stack too deep
+                return
+                    _searchOnLeft(
+                        _root,
+                        searchNumber,
+                        selectedPathTree,
+                        mRoot.left,
+                        indexOfRootOfMemoryTree,
+                        indexOfLastElementInMemoryTree
+                    );
+            } else if (searchNumber > index1 && searchNumber <= index2) {
+                if (indexOfRootOfMemoryTree == 0) {
+                    ++indexOfLastElementInMemoryTree;
+                    indexOfRootOfMemoryTree = indexOfLastElementInMemoryTree;
+                    mRoot.node = _root.node;
+                    mRoot.balance = _root.balance;
+                    selectedPathTree[indexOfRootOfMemoryTree] = mRoot;
+                } else {
+                    selectedPathTree[indexOfRootOfMemoryTree].balance += _root.balance;
+                }
+                return (_root.node, _root.balance, indexOfRootOfMemoryTree, indexOfLastElementInMemoryTree);
+            } else if (searchNumber > index2 && searchNumber <= index3) {
+                // seperated to  avoid stack too deep
+                return
+                    _searchOnRight(
+                        _root,
+                        searchNumber - index2,
+                        selectedPathTree,
+                        mRoot.right,
+                        indexOfRootOfMemoryTree,
+                        indexOfLastElementInMemoryTree
+                    );
+            } else {
+                revert("search number is more than weight");
+            }
         }
     }
 
-    /// @inheritdoc IClusterSelector
-    function deleteNode(address key) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        require(deleteNodeIfPresent(key), Errors.NODE_NOT_PRESENT_IN_THE_TREE);
+    function _searchOnLeft(
+        Node memory root,
+        uint256 searchNumber,
+        MemoryNode[] memory selectedPathTree,
+        uint256 mRootLeft,
+        uint256 indexOfRootOfMemoryTree,
+        uint256 indexOfLastElementInMemoryTree
+    )
+        internal
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        unchecked {
+            (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
+                root.left,
+                searchNumber,
+                selectedPathTree,
+                mRootLeft,
+                indexOfLastElementInMemoryTree
+            );
+            if (indexOfRootOfMemoryTree == 0) {
+                indexOfRootOfMemoryTree = _lastIndexMTree + 1;
+                ++_mTreeSize;
+                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(root.node, 0, 0, 0, 0, 0);
+            }
+            if (mRootLeft == 0) {
+                selectedPathTree[indexOfRootOfMemoryTree].left = _lastIndexMTree;
+            }
+            selectedPathTree[indexOfRootOfMemoryTree].sumOfLeftBalances += _sBalance;
+            return (_sCluster, _sBalance, indexOfRootOfMemoryTree, _mTreeSize);
+        }
     }
 
-    /// @inheritdoc IEpochSelector
-    function deleteNodeIfPresent(address key) public override onlyRole(UPDATER_ROLE) returns (bool) {
-        require(key != address(0), Errors.CANNOT_BE_ADDRESS_ZERO);
-        uint32 indexKey = addressToIndexMap[key];
-
-        Node memory node = nodes[indexKey];
-        if (node.node == indexKey && indexKey != 0) {
-            // delete node
-            root = _deleteNode(root, indexKey, node.balance);
-            totalElements--;
-            delete indexToAddressMap[indexKey];
-            delete addressToIndexMap[key];
-            emptyIds.push(indexKey);
-            return true;
+    function _searchOnRight(
+        Node memory root,
+        uint256 searchNumber,
+        MemoryNode[] memory selectedPathTree,
+        uint256 mRootRight,
+        uint256 indexOfRootOfMemoryTree,
+        uint256 indexOfLastElementInMemoryTree
+    )
+        internal
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        unchecked {
+            (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
+                root.right,
+                searchNumber,
+                selectedPathTree,
+                mRootRight,
+                indexOfLastElementInMemoryTree
+            );
+            if (indexOfRootOfMemoryTree == 0) {
+                indexOfRootOfMemoryTree = _lastIndexMTree + 1;
+                ++_mTreeSize;
+                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(root.node, 0, 0, 0, 0, 0);
+            }
+            if (mRootRight == 0) {
+                selectedPathTree[indexOfRootOfMemoryTree].right = _lastIndexMTree;
+            }
+            selectedPathTree[indexOfRootOfMemoryTree].sumOfRightBalances += _sBalance;
+            return (_sCluster, _sBalance, indexOfRootOfMemoryTree, _mTreeSize);
         }
-        return false;
     }
 
-    /// @inheritdoc IClusterSelector
-    function update(address existingNode, uint32 newBalance) public override(IClusterSelector, SingleSelector) onlyRole(UPDATER_ROLE) {
-        uint32 indexKey = addressToIndexMap[existingNode];
-
-        require(indexKey != 0, Errors.CANNOT_BE_ADDRESS_ZERO);
-        if (nodes[indexKey].node == 0) {
-            assert(false);
-        } else {
-            int32 differenceInKeyBalance = int32(newBalance) - int32(nodes[indexKey].balance);
-            _update(root, indexKey, differenceInKeyBalance);
-        }
+    /// @notice calculates the updated indices for picking direction of tree traversal
+    /// @dev removes selected node weights from indices for selecting left center and right
+    /// @param index1 index to pick left
+    /// @param index2 index to pick center
+    /// @param index3 index to pick right
+    /// @param mNode cummulative weights of selected nodes to be removed from the current indices
+    /// @return mIndex1 updated index to pick left
+    /// @return mIndex2 updated index to pick center
+    /// @return mIndex3 updated index to pick right
+    function _getModifiedIndices(
+        uint256 index1,
+        uint256 index2,
+        uint256 index3,
+        MemoryNode memory mNode
+    )
+        internal
+        pure
+        returns (
+            uint256 mIndex1,
+            uint256 mIndex2,
+            uint256 mIndex3
+        )
+    {
+        mIndex1 = index1 - (mNode.sumOfLeftBalances);
+        mIndex2 = index2 - (mNode.sumOfLeftBalances + mNode.balance);
+        mIndex3 = index3 - (mNode.sumOfLeftBalances + mNode.balance + mNode.sumOfRightBalances);
     }
 
     /// @inheritdoc IEpochSelector

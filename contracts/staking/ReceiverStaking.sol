@@ -9,11 +9,11 @@ import "./lib/ERC20SnapshotUpgradeable.sol";
 import "./interfaces/IReceiverStaking.sol";
 
 contract ReceiverStaking is 
-    IReceiverStaking,  // interface
-    Initializable,
-    ERC20SnapshotUpgradeable,
-    AccessControlEnumerableUpgradeable,
-    UUPSUpgradeable
+    Initializable,  // initializer
+    ERC20SnapshotUpgradeable,  // epoch snapshots
+    AccessControlEnumerableUpgradeable, // RBAC enumerable
+    UUPSUpgradeable,  // public upgrade
+    IReceiverStaking  // interface
 {
 
     // in case we add more contracts in the inheritance chain
@@ -43,6 +43,15 @@ contract ReceiverStaking is
     }
 
     function initialize(address _admin) initializer public {
+
+        __Context_init_unchained();
+        __ERC20Snapshot_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
