@@ -29,10 +29,10 @@ describe("Testing Epoch Selector", function () {
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
-  let numberOfAddressesWithLargeBalances = 4;
-  let numberOfElementsInTree = 50 - numberOfAddressesWithLargeBalances;
+  let numberOfAddressesWithLargeBalances = 10;
+  let numberOfElementsInTree = 300 - numberOfAddressesWithLargeBalances;
 
-  let numberOfSelections: number = 250; // number of trials
+  let numberOfSelections: number = 1000; // number of trials
 
   totalNumberOfElementsUsedInTest = numberOfElementsInTree + numberOfAddressesWithLargeBalances;
 
@@ -53,14 +53,16 @@ describe("Testing Epoch Selector", function () {
       kind: "uups",
     });
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    epochSelector = await EpochSelector.deploy(
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    epochSelector = await upgrades.deployProxy(EpochSelector, [
       admin.address,
       numberOfClustersToSelect,
-      blockData.timestamp,
       pond.address,
       new BN(10).pow(20).toString()
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
   });
 
   it("Check deployment", async () => {
@@ -143,9 +145,9 @@ describe("Testing Epoch Selector", function () {
         allAddresses.push(element.toLowerCase());
       }
 
-      let root = await epochSelector.root();
-      let data = await epochSelector.callStatic.nodeData(root);
-      const totalValueInTree = new BN(data.sumOfRightBalances).plus(data.balance).plus(data.sumOfLeftBalances).toFixed(0);
+      // element at index 1 is root
+      let data = await epochSelector.callStatic.nodes(1);
+      const totalValueInTree = new BN(data.leftSum.toString()).plus(data.value.toString()).plus(data.rightSum.toString()).toFixed(0);
 
       let totalElementsInTree = (await epochSelector.callStatic.getTotalElements()).toNumber();
       let counter: Counter[] = [];
@@ -260,9 +262,9 @@ async function getUnSelectedClustersData(
     const element = unselectedAddresses[index];
 
     const selectedNodeIndex = (await epochSelector.callStatic.addressToIndexMap(element)).toString();
-    const data = await epochSelector.connect(account).callStatic.nodeData(selectedNodeIndex);
+    const data = await epochSelector.connect(account).callStatic.nodes(selectedNodeIndex);
 
-    balances.push({ user: element, balance: data.balance.toString() });
+    balances.push({ user: element, balance: data.value.toString() });
   }
 
   return balances;
@@ -285,9 +287,9 @@ async function getSelectedClusters(account: SignerWithAddress, epochSelector: Co
     const element = clustersSelected[index];
 
     const selectedNodeIndex = (await epochSelector.callStatic.addressToIndexMap(element)).toString();
-    const data = await epochSelector.callStatic.nodeData(selectedNodeIndex);
+    const data = await epochSelector.callStatic.nodes(selectedNodeIndex);
 
-    balances.push({ user: element, balance: data.balance.toString() });
+    balances.push({ user: element, balance: data.value.toString() });
   }
 
   // console.table(balances);
@@ -332,10 +334,10 @@ async function addAddressWithLargeBalance(
     const rndInt = Math.floor(Math.random() * ((numberOfAddressesWithLargeBalances * totalNumberOfElementsUsedInTest) / 100)) + 1;
     let largeBalAddress = randomAddressGenerator("some string" + index);
 
-    let root = await epochSelector.root();
-    let data = await epochSelector.callStatic.nodeData(root);
+    // element at index 1 is root
+    let data = await epochSelector.callStatic.nodes(1);
 
-    let largeBalance = new BN(data.sumOfRightBalances).plus(data.balance).plus(data.sumOfLeftBalances).div(rndInt).toFixed(0);
+    let largeBalance = new BN(data.leftSum.toString()).plus(data.value.toString()).plus(data.rightSum.toString()).div(rndInt).toFixed(0);
 
     await epochSelector.connect(updater).insert(largeBalAddress, "1");
     await epochSelector.connect(updater).update(largeBalAddress, largeBalance);

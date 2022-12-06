@@ -120,7 +120,7 @@ export default {
     timeout: 1000000000,
   },
   gasReporter: {
-    enabled: false,
+    enabled: true,
     // outputFile: 'gasReport.md',
     // noColors: true,
     gasPrice: 100,

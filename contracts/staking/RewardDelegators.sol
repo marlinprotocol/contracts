@@ -500,7 +500,7 @@ contract RewardDelegators is
     event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
         address[] memory filteredClustersList;
-        uint32[] memory balances;
+        uint80[] memory balances;
 
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
 
@@ -514,7 +514,7 @@ contract RewardDelegators is
 
             if(totalDelegations != 0){
                 filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint32(sqrt(totalDelegations));
+                balances[addressIndex] = uint80(sqrt(totalDelegations));
                 addressIndex++;
                 emit RefreshClusterDelegation(cluster);   
             }
