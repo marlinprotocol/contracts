@@ -24,12 +24,12 @@ interface IClusterSelector {
     /// @notice Add an element to tree. If the element already exists, it will be updated
     /// @param newNode Address of the node to add
     /// @param balance Balance of the node
-    function insert(address newNode, uint80 balance) external;
+    function upsert(address newNode, uint80 balance) external;
 
     /// @notice function add multiple addresses in one call
     /// @param newNodes newNodes of the node nodes
     /// @param balances Balances of the new nodes.
-    function insertMultiple(address[] calldata newNodes, uint80[] calldata balances) external;
+    function upsertMultiple(address[] calldata newNodes, uint80[] calldata balances) external;
 
     /// @notice Update the balance of the node
     /// @param cluster Address of the existing node

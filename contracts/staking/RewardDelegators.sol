@@ -346,7 +346,7 @@ contract RewardDelegators is
             // if total delegation is more than 0.5 million pond, then insert into selector
             if(totalDelegations != 0){
                 // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
-                _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
+                _epochSelector.upsert(_cluster, uint32(sqrt(totalDelegations)/1e6));
             }
             // if not, update it to zero
             else{
@@ -521,7 +521,7 @@ contract RewardDelegators is
 
         }
 
-        _epochSelector.insertMultiple(filteredClustersList, balances);
+        _epochSelector.upsertMultiple(filteredClustersList, balances);
 
     }
 

@@ -86,7 +86,9 @@ describe("Testing Epoch Selector", function () {
     it("Add a number", async () => {
       const address = randomAddressGenerator("salt");
       await epochSelector.connect(updater).insert(address, 1);
-      expect(await epochSelector.search(address)).eq(true);
+      const index = await epochSelector.callStatic.addressToIndexMap(address);
+      const node = await epochSelector.callStatic.nodes(index);
+      expect(node.value).eq(1);
     });
 
     it("Multiple entry call", async () => {

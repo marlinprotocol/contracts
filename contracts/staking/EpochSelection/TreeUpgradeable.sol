@@ -49,7 +49,8 @@ contract TreeUpgradeable {
     }
 
     function _insert(address _addr, uint80 _value) internal {
-        require(_addr != address(0));
+        require(_addr != address(0), Errors.CANT_INSERT_ZERO_ADDRESS);
+        require(addressToIndexMap[_addr] == 0, Errors.ADDRESS_ALREADY_EXISTS);
         uint256 _index = nodes.length;
         nodes.push(Node(0, 0, 0));
 
@@ -62,7 +63,8 @@ contract TreeUpgradeable {
     }
 
     function _update(uint256 _index, uint80 _value) internal {
-        require(_index != 0);
+        require(_index != 0, Errors.ZERO_INDEX_INVALID);
+        require(indexToAddressMap[_index] != address(0), Errors.ADDRESS_DOESNT_EXIST);
         uint80 _currentValue = nodes[_index].value;
 
         // console.log("updating node at", _index);
@@ -75,8 +77,20 @@ contract TreeUpgradeable {
         }
     }
 
+    function _upsert(address _addr, uint80 _value) internal {
+        require(_addr != address(0), Errors.CANT_INSERT_ZERO_ADDRESS);
+        uint256 _index = addressToIndexMap[_addr];
+        if(_index == 0) {
+            _insert(_addr, _value);
+        } else {
+            _update(_index, _value);
+        }
+    }
+
     function _delete(uint256 _index) internal {
-        require(_index != 0);
+        require(_index != 0, Errors.ZERO_INDEX_INVALID);
+        address _deleteNodeAddress = indexToAddressMap[_index];
+        require(_deleteNodeAddress != address(0), Errors.ADDRESS_DOESNT_EXIST);
         uint256 _lastNodeIndex = nodes.length - 1;
         uint80 _lastNodeValue = nodes[_lastNodeIndex].value;
 
@@ -86,7 +100,6 @@ contract TreeUpgradeable {
 
         _update(_index, _lastNodeValue);
         address _lastNodeAddress = indexToAddressMap[_lastNodeIndex];
-        address _deleteNodeAddress = indexToAddressMap[_index];
 
         indexToAddressMap[_index] = _lastNodeAddress;
         addressToIndexMap[_lastNodeAddress] = _index;

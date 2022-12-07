@@ -392,21 +392,26 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    dotEpochSelector = await EpochSelector.deploy(
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       5,
-      blockData.timestamp,
       pondInstance.address,
       ethers.utils.parseEther("1").toString()
-    );
-    nearEpochSelector = await EpochSelector.deploy(
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
+
+    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       5,
-      blockData.timestamp,
       pondInstance.address,
       ethers.utils.parseEther("1").toString()
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
@@ -560,21 +565,26 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    dotEpochSelector = await EpochSelector.deploy(
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       5,
-      blockData.timestamp,
       pondInstance.address,
       ethers.utils.parseEther("1").toString()
-    );
-    nearEpochSelector = await EpochSelector.deploy(
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
+
+    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       5,
-      blockData.timestamp,
       pondInstance.address,
       ethers.utils.parseEther("1").toString()
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {

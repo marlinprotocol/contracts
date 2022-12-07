@@ -1,4 +1,4 @@
-import { ethers, run } from "hardhat";
+import { ethers, run, upgrades } from "hardhat";
 import { keccak256 } from "ethers/lib/utils";
 
 const epochSelectorAddress = "0xf1e710E6bb605Bcc7878994Cd88d53Ba6a960959";
@@ -19,14 +19,16 @@ async function deploy() {
   const blockNum = await ethers.provider.getBlockNumber();
   const blockData = await ethers.provider.getBlock(blockNum);
 
-  let EpochSelector = await ethers.getContractFactory("EpochSelector");
-  let epochSelector = await EpochSelector.deploy(
+  let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+  let epochSelector = await upgrades.deployProxy(EpochSelector, [
     addrs[0].address,
     5,
-    blockData.timestamp,
     "0x2f3A40A3db8a7e3D09B0adfEfbCe4f6F81927557", // should be pond address
     0
-  );
+  ], {
+    kind: "uups",
+    constructorArgs: [blockData.timestamp]
+  });
 
   console.log("waiting for the transaction to deploy");
   await epochSelector.deployTransaction.wait(5);
@@ -56,7 +58,7 @@ async function deploy() {
 deploy().then(pump).then(console.log);
 
 async function pump(contractAddress = epochSelectorAddress) {
-  const EpochSelector = await ethers.getContractFactory("EpochSelector");
+  const EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
   const addressesPerBatch = 100;
   const epochSelector = EpochSelector.attach(contractAddress);
 

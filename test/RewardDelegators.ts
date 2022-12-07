@@ -489,16 +489,17 @@ describe("RewardDelegators Deployment", function () {
       addrs[0]
     );
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-    epochSelectorInstance = await EpochSelector.deploy(
+    const blockData = await ethers.provider.getBlock("latest");
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BigNumber.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let role = await epochSelectorInstance.UPDATER_ROLE();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
@@ -857,16 +858,17 @@ describe("RewardDelegators Deployment", function () {
 
     await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-    epochSelectorInstance = await EpochSelector.deploy(
+    const blockData = await ethers.provider.getBlock("latest");
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BigNumber.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let role = await epochSelectorInstance.UPDATER_ROLE();
     await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);

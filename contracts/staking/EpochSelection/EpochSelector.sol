@@ -421,6 +421,16 @@ contract EpochSelectorUpgradeable is
         mIndex3 = index3 - (mNode.sumOfLeftBalances + mNode.balance + mNode.sumOfRightBalances);
     }
 
+    function upsert(address newNode, uint80 balance) external onlyRole(UPDATER_ROLE) {
+        _upsert(newNode, balance);
+    }
+
+    function upsertMultiple(address[] calldata newNodes, uint80[] calldata balances) external onlyRole(UPDATER_ROLE) {
+        for(uint256 i=0; i < newNodes.length; i++) {
+            _upsert(newNodes[i], balances[i]);
+        }
+    }
+
     function insert(address newNode, uint80 balance) external onlyRole(UPDATER_ROLE) {
         _insert(newNode, balance);
     }
