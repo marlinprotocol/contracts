@@ -13,8 +13,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./TreeUpgradeable.sol";
 import "../interfaces/IEpochSelector.sol";
 
-import "hardhat/console.sol";
-
 /// @title Contract to select the top 5 clusters in an epoch
 contract EpochSelectorUpgradeable is 
     Initializable,  // initializer
@@ -38,6 +36,8 @@ contract EpochSelectorUpgradeable is
         uint256 sumOfRightBalances;
     }
 
+    //-------------------------------- Constants start --------------------------------//
+
     /// @notice length of epoch
     uint256 public constant EPOCH_LENGTH = 4 hours;
 
@@ -54,6 +54,10 @@ contract EpochSelectorUpgradeable is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
 
+    //-------------------------------- Constants end --------------------------------//
+
+    //-------------------------------- Variables start --------------------------------//
+
     /// @notice Number of clusters selected in every epoch
     uint256 public numberOfClustersToSelect;
 
@@ -65,6 +69,10 @@ contract EpochSelectorUpgradeable is
 
     /// @notice Reward Token
     address public rewardToken;
+
+    //-------------------------------- Variables end --------------------------------//
+
+    //-------------------------------- Events start --------------------------------//
 
     /// @notice Event emitted when Cluster is selected
     /// @param epoch Number of Epoch
@@ -82,6 +90,8 @@ contract EpochSelectorUpgradeable is
     /// @notice Event emited when the reward token is emitted
     /// @param _newRewardToken Address of the new reward token
     event UpdateRewardToken(address _newRewardToken);
+
+    //-------------------------------- Events end --------------------------------//
 
     //-------------------------------- Overrides start --------------------------------//
 
@@ -101,6 +111,10 @@ contract EpochSelectorUpgradeable is
     }
 
     function _authorizeUpgrade(address /*account*/) onlyRole(ADMIN_ROLE) internal view override {}
+
+    //-------------------------------- Overrides end --------------------------------//
+
+    //-------------------------------- Init starts --------------------------------//
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
@@ -122,6 +136,7 @@ contract EpochSelectorUpgradeable is
         __AccessControlEnumerable_init_unchained();
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
+        __TreeUpgradeable_init_unchained();
 
         numberOfClustersToSelect = _numberOfClustersToSelect;
 
@@ -132,10 +147,11 @@ contract EpochSelectorUpgradeable is
 
         rewardToken = _rewardToken;
         rewardForSelectingClusters = _rewardForSelectingClusters;
-
-        // root starts from index 1
-        nodes.push(Node(0, 0, 0));
     }
+
+    //-------------------------------- Init ends --------------------------------//
+
+    //-------------------------------- Cluster Selection starts --------------------------------//
 
     function getTotalElements() public view override returns (uint256) {
         return nodes.length - 1;
@@ -421,6 +437,10 @@ contract EpochSelectorUpgradeable is
         mIndex3 = index3 - (mNode.sumOfLeftBalances + mNode.balance + mNode.sumOfRightBalances);
     }
 
+    //-------------------------------- Cluster Selection ends --------------------------------//
+
+    //-------------------------------- Tree interactions starts --------------------------------//
+
     function upsert(address newNode, uint80 balance) external onlyRole(UPDATER_ROLE) {
         _upsert(newNode, balance);
     }
@@ -463,6 +483,10 @@ contract EpochSelectorUpgradeable is
         return false;
     }
 
+    //-------------------------------- Tree interactions ends --------------------------------//
+
+    //-------------------------------- Admin functions starts --------------------------------//
+
     /// @inheritdoc IEpochSelector
     function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external override onlyRole(ADMIN_ROLE) {
         require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
@@ -495,6 +519,8 @@ contract EpochSelectorUpgradeable is
             _token.safeTransfer(to, remaining);
         }
     }
+
+    //-------------------------------- Admin functions ends --------------------------------//
 
     // @dev Clusters are selected only for next epoch in this epoch using selectClusters method.
     //      If the method is not called within the previous epoch, then the last selected clusters
