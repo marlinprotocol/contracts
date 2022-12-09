@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "./interfaces/IClusterRewards.sol";
 import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
@@ -24,6 +25,8 @@ contract RewardDelegators is
     UUPSUpgradeable,  // public upgrade
     IRewardDelegators  // interface
 {
+    using MathUpgradeable for uint256;
+
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -337,7 +340,7 @@ contract RewardDelegators is
             // if total delegation is more than 0.5 million pond, then insert into selector
             if(totalDelegations != 0){
                 // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint64
-                _epochSelector.insert(_cluster, uint64(sqrt(totalDelegations)/1e6));
+                _epochSelector.insert(_cluster, uint64(totalDelegations.sqrt()));
             }
             // if not, update it to zero
             else{
@@ -464,20 +467,6 @@ contract RewardDelegators is
         }
     }
 
-    // https://github.com/Uniswap/v2-core/blob/v1.0.1/contracts/libraries/Math.sol
-    function sqrt(uint y) internal pure returns (uint z) {
-       if (y > 3) {
-            z = y;
-            uint x = y / 2 + 1;
-            while (x < z) {
-                z = x;
-                x = (y / x + x) / 2;
-            }
-        } else if (y != 0) {
-            z = 1;
-        }
-    }
-
     event UpdateThresholdForSelection(bytes32 networkId, uint256 newThreshold);
     function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) onlyAdmin external {
         _updateThresholdForSelection(networkId, newThreshold);
@@ -505,7 +494,7 @@ contract RewardDelegators is
 
             if(totalDelegations != 0){
                 filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint64(sqrt(totalDelegations));
+                balances[addressIndex] = uint64(totalDelegations.sqrt());
                 addressIndex++;
                 emit RefreshClusterDelegation(cluster);
             }
