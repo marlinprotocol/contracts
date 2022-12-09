@@ -8,5 +8,5 @@ library Errors {
     string constant ADDRESS_ALREADY_EXISTS = "3";
     string constant ADDRESS_DOESNT_EXIST = "4";
     string constant INVALID_INIT_STATE = "5";
-    string constant CLUSTER_SELECTION_NOT_COMPLETE = "12";
+    string constant CLUSTER_SELECTION_NOT_COMPLETE = "6";
 }

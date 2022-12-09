@@ -237,7 +237,6 @@ contract EpochSelectorUpgradeable is
         for (uint256 index = 0; index < N; ) {
             randomizer = uint256(keccak256(abi.encode(randomizer, index)));
             uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
-            // console.log("<--------------------------- selecting cluster ", index, searchNumber);
             uint256 _node;
             uint256 _selectedNodeBalance;
 
@@ -288,9 +287,6 @@ contract EpochSelectorUpgradeable is
                 (index1, index2, index3) = _getModifiedIndices(index1, index2, index3, mRoot);
             }
 
-            // console.log("<------ searching at index", rootIndex, searchNumber);
-            // console.log(index1, index2, index3);
-
             if (searchNumber <= index1) {
                 // seperated to  avoid stack too deep
                 return
@@ -312,7 +308,6 @@ contract EpochSelectorUpgradeable is
                 } else {
                     selectedPathTree[indexOfRootOfMemoryTree].balance += _root.value;
                 }
-                // console.log("Found it", rootIndex);
                 return (rootIndex, _root.value, indexOfRootOfMemoryTree, indexOfLastElementInMemoryTree);
             } else if (searchNumber > index2 && searchNumber <= index3) {
                 // seperated to  avoid stack too deep
@@ -349,7 +344,6 @@ contract EpochSelectorUpgradeable is
         )
     {
         unchecked {
-            // console.log("Going left to ", rootIndex*2);
             (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
                 rootIndex * 2, // left node
                 searchNumber,
@@ -388,7 +382,6 @@ contract EpochSelectorUpgradeable is
         )
     {
         unchecked {
-            // console.log("Going right to ", rootIndex*2 + 1);
             (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
                 rootIndex * 2 + 1, // right node
                 searchNumber,

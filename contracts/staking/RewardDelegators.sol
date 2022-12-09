@@ -14,8 +14,6 @@ import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
 import "./EpochSelection/EpochSelector.sol";
 
-// import "hardhat/console.sol";
-
 contract RewardDelegators is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -191,21 +189,15 @@ contract RewardDelegators is
     }
 
     function _updateRewards(address _cluster) public {
-        // console.log("================ _update rewards, _cluster", _cluster);
         uint256 reward = clusterRewards.claimReward(_cluster);
-        // console.log("update Rewards _reward", reward);
         if(reward == 0) {
             return;
         }
 
         (uint256 _commission, address _rewardAddress) = clusterRegistry.getRewardInfo(_cluster);
-        // console.log("_update rewards, _commission", _commission);
-        // console.log("================ _update rewards, _rewardAddress", _rewardAddress);
 
         uint256 commissionReward = (reward * _commission) / 100;
         uint256 delegatorReward = reward - commissionReward;
-        // console.log("_update rewards, commissionReward", commissionReward);
-        // console.log("_update rewards, delegatorReward", delegatorReward);
         bytes32[] memory tokens = tokenList;
         uint256[] memory delegations = new uint256[](tokens.length);
         uint256 delegatedTokens = 0;
@@ -229,7 +221,6 @@ contract RewardDelegators is
             }
         }
         if(commissionReward != 0) {
-            // console.log("_update rewards", "trying to transfer commission");
             transferRewards(_rewardAddress, commissionReward);
         }
         emit ClusterRewardDistributed(_cluster);
@@ -388,7 +379,6 @@ contract RewardDelegators is
 
     function transferRewards(address _to, uint256 _amount) internal {
         PONDToken.transfer(_to, _amount);
-        // console.log("transfer rewards successful", _amount);
     }
 
     function getClusterDelegation(address _cluster, bytes32 _tokenId)
