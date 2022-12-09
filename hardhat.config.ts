@@ -1,6 +1,6 @@
 import '@nomiclabs/hardhat-ethers';
-import '@nomiclabs/hardhat-waffle';
 import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-chai-matchers";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
 import dotenv from 'dotenv';
@@ -10,6 +10,11 @@ dotenv.config();
 
 export default {
   networks: {
+    hardhat: {
+      accounts: {
+        count: 350
+      }
+    },
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,

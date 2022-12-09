@@ -559,27 +559,30 @@ describe("StakeManager", function () {
       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-    dotEpochSelectorInstance = await EpochSelector.deploy(
+    const blockData = await ethers.provider.getBlock("latest");
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BN.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let role = await dotEpochSelectorInstance.UPDATER_ROLE();
     await dotEpochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    nearEpochSelectorInstance = await EpochSelector.deploy(
+    nearEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BN.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
     await nearEpochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
@@ -1179,27 +1182,30 @@ describe("StakeManager Deployment", function () {
       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-    dotEpochSelectorInstance = await EpochSelector.deploy(
+    const blockData = await ethers.provider.getBlock("latest");
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BN.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
 
     let role = await dotEpochSelectorInstance.UPDATER_ROLE();
     await dotEpochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
-    nearEpochSelectorInstance = await EpochSelector.deploy(
+    nearEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      blockData.timestamp,
       pondInstance.address,
       BN.from(10).pow(20)
-    );
+    ], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp]
+    });
     await nearEpochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");

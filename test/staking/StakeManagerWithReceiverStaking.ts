@@ -156,15 +156,17 @@ describe("StakeManager With Received Staking", function () {
       initializer: false,
     });
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelector");
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     for (let index = 0; index < supportedNetworks.length; index++) {
-      let epochSelectorContract = await EpochSelector.deploy(
+      let epochSelectorContract = await upgrades.deployProxy(EpochSelector, [
         await epochSelectorAdmin.getAddress(),
         5,
-        blockData.timestamp,
         pond.address,
         BN.from(10).pow(20).toString()
-      );
+      ], {
+        kind: "uups",
+        constructorArgs: [blockData.timestamp]
+      });
       epochSelectors.push(epochSelectorContract);
     }
 
