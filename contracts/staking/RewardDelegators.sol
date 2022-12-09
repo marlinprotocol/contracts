@@ -345,8 +345,8 @@ contract RewardDelegators is
         if(address(_epochSelector) != address(0)) {
             // if total delegation is more than 0.5 million pond, then insert into selector
             if(totalDelegations != 0){
-                // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint32
-                _epochSelector.insert(_cluster, uint32(sqrt(totalDelegations)/1e6));
+                // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint64
+                _epochSelector.insert(_cluster, uint64(sqrt(totalDelegations)/1e6));
             }
             // if not, update it to zero
             else{
@@ -474,8 +474,9 @@ contract RewardDelegators is
         }
     }
 
+    // https://github.com/Uniswap/v2-core/blob/v1.0.1/contracts/libraries/Math.sol
     function sqrt(uint y) internal pure returns (uint z) {
-        if (y > 3) {
+       if (y > 3) {
             z = y;
             uint x = y / 2 + 1;
             while (x < z) {
@@ -500,7 +501,7 @@ contract RewardDelegators is
     event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
         address[] memory filteredClustersList;
-        uint32[] memory balances;
+        uint64[] memory balances;
 
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
 
@@ -514,7 +515,7 @@ contract RewardDelegators is
 
             if(totalDelegations != 0){
                 filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint32(sqrt(totalDelegations));
+                balances[addressIndex] = uint64(sqrt(totalDelegations));
                 addressIndex++;
                 emit RefreshClusterDelegation(cluster);
             }

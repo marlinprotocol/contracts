@@ -2,14 +2,30 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./SelectorHelper.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./TreeUpgradeable.sol";
 import "../interfaces/IEpochSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
-contract EpochSelector is SelectorHelper, IEpochSelector {
-    using SafeERC20 for IERC20;
+contract EpochSelectorUpgradeable is
+    Initializable,  // initializer
+    ContextUpgradeable,  // _msgSender, _msgData
+    ERC165Upgradeable,  // supportsInterface
+    AccessControlUpgradeable,  // RBAC
+    AccessControlEnumerableUpgradeable,  // RBAC enumeration
+    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable,  // public upgrade,
+    TreeUpgradeable, // storage tree
+    IEpochSelector // interface
+{
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     struct MemoryNode {
         uint256 node; // sorting condition
@@ -20,14 +36,27 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
         uint256 sumOfRightBalances;
     }
 
+    //-------------------------------- Constants start --------------------------------//
+
     /// @notice length of epoch
     uint256 public constant EPOCH_LENGTH = 4 hours;
+
+    /// @notice ID for update role
+    bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
+
+    /// @notice ID for admin role
+    bytes32 public constant ADMIN_ROLE = keccak256(abi.encode("admin"));
 
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
 
     /// @notice timestamp when the selector starts
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
+
+    //-------------------------------- Constants end --------------------------------//
+
+    //-------------------------------- Variables start --------------------------------//
 
     /// @notice Number of clusters selected in every epoch
     uint256 public numberOfClustersToSelect;
@@ -40,6 +69,10 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
 
     /// @notice Reward Token
     address public rewardToken;
+
+    //-------------------------------- Variables end --------------------------------//
+
+    //-------------------------------- Events start --------------------------------//
 
     /// @notice Event emitted when Cluster is selected
     /// @param epoch Number of Epoch
@@ -58,29 +91,70 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
     /// @param _newRewardToken Address of the new reward token
     event UpdateRewardToken(address _newRewardToken);
 
-    function deleteNodeIfPresent(address key) public override(IEpochSelector, SelectorHelper) returns (bool) {
-        return SelectorHelper.deleteNodeIfPresent(key);
+    //-------------------------------- Events end --------------------------------//
+
+    //-------------------------------- Overrides start --------------------------------//
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
-    constructor(
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
+    }
+
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+    }
+
+    function _authorizeUpgrade(address /*account*/) onlyRole(ADMIN_ROLE) internal view override {}
+
+    //-------------------------------- Overrides end --------------------------------//
+
+    //-------------------------------- Init starts --------------------------------//
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    // initializes the logic contract without any admins
+    // safeguard against takeover of the logic contract
+    constructor(uint256 _startTime) initializer {
+        START_TIME = _startTime;
+    }
+
+    function initialize(
         address _admin,
         uint256 _numberOfClustersToSelect,
-        uint256 _startTime,
         address _rewardToken,
         uint256 _rewardForSelectingClusters
-    ) SelectorHelper(_admin) {
-        START_TIME = _startTime;
+    ) external initializer {
+
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+        __TreeUpgradeable_init_unchained();
+
         numberOfClustersToSelect = _numberOfClustersToSelect;
 
-        AccessControl._setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
-        AccessControl._grantRole(REWARD_CONTROLLER_ROLE, _admin);
+        _setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
+        _setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
+        _grantRole(REWARD_CONTROLLER_ROLE, _admin);
+        _grantRole(ADMIN_ROLE, _admin);
 
         rewardToken = _rewardToken;
         rewardForSelectingClusters = _rewardForSelectingClusters;
     }
 
+    //-------------------------------- Init ends --------------------------------//
+
+    //-------------------------------- Cluster Selection starts --------------------------------//
+
     function getTotalElements() public view override returns (uint256) {
-        return totalElements;
+        return nodes.length - 1;
     }
 
     /// @notice Current Epoch
@@ -137,6 +211,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
     /// @param N number of clusters to select
     /// @return selectedNodes List of addresses selected
     function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory selectedNodes) {
+        uint256 totalElements = getTotalElements();
         if(N > totalElements) N = totalElements;
         MemoryNode[] memory selectedPathTree;
         // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
@@ -147,14 +222,14 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
             mstore(selectedPathTree, 83)
         }
 
-        Node memory _root = nodes[root];
-        selectedPathTree[1] = MemoryNode(_root.node, 0, 0, 0, 0, 0);
+        Node memory _root = nodes[1];
+        selectedPathTree[1] = MemoryNode(1, 0, 0, 0, 0, 0);
 
         uint256 indexOfLastElementInMemoryTree = 1;
         // added in next line to save gas and avoid overflow checks
-        uint256 totalWeightInTree = _root.balance;
+        uint256 totalWeightInTree = _root.value;
         unchecked {
-            totalWeightInTree += _root.sumOfLeftBalances + _root.sumOfRightBalances;
+            totalWeightInTree += _root.leftSum + _root.rightSum;
         }
         uint256 _sumOfBalancesOfSelectedNodes = 0;
 
@@ -162,11 +237,12 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
         for (uint256 index = 0; index < N; ) {
             randomizer = uint256(keccak256(abi.encode(randomizer, index)));
             uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
+            // console.log("<--------------------------- selecting cluster ", index, searchNumber);
             uint256 _node;
             uint256 _selectedNodeBalance;
 
             (_node, _selectedNodeBalance, , indexOfLastElementInMemoryTree) = _selectTopCluster(
-                root,
+                1, // index of root
                 searchNumber,
                 selectedPathTree,
                 1,
@@ -184,7 +260,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
 
     /// @notice Select top N Clusters
     function _selectTopCluster(
-        uint32 rootIndex,
+        uint256 rootIndex,
         uint256 searchNumber,
         MemoryNode[] memory selectedPathTree,
         uint256 indexOfRootOfMemoryTree,
@@ -203,20 +279,23 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
             Node memory _root = nodes[rootIndex];
             MemoryNode memory mRoot;
 
-            uint256 index1 = _root.sumOfLeftBalances;
-            uint256 index2 = index1 + _root.balance;
-            uint256 index3 = index2 + _root.sumOfRightBalances;
+            uint256 index1 = _root.leftSum;
+            uint256 index2 = index1 + _root.value;
+            uint256 index3 = index2 + _root.rightSum;
 
             if (indexOfRootOfMemoryTree != 0) {
                 mRoot = selectedPathTree[indexOfRootOfMemoryTree];
                 (index1, index2, index3) = _getModifiedIndices(index1, index2, index3, mRoot);
             }
 
+            // console.log("<------ searching at index", rootIndex, searchNumber);
+            // console.log(index1, index2, index3);
+
             if (searchNumber <= index1) {
                 // seperated to  avoid stack too deep
                 return
                     _searchOnLeft(
-                        _root,
+                        rootIndex,
                         searchNumber,
                         selectedPathTree,
                         mRoot.left,
@@ -227,18 +306,19 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
                 if (indexOfRootOfMemoryTree == 0) {
                     ++indexOfLastElementInMemoryTree;
                     indexOfRootOfMemoryTree = indexOfLastElementInMemoryTree;
-                    mRoot.node = _root.node;
-                    mRoot.balance = _root.balance;
+                    mRoot.node = rootIndex;
+                    mRoot.balance = _root.value;
                     selectedPathTree[indexOfRootOfMemoryTree] = mRoot;
                 } else {
-                    selectedPathTree[indexOfRootOfMemoryTree].balance += _root.balance;
+                    selectedPathTree[indexOfRootOfMemoryTree].balance += _root.value;
                 }
-                return (_root.node, _root.balance, indexOfRootOfMemoryTree, indexOfLastElementInMemoryTree);
+                // console.log("Found it", rootIndex);
+                return (rootIndex, _root.value, indexOfRootOfMemoryTree, indexOfLastElementInMemoryTree);
             } else if (searchNumber > index2 && searchNumber <= index3) {
                 // seperated to  avoid stack too deep
                 return
                     _searchOnRight(
-                        _root,
+                        rootIndex,
                         searchNumber - index2,
                         selectedPathTree,
                         mRoot.right,
@@ -252,7 +332,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
     }
 
     function _searchOnLeft(
-        Node memory root,
+        uint256 rootIndex,
         uint256 searchNumber,
         MemoryNode[] memory selectedPathTree,
         uint256 mRootLeft,
@@ -269,8 +349,9 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
         )
     {
         unchecked {
+            // console.log("Going left to ", rootIndex*2);
             (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
-                root.left,
+                rootIndex * 2, // left node
                 searchNumber,
                 selectedPathTree,
                 mRootLeft,
@@ -279,7 +360,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
             if (indexOfRootOfMemoryTree == 0) {
                 indexOfRootOfMemoryTree = _lastIndexMTree + 1;
                 ++_mTreeSize;
-                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(root.node, 0, 0, 0, 0, 0);
+                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(rootIndex, 0, 0, 0, 0, 0);
             }
             if (mRootLeft == 0) {
                 selectedPathTree[indexOfRootOfMemoryTree].left = _lastIndexMTree;
@@ -290,7 +371,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
     }
 
     function _searchOnRight(
-        Node memory root,
+        uint256 rootIndex,
         uint256 searchNumber,
         MemoryNode[] memory selectedPathTree,
         uint256 mRootRight,
@@ -307,8 +388,9 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
         )
     {
         unchecked {
+            // console.log("Going right to ", rootIndex*2 + 1);
             (uint256 _sCluster, uint256 _sBalance, uint256 _lastIndexMTree, uint256 _mTreeSize) = _selectTopCluster(
-                root.right,
+                rootIndex * 2 + 1, // right node
                 searchNumber,
                 selectedPathTree,
                 mRootRight,
@@ -317,7 +399,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
             if (indexOfRootOfMemoryTree == 0) {
                 indexOfRootOfMemoryTree = _lastIndexMTree + 1;
                 ++_mTreeSize;
-                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(root.node, 0, 0, 0, 0, 0);
+                selectedPathTree[indexOfRootOfMemoryTree] = MemoryNode(rootIndex, 0, 0, 0, 0, 0);
             }
             if (mRootRight == 0) {
                 selectedPathTree[indexOfRootOfMemoryTree].right = _lastIndexMTree;
@@ -355,6 +437,56 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
         mIndex3 = index3 - (mNode.sumOfLeftBalances + mNode.balance + mNode.sumOfRightBalances);
     }
 
+    //-------------------------------- Cluster Selection ends --------------------------------//
+
+    //-------------------------------- Tree interactions starts --------------------------------//
+
+    function upsert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
+        _upsert(newNode, balance);
+    }
+
+    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
+        for(uint256 i=0; i < newNodes.length; i++) {
+            _upsert(newNodes[i], balances[i]);
+        }
+    }
+
+    function insert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
+        _insert(newNode, balance);
+    }
+
+    function insertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
+        for(uint256 i=0; i < newNodes.length; i++) {
+            _insert(newNodes[i], balances[i]);
+        }
+    }
+
+    function update(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
+        require(node != address(0));
+        _update(addressToIndexMap[node], balance);
+    }
+
+    function deleteNode(address node) external onlyRole(UPDATER_ROLE) {
+        require(node != address(0));
+        _delete(addressToIndexMap[node]);
+    }
+
+    function deleteNodeIfPresent(address node) external onlyRole(UPDATER_ROLE) returns(bool) {
+        require(node != address(0));
+        uint256 _index = addressToIndexMap[node];
+
+        if(_index != 0) {
+            _delete(_index);
+            return true;
+        }
+
+        return false;
+    }
+
+    //-------------------------------- Tree interactions ends --------------------------------//
+
+    //-------------------------------- Admin functions starts --------------------------------//
+
     /// @inheritdoc IEpochSelector
     function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external override onlyRole(ADMIN_ROLE) {
         require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
@@ -372,7 +504,7 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
 
     function _dispenseReward(address _to) internal {
         if (rewardForSelectingClusters != 0) {
-            IERC20 _rewardToken = IERC20(rewardToken);
+            IERC20Upgradeable _rewardToken = IERC20Upgradeable(rewardToken);
             if (_rewardToken.balanceOf(address(this)) >= rewardForSelectingClusters) {
                 _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
             }
@@ -380,13 +512,15 @@ contract EpochSelector is SelectorHelper, IEpochSelector {
     }
 
     function flushTokens(address token, address to) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        IERC20 _token = IERC20(token);
+        IERC20Upgradeable _token = IERC20Upgradeable(token);
 
         uint256 remaining = _token.balanceOf(address(this));
         if (remaining > 0) {
             _token.safeTransfer(to, remaining);
         }
     }
+
+    //-------------------------------- Admin functions ends --------------------------------//
 
     // @dev Clusters are selected only for next epoch in this epoch using selectClusters method.
     //      If the method is not called within the previous epoch, then the last selected clusters
