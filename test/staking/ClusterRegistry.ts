@@ -68,7 +68,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -78,7 +77,8 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await expect(clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address)).to.be.reverted;
@@ -90,7 +90,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -100,7 +99,8 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -119,7 +119,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -129,7 +128,8 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -149,7 +149,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -159,7 +158,8 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -203,7 +203,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -213,7 +212,8 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -290,7 +290,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -300,7 +299,8 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -441,7 +441,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -451,7 +450,8 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -609,7 +609,6 @@ describe("ClusterRegistry", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -619,7 +618,8 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);

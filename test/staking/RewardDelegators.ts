@@ -51,7 +51,7 @@ describe("RewardDelegators", function () {
 
   it("deploys with initialization disabled", async () => {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    let rewardDelegators = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
+    let rewardDelegators = await RewardDelegators.deploy();
 
     await expect(
       rewardDelegators.initialize(
@@ -60,7 +60,8 @@ describe("RewardDelegators", function () {
         clusterRegistryInstance.address,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
       )
     ).to.be.reverted;
   });
@@ -68,7 +69,6 @@ describe("RewardDelegators", function () {
   it("deploy as proxy and initializes", async () => {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -78,7 +78,8 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId, mpondTokenId]);
@@ -87,7 +88,6 @@ describe("RewardDelegators", function () {
   it("upgrades", async () => {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -97,9 +97,10 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
-    await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { constructorArgs: [pondTokenId, mpondTokenId], kind: "uups" });
+    await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { kind: "uups" });
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId, mpondTokenId]);
   });
@@ -107,7 +108,6 @@ describe("RewardDelegators", function () {
   it("does not upgrade without admin", async () => {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -117,7 +117,8 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
     await expect(
       upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {
@@ -164,7 +165,6 @@ describe("RewardDelegators", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -174,7 +174,8 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
   });
 
@@ -283,7 +284,6 @@ describe("RewardDelegators", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -293,7 +293,8 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
     );
   });
 
@@ -445,7 +446,7 @@ describe("RewardDelegators Deployment", function () {
     clusterRegistryInstance = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegatorsInstance = await RewardDelegators.deploy(pondTokenId, mpondTokenId);
+    rewardDelegatorsInstance = await RewardDelegators.deploy();
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
@@ -457,7 +458,8 @@ describe("RewardDelegators Deployment", function () {
         clusterRegistryInstance.address,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
       )
     ).to.be.reverted;
   });
@@ -473,8 +475,9 @@ describe("RewardDelegators Deployment", function () {
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
       ],
-      { kind: "uups", constructorArgs: [pondTokenId, mpondTokenId] }
+      { kind: "uups" }
     );
     const lockWaitTimes = [20, 21, 22];
     await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);
@@ -539,8 +542,7 @@ describe("RewardDelegators Deployment", function () {
   it("upgrades", async function () {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     await upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(rewardDelegatorsOwner), {
-      kind: "uups",
-      constructorArgs: [pondTokenId, mpondTokenId],
+      kind: "uups"
     });
   });
 
@@ -548,8 +550,7 @@ describe("RewardDelegators Deployment", function () {
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     await expect(
       upgrades.upgradeProxy(rewardDelegatorsInstance.address, RewardDelegators.connect(signers[1]), {
-        kind: "uups",
-        constructorArgs: [pondTokenId, mpondTokenId],
+        kind: "uups"
       })
     ).to.be.reverted;
   });
@@ -851,8 +852,9 @@ describe("RewardDelegators Deployment", function () {
         pondInstance.address,
         [testTokenId],
         [100],
+        [1]
       ],
-      { kind: "uups", constructorArgs: [testTokenId, testTokenId] }
+      { kind: "uups" }
     );
 
     await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);

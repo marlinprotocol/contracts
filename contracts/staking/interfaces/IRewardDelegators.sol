@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 interface IRewardDelegators {
     function thresholdForSelection(bytes32 networkId) external returns(uint256);
-    function MPOND_TOKEN_ID() external returns(bytes32);
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external;
     function removeRewardFactor(bytes32 _tokenId) external;
     function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external;

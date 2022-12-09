@@ -139,7 +139,6 @@ describe("StakeManager With Received Staking", function () {
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      constructorArgs: [pondTokenId, mpondTokenId],
       kind: "uups",
       initializer: false,
     });
@@ -189,7 +188,8 @@ describe("StakeManager With Received Staking", function () {
         clusterRegistry.address,
         pond.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor]
+        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
       );
 
     await clusterRegistry.initialize(lockWaitTimes, rewardDelegators.address);

@@ -33,10 +33,7 @@ contract RewardDelegators is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor(bytes32 _pondTokenId, bytes32 _mpondTokenId) initializer {
-        POND_TOKEN_ID = _pondTokenId;
-        MPOND_TOKEN_ID = _mpondTokenId;
-    }
+    constructor() initializer {}
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
@@ -79,7 +76,8 @@ contract RewardDelegators is
         address _clusterRegistry,
         address _PONDAddress,
         bytes32[] memory _tokenIds,
-        uint256[] memory _rewardFactors
+        uint256[] memory _rewardFactors,
+        uint256[] memory _weightsForThreshold
     )
         initializer
         public
@@ -112,6 +110,7 @@ contract RewardDelegators is
 
         for(uint256 i=0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
+            _updateWeightForThreshold(_tokenIds[i], _weightsForThreshold[i]);
             tokenIndex[_tokenIds[i]] = tokenList.length;
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
@@ -128,12 +127,6 @@ contract RewardDelegators is
         mapping(bytes32 => uint256) accRewardPerShare;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable POND_TOKEN_ID;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    bytes32 public immutable MPOND_TOKEN_ID;
-
     uint256 private constant POND_PER_MPOND = 1_000_000;
 
     mapping(address => Cluster) clusters;
@@ -146,6 +139,7 @@ contract RewardDelegators is
     IClusterRegistry public clusterRegistry;
     IERC20Upgradeable public PONDToken;
 
+    mapping(bytes32 => uint256) public weightForThreshold; // tokenId -> weight towards threshold for selection
     mapping(bytes32 => uint256) public thresholdForSelection; // networkId -> threshold
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
@@ -467,14 +461,24 @@ contract RewardDelegators is
         }
     }
 
-    event UpdateThresholdForSelection(bytes32 networkId, uint256 newThreshold);
+    event ThresholdForSelectionUpdated(bytes32 networkId, uint256 newThreshold);
     function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) onlyAdmin external {
         _updateThresholdForSelection(networkId, newThreshold);
     }
 
     function _updateThresholdForSelection(bytes32 _networkId, uint256 _newThreshold) internal {
         thresholdForSelection[_networkId] = _newThreshold;
-        emit UpdateThresholdForSelection(_networkId, _newThreshold);
+        emit ThresholdForSelectionUpdated(_networkId, _newThreshold);
+    }
+
+    event WeightForThresholdUpdated(bytes32 tokenId, uint256 weight);
+    function updateWeightForThreshold(bytes32 tokenId, uint256 newWeight) onlyAdmin external {
+        _updateWeightForThreshold(tokenId, newWeight);
+    }
+
+    function _updateWeightForThreshold(bytes32 tokenId, uint256 newWeight) internal {
+        weightForThreshold[tokenId] = newWeight;
+        emit WeightForThresholdUpdated(tokenId, newWeight);
     }
 
     event RefreshClusterDelegation(address indexed cluster);
@@ -506,10 +510,16 @@ contract RewardDelegators is
     }
 
     function _getTotalDelegations(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
-        // TODO generalize total delegation calculation using token weights
-        uint256 numberOfMPond = clusters[cluster].totalDelegations[MPOND_TOKEN_ID];
-        if(numberOfMPond*POND_PER_MPOND >= thresholdForSelection[networkId]){
-            totalDelegations = clusters[cluster].totalDelegations[POND_TOKEN_ID] + (POND_PER_MPOND * numberOfMPond);
+        uint256 _totalWeight;
+        for(uint256 i=0; i < tokenList.length; i++) {
+            bytes32 _tokenId = tokenList[i];
+            uint256 _weight = weightForThreshold[_tokenId];
+            if(_weight != 0) {
+                _totalWeight += _weight * clusters[cluster].totalDelegations[_tokenId];
+            }
+        }
+        if(_totalWeight >= thresholdForSelection[networkId]){
+            totalDelegations = _totalWeight;
         }
         // else totalDelegations should be considered 0
     }
