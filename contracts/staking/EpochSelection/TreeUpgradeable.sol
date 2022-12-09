@@ -49,7 +49,7 @@ contract TreeUpgradeable is Initializable {
 
     /**
         @dev Initializes the tree with 0 element as the first element.
-        Node indexes start from 1.
+        Node indexes start from 1 and index 1 is always the root of the tree
     */
     function _initTree() internal {
         require(nodes.length == 0, Errors.INVALID_INIT_STATE);
