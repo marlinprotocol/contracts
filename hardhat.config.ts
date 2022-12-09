@@ -12,27 +12,45 @@ export default {
   networks: {
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.ETH_DEPLOYER_KEY],
+      accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
+    },
+    arb2: {
+      url: "http://127.0.0.1:1248/",
+      accounts: "remote",
+      timeout: 600000,
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_DEPLOYER_KEY] : undefined,
     },
-    arbitrumRinkeby: {
+    goerli: {
+      url: "https://rpc.goerli.dev",
+      accounts: process.env.GOERLI_DEPLOYER_KEY !== undefined ? [process.env.GOERLI_DEPLOYER_KEY] : undefined,
+    },
+    arbg: {
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
+    },
+    arbRinkeby: {
       url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY] : undefined,
     },
     rinkeby: {
       url: "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: [process.env.RINKEBY_DEPLOYER_KEY],
+      accounts: process.env.RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.RINKEBY_DEPLOYER_KEY] : undefined,
     },
     ftm: {
       url: "https://rpc.ftm.tools/",
-      accounts: [process.env.FANTOM_DEPLOYER_KEY],
+      accounts: process.env.FANTOM_DEPLOYER_KEY !== undefined ? [process.env.FANTOM_DEPLOYER_KEY] : undefined,
+    },
+    ei: {
+      url: "https://goerli-rollup.arbitrum.io/rpc",
+      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
+      tag: 'ei',
     },
   },
   solidity: {
-    version: "0.8.9",
+    version: "0.8.17",
     settings: {
       optimizer: {
         enabled: true,
@@ -55,9 +73,20 @@ export default {
     },
   },
   etherscan: {
-    // apiKey: process.env.ETHERSCAN_API_KEY,
-    // apiKey: process.env.ARBISCAN_API_KEY,
-    apiKey: process.env.FTMSCAN_API_KEY,
-  }
+    apiKey: {
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      // arb1: process.env.ARBISCAN_API_KEY,
+      arbg: process.env.ARBISCAN_API_KEY,
+      // ftm: process.env.FTMSCAN_API_KEY,
+    },
+    customChains: [{
+      network: "arbg",
+      chainId: 421613,
+      urls: {
+        apiURL: "https://api-goerli.arbiscan.io/api",
+        browserURL: "https://goerli.arbiscan.io",
+      },
+    }],
+  },
 };
 

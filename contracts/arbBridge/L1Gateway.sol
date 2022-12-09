@@ -13,6 +13,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IInbox.sol";
 
 
+interface IOutbox {
+    function l2ToL1Sender() external view returns (address);
+}
+
+interface IBridge {
+    function activeOutbox() external view returns (address);
+}
+
+
 contract L1Gateway is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -200,6 +209,8 @@ contract L1Gateway is
         address _to,
         uint256 _amount
     ) external onlyOutbox returns (bool) {
+        require(IOutbox(IBridge(_msgSender()).activeOutbox()).l2ToL1Sender() == gatewayL2, "only l2 gateway");
+
         tokenL1.transfer(_to, _amount);
         emit TransferL1(_to, _amount);
         return true;

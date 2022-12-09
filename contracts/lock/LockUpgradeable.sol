@@ -10,7 +10,6 @@ contract LockUpgradeable is
     Initializable,  // initializer
     ContextUpgradeable  // _msgSender, _msgData
 {
-
     struct Lock {
         uint256 unlockTime;
         uint256 iValue;
@@ -18,6 +17,8 @@ contract LockUpgradeable is
 
     mapping(bytes32 => Lock) public locks;
     mapping(bytes32 => uint256) public lockWaitTime;
+
+    uint256[48] private __gap;
 
     enum LockStatus {
         None,

@@ -98,9 +98,9 @@ contract MarketV1 is
 
     uint256[49] private __gap2;
 
-    event ProviderAdded(address provider, string cp);
-    event ProviderRemoved(address provider);
-    event ProviderUpdatedWithCp(address provider, string newCp);
+    event ProviderAdded(address indexed provider, string cp);
+    event ProviderRemoved(address indexed provider);
+    event ProviderUpdatedWithCp(address indexed provider, string newCp);
 
     function _providerAdd(address _provider, string memory _cp) internal {
         providers[_provider] = Provider(_cp);
@@ -139,6 +139,7 @@ contract MarketV1 is
     bytes32 public constant RATE_LOCK_SELECTOR = keccak256("RATE_LOCK");
 
     struct Job {
+        string metadata;
         address owner;
         address provider;
         uint256 rate;
@@ -146,23 +147,23 @@ contract MarketV1 is
         uint256 lastSettled;
     }
 
-    mapping(uint256 => Job) public jobs;
+    mapping(bytes32 => Job) public jobs;
     uint256 jobIndex;
 
     IERC20 token;
 
     uint256[47] private __gap3;
 
-    event TokenUpdated(IERC20 oldToken, IERC20 newToken);
+    event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event JobOpened(uint256 job, address owner, address provider, uint256 rate, uint256 timestamp);
-    event JobSettled(uint256 job, uint256 amount);
-    event JobClosed(uint256 job);
-    event JobDeposited(uint256 job, address from, uint256 amount);
-    event JobWithdrew(uint256 job, address to, uint256 amount);
-    event JobRevisedRate(uint256 job, uint256 newRate);
+    event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 balance, uint256 timestamp);
+    event JobSettled(bytes32 indexed job, uint256 amount, uint256 timestamp);
+    event JobClosed(bytes32 indexed job);
+    event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
+    event JobWithdrew(bytes32 indexed job, address indexed to, uint256 amount);
+    event JobRevisedRate(bytes32 indexed job, uint256 newRate);
 
-    modifier onlyJobOwner(uint256 _job) {
+    modifier onlyJobOwner(bytes32 _job) {
         require(jobs[_job].owner == _msgSender(), "only job owner");
         _;
     }
@@ -180,16 +181,17 @@ contract MarketV1 is
         token.transfer(_to, _amount);
     }
 
-    function _jobOpen(address _owner, address _provider, uint256 _rate, uint256 _balance) internal {
+    function _jobOpen(string memory _metadata, address _owner, address _provider, uint256 _rate, uint256 _balance) internal {
         _deposit(_owner, _balance);
         uint256 _jobIndex = jobIndex;
         jobIndex = _jobIndex + 1;
-        jobs[_jobIndex] = Job(_owner, _provider, _rate, _balance, block.timestamp);
+        bytes32 _job = bytes32(_jobIndex);
+        jobs[_job] = Job(_metadata, _owner, _provider, _rate, _balance, block.timestamp);
 
-        emit JobOpened(_jobIndex, _owner, _provider, _rate, block.timestamp);
+        emit JobOpened(_job, _metadata, _owner, _provider, _rate, _balance, block.timestamp);
     }
 
-    function _jobSettle(uint256 _job) internal {
+    function _jobSettle(bytes32 _job) internal {
         address _provider = jobs[_job].provider;
         uint256 _rate = jobs[_job].rate;
         uint256 _balance = jobs[_job].balance;
@@ -208,12 +210,12 @@ contract MarketV1 is
         _withdraw(_provider, _amount);
 
         jobs[_job].balance = _balance;
-        jobs[_job].lastSettled = _lastSettled;
+        jobs[_job].lastSettled = block.timestamp;
 
-        emit JobSettled(_job, _amount);
+        emit JobSettled(_job, _amount, block.timestamp);
     }
 
-    function _jobClose(uint256 _job) internal {
+    function _jobClose(bytes32 _job) internal {
         _jobSettle(_job);
         uint256 _balance = jobs[_job].balance;
         if(_balance > 0) {
@@ -226,14 +228,14 @@ contract MarketV1 is
         emit JobClosed(_job);
     }
 
-    function _jobDeposit(uint256 _job, address _from, uint256 _amount) internal {
+    function _jobDeposit(bytes32 _job, address _from, uint256 _amount) internal {
         _deposit(_from, _amount);
         jobs[_job].balance += _amount;
 
         emit JobDeposited(_job, _from, _amount);
     }
 
-    function _jobWithdraw(uint256 _job, address _to, uint256 _amount) internal {
+    function _jobWithdraw(bytes32 _job, address _to, uint256 _amount) internal {
         _jobSettle(_job);
 
         jobs[_job].balance -= _amount;
@@ -242,7 +244,7 @@ contract MarketV1 is
         emit JobWithdrew(_job, _to, _amount);
     }
 
-    function _jobReviseRate(uint256 _job, uint256 _newRate) internal {
+    function _jobReviseRate(bytes32 _job, uint256 _newRate) internal {
         _jobSettle(_job);
 
         jobs[_job].rate = _newRate;
@@ -250,47 +252,47 @@ contract MarketV1 is
         emit JobRevisedRate(_job, _newRate);
     }
 
-    function jobOpen(address _provider, uint256 _rate, uint256 _balance) external {
-        return _jobOpen(_msgSender(), _provider, _rate, _balance);
+    function jobOpen(string calldata _metadata, address _provider, uint256 _rate, uint256 _balance) external {
+        return _jobOpen(_metadata, _msgSender(), _provider, _rate, _balance);
     }
 
-    function jobSettle(uint256 _job) external {
+    function jobSettle(bytes32 _job) external {
         return _jobSettle(_job);
     }
 
-    function jobClose(uint256 _job) external onlyJobOwner(_job) {
+    function jobClose(bytes32 _job) external onlyJobOwner(_job) {
         // 0 rate jobs can be closed without notice
         if(jobs[_job].rate == 0) {
             return _jobClose(_job);
         }
 
         // non-0 rate jobs can be closed after proper notice
-        uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, bytes32(_job));
+        uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, _job);
         // 0 rate implies closing to the control plane
         require(_newRate == 0);
 
         return _jobClose(_job);
     }
 
-    function jobDeposit(uint256 _job, uint256 _amount) external {
+    function jobDeposit(bytes32 _job, uint256 _amount) external {
         return _jobDeposit(_job, _msgSender(), _amount);
     }
 
-    function jobWithdraw(uint256 _job, uint256 _amount) external onlyJobOwner(_job) {
+    function jobWithdraw(bytes32 _job, uint256 _amount) external onlyJobOwner(_job) {
         return _jobWithdraw(_job, _msgSender(), _amount);
     }
 
-    function jobReviseRateInitiate(uint256 _job, uint256 _newRate) external onlyJobOwner(_job) {
-        _lock(RATE_LOCK_SELECTOR, bytes32(_job), _newRate);
+    function jobReviseRateInitiate(bytes32 _job, uint256 _newRate) external onlyJobOwner(_job) {
+        _lock(RATE_LOCK_SELECTOR, _job, _newRate);
     }
 
-    function jobReviseRateCancel(uint256 _job) external onlyJobOwner(_job) {
-        require(_lockStatus(RATE_LOCK_SELECTOR, bytes32(_job)) != LockStatus.None);
-        _revertLock(RATE_LOCK_SELECTOR, bytes32(_job));
+    function jobReviseRateCancel(bytes32 _job) external onlyJobOwner(_job) {
+        require(_lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None);
+        _revertLock(RATE_LOCK_SELECTOR, _job);
     }
 
-    function jobReviseRateFinalize(uint256 _job) external onlyJobOwner(_job) {
-        uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, bytes32(_job));
+    function jobReviseRateFinalize(bytes32 _job) external onlyJobOwner(_job) {
+        uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, _job);
         return _jobReviseRate(_job, _newRate);
     }
 
