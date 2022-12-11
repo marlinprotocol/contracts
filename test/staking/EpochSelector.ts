@@ -72,7 +72,7 @@ describe("Testing Epoch Selector", function () {
   it("User can't insert", async () => {
     const address = randomAddressGenerator("1");
     let role = await epochSelector.UPDATER_ROLE();
-    await expect(epochSelector.connect(user).insert(address, 1)).to.be.revertedWith(
+    await expect(epochSelector.connect(user).insert_unchecked(address, 1)).to.be.revertedWith(
       `AccessControl: account ${user.address.toLowerCase()} is missing role ${role}`
     );
   });
@@ -85,7 +85,7 @@ describe("Testing Epoch Selector", function () {
 
     it("Add a number", async () => {
       const address = randomAddressGenerator("salt");
-      await epochSelector.connect(updater).insert(address, 1);
+      await epochSelector.connect(updater).insert_unchecked(address, 1);
       const index = await epochSelector.callStatic.addressToIndexMap(address);
       const node = await epochSelector.callStatic.nodes(index);
       expect(node.value).eq(1);
@@ -100,7 +100,7 @@ describe("Testing Epoch Selector", function () {
         balances.push(getRandomNumber());
       }
 
-      await epochSelector.connect(updater).insertMultiple(addresses, balances);
+      await epochSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
     });
 
     it("Total Clusters less than clusters to select", async () => {
@@ -108,7 +108,7 @@ describe("Testing Epoch Selector", function () {
       const noOfElements = Math.floor(Math.random() * numberOfClustersToSelect) + 1;
       for (let index = 0; index < noOfElements; index++) {
         const address = randomAddressGenerator("salt" + index);
-        await epochSelector.connect(updater).insert(address, getRandomNumber());
+        await epochSelector.connect(updater).insert_unchecked(address, getRandomNumber());
 
         if (index % 100 == 0 || index == noOfElements - 1) {
           console.log(`Elements in tree ${index}/${noOfElements}`);
@@ -129,7 +129,7 @@ describe("Testing Epoch Selector", function () {
       const allAddresses = [];
       for (let index = 0; index < numberOfElementsInTree; index++) {
         const address = randomAddressGenerator("salt" + index);
-        await epochSelector.connect(updater).insert(address, getRandomNumber());
+        await epochSelector.connect(updater).insert_unchecked(address, getRandomNumber());
 
         if (index % 100 == 0 || index == numberOfElementsInTree - 1) {
           console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
@@ -228,7 +228,7 @@ describe("Testing Epoch Selector", function () {
           };
         })
       );
-    });
+    }).timeout(1000000);
   });
 });
 
@@ -341,8 +341,8 @@ async function addAddressWithLargeBalance(
 
     let largeBalance = new BN(data.leftSum.toString()).plus(data.value.toString()).plus(data.rightSum.toString()).div(rndInt).toFixed(0);
 
-    await epochSelector.connect(updater).insert(largeBalAddress, "1");
-    await epochSelector.connect(updater).update(largeBalAddress, largeBalance);
+    await epochSelector.connect(updater).insert_unchecked(largeBalAddress, "1");
+    await epochSelector.connect(updater).update_unchecked(largeBalAddress, largeBalance);
 
     addressesToNote.push(largeBalAddress);
   }
