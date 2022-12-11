@@ -16,9 +16,9 @@ interface IClusterSelector {
     /// @notice Update the balance of the node
     /// @param cluster Address of the existing node
     /// @param clusterBalance new balance of the node
-    function update(address cluster, uint64 clusterBalance) external;
+    function update_unchecked(address cluster, uint64 clusterBalance) external;
 
     /// @notice Delete a node from the tree
     /// @param key Address of the node to delete
-    function deleteNode(address key) external;
+    function delete_unchecked(address key) external;
 }

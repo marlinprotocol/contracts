@@ -47,7 +47,8 @@ contract TreeUpgradeable is Initializable {
         nodes.push(Node(0, 0, 0));
     }
 
-    function _add(uint256 _index, uint64 _value) internal {
+    // assumes index is not 0
+    function _add_unchecked(uint256 _index, uint64 _value) internal {
         nodes[_index].value += _value;
         while(_index > 1) {
             bool _side = _index % 2 == 0;
@@ -60,7 +61,8 @@ contract TreeUpgradeable is Initializable {
         }
     }
 
-    function _sub(uint256 _index, uint64 _value) internal {
+    // assumes index is not 0
+    function _sub_unchecked(uint256 _index, uint64 _value) internal {
         nodes[_index].value -= _value;
         while(_index > 1) {
             bool _side = _index % 2 == 0;
@@ -73,58 +75,67 @@ contract TreeUpgradeable is Initializable {
         }
     }
 
-    function _insert(address _addr, uint64 _value) internal {
-        require(_addr != address(0), Errors.CANT_INSERT_ZERO_ADDRESS);
-        require(addressToIndexMap[_addr] == 0, Errors.ADDRESS_ALREADY_EXISTS);
+    // assumes _addr not already in tree
+    function _insert_unchecked(address _addr, uint64 _value) internal {
         uint256 _index = nodes.length;
         nodes.push(Node(0, 0, 0));
 
         addressToIndexMap[_addr] = _index;
         indexToAddressMap[_index] = _addr;
 
-        _add(_index, _value);
+        _add_unchecked(_index, _value);
     }
 
-    function _update(uint256 _index, uint64 _value) internal {
-        require(_index != 0, Errors.ZERO_INDEX_INVALID);
-        require(indexToAddressMap[_index] != address(0), Errors.ADDRESS_DOESNT_EXIST);
+    // assumes index is not 0
+    function _update_unchecked(uint256 _index, uint64 _value) internal {
         uint64 _currentValue = nodes[_index].value;
 
         if(_currentValue >= _value) {
-            _sub(_index, _currentValue - _value);
+            _sub_unchecked(_index, _currentValue - _value);
         } else {
-            _add(_index, _value - _currentValue);
+            _add_unchecked(_index, _value - _currentValue);
         }
+    }
+
+    // assumes _addr already in tree
+    function _update_unchecked(address _addr, uint64 _value) internal {
+        _update_unchecked(addressToIndexMap[_addr], _value);
     }
 
     function _upsert(address _addr, uint64 _value) internal {
-        require(_addr != address(0), Errors.CANT_INSERT_ZERO_ADDRESS);
         uint256 _index = addressToIndexMap[_addr];
         if(_index == 0) {
-            _insert(_addr, _value);
+            _insert_unchecked(_addr, _value);
         } else {
-            _update(_index, _value);
+            _update_unchecked(_index, _value);
         }
     }
 
-    function _delete(uint256 _index) internal {
-        require(_index != 0, Errors.ZERO_INDEX_INVALID);
-        address _deleteNodeAddress = indexToAddressMap[_index];
-        require(_deleteNodeAddress != address(0), Errors.ADDRESS_DOESNT_EXIST);
+    // assumes _addr already in tree at _index
+    function _delete_unchecked(address _addr, uint256 _index) internal {
         uint256 _lastNodeIndex = nodes.length - 1;
-        uint64 _lastNodeValue = nodes[_lastNodeIndex].value;
-
-        _sub(_lastNodeIndex, _lastNodeValue);
-
-        _update(_index, _lastNodeValue);
         address _lastNodeAddress = indexToAddressMap[_lastNodeIndex];
+        uint64 _lastNodeValue = nodes[_lastNodeIndex].value;
+        // left and right sum will always be 0 for last node
+
+        _sub_unchecked(_lastNodeIndex, _lastNodeValue);
+        _update_unchecked(_index, _lastNodeValue);
 
         indexToAddressMap[_index] = _lastNodeAddress;
         addressToIndexMap[_lastNodeAddress] = _index;
 
         delete indexToAddressMap[_lastNodeIndex];
-        delete addressToIndexMap[_deleteNodeAddress];
+        delete addressToIndexMap[_addr];
 
         nodes.pop();
+    }
+
+    function _deleteIfPresent(address _addr) internal {
+        uint256 _index = addressToIndexMap[_addr];
+        if(_index == 0) {
+            return;
+        }
+
+        _delete_unchecked(_addr, _index);
     }
 }

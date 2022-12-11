@@ -444,36 +444,26 @@ contract EpochSelectorUpgradeable is
         }
     }
 
-    function insert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
-        _insert(newNode, balance);
+    function insert_unchecked(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
+        _insert_unchecked(newNode, balance);
     }
 
-    function insertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
-            _insert(newNodes[i], balances[i]);
+            _insert_unchecked(newNodes[i], balances[i]);
         }
     }
 
-    function update(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
-        require(node != address(0));
-        _update(addressToIndexMap[node], balance);
+    function update_unchecked(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
+        _update_unchecked(node, balance);
     }
 
-    function deleteNode(address node) external onlyRole(UPDATER_ROLE) {
-        require(node != address(0));
-        _delete(addressToIndexMap[node]);
+    function delete_unchecked(address node) external onlyRole(UPDATER_ROLE) {
+        _delete_unchecked(node, addressToIndexMap[node]);
     }
 
-    function deleteNodeIfPresent(address node) external onlyRole(UPDATER_ROLE) returns(bool) {
-        require(node != address(0));
-        uint256 _index = addressToIndexMap[node];
-
-        if(_index != 0) {
-            _delete(_index);
-            return true;
-        }
-
-        return false;
+    function deleteIfPresent(address node) external onlyRole(UPDATER_ROLE) {
+        _deleteIfPresent(node);
     }
 
     //-------------------------------- Tree interactions ends --------------------------------//
