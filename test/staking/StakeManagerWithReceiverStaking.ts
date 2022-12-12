@@ -191,7 +191,8 @@ describe("StakeManager With Received Staking", function () {
         pond.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
       );
 
     await clusterRegistry.initialize(lockWaitTimes, rewardDelegators.address);

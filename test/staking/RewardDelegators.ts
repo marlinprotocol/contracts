@@ -61,7 +61,8 @@ describe("RewardDelegators", function () {
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
       )
     ).to.be.reverted;
   });
@@ -79,7 +80,8 @@ describe("RewardDelegators", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId, mpondTokenId]);
@@ -98,7 +100,8 @@ describe("RewardDelegators", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { kind: "uups" });
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
@@ -118,7 +121,8 @@ describe("RewardDelegators", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
     await expect(
       upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {
@@ -174,7 +178,8 @@ describe("RewardDelegators", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
   });
 
@@ -293,7 +298,8 @@ describe("RewardDelegators", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
   });
 
@@ -458,7 +464,8 @@ describe("RewardDelegators Deployment", function () {
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
       )
     ).to.be.reverted;
   });
@@ -474,7 +481,8 @@ describe("RewardDelegators Deployment", function () {
         pondInstance.address,
         [pondTokenId, mpondTokenId],
         [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
       ],
       { kind: "uups" }
     );

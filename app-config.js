@@ -75,7 +75,9 @@ let staking = {
   PondRewardFactor: 100,
   MPondRewardFactor: 100,
   PondWeightForThreshold: 0,
-  MPondWeightForThreshold: 1000000
+  MPondWeightForThreshold: 1000000,
+  PondWeightForDelegation: 1,
+  MPondWeightForDelegation: 1000000,
 };
 
 module.exports = {

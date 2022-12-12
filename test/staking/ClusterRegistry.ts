@@ -78,7 +78,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await expect(clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address)).to.be.reverted;
@@ -100,7 +101,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -129,7 +131,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -159,7 +162,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -213,7 +217,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -300,7 +305,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -456,7 +462,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -629,7 +636,8 @@ describe("ClusterRegistry", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);

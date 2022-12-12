@@ -556,7 +556,8 @@ describe("StakeManager", function () {
       pondInstance.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     const blockData = await ethers.provider.getBlock("latest");
@@ -1179,7 +1180,8 @@ describe("StakeManager Deployment", function () {
       pondInstance.address,
       [PONDTokenId, MPONDTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
+      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
     );
 
     const blockData = await ethers.provider.getBlock("latest");
