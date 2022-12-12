@@ -218,7 +218,10 @@ contract EpochSelectorUpgradeable is
         // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
         assembly {
             let pos := mload(0x40)
+            // 2688 is 84*32 so allocating space for 83 struct elements + 1 slot for length
             mstore(0x40, add(pos, 2688))
+            // 5 paths * 17 elements max per path as totalElements < 20000 and 2 common elements among those 5 paths
+            // which are root and one elements in first level, so 83 elements max
             mstore(selectedPathTree, 83)
         }
 

@@ -228,7 +228,7 @@ describe("Testing Epoch Selector", function () {
           };
         })
       );
-    });
+    }).timeout(9999999);
   });
 });
 

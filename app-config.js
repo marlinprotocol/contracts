@@ -74,7 +74,7 @@ let staking = {
   payoutDenomination: 100000,
   PondRewardFactor: 100,
   MPondRewardFactor: 100,
-  PondWeightForThreshold: 1,
+  PondWeightForThreshold: 0,
   MPondWeightForThreshold: 1000000
 };
 
