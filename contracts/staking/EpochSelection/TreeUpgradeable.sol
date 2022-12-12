@@ -138,4 +138,100 @@ contract TreeUpgradeable is Initializable {
 
         _delete_unchecked(_addr, _index);
     }
+
+    struct MemoryNode {
+        uint256 node; // sorting condition
+        uint256 value;
+        uint256 left;
+        uint256 leftSum;
+        uint256 right;
+        uint256 rightSum;
+    }
+
+    function _selectOne(
+        uint256 _rootIndex,
+        uint256 _searchNumber,
+        MemoryNode[] memory _selectedPathTree,
+        uint256 _mRootIndex,
+        uint256 _mLastIndex
+    )
+        internal
+        view
+        returns (
+            uint256, // address of the selected node
+            uint256, // balance of the selected node
+            uint256 // updated index of the latest element in the memory tree array
+        )
+    {
+        unchecked {
+            Node memory _root = nodes[_rootIndex];
+            MemoryNode memory _mRoot;
+
+            // exclusive
+            uint256 _leftBound = _root.leftSum;
+            // inclusive
+            // safemath: can never exceed 2^65
+            uint256 _rightBound = _leftBound + _root.value;
+
+            if (_mRootIndex != 0) {
+                _mRoot = _selectedPathTree[_mRootIndex];
+                // safemath: sums in memory tree can never exceed storage tree
+                _leftBound -= _mRoot.leftSum;
+                // safemath: sums in memory tree can never exceed storage tree
+                _rightBound -= (_mRoot.leftSum + _mRoot.value);
+            } else {
+                // path always goes through current node, add in memory tree if it does not exist
+                // safemath: cannot exceed storage tree size
+                ++_mLastIndex;
+                _mRootIndex = _mLastIndex;
+                _mRoot.node = _rootIndex;
+                // do not set properties directly, node does not exist
+                _selectedPathTree[_mRootIndex] = _mRoot;
+            }
+
+            // check current root
+            if (_searchNumber > _leftBound && _searchNumber <= _rightBound) {
+                // current root matched, add in memory tree and return
+                // safemath: cannot exceed 2^65
+                _selectedPathTree[_mRootIndex].value += _root.value;
+                return (_rootIndex, _root.value, _mLastIndex);
+            } else if (_searchNumber <= _leftBound) {  // check left side
+                // search on left side
+                (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                    // safemath: cannot exceed storage tree size
+                    _rootIndex * 2, // left node
+                    _searchNumber,
+                    _selectedPathTree,
+                    _mRoot.left,
+                    _mLastIndex
+                );
+                // if left is 0, it would have been added in the recursive call
+                if (_mRoot.left == 0) {
+                    // safemath: cannot exceed storage tree size
+                    _selectedPathTree[_mRootIndex].left = _mLastIndex + 1;
+                }
+                // safemath: cannot exceed 2^65
+                _selectedPathTree[_mRootIndex].leftSum += _sBalance;
+                return (_sNode, _sBalance, _mTreeSize);
+            } else { // has to be on right side
+                // search on right side
+                (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                    // safemath: cannot exceed storage tree size
+                    _rootIndex * 2 + 1, // right node
+                    _searchNumber,
+                    _selectedPathTree,
+                    _mRoot.right,
+                    _mLastIndex
+                );
+                // if right is 0, it would have been added in the recursive call
+                if (_mRoot.right == 0) {
+                    // safemath: cannot exceed storage tree size
+                    _selectedPathTree[_mRootIndex].right = _mLastIndex + 1;
+                }
+                // safemath: cannot exceed 2^65
+                _selectedPathTree[_mRootIndex].rightSum += _sBalance;
+                return (_sNode, _sBalance, _mTreeSize);
+            }
+        }
+    }
 }
