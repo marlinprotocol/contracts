@@ -165,6 +165,9 @@ contract TreeUpgradeable is Initializable {
     {
         unchecked {
             Node memory _root = nodes[_rootIndex];
+
+            // require(_searchNumber <= _root.leftSum + _root.value + _root.rightSum, "should never happen");
+
             MemoryNode memory _mRoot;
 
             // exclusive
@@ -197,41 +200,69 @@ contract TreeUpgradeable is Initializable {
                 return (_rootIndex, _root.value, _mLastIndex);
             } else if (_searchNumber <= _leftBound) {  // check left side
                 // search on left side
-                (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
-                    // safemath: cannot exceed storage tree size
-                    _rootIndex * 2, // left node
-                    _searchNumber,
-                    _selectedPathTree,
-                    _mRoot.left,
-                    _mLastIndex
-                );
-                // if left is 0, it would have been added in the recursive call
-                if (_mRoot.left == 0) {
-                    // safemath: cannot exceed storage tree size
-                    _selectedPathTree[_mRootIndex].left = _mLastIndex + 1;
-                }
-                // safemath: cannot exceed 2^65
-                _selectedPathTree[_mRootIndex].leftSum += _sBalance;
-                return (_sNode, _sBalance, _mTreeSize);
+                // separated out due to stack too deep errors
+                return _selectLeft(_rootIndex, _searchNumber, _selectedPathTree, _mRoot.left, _mRootIndex, _mLastIndex);
             } else { // has to be on right side
                 // search on right side
-                (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
-                    // safemath: cannot exceed storage tree size
-                    _rootIndex * 2 + 1, // right node
-                    _searchNumber,
-                    _selectedPathTree,
-                    _mRoot.right,
-                    _mLastIndex
-                );
-                // if right is 0, it would have been added in the recursive call
-                if (_mRoot.right == 0) {
-                    // safemath: cannot exceed storage tree size
-                    _selectedPathTree[_mRootIndex].right = _mLastIndex + 1;
-                }
-                // safemath: cannot exceed 2^65
-                _selectedPathTree[_mRootIndex].rightSum += _sBalance;
-                return (_sNode, _sBalance, _mTreeSize);
+                // separated out due to stack too deep errors
+                return _selectRight(_rootIndex, _searchNumber - _rightBound, _selectedPathTree, _mRoot.right, _mRootIndex, _mLastIndex);
             }
+        }
+    }
+
+    function _selectLeft(
+        uint256 _rootIndex,
+        uint256 _searchNumber,
+        MemoryNode[] memory _selectedPathTree,
+        uint256 _mRootLeft,
+        uint256 _mRootIndex,
+        uint256 _mLastIndex
+    ) internal view returns (uint256, uint256, uint256) {
+        unchecked {
+            (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                // safemath: cannot exceed storage tree size
+                _rootIndex * 2, // left node
+                _searchNumber,
+                _selectedPathTree,
+                _mRootLeft,
+                _mLastIndex
+            );
+            // if left is 0, it would have been added in the recursive call
+            if (_mRootLeft == 0) {
+                // safemath: cannot exceed storage tree size
+                _selectedPathTree[_mRootIndex].left = _mLastIndex + 1;
+            }
+            // safemath: cannot exceed 2^65
+            _selectedPathTree[_mRootIndex].leftSum += _sBalance;
+            return (_sNode, _sBalance, _mTreeSize);
+        }
+    }
+
+    function _selectRight(
+        uint256 _rootIndex,
+        uint256 _searchNumber,
+        MemoryNode[] memory _selectedPathTree,
+        uint256 _mRootRight,
+        uint256 _mRootIndex,
+        uint256 _mLastIndex
+    ) internal view returns (uint256, uint256, uint256) {
+        unchecked {
+            (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                // safemath: cannot exceed storage tree size
+                _rootIndex * 2 + 1, // right node
+                _searchNumber,
+                _selectedPathTree,
+                _mRootRight,
+                _mLastIndex
+            );
+            // if right is 0, it would have been added in the recursive call
+            if (_mRootRight == 0) {
+                // safemath: cannot exceed storage tree size
+                _selectedPathTree[_mRootIndex].right = _mLastIndex + 1;
+            }
+            // safemath: cannot exceed 2^65
+            _selectedPathTree[_mRootIndex].rightSum += _sBalance;
+            return (_sNode, _sBalance, _mTreeSize);
         }
     }
 }
