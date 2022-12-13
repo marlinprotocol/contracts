@@ -74,7 +74,7 @@ export function testRole(name: string, deployer: (signers: Signer[], addrs: stri
       signers = await ethers.getSigners();
       addrs = await Promise.all(signers.map((a) => a.getAddress()));
       contract = await deployer(signers, addrs);
-      ROLE = ethers.utils.id(role);
+      ROLE = await contract[role]();
     });
 
     it(`admin can grant ${role} role`, async function () {
@@ -99,6 +99,14 @@ export function testRole(name: string, deployer: (signers: Signer[], addrs: stri
       expect(await contract.hasRole(ROLE, addrs[1])).to.be.true;
 
       await expect(contract.connect(signers[2]).revokeRole(ROLE, addrs[1])).to.be.reverted;
+    });
+
+    it(`${role} signer can renounce own ${role} role`, async function () {
+      await contract.grantRole(ROLE, addrs[1]);
+      expect(await contract.hasRole(ROLE, addrs[1])).to.be.true;
+
+      await contract.connect(signers[1]).renounceRole(ROLE, addrs[1]);
+      expect(await contract.hasRole(ROLE, addrs[1])).to.be.false;
     });
   });
 }
