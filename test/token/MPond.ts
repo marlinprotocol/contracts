@@ -2,6 +2,10 @@ import { ethers, upgrades, network } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 
+import { testERC165 } from "../helpers/erc165.ts";
+import { testAdminRole, testRole } from "../helpers/rbac.ts";
+
+
 declare module "ethers" {
   interface BigNumber {
     e18(this: BigNumber): BigNumber;
@@ -53,119 +57,40 @@ describe("MPond", function () {
   });
 });
 
-describe("MPond", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let mpond: Contract;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const MPond = await ethers.getContractFactory("MPond");
-    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
-  });
-
-  it("supports ERC167", async function () {
-    const iid = ethers.utils.id("supportsInterface(bytes4)").substr(0, 10);
-    expect(await mpond.supportsInterface(iid)).to.be.true;
-  });
-
-  it("does not support 0xffffffff", async function () {
-    expect(await mpond.supportsInterface("0xffffffff")).to.be.false;
-  });
-
-  function makeInterfaceId(interfaces: string[]): string {
-    return ethers.utils.hexlify(
-      interfaces.map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10))).reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
-    );
-  }
-
-  it("supports IAccessControl", async function () {
-    let interfaces = [
-      "hasRole(bytes32,address)",
-      "getRoleAdmin(bytes32)",
-      "grantRole(bytes32,address)",
-      "revokeRole(bytes32,address)",
-      "renounceRole(bytes32,address)",
-    ];
-    const iid = makeInterfaceId(interfaces);
-    expect(await mpond.supportsInterface(iid)).to.be.true;
-  });
-
-  it("supports IAccessControlEnumerable", async function () {
-    let interfaces = ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"];
-    const iid = makeInterfaceId(interfaces);
-    expect(await mpond.supportsInterface(iid)).to.be.true;
-  });
-
-  it('supports IArbToken', async function () {
-    let interfaces = [
-      'bridgeMint(address,uint256)',
-      'bridgeBurn(address,uint256)',
-      'l1Address()',
-    ];
-    const iid = makeInterfaceId(interfaces);
-    expect(await mpond.supportsInterface(iid)).to.be.true;
-  });
+testERC165("MPond", async function () {
+  const MPond = await ethers.getContractFactory("MPond");
+  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  return mpond;
+}, {
+  "IAccessControl": [
+    "hasRole(bytes32,address)",
+    "getRoleAdmin(bytes32)",
+    "grantRole(bytes32,address)",
+    "revokeRole(bytes32,address)",
+    "renounceRole(bytes32,address)",
+  ],
+  "IAccessControlEnumerable": [
+    "getRoleMember(bytes32,uint256)",
+    "getRoleMemberCount(bytes32)"
+  ],
+  "IArbToken": [
+    "bridgeMint(address,uint256)",
+    "bridgeBurn(address,uint256)",
+    "l1Address()",
+  ],
 });
 
-describe("MPond", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let mpond: Contract;
-  let DEFAULT_ADMIN_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const MPond = await ethers.getContractFactory("MPond");
-    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
-    DEFAULT_ADMIN_ROLE = await mpond.DEFAULT_ADMIN_ROLE();
-  });
-
-  it("admin can grant admin role", async function () {
-    await mpond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant admin role", async function () {
-    await expect(mpond.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke admin role", async function () {
-    await mpond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await mpond.revokeRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke admin role", async function () {
-    await mpond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(mpond.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can renounce own admin role if there are other admins", async function () {
-    await mpond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await mpond.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("admin cannot renounce own admin role if there are no other admins", async function () {
-    await expect(mpond.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
-  });
-
-  it("admin cannot renounce admin role of other admins", async function () {
-    await mpond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await mpond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(mpond.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
+testAdminRole("MPond", async function (signers: Signer[], addrs: string[]) {
+  const MPond = await ethers.getContractFactory("MPond");
+  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  return mpond;
 });
+
+testRole("MPond", async function (signers: Signer[], addrs: string[]) {
+  const MPond = await ethers.getContractFactory("MPond");
+  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  return mpond;
+}, "WHITELIST_ROLE");
 
 describe("MPond", function () {
   let signers: Signer[];
@@ -179,38 +104,6 @@ describe("MPond", function () {
     const MPond = await ethers.getContractFactory("MPond");
     mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
     WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
-  });
-
-  it("admin can grant whitelist role", async function () {
-    await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant whitelist role", async function () {
-    await expect(mpond.connect(signers[1]).grantRole(WHITELIST_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke whitelist role", async function () {
-    await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.true;
-
-    await mpond.revokeRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke whitelist role", async function () {
-    await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.true;
-
-    await expect(mpond.connect(signers[2]).revokeRole(WHITELIST_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("whitelisted signer can renounce own whitelist role", async function () {
-    await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.true;
-
-    await mpond.connect(signers[1]).renounceRole(WHITELIST_ROLE, addrs[1]);
-    expect(await mpond.hasRole(WHITELIST_ROLE, addrs[1])).to.be.false;
   });
 
   it("transfer should be whitelisted if addr1 is whitelisted", async function () {
@@ -1294,52 +1187,11 @@ describe('MPond', function () {
   });
 });
 
-describe('MPond', function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let mpond: Contract;
-  let BRIDGE_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map(a => a.getAddress()));
-    const MPond = await ethers.getContractFactory('MPond');
-    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
-    BRIDGE_ROLE = await mpond.BRIDGE_ROLE();
-  });
-
-  it('admin can grant bridge role', async function () {
-    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-  });
-
-  it('non admin cannot grant bridge role', async function () {
-    await expect(mpond.connect(signers[1]).grantRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it('admin can revoke bridge role', async function () {
-    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await mpond.revokeRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
-  });
-
-  it('non admin cannot revoke bridge role', async function () {
-    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await expect(mpond.connect(signers[2]).revokeRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it('bridge signer can renounce own bridge role', async function () {
-    await mpond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await mpond.connect(signers[1]).renounceRole(BRIDGE_ROLE, addrs[1]);
-    expect(await mpond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
-  });
-});
+testRole("MPond", async function (signers: Signer[], addrs: string[]) {
+  const MPond = await ethers.getContractFactory("MPond");
+  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+  return mpond;
+}, "BRIDGE_ROLE");
 
 describe('MPond', function () {
   let signers: Signer[];
