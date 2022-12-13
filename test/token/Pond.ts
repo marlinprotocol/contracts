@@ -2,6 +2,9 @@ import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 
+import { testAdminRole, testRole } from "../helpers/rbac.ts";
+
+
 declare module "ethers" {
   interface BigNumber {
     e18(this: BigNumber): BigNumber;
@@ -110,62 +113,10 @@ describe("Pond", function () {
   });
 });
 
-describe("Pond", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let pond: Contract;
-  let DEFAULT_ADMIN_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-    DEFAULT_ADMIN_ROLE = await pond.DEFAULT_ADMIN_ROLE();
-  });
-
-  it("admin can grant admin role", async function () {
-    await pond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant admin role", async function () {
-    await expect(pond.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke admin role", async function () {
-    await pond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await pond.revokeRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke admin role", async function () {
-    await pond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(pond.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can renounce own admin role if there are other admins", async function () {
-    await pond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await pond.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("admin cannot renounce own admin role if there are no other admins", async function () {
-    await expect(pond.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
-  });
-
-  it("admin cannot renounce admin role of other admins", async function () {
-    await pond.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await pond.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(pond.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
+testAdminRole("Pond", async function (signers: Signer[], addrs: string[]) {
+  const Pond = await ethers.getContractFactory("Pond");
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  return pond;
 });
 
 describe("Pond", function () {
