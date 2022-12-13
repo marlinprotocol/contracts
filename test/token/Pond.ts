@@ -2,6 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 
+import { testERC165 } from "../helpers/erc165.ts";
 import { testAdminRole, testRole } from "../helpers/rbac.ts";
 
 
@@ -57,60 +58,28 @@ describe("Pond", function () {
   });
 });
 
-describe("Pond", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let pond: Contract;
 
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-  });
-
-  it("supports ERC165", async function () {
-    const iid = ethers.utils.id("supportsInterface(bytes4)").substr(0, 10);
-    expect(await pond.supportsInterface(iid)).to.be.true;
-  });
-
-  it("does not support 0xffffffff", async function () {
-    expect(await pond.supportsInterface("0xffffffff")).to.be.false;
-  });
-
-  function makeInterfaceId(interfaces: string[]): string {
-    return ethers.utils.hexlify(
-      interfaces.map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10))).reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
-    );
-  }
-
-  it("supports IAccessControl", async function () {
-    let interfaces = [
-      "hasRole(bytes32,address)",
-      "getRoleAdmin(bytes32)",
-      "grantRole(bytes32,address)",
-      "revokeRole(bytes32,address)",
-      "renounceRole(bytes32,address)",
-    ];
-    const iid = makeInterfaceId(interfaces);
-    expect(await pond.supportsInterface(iid)).to.be.true;
-  });
-
-  it("supports IAccessControlEnumerable", async function () {
-    let interfaces = ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"];
-    const iid = makeInterfaceId(interfaces);
-    expect(await pond.supportsInterface(iid)).to.be.true;
-  });
-
-  it('supports IArbToken', async function () {
-    let interfaces = [
-      'bridgeMint(address,uint256)',
-      'bridgeBurn(address,uint256)',
-      'l1Address()',
-    ];
-    const iid = makeInterfaceId(interfaces);
-    expect(await pond.supportsInterface(iid)).to.be.true;
-  });
+testERC165("Pond", async function () {
+  const Pond = await ethers.getContractFactory("Pond");
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  return pond;
+}, {
+  "IAccessControl": [
+    "hasRole(bytes32,address)",
+    "getRoleAdmin(bytes32)",
+    "grantRole(bytes32,address)",
+    "revokeRole(bytes32,address)",
+    "renounceRole(bytes32,address)",
+  ],
+  "IAccessControlEnumerable": [
+    "getRoleMember(bytes32,uint256)",
+    "getRoleMemberCount(bytes32)"
+  ],
+  "IArbToken": [
+    "bridgeMint(address,uint256)",
+    "bridgeBurn(address,uint256)",
+    "l1Address()",
+  ],
 });
 
 testAdminRole("Pond", async function (signers: Signer[], addrs: string[]) {
