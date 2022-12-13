@@ -265,4 +265,53 @@ contract TreeUpgradeable is Initializable {
             return (_sNode, _sBalance, _mTreeSize);
         }
     }
+
+    function _selectN(uint256 _randomizer, uint256 _N) internal view returns (address[] memory _selectedNodes) {
+        uint256 _nodeCount = nodes.length - 1;
+        if(_N > _nodeCount) _N = _nodeCount;
+        MemoryNode[] memory _selectedPathTree;
+        // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
+        // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
+        assembly {
+            let _pos := mload(0x40)
+            mstore(0x40, add(_pos, 2688))
+            mstore(_selectedPathTree, 83)
+        }
+
+        Node memory _root = nodes[1];
+        _selectedPathTree[1] = MemoryNode(1, 0, 0, 0, 0, 0);
+
+        uint256 _mLastIndex = 1;
+        // added in next line to save gas and avoid overflow checks
+        uint256 _totalWeightInTree = _root.value;
+        unchecked {
+            _totalWeightInTree += _root.leftSum + _root.rightSum;
+        }
+        uint256 _sumOfBalancesOfSelectedNodes = 0;
+
+        _selectedNodes = new address[](_N);
+        for (uint256 _index = 0; _index < _N; ) {
+            _randomizer = uint256(keccak256(abi.encode(_randomizer, _index)));
+            // yes, not the right way to get exact uniform distribution
+            // should be really close given the ranges
+            uint256 _searchNumber = _randomizer % (_totalWeightInTree - _sumOfBalancesOfSelectedNodes);
+            uint256 _node;
+            uint256 _selectedNodeBalance;
+
+            (_node, _selectedNodeBalance, _mLastIndex) = _selectOne(
+                1, // index of root
+                _searchNumber,
+                _selectedPathTree,
+                1,
+                _mLastIndex
+            );
+
+            _selectedNodes[_index] = indexToAddressMap[uint32(_node)];
+            unchecked {
+                _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
+                ++_index;
+            }
+        }
+        return _selectedNodes;
+    }
 }

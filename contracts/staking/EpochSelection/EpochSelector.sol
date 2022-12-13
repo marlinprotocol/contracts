@@ -171,7 +171,7 @@ contract EpochSelectorUpgradeable is
         if (selectedClusters.length == 0) {
             // select and save from the tree
             uint256 randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
-            selectedClusters = selectTopNClusters(randomizer, numberOfClustersToSelect);
+            selectedClusters = _selectN(randomizer, numberOfClustersToSelect);
             clustersSelected[nextEpoch] = selectedClusters;
             for (uint256 index = 0; index < selectedClusters.length; index++) {
                 emit ClusterSelected(nextEpoch, selectedClusters[index]);
@@ -206,56 +206,56 @@ contract EpochSelectorUpgradeable is
         }
     }
 
-    /// @notice Weighted random selection of N clusters
-    /// @param randomizer seed for randomness
-    /// @param N number of clusters to select
-    /// @return selectedNodes List of addresses selected
-    function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory selectedNodes) {
-        uint256 totalElements = getTotalElements();
-        if(N > totalElements) N = totalElements;
-        MemoryNode[] memory selectedPathTree;
-        // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
-        // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
-        assembly {
-            let pos := mload(0x40)
-            mstore(0x40, add(pos, 2688))
-            mstore(selectedPathTree, 83)
-        }
+    // /// @notice Weighted random selection of N clusters
+    // /// @param randomizer seed for randomness
+    // /// @param N number of clusters to select
+    // /// @return selectedNodes List of addresses selected
+    // function selectTopNClusters(uint256 randomizer, uint256 N) public view returns (address[] memory selectedNodes) {
+    //     uint256 totalElements = getTotalElements();
+    //     if(N > totalElements) N = totalElements;
+    //     MemoryNode[] memory selectedPathTree;
+    //     // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
+    //     // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
+    //     assembly {
+    //         let pos := mload(0x40)
+    //         mstore(0x40, add(pos, 2688))
+    //         mstore(selectedPathTree, 83)
+    //     }
 
-        Node memory _root = nodes[1];
-        selectedPathTree[1] = MemoryNode(1, 0, 0, 0, 0, 0);
+    //     Node memory _root = nodes[1];
+    //     selectedPathTree[1] = MemoryNode(1, 0, 0, 0, 0, 0);
 
-        uint256 indexOfLastElementInMemoryTree = 1;
-        // added in next line to save gas and avoid overflow checks
-        uint256 totalWeightInTree = _root.value;
-        unchecked {
-            totalWeightInTree += _root.leftSum + _root.rightSum;
-        }
-        uint256 _sumOfBalancesOfSelectedNodes = 0;
+    //     uint256 indexOfLastElementInMemoryTree = 1;
+    //     // added in next line to save gas and avoid overflow checks
+    //     uint256 totalWeightInTree = _root.value;
+    //     unchecked {
+    //         totalWeightInTree += _root.leftSum + _root.rightSum;
+    //     }
+    //     uint256 _sumOfBalancesOfSelectedNodes = 0;
 
-        selectedNodes = new address[](N);
-        for (uint256 index = 0; index < N; ) {
-            randomizer = uint256(keccak256(abi.encode(randomizer, index)));
-            uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
-            uint256 _node;
-            uint256 _selectedNodeBalance;
+    //     selectedNodes = new address[](N);
+    //     for (uint256 index = 0; index < N; ) {
+    //         randomizer = uint256(keccak256(abi.encode(randomizer, index)));
+    //         uint256 searchNumber = randomizer % (totalWeightInTree - _sumOfBalancesOfSelectedNodes);
+    //         uint256 _node;
+    //         uint256 _selectedNodeBalance;
 
-            (_node, _selectedNodeBalance, indexOfLastElementInMemoryTree) = _selectOne(
-                1, // index of root
-                searchNumber,
-                selectedPathTree,
-                1,
-                indexOfLastElementInMemoryTree
-            );
+    //         (_node, _selectedNodeBalance, indexOfLastElementInMemoryTree) = _selectOne(
+    //             1, // index of root
+    //             searchNumber,
+    //             selectedPathTree,
+    //             1,
+    //             indexOfLastElementInMemoryTree
+    //         );
 
-            selectedNodes[index] = indexToAddressMap[uint32(_node)];
-            unchecked {
-                _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
-                ++index;
-            }
-        }
-        return selectedNodes;
-    }
+    //         selectedNodes[index] = indexToAddressMap[uint32(_node)];
+    //         unchecked {
+    //             _sumOfBalancesOfSelectedNodes += _selectedNodeBalance;
+    //             ++index;
+    //         }
+    //     }
+    //     return selectedNodes;
+    // }
 
     // /// @notice Select top N Clusters
     // function _selectTopCluster(
