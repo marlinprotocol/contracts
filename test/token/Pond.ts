@@ -173,52 +173,11 @@ describe("Pond", function () {
   });
 });
 
-describe("Pond", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let pond: Contract;
-  let BRIDGE_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-    BRIDGE_ROLE = await pond.BRIDGE_ROLE();
-  });
-
-  it("admin can grant bridge role", async function () {
-    await pond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant bridge role", async function () {
-    await expect(pond.connect(signers[1]).grantRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke bridge role", async function () {
-    await pond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await pond.revokeRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke bridge role", async function () {
-    await pond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await expect(pond.connect(signers[2]).revokeRole(BRIDGE_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("bridge signer can renounce own bridge role", async function () {
-    await pond.grantRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.true;
-
-    await pond.connect(signers[1]).renounceRole(BRIDGE_ROLE, addrs[1]);
-    expect(await pond.hasRole(BRIDGE_ROLE, addrs[1])).to.be.false;
-  });
-});
+testRole("Pond", async function (signers: Signer[], addrs: string[]) {
+  const Pond = await ethers.getContractFactory("Pond");
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  return pond;
+}, "BRIDGE_ROLE");
 
 describe("Pond", function () {
   let signers: Signer[];
