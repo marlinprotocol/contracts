@@ -4,7 +4,7 @@ import { BigNumber as BN, Signer, Contract } from "ethers";
 import { sign } from "crypto";
 const appConfig = require("../../app-config");
 
-import { testRole } from "../helpers/rbac.ts";
+import { testAdminRole, testRole } from "../helpers/rbac.ts";
 
 declare module "ethers" {
   interface BigNumber {
@@ -187,74 +187,22 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let stakeManager: Contract;
-  let DEFAULT_ADMIN_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const StakeManager = await ethers.getContractFactory("StakeManager");
-    stakeManager = await upgrades.deployProxy(
-      StakeManager,
-      [
-        [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
-        [addrs[1], addrs[2]],
-        [false, true],
-        addrs[3],
-        REDELEGATION_WAIT_TIME,
-        UNDELEGATION_WAIT_TIME,
-        addrs[4],
-      ],
-      { kind: "uups" }
-    );
-    DEFAULT_ADMIN_ROLE = await stakeManager.DEFAULT_ADMIN_ROLE();
-  });
-
-  it("admin can grant admin role", async function () {
-    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant admin role", async function () {
-    await expect(stakeManager.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke admin role", async function () {
-    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await stakeManager.revokeRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke admin role", async function () {
-    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(stakeManager.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can renounce own admin role if there are other admins", async function () {
-    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await stakeManager.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("admin cannot renounce own admin role if there are no other admins", async function () {
-    await expect(stakeManager.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
-  });
-
-  it("admin cannot renounce admin role of other admins", async function () {
-    await stakeManager.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(stakeManager.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
+testAdminRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
+  const StakeManager = await ethers.getContractFactory("StakeManager");
+  let stakeManager = await upgrades.deployProxy(
+    StakeManager,
+    [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
+      [false, true],
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ],
+    { kind: "uups" }
+  );
+  return stakeManager;
 });
 
 testRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
