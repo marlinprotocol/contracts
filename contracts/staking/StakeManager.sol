@@ -74,10 +74,6 @@ contract StakeManager is
         initializer
         public
     {
-        require(
-            _tokenIds.length == _tokenAddresses.length
-        );
-
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();

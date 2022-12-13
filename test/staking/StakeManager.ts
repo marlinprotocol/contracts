@@ -4,6 +4,8 @@ import { BigNumber as BN, Signer, Contract } from "ethers";
 import { sign } from "crypto";
 const appConfig = require("../../app-config");
 
+import { testRole } from "../helpers/rbac.ts";
+
 declare module "ethers" {
   interface BigNumber {
     e18(this: BigNumber): BigNumber;
@@ -42,7 +44,7 @@ describe("StakeManager", function () {
     ).to.be.reverted;
   });
 
-  it("deploy as proxy and initializes", async function () {
+  it("deploys as proxy and initializes", async function () {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -255,71 +257,30 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let stakeManager: Contract;
-  let DELEGATABLE_TOKEN_ROLE: string;
-
-  beforeEach(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    const StakeManager = await ethers.getContractFactory("StakeManager");
-    stakeManager = await upgrades.deployProxy(
-      StakeManager,
-      [
-        [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
-        [addrs[1], addrs[2]],
-        [false, true],
-        addrs[3],
-        REDELEGATION_WAIT_TIME,
-        UNDELEGATION_WAIT_TIME,
-        addrs[4],
-      ],
-      { kind: "uups" }
-    );
-    DELEGATABLE_TOKEN_ROLE = await stakeManager.DELEGATABLE_TOKEN_ROLE();
-  });
-
-  it("admin can grant delegatable token role", async function () {
-    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant delegatable token role", async function () {
-    await expect(stakeManager.connect(signers[1]).grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke delegatable token role", async function () {
-    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
-
-    await stakeManager.revokeRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke delegatable token role", async function () {
-    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
-
-    await expect(stakeManager.connect(signers[2]).revokeRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("whitelisted signer can renounce own delegatable token role", async function () {
-    await stakeManager.grantRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.true;
-
-    await stakeManager.connect(signers[1]).renounceRole(DELEGATABLE_TOKEN_ROLE, addrs[1]);
-    expect(await stakeManager.hasRole(DELEGATABLE_TOKEN_ROLE, addrs[1])).to.be.false;
-  });
-});
+testRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
+  const StakeManager = await ethers.getContractFactory("StakeManager");
+  let stakeManager = await upgrades.deployProxy(
+    StakeManager,
+    [
+      [ethers.utils.id(addrs[1]), ethers.utils.id(addrs[2])],
+      [addrs[1], addrs[2]],
+      [false, true],
+      addrs[3],
+      REDELEGATION_WAIT_TIME,
+      UNDELEGATION_WAIT_TIME,
+      addrs[4],
+    ],
+    { kind: "uups" }
+  );
+  return stakeManager;
+}, "DELEGATABLE_TOKEN");
 
 describe("StakeManager", function () {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: Contract;
-  let pondInstance: Contract;
-  let mpondInstance: Contract;
+  let pond: Contract;
+  let mpond: Contract;
   let rewardDelegatorsInstance: Contract;
   let pondTokenId: String;
   let mpondTokenId: String;
@@ -331,13 +292,13 @@ describe("StakeManager", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const Pond = await ethers.getContractFactory("Pond");
-    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
 
     const MPond = await ethers.getContractFactory("MPond");
-    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
 
-    pondTokenId = ethers.utils.keccak256(pondInstance.address);
-    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+    pondTokenId = ethers.utils.keccak256(pond.address);
+    mpondTokenId = ethers.utils.keccak256(mpond.address);
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegatorsInstance = await upgrades.deployProxy(RewardDelegators, {
@@ -349,7 +310,7 @@ describe("StakeManager", function () {
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
     await stakeManager.initialize(
       [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+      [pond.address, mpond.address],
       [false, true],
       rewardDelegatorsInstance.address,
       5,
@@ -468,11 +429,15 @@ describe("StakeManager", function () {
 
   it("admin can disable token", async () => {
     await stakeManager.disableToken(pondTokenId);
-    expect(await stakeManager.hasRole(ethers.utils.id("ACTIVE_TOKEN_ROLE"), pondInstance.address)).to.be.false;
+    expect(await stakeManager.hasRole(ethers.utils.id("ACTIVE_TOKEN_ROLE"), pond.address)).to.be.false;
   });
 
   it("cannot update token address to zero", async () => {
     await expect(stakeManager.updateToken(pondTokenId, ethers.constants.AddressZero)).to.be.reverted;
+  });
+
+  it("cannot update non existent token", async () => {
+    await expect(stakeManager.updateToken(ethers.utils.id("ACTIVE_TOKEN_ROLE"), ethers.constants.AddressZero)).to.be.reverted;
   });
 
   it("non admin cannot update token", async () => {
@@ -493,8 +458,8 @@ describe("StakeManager", function () {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: Contract;
-  let pondInstance: Contract;
-  let mpondInstance: Contract;
+  let pond: Contract;
+  let mpond: Contract;
   let rewardDelegatorsInstance: Contract;
   let dotEpochSelectorInstance: Contract;
   let nearEpochSelectorInstance: Contract;
@@ -511,16 +476,16 @@ describe("StakeManager", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const Pond = await ethers.getContractFactory("Pond");
-    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
-    await pondInstance.transfer(addrs[2], 10000);
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    await pond.transfer(addrs[2], 10000);
 
     const MPond = await ethers.getContractFactory("MPond");
-    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
-    await mpondInstance.grantRole(ethers.utils.id("WHITELIST_ROLE"), addrs[0]);
-    await mpondInstance.transfer(addrs[2], 10000);
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), addrs[0]);
+    await mpond.transfer(addrs[2], 10000);
 
-    pondTokenId = ethers.utils.keccak256(pondInstance.address);
-    mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
+    pondTokenId = ethers.utils.keccak256(pond.address);
+    mpondTokenId = ethers.utils.keccak256(mpond.address);
 
     const lockWaitTimes = [4, 10, 22];
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
@@ -541,7 +506,7 @@ describe("StakeManager", function () {
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
     await stakeManager.initialize(
       [pondTokenId, mpondTokenId],
-      [pondInstance.address, mpondInstance.address],
+      [pond.address, mpond.address],
       [false, true],
       rewardDelegatorsInstance.address,
       5,
@@ -553,7 +518,7 @@ describe("StakeManager", function () {
       stakeManager.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      pondInstance.address,
+      pond.address,
       [pondTokenId, mpondTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
@@ -564,7 +529,7 @@ describe("StakeManager", function () {
     dotEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      pondInstance.address,
+      pond.address,
       BN.from(10).pow(20)
     ], {
       kind: "uups",
@@ -577,7 +542,7 @@ describe("StakeManager", function () {
     nearEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      pondInstance.address,
+      pond.address,
       BN.from(10).pow(20)
     ], {
       kind: "uups",
@@ -587,7 +552,7 @@ describe("StakeManager", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
@@ -608,9 +573,9 @@ describe("StakeManager", function () {
       appConfig.staking.rewardPerEpoch
     );
 
-    await mpondInstance.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
-    await mpondInstance.connect(signers[2]).approve(stakeManager.address, 10000);
-    await pondInstance.connect(signers[2]).approve(stakeManager.address, 10000);
+    await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
+    await mpond.connect(signers[2]).approve(stakeManager.address, 10000);
+    await pond.connect(signers[2]).approve(stakeManager.address, 10000);
   });
 
   it("createStash params check", async () => {
@@ -631,8 +596,8 @@ describe("StakeManager", function () {
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(100);
     expect(await stakeManager.getTokenAmountInStash(stashId, mpondTokenId)).to.equal(101);
 
-    expect(await pondInstance.balanceOf(addrs[2])).to.equal(9900);
-    expect(await mpondInstance.balanceOf(addrs[2])).to.equal(9899);
+    expect(await pond.balanceOf(addrs[2])).to.equal(9900);
+    expect(await mpond.balanceOf(addrs[2])).to.equal(9899);
   });
 
   it("non staker cannot add to stash", async () => {
@@ -689,8 +654,8 @@ describe("StakeManager", function () {
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(100);
     expect(await stakeManager.getTokenAmountInStash(stashId, mpondTokenId)).to.equal(101);
 
-    expect(await pondInstance.balanceOf(addrs[2])).to.equal(9900);
-    expect(await mpondInstance.balanceOf(addrs[2])).to.equal(9899);
+    expect(await pond.balanceOf(addrs[2])).to.equal(9900);
+    expect(await mpond.balanceOf(addrs[2])).to.equal(9899);
     expect((await stakeManager.stashes(stashId)).delegatedCluster).to.equal(addrs[10]);
   });
 
@@ -992,8 +957,8 @@ describe("StakeManager", function () {
     await stakeManager.connect(signers[2])["withdrawStash(bytes32)"](stashId);
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(0);
     expect(await stakeManager.getTokenAmountInStash(stashId, mpondTokenId)).to.equal(0);
-    expect(await pondInstance.balanceOf(addrs[2])).to.equal(10000);
-    expect(await mpondInstance.balanceOf(addrs[2])).to.equal(10000);
+    expect(await pond.balanceOf(addrs[2])).to.equal(10000);
+    expect(await mpond.balanceOf(addrs[2])).to.equal(10000);
   });
 
   it("staker can withdraw partial stash", async () => {
@@ -1007,8 +972,8 @@ describe("StakeManager", function () {
     await stakeManager.connect(signers[2])["withdrawStash(bytes32,bytes32[],uint256[])"](stashId, [pondTokenId, mpondTokenId], [50, 50]);
     expect(await stakeManager.getTokenAmountInStash(stashId, pondTokenId)).to.equal(50);
     expect(await stakeManager.getTokenAmountInStash(stashId, mpondTokenId)).to.equal(51);
-    expect(await pondInstance.balanceOf(addrs[2])).to.equal(9950);
-    expect(await mpondInstance.balanceOf(addrs[2])).to.equal(9949);
+    expect(await pond.balanceOf(addrs[2])).to.equal(9950);
+    expect(await mpond.balanceOf(addrs[2])).to.equal(9949);
   });
 
   it("staker cannot withdraw more that the existing stash", async () => {
@@ -1065,8 +1030,8 @@ describe("StakeManager Deployment", function () {
   let MpondAccount: Signer;
   let PONDTokenId: string;
   let MPONDTokenId: string;
-  let pondInstance: Contract;
-  let mpondInstance: Contract;
+  let pond: Contract;
+  let mpond: Contract;
   let stakeManagerInstance: Contract;
   let clusterRegistryInstance: Contract;
   let clusterRewardsInstance: Contract;
@@ -1115,15 +1080,15 @@ describe("StakeManager Deployment", function () {
 
   it("deploys with initialization disabled", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    pondInstance = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
 
     const MPond = await ethers.getContractFactory("MPond");
-    mpondInstance = await upgrades.deployProxy(MPond, { kind: "uups" });
-    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), await MpondAccount.getAddress());
-    await mpondInstance.transfer(await MpondAccount.getAddress(), BN.from(3000).e18());
+    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    await mpond.grantRole(await mpond.WHITELIST_ROLE(), await MpondAccount.getAddress());
+    await mpond.transfer(await MpondAccount.getAddress(), BN.from(3000).e18());
 
-    PONDTokenId = ethers.utils.keccak256(pondInstance.address);
-    MPONDTokenId = ethers.utils.keccak256(mpondInstance.address);
+    PONDTokenId = ethers.utils.keccak256(pond.address);
+    MPONDTokenId = ethers.utils.keccak256(mpond.address);
 
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await StakeManager.deploy();
@@ -1146,7 +1111,7 @@ describe("StakeManager Deployment", function () {
     await expect(
       stakeManager.initialize(
         [PONDTokenId, MPONDTokenId],
-        [pondInstance.address, mpondInstance.address],
+        [pond.address, mpond.address],
         [false, true],
         rewardDelegatorsInstance.address,
         5,
@@ -1162,7 +1127,7 @@ describe("StakeManager Deployment", function () {
       StakeManager,
       [
         [PONDTokenId, MPONDTokenId],
-        [pondInstance.address, mpondInstance.address],
+        [pond.address, mpond.address],
         [false, true],
         rewardDelegatorsInstance.address,
         5,
@@ -1176,7 +1141,7 @@ describe("StakeManager Deployment", function () {
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistryInstance.address,
-      pondInstance.address,
+      pond.address,
       [PONDTokenId, MPONDTokenId],
       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
@@ -1187,7 +1152,7 @@ describe("StakeManager Deployment", function () {
     dotEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      pondInstance.address,
+      pond.address,
       BN.from(10).pow(20)
     ], {
       kind: "uups",
@@ -1200,7 +1165,7 @@ describe("StakeManager Deployment", function () {
     nearEpochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
       numberOfClustersToSelect,
-      pondInstance.address,
+      pond.address,
       BN.from(10).pow(20)
     ], {
       kind: "uups",
@@ -1210,7 +1175,7 @@ describe("StakeManager Deployment", function () {
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     let receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
       kind: "uups",
       initializer: false,
     });
@@ -1231,10 +1196,10 @@ describe("StakeManager Deployment", function () {
       appConfig.staking.rewardPerEpoch
     );
 
-    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
-    expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
+    await mpond.grantRole(await mpond.WHITELIST_ROLE(), stakeManagerInstance.address);
+    expect(await mpond.hasRole(await mpond.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
-    await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pond.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
 
     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
   });
@@ -1243,7 +1208,7 @@ describe("StakeManager Deployment", function () {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     await upgrades.upgradeProxy(stakeManagerInstance.address, StakeManager.connect(stakeManagerOwner), { kind: "uups" });
 
-    await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pond.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
 
     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
   });
@@ -1256,46 +1221,46 @@ describe("StakeManager Deployment", function () {
   it("create POND stash", async () => {
     const amount = 12000000;
 
-    await pondInstance.approve(stakeManagerInstance.address, 0);
+    await pond.approve(stakeManagerInstance.address, 0);
     await expect(stakeManagerInstance.createStash([PONDTokenId], [1])).to.be.reverted;
 
-    await pondInstance.approve(stakeManagerInstance.address, amount);
-    expect(await pondInstance.allowance(addrs[0], stakeManagerInstance.address)).to.equal(amount);
+    await pond.approve(stakeManagerInstance.address, amount);
+    expect(await pond.allowance(addrs[0], stakeManagerInstance.address)).to.equal(amount);
 
-    const prevUserBalance = await pondInstance.balanceOf(addrs[0]);
-    const prevBalLowStash = await pondInstance.balanceOf(stakeManagerInstance.address);
+    const prevUserBalance = await pond.balanceOf(addrs[0]);
+    const prevBalLowStash = await pond.balanceOf(stakeManagerInstance.address);
 
     // Even if excess amount is approved, only amount mentioned while creating stash should be used and tokens should be transferred to stakingContract.
     await stakeManagerInstance.createStash([PONDTokenId], [amount - 100]);
-    const postBalLowStash = await pondInstance.balanceOf(stakeManagerInstance.address);
-    const postUserBalance = await pondInstance.balanceOf(addrs[0]);
+    const postBalLowStash = await pond.balanceOf(stakeManagerInstance.address);
+    const postUserBalance = await pond.balanceOf(addrs[0]);
     expect(postBalLowStash.sub(prevBalLowStash)).to.equal(amount - 100);
     expect(prevUserBalance.sub(postUserBalance)).to.equal(amount - 100);
 
-    await pondInstance.approve(stakeManagerInstance.address, amount);
-    const prevBalEqStash = await pondInstance.balanceOf(stakeManagerInstance.address);
+    await pond.approve(stakeManagerInstance.address, amount);
+    const prevBalEqStash = await pond.balanceOf(stakeManagerInstance.address);
     // If exact amount is approved, the stash should still be created and tokens transferred to stakingContract with specified amount
     await stakeManagerInstance.createStash([PONDTokenId], [amount]);
-    const postBalEqStash = await pondInstance.balanceOf(stakeManagerInstance.address);
+    const postBalEqStash = await pond.balanceOf(stakeManagerInstance.address);
     expect(postBalEqStash.sub(prevBalEqStash)).to.equal(amount);
 
     // Should revert if trying to createStash with more amount than approved.
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     await expect(stakeManagerInstance.createStash([PONDTokenId], [amount + 1])).to.be.reverted;
 
     // // should revert if trying to createStash with any of the token using 0 amount
-    // await pondInstance.approve(stakeManagerInstance.address, amount);
+    // await pond.approve(stakeManagerInstance.address, amount);
     // await expect(stakeManagerInstance.createStash([PONDTokenId], [0])).to.be.reverted;
     // await expect(stakeManagerInstance.createStash([PONDTokenId, MPONDTokenId], [amount, 0])).to.be.reverted;
 
     // // should revert if trying to createStash with same tokenId sent multiple times in same tx
-    // await pondInstance.approve(stakeManagerInstance.address, amount + 2);
-    // await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    // await mpondInstance.approve(stakeManagerInstance.address, amount);
+    // await pond.approve(stakeManagerInstance.address, amount + 2);
+    // await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    // await mpond.approve(stakeManagerInstance.address, amount);
     // await expect(stakeManagerInstance.createStash([PONDTokenId, MPONDTokenId, PONDTokenId], [amount, amount, 2])).to.be.reverted;
 
     // If multiple stashes with same data are created, stashid should be different for both
-    await pondInstance.approve(stakeManagerInstance.address, amount * 2);
+    await pond.approve(stakeManagerInstance.address, amount * 2);
     let tx1 = await (await stakeManagerInstance.createStash([PONDTokenId], [amount])).wait();
     let tx2 = await (await stakeManagerInstance.createStash([PONDTokenId], [amount])).wait();
 
@@ -1305,45 +1270,45 @@ describe("StakeManager Deployment", function () {
   it("create MPOND stash", async () => {
     const amount = 13000000;
 
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount * 8);
-    await mpondInstance.approve(stakeManagerInstance.address, 0);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount * 8);
+    await mpond.approve(stakeManagerInstance.address, 0);
     // should revert without token allowance
     await expect(stakeManagerInstance.createStash([MPONDTokenId], [1])).to.be.reverted;
 
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
-    expect(await mpondInstance.allowance(addrs[0], stakeManagerInstance.address)).to.equal(amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
+    expect(await mpond.allowance(addrs[0], stakeManagerInstance.address)).to.equal(amount);
 
-    const prevUserBalance = await mpondInstance.balanceOf(addrs[0]);
-    const prevBalLowStash = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const prevUserBalance = await mpond.balanceOf(addrs[0]);
+    const prevBalLowStash = await mpond.balanceOf(stakeManagerInstance.address);
     // Even if excess amount is approved, only amount mentioned while creating stash should be used and tokens should be transferred to stakingContract.
     let tx = await stakeManagerInstance.createStash([MPONDTokenId], [amount - 100]);
-    const postBalLowStash = await mpondInstance.balanceOf(stakeManagerInstance.address);
-    const postUserBalance = await mpondInstance.balanceOf(addrs[0]);
+    const postBalLowStash = await mpond.balanceOf(stakeManagerInstance.address);
+    const postUserBalance = await mpond.balanceOf(addrs[0]);
     expect(postBalLowStash.sub(prevBalLowStash)).to.equal(amount - 100);
     expect(prevUserBalance.sub(postUserBalance)).to.equal(amount - 100);
 
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
-    const prevBalEqStash = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    await mpond.approve(stakeManagerInstance.address, amount);
+    const prevBalEqStash = await mpond.balanceOf(stakeManagerInstance.address);
     // If exact amount is approved, the stash should still be created and tokens transferred to stakingContract with specified amount
     await stakeManagerInstance.createStash([MPONDTokenId], [amount]);
-    const postBalEqStash = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const postBalEqStash = await mpond.balanceOf(stakeManagerInstance.address);
     expect(postBalEqStash.sub(prevBalEqStash)).to.equal(amount);
 
     // Should revert if trying to createStash with more amount than approved.
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
     await expect(stakeManagerInstance.createStash([MPONDTokenId], [amount + 1])).to.be.reverted;
 
     // // should revert if trying to createStash with any of the token using 0 amount
-    // await mpondInstance.approve(stakeManagerInstance.address, amount);
+    // await mpond.approve(stakeManagerInstance.address, amount);
     // await expect(stakeManagerInstance.createStash([MPONDTokenId], [0])).to.be.reverted;
     // await expect(stakeManagerInstance.createStash([PONDTokenId, MPONDTokenId], [0, amount])).to.be.reverted;
 
     // // should revert if trying to createStash with same tokenId sent multiple times in same tx
-    // await mpondInstance.approve(stakeManagerInstance.address, amount + 2);
-    // await pondInstance.approve(stakeManagerInstance.address, amount);
+    // await mpond.approve(stakeManagerInstance.address, amount + 2);
+    // await pond.approve(stakeManagerInstance.address, amount);
     // await expect(stakeManagerInstance.createStash([MPONDTokenId, PONDTokenId, MPONDTokenId], [amount, amount, 2])).to.be.reverted;
     // If multiple stashes with same data are created, stashid should be different for both
-    await mpondInstance.approve(stakeManagerInstance.address, amount * 2);
+    await mpond.approve(stakeManagerInstance.address, amount * 2);
     let tx1 = await (await stakeManagerInstance.createStash([MPONDTokenId], [amount])).wait();
     let tx2 = await (await stakeManagerInstance.createStash([MPONDTokenId], [amount])).wait();
     expect(getStashId(tx1.events)).to.not.equal(getStashId(tx2.events));
@@ -1372,9 +1337,9 @@ describe("StakeManager Deployment", function () {
     );
 
     const stashId = await createStash(0, amount);
-    const initialStakeContractBalance = (await pondInstance.balanceOf(stakeManagerInstance.address)).toString();
+    const initialStakeContractBalance = (await pond.balanceOf(stakeManagerInstance.address)).toString();
     await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
-    const finalStakeContractBalance = (await pondInstance.balanceOf(stakeManagerInstance.address)).toString();
+    const finalStakeContractBalance = (await pond.balanceOf(stakeManagerInstance.address)).toString();
     const clusterPONDDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId);
 
     expect(clusterPONDDelegation - clusterInitialPONDDelegation).to.equal(amount);
@@ -1396,9 +1361,9 @@ describe("StakeManager Deployment", function () {
     );
 
     const stashId = await createStash(amount, 0);
-    const initalStakeContractBalance = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const initalStakeContractBalance = await mpond.balanceOf(stakeManagerInstance.address);
     await stakeManagerInstance.delegateStash(stashId, await registeredCluster.getAddress());
-    const finalStakeContractBalance = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const finalStakeContractBalance = await mpond.balanceOf(stakeManagerInstance.address);
     const clusterMPONDDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), MPONDTokenId);
     expect(clusterMPONDDelegation - clusterInitialMPONDDelegation).to.equal(amount);
     expect(finalStakeContractBalance).to.equal(initalStakeContractBalance);
@@ -1460,7 +1425,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       PONDTokenId
     );
-    const stakeContractBalanceBeforeRedelegateRequest = await pondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceBeforeRedelegateRequest = await pond.balanceOf(stakeManagerInstance.address);
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
     const delegationAfterRedelegateRequest = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster1.getAddress(),
@@ -1470,7 +1435,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       PONDTokenId
     );
-    const stakeContractBalanceAfterRedelegateRequest = await pondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegateRequest = await pond.balanceOf(stakeManagerInstance.address);
     // check if the delegations doesn't change when requested, also the balance of stake contract doesn't change
     expect(delegationBeforeRedelegateRequest).to.equal(delegationAfterRedelegateRequest);
     expect(prevClusterDelegationBeforeRedelegateRequest).to.equal(prevClusterDelegationAfterRedelegateRequest);
@@ -1490,7 +1455,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       PONDTokenId
     );
-    const stakeContractBalanceAfterRedelegate = await pondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegate = await pond.balanceOf(stakeManagerInstance.address);
 
     expect((await stakeManagerInstance.stashes(stashId)).delegatedCluster).to.equal(await registeredCluster1.getAddress());
     expect(delegationAfterRedelegate - delegationAfterRedelegateRequest).to.equal(amount);
@@ -1529,7 +1494,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       MPONDTokenId
     );
-    const stakeContractBalanceBeforeRedelegateRequest = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceBeforeRedelegateRequest = await mpond.balanceOf(stakeManagerInstance.address);
     await stakeManagerInstance.requestStashRedelegation(stashId, await registeredCluster1.getAddress());
     const delegationAfterRedelegateRequest = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster1.getAddress(),
@@ -1539,7 +1504,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       MPONDTokenId
     );
-    const stakeContractBalanceAfterRedelegateRequest = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegateRequest = await mpond.balanceOf(stakeManagerInstance.address);
     // check if the delegations doesn't change when requested, also the balance of stake contract doesn't change
     expect(delegationBeforeRedelegateRequest).to.equal(delegationAfterRedelegateRequest);
     expect(prevClusterDelegationBeforeRedelegateRequest).to.equal(prevClusterDelegationAfterRedelegateRequest);
@@ -1557,7 +1522,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       MPONDTokenId
     );
-    const stakeContractBalanceAfterRedelegate = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegate = await mpond.balanceOf(stakeManagerInstance.address);
     expect((await stakeManagerInstance.stashes(stashId)).delegatedCluster).to.equal(await registeredCluster1.getAddress());
     expect((await stakeManagerInstance.stashes(stashId)).delegatedCluster).to.equal(await registeredCluster1.getAddress());
     expect(delegationAfterRedelegate - delegationAfterRedelegateRequest).to.equal(amount);
@@ -1639,7 +1604,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       MPONDTokenId
     );
-    const stakeContractBalanceAfterRedelegateRequest = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegateRequest = await mpond.balanceOf(stakeManagerInstance.address);
     await stakeManagerInstance.redelegateStash(stashId);
     const delegationAfterRedelegate = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster1.getAddress(),
@@ -1649,7 +1614,7 @@ describe("StakeManager Deployment", function () {
       await registeredCluster.getAddress(),
       MPONDTokenId
     );
-    const stakeContractBalanceAfterRedelegate = await mpondInstance.balanceOf(stakeManagerInstance.address);
+    const stakeContractBalanceAfterRedelegate = await mpond.balanceOf(stakeManagerInstance.address);
     expect((await stakeManagerInstance.stashes(stashId)).delegatedCluster).to.equal(await registeredCluster1.getAddress());
     expect(delegationAfterRedelegate - delegationAfterRedelegateRequest).to.equal(amount);
     expect(prevClusterDelegationAfterRedelegateRequest - prevClusterDelegationAfterRedelegate).to.equal(amount);
@@ -1810,7 +1775,7 @@ describe("StakeManager Deployment", function () {
 
   it("create and Delegate POND stash", async () => {
     const amount = 750000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId);
 
@@ -1822,8 +1787,8 @@ describe("StakeManager Deployment", function () {
 
   it("create and Delegate MPOND stash", async () => {
     const amount = 710000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -1838,7 +1803,7 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate POND stash", async () => {
     const amount = 730000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId);
 
@@ -1849,9 +1814,9 @@ describe("StakeManager Deployment", function () {
     expect(clusterDelegation - clusterInitialDelegation).to.equal(amount);
     const stashId = getStashId(receipt.events);
 
-    const balanceBefore = await pondInstance.balanceOf(addrs[0]);
+    const balanceBefore = await pond.balanceOf(addrs[0]);
     await stakeManagerInstance.undelegateStash(stashId);
-    const balanceAfter = await pondInstance.balanceOf(addrs[0]);
+    const balanceAfter = await pond.balanceOf(addrs[0]);
     expect(balanceAfter).to.equal(balanceBefore);
     const clusterDelegationAfterUndelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -1862,7 +1827,7 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate MPOND stash", async () => {
     const amount = 710000;
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -1875,9 +1840,9 @@ describe("StakeManager Deployment", function () {
     expect(clusterDelegation - clusterInitialDelegation).to.equal(amount);
     const stashId = getStashId(receipt.events);
 
-    const balanceBefore = await mpondInstance.balanceOf(addrs[0]);
+    const balanceBefore = await mpond.balanceOf(addrs[0]);
     await stakeManagerInstance.undelegateStash(stashId);
-    const balanceAfter = await mpondInstance.balanceOf(addrs[0]);
+    const balanceAfter = await mpond.balanceOf(addrs[0]);
     expect(balanceAfter).to.equal(balanceBefore);
     const clusterDelegationAfterUndelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -1888,7 +1853,7 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate POND stash that doesn't exists", async () => {
     const amount = 690000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
@@ -1900,8 +1865,8 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate MPOND stash that doesn't exists", async () => {
     const amount = 680000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
     const receipt = await (
       await stakeManagerInstance.createStashAndDelegate([MPONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
@@ -1913,7 +1878,7 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate POND stash from a deregistering cluster", async () => {
     const amount = 670000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     await clusterRegistryInstance
       .connect(deregisteredCluster)
       .register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
@@ -1939,7 +1904,7 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate POND stash from a deregistered cluster", async () => {
     const amount = 670000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     await clusterRegistryInstance
       .connect(deregisteredCluster)
       .register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
@@ -1965,8 +1930,8 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate MPOND stash from a deregistering cluster", async () => {
     const amount = 660000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
     await clusterRegistryInstance
       .connect(deregisteredCluster)
       .register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
@@ -1996,8 +1961,8 @@ describe("StakeManager Deployment", function () {
 
   it("Undelegate MPOND stash from a deregistered cluster", async () => {
     const amount = 660000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
     await clusterRegistryInstance
       .connect(deregisteredCluster)
       .register(ethers.utils.id("NEAR"), 5, deregisteredClusterRewardAddress, deregisteredClusterClientKey);
@@ -2026,7 +1991,7 @@ describe("StakeManager Deployment", function () {
 
   it("Withdraw POND before wait time", async () => {
     const amount = 650000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId);
 
@@ -2051,8 +2016,8 @@ describe("StakeManager Deployment", function () {
 
   it("Withdraw MPOND before wait time", async () => {
     const amount = 640000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -2079,7 +2044,7 @@ describe("StakeManager Deployment", function () {
 
   it("Withdraw POND after wait time", async () => {
     const amount = 630000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(await registeredCluster.getAddress(), PONDTokenId);
 
@@ -2099,17 +2064,17 @@ describe("StakeManager Deployment", function () {
 
     await skipTime(UNDELEGATION_WAIT_TIME);
 
-    const balanceBefore = (await pondInstance.balanceOf(addrs[0])).toString();
+    const balanceBefore = (await pond.balanceOf(addrs[0])).toString();
     await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
-    const balanceAfter = (await pondInstance.balanceOf(addrs[0])).toString();
+    const balanceAfter = (await pond.balanceOf(addrs[0])).toString();
     const increasedBalance = BN.from(balanceBefore).add(amount);
     expect(increasedBalance).to.equal(balanceAfter);
   });
 
   it("Withdraw MPOND after wait time", async () => {
     const amount = 620000;
-    await mpondInstance.connect(MpondAccount).transfer(addrs[0], amount);
-    await mpondInstance.approve(stakeManagerInstance.address, amount);
+    await mpond.connect(MpondAccount).transfer(addrs[0], amount);
+    await mpond.approve(stakeManagerInstance.address, amount);
 
     const clusterInitialDelegation = await rewardDelegatorsInstance.getClusterDelegation(
       await registeredCluster.getAddress(),
@@ -2131,9 +2096,9 @@ describe("StakeManager Deployment", function () {
 
     await skipTime(UNDELEGATION_WAIT_TIME);
 
-    const balanceBefore = await mpondInstance.balanceOf(addrs[0]);
+    const balanceBefore = await mpond.balanceOf(addrs[0]);
     await stakeManagerInstance["withdrawStash(bytes32)"](stashId);
-    const balanceAfter = await mpondInstance.balanceOf(addrs[0]);
+    const balanceAfter = await mpond.balanceOf(addrs[0]);
 
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
@@ -2144,7 +2109,7 @@ describe("StakeManager Deployment", function () {
 
   it("Create POND stash and split", async () => {
     const amount = 12000000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
 
     let createStashTx = await (await stakeManagerInstance.createStash([PONDTokenId], [amount])).wait();
     let stashIndex = await stakeManagerInstance.stashIndex();
@@ -2164,7 +2129,7 @@ describe("StakeManager Deployment", function () {
 
   it("Create two stashes and then merge them", async () => {
     const amount = 1200;
-    await pondInstance.approve(stakeManagerInstance.address, 10 * amount);
+    await pond.approve(stakeManagerInstance.address, 10 * amount);
 
     const createStash1 = await (await stakeManagerInstance.createStash([PONDTokenId], [3 * amount])).wait();
     const createStash2 = await (await stakeManagerInstance.createStash([PONDTokenId], [7 * amount])).wait();
@@ -2183,13 +2148,13 @@ describe("StakeManager Deployment", function () {
 
   it("Request multiple stash redelegations", async () => {
     const amount = 1000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
     const stashId1 = getStashId(receipt.events);
 
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt1 = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
@@ -2246,12 +2211,12 @@ describe("StakeManager Deployment", function () {
         .register(ethers.utils.id("DOT"), 5, registeredClusterRewardAddress, clientKey);
     }
     const amount = 1000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt1 = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
     const stashId1 = getStashId(receipt1.events);
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt2 = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
@@ -2311,7 +2276,7 @@ describe("StakeManager Deployment", function () {
     }
 
     const amount = 730000;
-    await pondInstance.approve(stakeManagerInstance.address, amount);
+    await pond.approve(stakeManagerInstance.address, amount);
     const receipt = await (
       await stakeManagerInstance.createStashAndDelegate([PONDTokenId], [amount], await registeredCluster.getAddress())
     ).wait();
@@ -2361,7 +2326,7 @@ describe("StakeManager Deployment", function () {
 
   it("enable/disable token", async () => {
     // try to enable already enabled
-    await expect(stakeManagerInstance.connect(stakeManagerOwner).addToken(PONDTokenId, pondInstance.address)).to.be.reverted;
+    await expect(stakeManagerInstance.connect(stakeManagerOwner).addToken(PONDTokenId, pond.address)).to.be.reverted;
 
     // only onwner should be able to disable
     await expect(stakeManagerInstance.connect(signers[1]).disableToken(PONDTokenId)).to.be.reverted;
@@ -2376,8 +2341,8 @@ describe("StakeManager Deployment", function () {
 
   it("create, add and withdraw Stash", async () => {
     let tokenId = PONDTokenId;
-    pondInstance.approve(stakeManagerInstance.address, 300);
-    // await stakeManagerInstance.connect(stakeManagerOwner).addToken(tokenId, pondInstance.address);
+    pond.approve(stakeManagerInstance.address, 300);
+    // await stakeManagerInstance.connect(stakeManagerOwner).addToken(tokenId, pond.address);
 
     let tx = await (await stakeManagerInstance.createStash([tokenId], [100])).wait();
     let stashId = getStashId(tx.events);
@@ -2393,19 +2358,17 @@ describe("StakeManager Deployment", function () {
     expect(await stakeManagerInstance.getTokenAmountInStash(stashId, tokenId)).to.equal(0);
   });
 
-  it("");
-
   async function createStash(mpondAmount: Number, pondAmount: Number) {
     const tokens = [];
     const amounts = [];
     if (mpondAmount != 0) {
-      await mpondInstance.connect(MpondAccount).transfer(addrs[0], mpondAmount);
-      await mpondInstance.approve(stakeManagerInstance.address, mpondAmount);
+      await mpond.connect(MpondAccount).transfer(addrs[0], mpondAmount);
+      await mpond.approve(stakeManagerInstance.address, mpondAmount);
       tokens.push(MPONDTokenId);
       amounts.push(mpondAmount);
     }
     if (pondAmount != 0) {
-      await pondInstance.approve(stakeManagerInstance.address, pondAmount);
+      await pond.approve(stakeManagerInstance.address, pondAmount);
       tokens.push(PONDTokenId);
       amounts.push(pondAmount);
     }
