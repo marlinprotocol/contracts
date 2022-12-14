@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./interfaces/IRewardDelegators.sol";
 import "./interfaces/IStakeManager.sol";
 import "../token/MPond.sol";
@@ -245,16 +246,16 @@ contract StakeManager is
         _updateToken(_tokenId, _address);
     }
 
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+
     function _lockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         address tokenAddress = tokens[_tokenId];
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
-        require(
-            IERC20Upgradeable(tokenAddress).transferFrom(
-                _delegator,
-                address(this),
-                _amount
-            )
+        IERC20Upgradeable(tokenAddress).safeTransferFrom(
+            _delegator,
+            address(this),
+            _amount
         );
         if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to delegate governance rights for the amount to delegator
@@ -274,11 +275,9 @@ contract StakeManager is
                 uint96(_amount)
             );
         }
-        require(
-            IERC20Upgradeable(tokenAddress).transfer(
-                _delegator,
-                _amount
-            )
+        IERC20Upgradeable(tokenAddress).safeTransfer(
+            _delegator,
+            _amount
         );
     }
 
