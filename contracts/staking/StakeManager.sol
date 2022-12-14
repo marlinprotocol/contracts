@@ -397,9 +397,10 @@ contract StakeManager is
         address _delegatedCluster
     ) internal {
         rewardDelegators.undelegate(_staker, _delegatedCluster, _tokenIds, _amounts);
-        delete stashes[_stashId].delegatedCluster;
-
+        // event order was incorrect in previous versions of contract
+        // do not rely on data from old events
         emit StashUndelegated(_stashId, stashes[_stashId].delegatedCluster);
+        delete stashes[_stashId].delegatedCluster;
     }
 
     function _updateRewardDelegators(address _updatedRewardDelegator) internal {
