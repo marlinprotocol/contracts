@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { Signer, Contract } from "ethers";
 import { expect } from "chai";
 
@@ -10,11 +10,27 @@ export function testAdminRole(name: string, deployer: (signers: Signer[], addrs:
     let contract: Contract;
     let DEFAULT_ADMIN_ROLE: string;
 
-    beforeEach(async function () {
+    let snapshot: any;
+
+    before(async function () {
       signers = await ethers.getSigners();
       addrs = await Promise.all(signers.map((a) => a.getAddress()));
       contract = await deployer(signers, addrs);
       DEFAULT_ADMIN_ROLE = await contract.DEFAULT_ADMIN_ROLE();
+    });
+
+    beforeEach(async function () {
+      snapshot = await network.provider.request({
+        method: "evm_snapshot",
+        params: [],
+      });
+    });
+
+    afterEach(async function () {
+      await network.provider.request({
+        method: "evm_revert",
+        params: [snapshot],
+      });
     });
 
     it("admin can grant admin role", async function () {
@@ -70,11 +86,27 @@ export function testRole(name: string, deployer: (signers: Signer[], addrs: stri
     let contract: Contract;
     let ROLE: string;
 
-    beforeEach(async function () {
+    let snapshot: any;
+
+    before(async function () {
       signers = await ethers.getSigners();
       addrs = await Promise.all(signers.map((a) => a.getAddress()));
       contract = await deployer(signers, addrs);
       ROLE = await contract[role]();
+    });
+
+    beforeEach(async function () {
+      snapshot = await network.provider.request({
+	method: "evm_snapshot",
+	params: [],
+      });
+    });
+
+    afterEach(async function () {
+      await network.provider.request({
+	method: "evm_revert",
+	params: [snapshot],
+      });
     });
 
     it(`admin can grant ${role} role`, async function () {

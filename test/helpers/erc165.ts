@@ -9,10 +9,26 @@ export function testERC165(name: string, deployer: (signers: Signer[], addrs: st
     let addrs: string[];
     let contract: Contract;
 
-    beforeEach(async function () {
+    let snapshot: any;
+
+    before(async function () {
       signers = await ethers.getSigners();
       addrs = await Promise.all(signers.map((a) => a.getAddress()));
       contract = await deployer(signers, addrs);
+    });
+
+    beforeEach(async function () {
+      snapshot = await network.provider.request({
+        method: "evm_snapshot",
+        params: [],
+      });
+    });
+
+    afterEach(async function () {
+      await network.provider.request({
+        method: "evm_revert",
+        params: [snapshot],
+      });
     });
 
     function makeInterfaceId(interfaces: string[]): string {
