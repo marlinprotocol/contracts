@@ -246,9 +246,6 @@ contract StakeManager is
     }
 
     function _lockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
-            return;
-        }
         address tokenAddress = tokens[_tokenId];
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
@@ -269,9 +266,6 @@ contract StakeManager is
     }
 
     function _unlockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
-        if(_amount == 0) {
-            return;
-        }
         address tokenAddress = tokens[_tokenId];
         if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
