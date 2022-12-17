@@ -22,5 +22,5 @@ interface IStakeManager {
     function undelegateStash(bytes32 _stashId) external;
     function withdrawStash(bytes32 _stashId) external;
     function withdrawStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external;
-    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256);
+    function stashes__amounts(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256);
 }

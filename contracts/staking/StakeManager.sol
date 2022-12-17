@@ -659,7 +659,7 @@ contract StakeManager is
         _withdraw(_stashId, _tokens, _amounts);
     }
 
-    function getTokenAmountInStash(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
+    function stashes__amounts(bytes32 _stashId, bytes32 _tokenId) external view returns(uint256) {
         return stashes[_stashId].amounts[_tokenId];
     }
 
