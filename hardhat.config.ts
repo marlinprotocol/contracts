@@ -1,6 +1,7 @@
 import '@nomiclabs/hardhat-ethers';
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomiclabs/hardhat-waffle";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
 import dotenv from 'dotenv';
