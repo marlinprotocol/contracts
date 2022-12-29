@@ -514,6 +514,7 @@ contract StakeManager is
         _redelegateStash(_stashId,  stashes[_stashId].delegatedCluster, _updatedCluster);
     }
 
+    // assumes neither _delegatedCluster nor _updatedCluster can be zero
     function _redelegateStash(
         bytes32 _stashId,
         address _delegatedCluster,
@@ -525,12 +526,8 @@ contract StakeManager is
             _amounts[i] = stashes[_stashId].amounts[_tokens[i]];
         }
 
-        if(_delegatedCluster != address(0)) {
-            _undelegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
-        }
-        if(_updatedCluster != address(0)) {
-            _delegate(_msgSender(), _stashId, _tokens, _amounts, _updatedCluster);
-        }
+        _undelegate(_msgSender(), _stashId, _tokens, _amounts, _delegatedCluster);
+        _delegate(_msgSender(), _stashId, _tokens, _amounts, _updatedCluster);
     }
 
     function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external onlyStakerOf(_stashId) {
