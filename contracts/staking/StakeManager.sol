@@ -530,6 +530,24 @@ contract StakeManager is
         _delegate(_msgSender(), _stashId, _tokens, _amounts, _updatedCluster);
     }
 
+    function redelegateStashes(bytes32[] memory _stashIds) public {
+        for(uint256 i=0; i < _stashIds.length; i++) {
+            redelegateStash(_stashIds[i]);
+        }
+    }
+
+    function cancelRedelegation(bytes32 _stashId) public onlyStakerOf(_stashId) {
+        require(_cancelRedelegation(_stashId));
+    }
+
+    function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
+        bool _exists = _lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.None;
+        if(_exists) {
+            _revertLock(REDELEGATION_LOCK_SELECTOR, _stashId);
+        }
+        return _exists;
+    }
+
     function splitStash(bytes32 _stashId, bytes32[] calldata _tokens, uint256[] calldata _amounts) external onlyStakerOf(_stashId) {
         require(
             _tokens.length != 0
@@ -564,24 +582,6 @@ contract StakeManager is
         _move(_stashId2, _stashId1, _tokens, _amounts);
 
         delete stashes[_stashId2];
-    }
-
-    function redelegateStashes(bytes32[] memory _stashIds) public {
-        for(uint256 i=0; i < _stashIds.length; i++) {
-            redelegateStash(_stashIds[i]);
-        }
-    }
-
-    function cancelRedelegation(bytes32 _stashId) public onlyStakerOf(_stashId) {
-        require(_cancelRedelegation(_stashId));
-    }
-
-    function _cancelRedelegation(bytes32 _stashId) internal returns(bool) {
-        bool _exists = _lockStatus(REDELEGATION_LOCK_SELECTOR, _stashId) != LockStatus.None;
-        if(_exists) {
-            _revertLock(REDELEGATION_LOCK_SELECTOR, _stashId);
-        }
-        return _exists;
     }
 
     function undelegateStash(bytes32 _stashId) public onlyStakerOf(_stashId) {
