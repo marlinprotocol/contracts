@@ -248,7 +248,7 @@ contract StakeManager is
 
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    function _lockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+    function _lockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         address tokenAddress = tokens[_tokenId];
         // pull tokens from mpond/pond contract
         // if mpond transfer the governance rights back
@@ -266,7 +266,7 @@ contract StakeManager is
         }
     }
 
-    function _unlockTokens(bytes32 _stashId, bytes32 _tokenId, uint256 _amount, address _delegator) internal {
+    function _unlockTokens(bytes32 _tokenId, uint256 _amount, address _delegator) internal {
         address tokenAddress = tokens[_tokenId];
         if(hasRole(DELEGATABLE_TOKEN_ROLE, tokenAddress)) {
             // send a request to undelegate governacne rights for the amount to previous delegator
@@ -338,7 +338,7 @@ contract StakeManager is
             );
             if(_amounts[i] != 0) {
                 stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] + _amounts[i];
-                _lockTokens(_stashId, _tokenId, _amounts[i], _msgSender());
+                _lockTokens(_tokenId, _amounts[i], _msgSender());
             }
         }
 
@@ -354,7 +354,7 @@ contract StakeManager is
             bytes32 _tokenId = _tokenIds[i];
             if(_amounts[i] != 0) {
                 stashes[_stashId].amounts[_tokenId] = stashes[_stashId].amounts[_tokenId] - _amounts[i];
-                _unlockTokens(_stashId, _tokenId, _amounts[i], _msgSender());
+                _unlockTokens(_tokenId, _amounts[i], _msgSender());
             }
         }
 
