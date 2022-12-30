@@ -587,7 +587,7 @@ contract StakeManager is
     function undelegateStash(bytes32 _stashId) public onlyStakerOf(_stashId) {
         address _delegatedCluster = stashes[_stashId].delegatedCluster;
         require(
-            stashes[_stashId].delegatedCluster != address(0)
+            _delegatedCluster != address(0)
         );
 
         bytes32[] memory _tokens = tokenList;
