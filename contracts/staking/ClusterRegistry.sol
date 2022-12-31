@@ -75,8 +75,7 @@ contract ClusterRegistry is
 
         bytes32[3] memory _selectors = [COMMISSION_LOCK_SELECTOR, SWITCH_NETWORK_LOCK_SELECTOR, UNREGISTER_LOCK_SELECTOR];
         for(uint256 i=0; i < _selectors.length; i++) {
-            lockWaitTime[_selectors[i]] = _lockWaitTimes[i];
-            emit LockTimeUpdated(_selectors[i], 0, _lockWaitTimes[i]);
+            updateLockWaitTime(_selectors[i], _lockWaitTimes[i]);
         }
         _updateRewardDelegators(_rewardDelegators);
     }
