@@ -7,13 +7,11 @@ interface IEpochSelector is IClusterSelector {
 
     function getClusters(uint256 epoch) external view returns (address[] memory clusters);
 
-    function getTotalElements() external view returns(uint256);
-
     function selectClusters() external returns (address[] memory nodes);
 
     /// @notice Delete a node from tree if it is stored
     /// @param key Address of the node
-    function deleteNodeIfPresent(address key) external returns (bool);
+    function deleteIfPresent(address key) external;
 
     /// @notice Update the number of clusters to select
     /// @param numberOfClusters New number of clusters to select

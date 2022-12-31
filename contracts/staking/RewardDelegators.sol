@@ -342,7 +342,7 @@ contract RewardDelegators is
             }
             // if not, update it to zero
             else{
-                _epochSelector.deleteNodeIfPresent(_cluster);
+                _epochSelector.deleteIfPresent(_cluster);
             }
         }
     }
@@ -356,7 +356,7 @@ contract RewardDelegators is
     function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
         require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
-        _epochSelector.deleteNodeIfPresent(_cluster);
+        _epochSelector.deleteIfPresent(_cluster);
     }
 
     function undelegate(
