@@ -86,7 +86,7 @@ contract ClusterRegistry is
 //-------------------------------- Locks start --------------------------------//
 
     struct Lock {
-        uint256 unlockBlock;
+        uint256 unlockTime;
         uint256 iValue;
     }
     mapping(bytes32 => Lock) public locks;
@@ -140,13 +140,13 @@ contract ClusterRegistry is
         address rewardAddress,
         address clientKey
     );
-    event CommissionUpdateRequested(address indexed cluster, uint256 commissionAfterUpdate, uint256 effectiveBlock);
+    event CommissionUpdateRequested(address indexed cluster, uint256 commissionAfterUpdate, uint256 effectiveTime);
     event CommissionUpdated(address indexed cluster, uint256 updatedCommission, uint256 updatedAt);
     event RewardAddressUpdated(address indexed cluster, address updatedRewardAddress);
-    event NetworkSwitchRequested(address indexed cluster, bytes32 indexed networkId, uint256 effectiveBlock);
+    event NetworkSwitchRequested(address indexed cluster, bytes32 indexed networkId, uint256 effectiveTime);
     event NetworkSwitched(address indexed cluster, bytes32 indexed networkId, uint256 updatedAt);
     event ClientKeyUpdated(address indexed cluster, address clientKey);
-    event ClusterUnregisterRequested(address indexed cluster, uint256 effectiveBlock);
+    event ClusterUnregisterRequested(address indexed cluster, uint256 effectiveTime);
     event ClusterUnregistered(address indexed cluster, uint256 updatedAt);
     event RewardDelegatorsUpdated(address indexed rewardDelegators);
 
@@ -196,19 +196,19 @@ contract ClusterRegistry is
         );
         require(_commission <= 100, "CR:UCM-Commission more than 100%");
         bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
+        uint256 unlockTime = locks[lockId].unlockTime;
         require(
-            unlockBlock < block.timestamp,
+            unlockTime < block.timestamp,
             "CR:UCM-Commission update in progress"
         );
-        if(unlockBlock != 0) {
+        if(unlockTime != 0) {
             uint256 currentCommission = locks[lockId].iValue;
             clusters[_msgSender()].commission = currentCommission;
-            emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
+            emit CommissionUpdated(_msgSender(), currentCommission, unlockTime);
         }
-        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[COMMISSION_LOCK_SELECTOR];
-        locks[lockId] = Lock(updatedUnlockBlock, _commission);
-        emit CommissionUpdateRequested(_msgSender(), _commission, updatedUnlockBlock);
+        uint256 updatedUnlockTime = block.timestamp + lockWaitTime[COMMISSION_LOCK_SELECTOR];
+        locks[lockId] = Lock(updatedUnlockTime, _commission);
+        emit CommissionUpdateRequested(_msgSender(), _commission, updatedUnlockTime);
     }
 
     function switchNetwork(bytes32 _networkId) public {
@@ -217,21 +217,21 @@ contract ClusterRegistry is
             "CR:SN-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
+        uint256 unlockTime = locks[lockId].unlockTime;
         require(
-            unlockBlock < block.timestamp,
+            unlockTime < block.timestamp,
             "CR:SN-Network switch in progress"
         );
-        if(unlockBlock != 0) {
+        if(unlockTime != 0) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
             rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
             clusters[_msgSender()].networkId = currentNetwork;
             rewardDelegators.updateClusterDelegation(_msgSender(), currentNetwork);
-            emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
+            emit NetworkSwitched(_msgSender(), currentNetwork, unlockTime);
         }
-        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
-        locks[lockId] = Lock(updatedUnlockBlock, uint256(_networkId));
-        emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockBlock);
+        uint256 updatedUnlockTime = block.timestamp + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
+        locks[lockId] = Lock(updatedUnlockTime, uint256(_networkId));
+        emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockTime);
     }
 
     function updateRewardAddress(address _rewardAddress) public {
@@ -261,14 +261,14 @@ contract ClusterRegistry is
             "CR:UR-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _msgSender()));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
+        uint256 unlockTime = locks[lockId].unlockTime;
         require(
-            unlockBlock < block.timestamp,
+            unlockTime < block.timestamp,
             "CR:UR-Unregistration already in progress"
         );
-        if(unlockBlock != 0) {
+        if(unlockTime != 0) {
             clusters[_msgSender()].status = Status.NOT_REGISTERED;
-            emit ClusterUnregistered(_msgSender(), unlockBlock);
+            emit ClusterUnregistered(_msgSender(), unlockTime);
             delete clientKeys[clusters[_msgSender()].clientKey];
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()))];
@@ -276,18 +276,18 @@ contract ClusterRegistry is
             rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
             return;
         }
-        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
-        locks[lockId] = Lock(updatedUnlockBlock, 0);
-        emit ClusterUnregisterRequested(_msgSender(), updatedUnlockBlock);
+        uint256 updatedUnlockTime = block.timestamp + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
+        locks[lockId] = Lock(updatedUnlockTime, 0);
+        emit ClusterUnregisterRequested(_msgSender(), updatedUnlockTime);
     }
 
     function getCommission(address _cluster) public returns(uint256) {
         bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _cluster));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
-        if(unlockBlock != 0 && unlockBlock < block.timestamp) {
+        uint256 unlockTime = locks[lockId].unlockTime;
+        if(unlockTime != 0 && unlockTime < block.timestamp) {
             uint256 currentCommission = locks[lockId].iValue;
             clusters[_cluster].commission = currentCommission;
-            emit CommissionUpdated(_cluster, currentCommission, unlockBlock);
+            emit CommissionUpdated(_cluster, currentCommission, unlockTime);
             delete locks[lockId];
             return currentCommission;
         }
@@ -296,13 +296,13 @@ contract ClusterRegistry is
 
     function getNetwork(address _cluster) public returns(bytes32) {
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _cluster));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
-        if(unlockBlock != 0 && unlockBlock < block.timestamp) {
+        uint256 unlockTime = locks[lockId].unlockTime;
+        if(unlockTime != 0 && unlockTime < block.timestamp) {
             bytes32 currentNetwork = bytes32(locks[lockId].iValue);
             rewardDelegators.removeClusterDelegation(_cluster, clusters[_cluster].networkId);
             clusters[_cluster].networkId = currentNetwork;
             rewardDelegators.updateClusterDelegation(_cluster, currentNetwork);
-            emit NetworkSwitched(_cluster, currentNetwork, unlockBlock);
+            emit NetworkSwitched(_cluster, currentNetwork, unlockTime);
             delete locks[lockId];
             return currentNetwork;
         }
@@ -339,11 +339,11 @@ contract ClusterRegistry is
 
     function isClusterValid(address _cluster) public returns(bool) {
         bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _cluster));
-        uint256 unlockBlock = locks[lockId].unlockBlock;
-        if(unlockBlock != 0 && unlockBlock < block.timestamp) {
+        uint256 unlockTime = locks[lockId].unlockTime;
+        if(unlockTime != 0 && unlockTime < block.timestamp) {
             clusters[_cluster].status = Status.NOT_REGISTERED;
             delete clientKeys[clusters[_cluster].clientKey];
-            emit ClusterUnregistered(_cluster, unlockBlock);
+            emit ClusterUnregistered(_cluster, unlockTime);
             delete locks[lockId];
             delete locks[keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _cluster))];
             delete locks[keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _cluster))];
