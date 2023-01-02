@@ -174,21 +174,6 @@ contract ClusterRegistry is
         emit ClusterRegistered(_msgSender(), _networkId, _commission, _rewardAddress, _clientKey);
     }
 
-    function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
-        if(_networkId != bytes32(0)) {
-            switchNetwork(_networkId);
-        }
-        if(_rewardAddress != address(0)) {
-            updateRewardAddress(_rewardAddress);
-        }
-        if(_clientKey != address(0)) {
-            updateClientKey(_clientKey);
-        }
-        if(_commission != type(uint256).max) {
-            updateCommission(_commission);
-        }
-    }
-
 
     function requestCommisionUpdate(uint256 _commission) public {
         require(
@@ -333,7 +318,7 @@ contract ClusterRegistry is
     }
 
     function getRewardInfo(address _cluster) external returns(uint256, address) {
-        return (getCommission(_cluster), clusters[_cluster].rewardAddress);
+        return (getCommission(_cluster), getRewardAddress(_cluster));
     }
 
     function isClusterValid(address _cluster) public returns(bool) {
