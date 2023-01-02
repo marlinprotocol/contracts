@@ -157,7 +157,7 @@ contract ClusterRegistry is
         address _clientKey
     ) external {
         require(
-            !isClusterValid(_msgSender()),
+            clusters[_msgSender()].status == Status.REGISTERED,
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
@@ -189,26 +189,32 @@ contract ClusterRegistry is
         }
     }
 
-    function updateCommission(uint256 _commission) public {
+
+    function requestCommisionUpdate(uint256 _commission) public {
         require(
-            isClusterValid(_msgSender()),
-            "CR:UCM-Cluster not registered"
+            clusters[_msgSender()].status == Status.REGISTERED,
+            "CR:RCU-Cluster not registered"
         );
-        require(_commission <= 100, "CR:UCM-Commission more than 100%");
+        require(_commission <= 100, "CR:RCU-Commission more than 100%");
         bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(unlockBlock == 0, "CR:RCU-Commission update in progress");
+        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[COMMISSION_LOCK_SELECTOR];
+        locks[lockId] = Lock(updatedUnlockBlock, _commission);
+        emit CommissionUpdateRequested(_msgSender(), _commission, updatedUnlockBlock);
+    }
+
+    function updateCommission() public {
+        bytes32 lockId = keccak256(abi.encodePacked(COMMISSION_LOCK_SELECTOR, _msgSender()));
+        uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(unlockBlock != 0, "CR:UCM-No commission update request");
         require(
             unlockBlock < block.timestamp,
             "CR:UCM-Commission update in progress"
         );
-        if(unlockBlock != 0) {
-            uint256 currentCommission = locks[lockId].iValue;
-            clusters[_msgSender()].commission = currentCommission;
-            emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
-        }
-        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[COMMISSION_LOCK_SELECTOR];
-        locks[lockId] = Lock(updatedUnlockBlock, _commission);
-        emit CommissionUpdateRequested(_msgSender(), _commission, updatedUnlockBlock);
+        uint256 currentCommission = locks[lockId].iValue;
+        clusters[_msgSender()].commission = currentCommission;
+        emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
     }
 
     function switchNetwork(bytes32 _networkId) public {
