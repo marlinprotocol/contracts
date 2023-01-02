@@ -217,27 +217,32 @@ contract ClusterRegistry is
         emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
     }
 
-    function switchNetwork(bytes32 _networkId) public {
+    function requestNetworkSwitch(bytes32 _networkId) public {
         require(
-            isClusterValid(_msgSender()),
-            "CR:SN-Cluster not registered"
+            clusters[_msgSender()].status == Status.REGISTERED,
+            "CR:RCU-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(unlockBlock == 0,"CR:RNS-Network switch in progress");
+        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
+        locks[lockId] = Lock(updatedUnlockBlock, uint256(_networkId));
+        emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockBlock);
+    }
+
+    function switchNetwork(bytes32 _networkId) public {
+        bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
+        uint256 unlockBlock = locks[lockId].unlockBlock;
+        require(unlockBlock != 0, "CR:SN-No switch network request");
         require(
             unlockBlock < block.timestamp,
             "CR:SN-Network switch in progress"
         );
-        if(unlockBlock != 0) {
-            bytes32 currentNetwork = bytes32(locks[lockId].iValue);
-            rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
-            clusters[_msgSender()].networkId = currentNetwork;
-            rewardDelegators.updateClusterDelegation(_msgSender(), currentNetwork);
-            emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
-        }
-        uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[SWITCH_NETWORK_LOCK_SELECTOR];
-        locks[lockId] = Lock(updatedUnlockBlock, uint256(_networkId));
-        emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockBlock);
+        bytes32 currentNetwork = bytes32(locks[lockId].iValue);
+        rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
+        clusters[_msgSender()].networkId = currentNetwork;
+        rewardDelegators.updateClusterDelegation(_msgSender(), currentNetwork);
+        emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
     }
 
     function updateRewardAddress(address _rewardAddress) public {
