@@ -75,7 +75,7 @@ contract ClusterRegistry is
 
         bytes32[3] memory _selectors = [COMMISSION_LOCK_SELECTOR, SWITCH_NETWORK_LOCK_SELECTOR, UNREGISTER_LOCK_SELECTOR];
         for(uint256 i=0; i < _selectors.length; i++) {
-            updateLockWaitTime(_selectors[i], _lockWaitTimes[i]);
+            _updateLockWaitTime(_selectors[i], _lockWaitTimes[i]);
         }
         _updateRewardDelegators(_rewardDelegators);
     }
@@ -97,9 +97,13 @@ contract ClusterRegistry is
 
     event LockTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
 
-    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyAdmin {
+    function _updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) internal {
         emit LockTimeUpdated(_selector, lockWaitTime[_selector], _updatedWaitTime);
         lockWaitTime[_selector] = _updatedWaitTime;
+    }
+
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external onlyAdmin {
+        _updateLockWaitTime(_selector, _updatedWaitTime);
     }
 
 //-------------------------------- Locks end --------------------------------//
