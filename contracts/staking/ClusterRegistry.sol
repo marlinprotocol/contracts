@@ -214,12 +214,13 @@ contract ClusterRegistry is
         uint256 currentCommission = locks[lockId].iValue;
         clusters[_msgSender()].commission = currentCommission;
         emit CommissionUpdated(_msgSender(), currentCommission, unlockBlock);
+        delete locks[lockId];
     }
 
     function requestNetworkSwitch(bytes32 _networkId) public {
         require(
             isClusterValid(_msgSender()),
-            "CR:RCU-Cluster not registered"
+            "CR:RNS-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
@@ -242,6 +243,7 @@ contract ClusterRegistry is
         clusters[_msgSender()].networkId = currentNetwork;
         rewardDelegators.updateClusterDelegation(_msgSender(), currentNetwork);
         emit NetworkSwitched(_msgSender(), currentNetwork, unlockBlock);
+        delete locks[lockId];
     }
 
     function updateRewardAddress(address _rewardAddress) public {
@@ -268,11 +270,11 @@ contract ClusterRegistry is
     function requestUnregister() external {
         require(
             isClusterValid(_msgSender()),
-            "CR:UR-Cluster not registered"
+            "CR:RU-Cluster not registered"
         );
         bytes32 lockId = keccak256(abi.encodePacked(UNREGISTER_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
-        require(unlockBlock == 0, "CR:UR-Unregistration already in progress");
+        require(unlockBlock == 0, "CR:RU-Unregistration already in progress");
         uint256 updatedUnlockBlock = block.timestamp + lockWaitTime[UNREGISTER_LOCK_SELECTOR];
         locks[lockId] = Lock(updatedUnlockBlock, 0);
         emit ClusterUnregisterRequested(_msgSender(), updatedUnlockBlock);

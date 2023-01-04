@@ -530,6 +530,8 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await clusterRegistry.unregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.false;
+    // no request and cluster as cluster was unregistered
+    await expect(clusterRegistry.unregister()).to.be.reverted;
   });
 });
 
@@ -667,6 +669,8 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.updateCommission();
     // commission should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
   });
 
   it("switches network correctly", async () => {
@@ -687,6 +691,8 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.switchNetwork();
     // network should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
   });
 
   it("updates reward address correctly", async () => {
@@ -706,7 +712,7 @@ describe("ClusterRegistry", function () {
   });
 
   // not relevant anymore as the function is removed
-  it.only("updates cluster params correctly", async () => {
+  it("updates cluster params correctly", async () => {
     const NEARHASH = ethers.utils.id("NEAR");
 
     await expect(clusterRegistry.connect(signers[1]).updateCluster(7, DOTHASH, addrs[1], addrs[2])).to.be.reverted;
