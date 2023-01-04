@@ -522,11 +522,13 @@ describe("ClusterRegistry", function () {
     await expect(clusterRegistry.connect(signers[1]).unregister()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await clusterRegistry.unregister();
+    await clusterRegistry.requestUnregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await skipTime(39);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await skipTime(2);
+    expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
+    await clusterRegistry.unregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.false;
   });
 });
@@ -649,28 +651,41 @@ describe("ClusterRegistry", function () {
 
   it("updates commission correctly", async () => {
     await expect(clusterRegistry.connect(signers[1]).updateCommission(15)).to.be.reverted;
-    await expect(clusterRegistry.updateCommission(150)).to.be.reverted;
+    // commission can't be more than 100
+    await expect(clusterRegistry.requestCommissionUpdate(150)).to.be.reverted;
+    // can't update without any request
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await clusterRegistry.updateCommission(15);
+    await clusterRegistry.requestCommissionUpdate(15);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await skipTime(19);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await skipTime(2);
+    // commission won't change before update request is enforced
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
+    await clusterRegistry.updateCommission();
+    // commission should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
   });
 
   it("switches network correctly", async () => {
     const NEARHASH = ethers.utils.id("NEAR");
-
-    await expect(clusterRegistry.connect(signers[1]).switchNetwork(NEARHASH)).to.be.reverted;
+    // unregistered  user can't request network switch
+    await expect(clusterRegistry.connect(signers[1]).requestNetworkSwitch(NEARHASH)).to.be.reverted;
+    // can't switch network without any request
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await clusterRegistry.switchNetwork(NEARHASH);
+    await clusterRegistry.requestNetworkSwitch(NEARHASH);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await skipTime(29);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await skipTime(2);
+    // network won't change before update request is enforced
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    await clusterRegistry.switchNetwork();
+    // network should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
   });
 
@@ -690,7 +705,8 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[3]);
   });
 
-  it("updates cluster params correctly", async () => {
+  // not relevant anymore as the function is removed
+  it.only("updates cluster params correctly", async () => {
     const NEARHASH = ethers.utils.id("NEAR");
 
     await expect(clusterRegistry.connect(signers[1]).updateCluster(7, DOTHASH, addrs[1], addrs[2])).to.be.reverted;
@@ -715,7 +731,22 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
+    // commission update wait time is not over yet
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
+    // switch network wait time is not over yet
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
+
     await skipTime(2);
+
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // enforce request as wait time is complete
+    await clusterRegistry.updateCommission();
+    // switch network wait time is not over yet
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
@@ -730,6 +761,17 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
     await skipTime(2);
+
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
+    // doesn't change yet as request wait time is over but itt is not enforced yet
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
+    // enforce request as wait time is complete
+    await clusterRegistry.switchNetwork();
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);

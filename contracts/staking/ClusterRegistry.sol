@@ -174,8 +174,22 @@ contract ClusterRegistry is
         emit ClusterRegistered(_msgSender(), _networkId, _commission, _rewardAddress, _clientKey);
     }
 
+    function updateCluster(uint256 _commission, bytes32 _networkId, address _rewardAddress, address _clientKey) public {
+        if(_networkId != bytes32(0)) {
+            requestNetworkSwitch(_networkId);
+        }
+        if(_rewardAddress != address(0)) {
+            updateRewardAddress(_rewardAddress);
+        }
+        if(_clientKey != address(0)) {
+            updateClientKey(_clientKey);
+        }
+        if(_commission != type(uint256).max) {
+            requestCommissionUpdate(_commission);
+        }
+    }
 
-    function requestCommisionUpdate(uint256 _commission) public {
+    function requestCommissionUpdate(uint256 _commission) public {
         require(
             isClusterValid(_msgSender()),
             "CR:RCU-Cluster not registered"
@@ -215,7 +229,7 @@ contract ClusterRegistry is
         emit NetworkSwitchRequested(_msgSender(), _networkId, updatedUnlockBlock);
     }
 
-    function switchNetwork(bytes32 _networkId) public {
+    function switchNetwork() public {
         bytes32 lockId = keccak256(abi.encodePacked(SWITCH_NETWORK_LOCK_SELECTOR, _msgSender()));
         uint256 unlockBlock = locks[lockId].unlockBlock;
         require(unlockBlock != 0, "CR:SN-No switch network request");
@@ -285,23 +299,23 @@ contract ClusterRegistry is
         rewardDelegators.removeClusterDelegation(_msgSender(), clusters[_msgSender()].networkId);
     }
 
-    function getCommission(address _cluster) public returns(uint256) {
+    function getCommission(address _cluster) public view returns(uint256) {
         return clusters[_cluster].commission;
     }
 
-    function getNetwork(address _cluster) public returns(bytes32) {
+    function getNetwork(address _cluster) public view returns(bytes32) {
         return clusters[_cluster].networkId;
     }
 
-    function getRewardAddress(address _cluster) external view returns(address) {
+    function getRewardAddress(address _cluster) public view returns(address) {
         return clusters[_cluster].rewardAddress;
     }
 
-    function getClientKey(address _cluster) external view returns(address) {
+    function getClientKey(address _cluster) public view returns(address) {
         return clusters[_cluster].clientKey;
     }
 
-    function getCluster(address _cluster) external returns(
+    function getCluster(address _cluster) external view returns(
         uint256 commission,
         address rewardAddress,
         address clientKey,
@@ -317,11 +331,11 @@ contract ClusterRegistry is
         );
     }
 
-    function getRewardInfo(address _cluster) external returns(uint256, address) {
+    function getRewardInfo(address _cluster) external view returns(uint256, address) {
         return (getCommission(_cluster), getRewardAddress(_cluster));
     }
 
-    function isClusterValid(address _cluster) public returns(bool) {
+    function isClusterValid(address _cluster) public view returns(bool) {
         return (clusters[_cluster].status != Status.NOT_REGISTERED);    // returns true if the status is registered
     }
 
