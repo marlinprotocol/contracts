@@ -1,4 +1,5 @@
-import { ethers, upgrades, network, waffle } from "hardhat";
+import { ethers, upgrades, network } from "hardhat";
+import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 import { sign } from "crypto";
@@ -594,7 +595,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -904,7 +905,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1432,7 +1433,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1692,7 +1693,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1819,7 +1820,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1948,7 +1949,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2122,7 +2123,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2254,7 +2255,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2390,7 +2391,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2551,7 +2552,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2668,7 +2669,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2794,7 +2795,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });

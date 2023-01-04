@@ -652,7 +652,7 @@ describe("ClusterRegistry", function () {
   });
 
   it("updates commission correctly", async () => {
-    await expect(clusterRegistry.connect(signers[1]).updateCommission(15)).to.be.reverted;
+    await expect(clusterRegistry.connect(signers[1]).requestCommissionUpdate(15)).to.be.reverted;
     // commission can't be more than 100
     await expect(clusterRegistry.requestCommissionUpdate(150)).to.be.reverted;
     // can't update without any request
