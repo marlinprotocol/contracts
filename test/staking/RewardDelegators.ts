@@ -500,23 +500,6 @@ describe("RewardDelegators Deployment", function () {
     );
 
     const blockData = await ethers.provider.getBlock("latest");
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      numberOfClustersToSelect,
-      pondInstance.address,
-      BigNumber.from(10).pow(20)
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
-    let role = await epochSelectorInstance.UPDATER_ROLE();
-    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
-
-    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
-    expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
-
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
       constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
@@ -525,6 +508,23 @@ describe("RewardDelegators Deployment", function () {
     });
 
     await receiverStaking.initialize(addrs[0]);
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      numberOfClustersToSelect,
+      pondInstance.address,
+      BigNumber.from(10).pow(20)
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
+
+    let role = await epochSelectorInstance.UPDATER_ROLE();
+    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
+
+    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
+    expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
     await clusterRewardsInstance.initialize(
       addrs[0],

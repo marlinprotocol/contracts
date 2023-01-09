@@ -156,6 +156,8 @@ describe("StakeManager With Received Staking", function () {
       initializer: false,
     });
 
+    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
+
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     for (let index = 0; index < supportedNetworks.length; index++) {
       let epochSelectorContract = await upgrades.deployProxy(EpochSelector, [
@@ -165,12 +167,10 @@ describe("StakeManager With Received Staking", function () {
         BN.from(10).pow(20).toString()
       ], {
         kind: "uups",
-        constructorArgs: [blockData.timestamp]
+        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
       });
       epochSelectors.push(epochSelectorContract);
     }
-
-    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
 
     await clusterRewards.initialize(
       await clusterRewardsAdmin.getAddress(),
