@@ -28,6 +28,7 @@
     "@openzeppelin/contracts-upgradeable": "4.4.1"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^1.0.4",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-etherscan": "^3.1.2",
     "@openzeppelin/hardhat-upgrades": "1.11.0",
@@ -36,7 +37,7 @@
     "@types/node": "^18.11.9",
     "chai": "^4.3.7",
     "dotenv": "^16.0.3",
-    "@nomicfoundation/hardhat-chai-matchers": "^1.0.4",
+    "ethereum-waffle": "^3.4.4",
     "ethers": "^5.7.2",
     "hardhat": "2.12.2",
     "hardhat-gas-reporter": "^1.0.9",
