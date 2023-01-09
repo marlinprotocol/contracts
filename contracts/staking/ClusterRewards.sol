@@ -105,7 +105,7 @@ contract ClusterRewards is
             _weight += _rewardWeight[i];
             emit NetworkAdded(_networkIds[i], _rewardWeight[i], _epochSelectors[i]);
         }
-        totalWeight = _weight;
+        totalRewardWeight = _weight;
         _changeRewardPerEpoch(_totalRewardsPerEpoch);
     }
 
@@ -119,7 +119,7 @@ contract ClusterRewards is
     mapping(address => uint256) public clusterRewards;
 
     mapping(bytes32 => uint256) public rewardWeight;
-    uint256 public totalWeight;
+    uint256 public totalRewardWeight;
     uint256 public totalRewardsPerEpoch;
     uint256 public __unused_1;
 
@@ -145,31 +145,27 @@ contract ClusterRewards is
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight, address _epochSelector) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
-        require(_rewardWeight != 0, "CRW:AN-Reward cant be 0");
         require(_epochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _rewardWeight;
         epochSelectors[_networkId] = IEpochSelector(_epochSelector);
-        totalWeight += _rewardWeight;
+        totalRewardWeight += _rewardWeight;
         emit NetworkAdded(_networkId, _rewardWeight, _epochSelector);
     }
 
     function removeNetwork(bytes32 _networkId) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
-        require( networkWeight != 0, "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
         delete epochSelectors[_networkId];
-        totalWeight -= networkWeight;
+        totalRewardWeight -= networkWeight;
         emit NetworkRemoved(_networkId);
     }
 
     function updateNetwork(bytes32 _networkId, uint256 _updatedRewardWeight, address _updatedEpochSelector) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
-        require( networkWeight != 0, "CRW:CN-Network doesnt exist");
-        require(_updatedRewardWeight != 0, "CRW:CN-Reward cant be 0");
         require(_updatedEpochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
         rewardWeight[_networkId] = _updatedRewardWeight;
         epochSelectors[_networkId] = IEpochSelector(_updatedEpochSelector);
-        totalWeight = totalWeight - networkWeight + _updatedRewardWeight;
+        totalRewardWeight = totalRewardWeight - networkWeight + _updatedRewardWeight;
         emit NetworkUpdated(_networkId, _updatedRewardWeight, _updatedEpochSelector);
     }
 
@@ -257,7 +253,7 @@ contract ClusterRewards is
     }
 
     function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
-        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalWeight;
+        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
 //-------------------------------- User functions end --------------------------------//
