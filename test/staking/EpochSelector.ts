@@ -61,7 +61,7 @@ describe("Testing Epoch Selector", function () {
       new BN(10).pow(20).toString()
     ], {
       kind: "uups",
-      constructorArgs: [blockData.timestamp]
+      constructorArgs: [blockData.timestamp, 4*60*60]
     });
   });
 
