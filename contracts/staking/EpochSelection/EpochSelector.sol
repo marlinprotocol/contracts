@@ -29,9 +29,6 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Constants start --------------------------------//
 
-    /// @notice length of epoch
-    uint256 public constant EPOCH_LENGTH = 4 hours;
-
     /// @notice ID for update role
     bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
 
@@ -44,6 +41,10 @@ contract EpochSelectorUpgradeable is
     /// @notice timestamp when the selector starts
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
+
+    /// @notice length of epoch
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable EPOCH_LENGTH;
 
     //-------------------------------- Constants end --------------------------------//
 
@@ -105,13 +106,16 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Overrides end --------------------------------//
 
-    //-------------------------------- Init starts --------------------------------//
+    //-------------------------------- Init starts --------------------------------/
 
+    /// @notice initializes the logic contract without any admins
+    //          safeguard against takeover of the logic contract
+    /// @dev startTime and epochLength should match the values in receiverStaking. 
+    ///     Inconsistent values in receiverStaking and epochSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
-    // initializes the logic contract without any admins
-    // safeguard against takeover of the logic contract
-    constructor(uint256 _startTime) initializer {
+    constructor(uint256 _startTime, uint256 _epochLength) initializer {
         START_TIME = _startTime;
+        EPOCH_LENGTH = _epochLength;
     }
 
     function initialize(

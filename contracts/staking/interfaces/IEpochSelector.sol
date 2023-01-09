@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 import "./IClusterSelector.sol";
 
 interface IEpochSelector is IClusterSelector {
+    function START_TIME() external view returns(uint256);
+    function EPOCH_LENGTH() external view returns(uint256);
+
     function getCurrentEpoch() external view returns (uint256);
 
     function getClusters(uint256 epoch) external view returns (address[] memory clusters);

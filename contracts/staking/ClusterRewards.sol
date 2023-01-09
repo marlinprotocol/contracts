@@ -13,8 +13,6 @@ import "./interfaces/IEpochSelector.sol";
 import "./interfaces/IReceiverStaking.sol";
 import "./interfaces/IClusterRewards.sol";
 
-// import "hardhat/console.sol";
-
 contract ClusterRewards is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -145,15 +143,20 @@ contract ClusterRewards is
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight, address _epochSelector) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");
-        require(_epochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
+        require(_epochSelector !=  address(0), "CRW:AN-EpochSelector must exist");
         rewardWeight[_networkId] = _rewardWeight;
-        epochSelectors[_networkId] = IEpochSelector(_epochSelector);
+        IEpochSelector networkEpochSelector = IEpochSelector(_epochSelector);
+        require(networkEpochSelector.START_TIME() == receiverStaking.START_TIME(), "CRW:AN-start time inconsistent");
+        require(networkEpochSelector.EPOCH_LENGTH() == receiverStaking.EPOCH_LENGTH(), "CRW:AN-epoch length inconsistent");
+        
+        epochSelectors[_networkId] = networkEpochSelector;
         totalRewardWeight += _rewardWeight;
         emit NetworkAdded(_networkId, _rewardWeight, _epochSelector);
     }
 
     function removeNetwork(bytes32 _networkId) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
+        require(address(epochSelectors[_networkId]) != address(0), "CRW:RN-Network doesnt exist");
         delete rewardWeight[_networkId];
         delete epochSelectors[_networkId];
         totalRewardWeight -= networkWeight;
@@ -162,13 +165,23 @@ contract ClusterRewards is
 
     function updateNetwork(bytes32 _networkId, uint256 _updatedRewardWeight, address _updatedEpochSelector) external onlyAdmin {
         uint256 networkWeight = rewardWeight[_networkId];
-        require(_updatedEpochSelector !=  address(0), "CRW:CN-EpochSelector must exist");
+        require(_updatedEpochSelector !=  address(0), "CRW:UN-EpochSelector must exist");
+        address currentEpochSelector = address(epochSelectors[_networkId]);
+        require(currentEpochSelector != address(0), "CRW:UN-Network doesnt exist");
+
+        if(_updatedEpochSelector != currentEpochSelector) {
+            IEpochSelector networkEpochSelector = IEpochSelector(_updatedEpochSelector);
+            require(networkEpochSelector.START_TIME() == receiverStaking.START_TIME(), "CRW:UN-start time inconsistent");
+            require(networkEpochSelector.EPOCH_LENGTH() == receiverStaking.EPOCH_LENGTH(), "CRW:UN-epoch length inconsistent");
+            epochSelectors[_networkId] = IEpochSelector(_updatedEpochSelector);
+        }
+
         rewardWeight[_networkId] = _updatedRewardWeight;
-        epochSelectors[_networkId] = IEpochSelector(_updatedEpochSelector);
         totalRewardWeight = totalRewardWeight - networkWeight + _updatedRewardWeight;
         emit NetworkUpdated(_networkId, _updatedRewardWeight, _updatedEpochSelector);
     }
 
+    /// @dev any updates to startTime or epoch length in receiver staking must also be reflected in all epochSelectors
     function updateReceiverStaking(address _receiverStaking) external onlyAdmin {
         _updateReceiverStaking(_receiverStaking);
     }
@@ -204,36 +217,20 @@ contract ClusterRewards is
         require(_clusters.length == _tickets.length, "CRW:IT-invalid inputs");
 
         (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
-        // console.log("_epochReceiverStake", _epochReceiverStake);
-        // console.log("_epochTotalStake", _epochTotalStake);
-        // console.log("_currentEpoch", _currentEpoch);
-        // console.log("_epoch", _epoch);
 
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
         require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
 
         address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
 
-        // for (uint256 index = 0; index < _clusters.length; index++) {
-        //     console.log("_clusters_to_issue_tickets_to[index]", _clusters[index]);
-        // }
-        
-        // for (uint256 index = 0; index < _selectedClusters.length; index++) {
-        //     console.log("_selectedClusters[index]", _selectedClusters[index]);
-        // }
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
-        // console.log("_epochTicketsIssued", _epochTicketsIssued);
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
-        // console.log("_totalNetworkRewardsPerEpoch", _totalNetworkRewardsPerEpoch);
 
         for(uint256 i=0; i < _clusters.length; i++) {
             require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
             clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
 
             _epochTicketsIssued += _tickets[i];
-
-            // console.log("for every input cluster clusterRewards[_clusters[i]]", clusterRewards[_clusters[i]]);
-            // console.log("_epochTicketsIssued", _epochTicketsIssued);
         }
 
         require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Excessive tickets issued");
