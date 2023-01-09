@@ -1,0 +1,64 @@
+{
+  "governanceProxyAccountIndex": 5,
+  "potFirstEpochStartBlockDelay": 1,
+  "EthBlockPerEpoch": 1,
+  "roleParams": {
+    "producer": {
+      "roleId":
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "allocation": 30,
+      "epochsToWaitForClaims": 1,
+      "luckTrailingEpochs": 5,
+      "targetClaims": 4,
+      "averaginingEpochs": 5,
+      "startingEpoch": 0,
+      "varianceTolerance": 20,
+      "changeSteps": 20,
+      "initialLuck": 20
+    },
+    "receiver": {
+      "roleId":
+        "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "allocation": 70,
+      "epochsToWaitForClaims": 5,
+      "luckTrailingEpochs": 5,
+      "targetClaims": 4,
+      "averaginingEpochs": 5,
+      "startingEpoch": 0,
+      "varianceTolerance": 20,
+      "changeSteps": 20,
+      "initialLuck": 45
+    }
+  },
+  "relayerAccountIndex": 7,
+  "clusterExitWaitEpochs": 2,
+  "clusterMinStake": 10,
+  "PONDData": {
+    "name": "Marlin Protocol",
+    "symbol": "POND",
+    "decimals": 18,
+    "id": "0xce802da114f69a4ecceeef68321cb8ad9b268d4419375940651a2ec028713744"
+  },
+  "MPONDData": {
+    "name": "Marlin Protocol - Governance",
+    "symbol": "MPOND",
+    "decimals": 18,
+    "id": "0x9d76bde6f6a1e9bf8e29a98238a6cb26e11f790c4377a675d10c5b375109dbc8"
+  },
+  "verifiedClaimAccountIndex": 13,
+  "reward1ClaimerIndex": 14,
+  "reward2ClaimerIndex": 14,
+  "reward3ClaimerIndex": 14,
+  "staking": {
+    "undelegationWaitTime": 22,
+    "rewardPerEpoch": 10000,
+    "minMPONDStake": 2,
+    "payoutDenomination": 100000,
+    "PondRewardFactor": 100,
+    "MPondRewardFactor": 100,
+    "PondWeightForThreshold": 0,
+    "MPondWeightForThreshold": 1000000,
+    "PondWeightForDelegation": 1,
+    "MPondWeightForDelegation": 1000000
+  }
+}

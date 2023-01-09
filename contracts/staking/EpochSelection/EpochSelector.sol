@@ -40,11 +40,11 @@ contract EpochSelectorUpgradeable is
 
     /// @notice timestamp when the selector starts
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable START_TIME;
+    uint256 public immutable override START_TIME;
 
     /// @notice length of epoch
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable EPOCH_LENGTH;
+    uint256 public immutable override EPOCH_LENGTH;
 
     //-------------------------------- Constants end --------------------------------//
 
@@ -201,11 +201,11 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Tree interactions starts --------------------------------//
 
-    function upsert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
+    function upsert(address newNode, uint64 balance) external override onlyRole(UPDATER_ROLE) {
         _upsert(newNode, balance);
     }
 
-    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
+    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external override onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
             _upsert(newNodes[i], balances[i]);
         }
@@ -221,15 +221,15 @@ contract EpochSelectorUpgradeable is
         }
     }
 
-    function update_unchecked(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
+    function update_unchecked(address node, uint64 balance) external override onlyRole(UPDATER_ROLE) {
         _update_unchecked(node, balance);
     }
 
-    function delete_unchecked(address node) external onlyRole(UPDATER_ROLE) {
+    function delete_unchecked(address node) external override onlyRole(UPDATER_ROLE) {
         _delete_unchecked(node, addressToIndexMap[node]);
     }
 
-    function deleteIfPresent(address node) external onlyRole(UPDATER_ROLE) {
+    function deleteIfPresent(address node) external override onlyRole(UPDATER_ROLE) {
         _deleteIfPresent(node);
     }
 
@@ -275,7 +275,7 @@ contract EpochSelectorUpgradeable is
     // @dev Clusters are selected only for next epoch in this epoch using selectClusters method.
     //      If the method is not called within the previous epoch, then the last selected clusters
     //      are considered as selected for this epoch
-    function getClusters(uint256 epochNumber) public view returns (address[] memory) {
+    function getClusters(uint256 epochNumber) public override view returns (address[] memory) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
         require(epochNumber <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
