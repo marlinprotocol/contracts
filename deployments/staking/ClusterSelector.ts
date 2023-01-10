@@ -3,7 +3,7 @@ import * as fs from "fs";
 import { Contract } from "ethers";
 const config = require('./config');
 
-export async function deploy(rewardDelegators: string): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
@@ -20,9 +20,9 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
   }
 
   const EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-  if (addresses[chainId]["EpochSelector"] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]["EpochSelector"]);
-    return EpochSelector.attach(addresses[chainId]["EpochSelector"]);
+  if (addresses[chainId]["EpochSelector_"+network] !== undefined) {
+    console.log("Existing deployment:", addresses[chainId]["EpochSelector_"+network]);
+    return EpochSelector.attach(addresses[chainId]["EpochSelector_"+network]);
   }
 
   let signers = await ethers.getSigners();
@@ -40,14 +40,14 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
 
   console.log("Deployed addr:", epochSelector.address);
 
-  addresses[chainId]["EpochSelector"] = epochSelector.address;
+  addresses[chainId]["EpochSelector_"+network] = epochSelector.address;
 
   fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
 
   return epochSelector;
 }
 
-export async function verify() {
+export async function verify(network: string) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -58,11 +58,11 @@ export async function verify() {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined || addresses[chainId]['EpochSelector'] === undefined) {
+  if(addresses[chainId] === undefined || addresses[chainId]["EpochSelector_"+network] === undefined) {
     throw new Error("Epoch Selector not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['EpochSelector']);
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["EpochSelector_"+network]);
 
   await run("verify:verify", {
     address: implAddress,

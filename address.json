@@ -51,7 +51,7 @@
     "RewardDelegators": "0xDcD2846DCA523Db1C8F3c842a41A58099dE26A0A",
     "StakeManager": "0xe43EFeA7f40a885f4B35a149CAB5FC3fE01564C6",
     "ClusterRegistry": "0x5E478CB7576906fe2a443684aDcD9A0dfc547abD",
-    "EpochSelector": "0x3867A88adcab3470c3c787216Eb5cc4F32230874",
+    "EpochSelector_ETH": "0x3867A88adcab3470c3c787216Eb5cc4F32230874",
     "ReceiverStaking": "0xE554d2Be7E093FBca1FC1D78dbEa7eF145185E85",
     "ClusterRewards": "0xF4F4CDBdb0109d1B42B06B36eb0b7d27576f3446"
   },

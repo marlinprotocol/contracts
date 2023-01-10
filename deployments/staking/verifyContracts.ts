@@ -8,7 +8,7 @@ import { verify as verifyStakeManager } from "./StakeManager";
 async function verifyAll() {
     await verifyClusterRegistry();
     await verifyClusterRewards();
-    await verifyClusterSelector();
+    await verifyClusterSelector("ETH");
     await verifyReceiverStaking();
     await verifyRewardDelegators();
     await verifyStakeManager();

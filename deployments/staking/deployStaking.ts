@@ -21,7 +21,7 @@ async function deployStaking() {
     const clusterRegistry: Contract = await deployClusterRegistry(rewardDelegators.address);
     const clusterSelectorMap = Object();
     for(let network in chainConfig.staking.rewardWeights) {
-        const epochSelector = await deployClusterSelector(rewardDelegators.address);
+        const epochSelector = await deployClusterSelector(network, rewardDelegators.address);
         clusterSelectorMap[network] = epochSelector.address;
     }
     const receiverStaking: Contract = await deployReceiverStaking();
