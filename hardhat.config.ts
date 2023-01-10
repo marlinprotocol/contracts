@@ -21,9 +21,8 @@ export default {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
     },
-    arb2: {
-      url: "http://127.0.0.1:1248/",
-      accounts: "remote",
+    local: {
+      url: "http://host.docker.internal:8545/",
       timeout: 600000,
     },
     arb1: {

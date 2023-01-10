@@ -349,14 +349,16 @@ contract RewardDelegators is
 
     function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
-        _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        if(address(_epochSelector) != address(0)) {
+            _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        }
     }
 
     function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
-        _epochSelector.deleteIfPresent(_cluster);
+        if(address(_epochSelector) != address(0)) {
+            _epochSelector.deleteIfPresent(_cluster);
+        }
     }
 
     function undelegate(

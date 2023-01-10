@@ -1,7 +1,7 @@
-import { ethers, upgrades } from 'hardhat';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { ethers, run, upgrades } from 'hardhat';
+import { BigNumber as BN, Contract } from 'ethers';
 import * as fs from 'fs';
-
+const config = require('./config');
 
 declare module 'ethers' {
   interface BigNumber {
@@ -13,7 +13,63 @@ BN.prototype.e18 = function () {
 }
 
 
-async function main() {
+export async function deploy(rewardDelegators: string): Promise<Contract> {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  console.log("Chain Id:", chainId);
+
+  const chainConfig = config[chainId];
+
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(fs.existsSync('address.json')) {
+    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+  }
+
+  if(addresses[chainId] === undefined) {
+    addresses[chainId] = {};
+  }
+
+  const StakeManager = await ethers.getContractFactory('StakeManager');
+  if(addresses[chainId]['StakeManager'] !== undefined) {
+    console.log("Existing deployment:", addresses[chainId]['StakeManager']);
+    return StakeManager.attach(addresses[chainId]['StakeManager']);
+  }
+
+  let signers = await ethers.getSigners();
+  let addrs = await Promise.all(signers.map(a => a.getAddress()));
+
+  console.log("Signer addrs:", addrs);
+
+  const tokenIds = [];
+  const tokenAddresses = [];
+  const delegatable = [];
+
+  for(let token in chainConfig.staking.tokens) {
+    const tokenInfo = chainConfig.staking.tokens[token];
+    tokenIds.push(tokenInfo.id);
+    tokenAddresses.push(tokenInfo.address);
+    delegatable.push(tokenInfo.delegatable);
+  }
+
+  let stakeManager = await upgrades.deployProxy(StakeManager, [
+    tokenIds,
+    tokenAddresses,
+    delegatable,
+    rewardDelegators,
+    chainConfig.staking.waitTimes.redelegation,
+    chainConfig.staking.waitTimes.undelegation,
+    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82", // unused
+  ], { kind: "uups" });
+
+  console.log("Deployed addr:", stakeManager.address);
+
+  addresses[chainId]['StakeManager'] = stakeManager.address;
+
+  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+
+  return stakeManager;
+}
+
+export async function verify() {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -22,46 +78,16 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined ||
-     addresses[chainId]['RewardDelegators'] === undefined
-  ) {
-    console.log("Missing dependencies");
-    return;
+  if(addresses[chainId] === undefined || addresses[chainId]['StakeManager'] === undefined) {
+    throw new Error("Stake Manager not deployed");
   }
 
-  if(addresses[chainId]['StakeManager'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['StakeManager']);
-    return;
-  }
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['StakeManager']);
 
-  let signers = await ethers.getSigners();
-  let addrs = await Promise.all(signers.map(a => a.getAddress()));
-
-  console.log("Signer addrs:", addrs);
-
-  const StakeManager = await ethers.getContractFactory('StakeManager');
-  let stakeManager = await upgrades.deployProxy(StakeManager, [
-    ["0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4", "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e"],
-    [addresses[chainId]['Pond'], addresses[chainId]['MPond']],
-    [false, true],
-    addresses[chainId]['RewardDelegators'],
-    21600,
-    604800,
-    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82",
-  ], { kind: "uups" });
-
-  console.log("Deployed addr:", stakeManager.address);
-
-  addresses[chainId]['StakeManager'] = stakeManager.address;
-
-  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
-}
-
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
+  await run("verify:verify", {
+    address: implAddress,
+    constructorArguments: []
   });
 
-
+  console.log("Stake Manager verified");
+}

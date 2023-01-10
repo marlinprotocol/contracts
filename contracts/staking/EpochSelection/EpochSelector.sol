@@ -120,6 +120,7 @@ contract EpochSelectorUpgradeable is
 
     function initialize(
         address _admin,
+        address _updater,
         uint256 _numberOfClustersToSelect,
         address _rewardToken,
         uint256 _rewardForSelectingClusters
@@ -139,6 +140,7 @@ contract EpochSelectorUpgradeable is
         _setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
         _grantRole(REWARD_CONTROLLER_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
+        _grantRole(UPDATER_ROLE, _updater);
 
         rewardToken = _rewardToken;
         rewardForSelectingClusters = _rewardForSelectingClusters;

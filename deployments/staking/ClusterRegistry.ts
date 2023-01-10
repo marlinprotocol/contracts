@@ -1,7 +1,7 @@
-import { ethers, upgrades } from 'hardhat';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { ethers, upgrades, run } from 'hardhat';
+import { BigNumber as BN, Contract } from 'ethers';
 import * as fs from 'fs';
-
+const config = require('./config');
 
 declare module 'ethers' {
   interface BigNumber {
@@ -13,9 +13,11 @@ BN.prototype.e18 = function () {
 }
 
 
-async function main() {
+export async function deploy(rewardDelegatorsAddress: string): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
+
+  const chainConfig = config[chainId];
 
   var addresses: {[key: string]: {[key: string]: string}} = {};
   if(fs.existsSync('address.json')) {
@@ -26,31 +28,47 @@ async function main() {
     addresses[chainId] = {};
   }
 
+  const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
   if(addresses[chainId]['ClusterRegistry'] !== undefined) {
     console.log("Existing deployment:", addresses[chainId]['ClusterRegistry']);
-    return;
+    return ClusterRegistry.attach(addresses[chainId]['ClusterRegistry']);
   }
 
   let signers = await ethers.getSigners();
   let addrs = await Promise.all(signers.map(a => a.getAddress()));
 
-  console.log("Signer addrs:", addrs);
+  const waitTimes = chainConfig.cluster.waitTimes;
 
-  const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
-  let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [[1000, 1000, 1000]], { kind: "uups" });
+  let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [waitTimes, rewardDelegatorsAddress], { kind: "uups" });
 
   console.log("Deployed addr:", clusterRegistry.address);
 
   addresses[chainId]['ClusterRegistry'] = clusterRegistry.address;
 
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+
+  return clusterRegistry;
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
+export async function verify() {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  console.log("Chain Id:", chainId);
+
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(fs.existsSync('address.json')) {
+    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+  }
+
+  if(addresses[chainId] === undefined || addresses[chainId]['ClusterRegistry'] === undefined) {
+    throw new Error("Cluster Registry not deployed");
+  }
+
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['ClusterRegistry']);
+
+  await run("verify:verify", {
+    address: implAddress,
+    constructorArguments: []
   });
 
-
+  console.log("Cluster Registry verified");
+}

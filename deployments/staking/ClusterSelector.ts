@@ -1,12 +1,14 @@
-import { ethers } from "hardhat";
+import { ethers, run, upgrades } from "hardhat";
 import * as fs from "fs";
+import { Contract } from "ethers";
+const config = require('./config');
 
-// assuming that owner address is passed from arguments
-async function main() {
-  let owner = process.argv[2];
+export async function deploy(rewardDelegators: string): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
+
+  const chainConfig = config[chainId];
 
   var addresses: { [key: string]: { [key: string]: string } } = {};
   if (fs.existsSync("address.json")) {
@@ -17,29 +19,55 @@ async function main() {
     addresses[chainId] = {};
   }
 
+  const EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
   if (addresses[chainId]["EpochSelector"] !== undefined) {
     console.log("Existing deployment:", addresses[chainId]["EpochSelector"]);
-    return;
+    return EpochSelector.attach(addresses[chainId]["EpochSelector"]);
   }
 
   let signers = await ethers.getSigners();
-  let addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-  console.log("Signer addrs:", addrs);
-
-  const EpochSelector = await ethers.getContractFactory("EpochSelector");
-  const epochSelector = await EpochSelector.deploy(owner);
+  const epochSelector = await upgrades.deployProxy(EpochSelector, [
+    chainConfig.admin,
+    rewardDelegators,
+    chainConfig.noOfClustersToSelect,
+    chainConfig.selectionReward.token,
+    chainConfig.selectionReward.amount
+  ], {
+    kind: "uups",
+    constructorArgs: [chainConfig.startTime, chainConfig.epochLength]
+  });
 
   console.log("Deployed addr:", epochSelector.address);
 
   addresses[chainId]["EpochSelector"] = epochSelector.address;
 
   fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
+
+  return epochSelector;
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
+export async function verify() {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  console.log("Chain Id:", chainId);
+
+  const chainConfig = config[chainId];
+
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(fs.existsSync('address.json')) {
+    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+  }
+
+  if(addresses[chainId] === undefined || addresses[chainId]['EpochSelector'] === undefined) {
+    throw new Error("Epoch Selector not deployed");
+  }
+
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['EpochSelector']);
+
+  await run("verify:verify", {
+    address: implAddress,
+    constructorArguments: [chainConfig.startTime, chainConfig.epochLength]
   });
+
+  console.log("Epoch Selector verified");
+}
