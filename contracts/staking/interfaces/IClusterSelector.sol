@@ -21,4 +21,14 @@ interface IClusterSelector {
     /// @notice Delete a node from the tree
     /// @param key Address of the node to delete
     function delete_unchecked(address key) external;
+
+    /// @notice Insert the node with given balance (unchecked)
+    /// @param newNode Address of the new node
+    /// @param balance Balance of the new node
+    function insert_unchecked(address newNode, uint64 balance) external;
+
+    /// @notice Insert multiple nodes with given balances (unchecked)
+    /// @param newNodes Addresses of the new nodes
+    /// @param balances Balances of the new nodes
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external;
 }

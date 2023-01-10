@@ -28,11 +28,13 @@ contract ReceiverStaking is
         STAKING_TOKEN = IERC20Upgradeable(_stakingToken);
     }
 
+    /// @inheritdoc IReceiverStaking
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable START_TIME;
+    uint256 public override immutable START_TIME;
 
+    /// @inheritdoc IReceiverStaking
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable EPOCH_LENGTH;
+    uint256 public override immutable EPOCH_LENGTH;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IERC20Upgradeable public immutable STAKING_TOKEN;
@@ -65,7 +67,8 @@ contract ReceiverStaking is
         STAKING_TOKEN.transfer(msg.sender, amount);
     }
 
-    function getStakeInfo(address user, uint256 epoch) external view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch) {
+    /// @inheritdoc IReceiverStaking
+    function getStakeInfo(address user, uint256 epoch) external override view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch) {
         userStake = balanceOfAt(user, epoch);
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();

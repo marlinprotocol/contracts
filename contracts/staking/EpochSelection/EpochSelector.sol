@@ -38,11 +38,11 @@ contract EpochSelectorUpgradeable is
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
 
-    /// @notice timestamp when the selector starts
+    /// @inheritdoc IEpochSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable override START_TIME;
 
-    /// @notice length of epoch
+    /// @inheritdoc IEpochSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable override EPOCH_LENGTH;
 
@@ -148,13 +148,12 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Cluster Selection starts --------------------------------//
 
-    /// @notice Current Epoch
+    /// @inheritdoc IEpochSelector
     function getCurrentEpoch() public view override returns (uint256) {
         return (block.timestamp - START_TIME) / EPOCH_LENGTH;
     }
 
-    /// @notice Returns the list of selected clusters for the next
-    /// @return selectedClusters List of the clusters selected
+    /// @inheritdoc IEpochSelector
     function selectClusters() public override returns (address[] memory selectedClusters) {
         uint256 nextEpoch = getCurrentEpoch() + 1;
         selectedClusters = clustersSelected[nextEpoch];
@@ -201,34 +200,41 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Tree interactions starts --------------------------------//
 
+    /// @inheritdoc IClusterSelector
     function upsert(address newNode, uint64 balance) external override onlyRole(UPDATER_ROLE) {
         _upsert(newNode, balance);
     }
 
+    /// @inheritdoc IClusterSelector
     function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external override onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
             _upsert(newNodes[i], balances[i]);
         }
     }
 
-    function insert_unchecked(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
+    /// @inheritdoc IClusterSelector
+    function insert_unchecked(address newNode, uint64 balance) external override onlyRole(UPDATER_ROLE) {
         _insert_unchecked(newNode, balance);
     }
 
-    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
+    /// @inheritdoc IClusterSelector
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external override onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
             _insert_unchecked(newNodes[i], balances[i]);
         }
     }
 
+    /// @inheritdoc IClusterSelector
     function update_unchecked(address node, uint64 balance) external override onlyRole(UPDATER_ROLE) {
         _update_unchecked(node, balance);
     }
 
+    /// @inheritdoc IClusterSelector
     function delete_unchecked(address node) external override onlyRole(UPDATER_ROLE) {
         _delete_unchecked(node, addressToIndexMap[node]);
     }
 
+    /// @inheritdoc IEpochSelector
     function deleteIfPresent(address node) external override onlyRole(UPDATER_ROLE) {
         _deleteIfPresent(node);
     }
@@ -252,6 +258,8 @@ contract EpochSelectorUpgradeable is
         emit UpdateRewardToken(_rewardToken);
     }
 
+    /// @notice If contract has sufficient balance, transfer it to given address
+    /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
         if (rewardForSelectingClusters != 0) {
             IERC20Upgradeable _rewardToken = IERC20Upgradeable(rewardToken);
@@ -261,6 +269,9 @@ contract EpochSelectorUpgradeable is
         }
     }
 
+    /// @notice Flush Tokens to address. Can be only called by REWARD_CONTROLLER
+    /// @param token Address of the token
+    /// @param to Address to transfer to
     function flushTokens(address token, address to) external onlyRole(REWARD_CONTROLLER_ROLE) {
         IERC20Upgradeable _token = IERC20Upgradeable(token);
 
@@ -272,9 +283,7 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Admin functions ends --------------------------------//
 
-    // @dev Clusters are selected only for next epoch in this epoch using selectClusters method.
-    //      If the method is not called within the previous epoch, then the last selected clusters
-    //      are considered as selected for this epoch
+    /// @inheritdoc IEpochSelector
     function getClusters(uint256 epochNumber) public override view returns (address[] memory) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
