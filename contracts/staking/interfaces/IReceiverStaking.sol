@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IReceiverStaking {
+    event BalanceUpdate(address indexed _address, uint256 indexed epoch, uint256 balance);
+
     /// @return Time when earliest epoch starts
     function START_TIME() external view returns(uint256);
 

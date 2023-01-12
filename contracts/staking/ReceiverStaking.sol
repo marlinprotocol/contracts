@@ -58,13 +58,15 @@ contract ReceiverStaking is
     }
 
     function deposit(uint256 amount) external {
-        STAKING_TOKEN.transferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
+        address sender = msg.sender;
+        STAKING_TOKEN.transferFrom(sender, address(this), amount);
+        _mint(sender, amount);
     }
 
     function withdraw(uint256 amount) external {
-        _burn(msg.sender, amount);
-        STAKING_TOKEN.transfer(msg.sender, amount);
+        address sender = msg.sender;
+        _burn(sender, amount);
+        STAKING_TOKEN.transfer(sender, amount);
     }
 
     /// @inheritdoc IReceiverStaking
@@ -100,6 +102,7 @@ contract ReceiverStaking is
             if(userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
                 // current balance is lowest in epoch
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
+                emit BalanceUpdate(from, _getCurrentSnapshotId(), _updatedBalance);
             }
         }
     }
