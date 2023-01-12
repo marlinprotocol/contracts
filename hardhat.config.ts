@@ -4,7 +4,6 @@ import "@nomicfoundation/hardhat-chai-matchers";
 // import "@nomiclabs/hardhat-waffle";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
-import "hardhat-gas-reporter";
 import dotenv from 'dotenv';
 
 
