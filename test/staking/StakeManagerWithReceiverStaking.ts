@@ -162,6 +162,7 @@ describe("StakeManager With Received Staking", function () {
     for (let index = 0; index < supportedNetworks.length; index++) {
       let epochSelectorContract = await upgrades.deployProxy(EpochSelector, [
         await epochSelectorAdmin.getAddress(),
+        rewardDelegators.address,
         5,
         pond.address,
         BN.from(10).pow(20).toString()
@@ -210,17 +211,12 @@ describe("StakeManager With Received Staking", function () {
       );
 
     // derivations
-    let UPDATER_ROLE = await epochSelectors[0].UPDATER_ROLE();
     epochDuration = BN.from(await epochSelectors[0].EPOCH_LENGTH()).toNumber();
 
     //post deployment operations
     await mpond.grantRole(await mpond.WHITELIST_ROLE(), stakeManager.address);
     await mpond.grantRole(await mpond.WHITELIST_ROLE(), await mpondWhiteListedAddress.getAddress());
     await mpond.transfer(await mpondWhiteListedAddress.getAddress(), await mpond.totalSupply());
-
-    await epochSelectors[0].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await epochSelectors[1].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await epochSelectors[2].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
   });
 
   beforeEach(async function () {

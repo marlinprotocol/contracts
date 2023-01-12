@@ -512,6 +512,7 @@ describe("RewardDelegators Deployment", function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
+      rewardDelegatorsInstance.address,
       numberOfClustersToSelect,
       pondInstance.address,
       BigNumber.from(10).pow(20)
@@ -519,9 +520,6 @@ describe("RewardDelegators Deployment", function () {
       kind: "uups",
       constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
     });
-
-    let role = await epochSelectorInstance.UPDATER_ROLE();
-    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
@@ -871,6 +869,7 @@ describe("RewardDelegators Deployment", function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
+      rewardDelegatorsInstance.address,
       numberOfClustersToSelect,
       pondInstance.address,
       BigNumber.from(10).pow(20)
@@ -878,9 +877,6 @@ describe("RewardDelegators Deployment", function () {
       kind: "uups",
       constructorArgs: [blockData.timestamp]
     });
-
-    let role = await epochSelectorInstance.UPDATER_ROLE();
-    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
 
