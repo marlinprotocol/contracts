@@ -3,7 +3,7 @@ import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 import { sign } from "crypto";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 import { testERC165 } from "../helpers/erc165.ts";
 import { testAdminRole, testRole } from "../helpers/rbac.ts";
@@ -3064,8 +3064,8 @@ describe("StakeManager", function () {
 //       clusterRegistryInstance.address,
 //       pond.address,
 //       [pondTokenId, mpondTokenId],
-//       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-//       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+//       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+//       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold]
 //     );
 
 //     const blockData = await ethers.provider.getBlock("latest");
@@ -3114,7 +3114,7 @@ describe("StakeManager", function () {
 //         nearEpochSelectorInstance.address, // invalid epoch selector
 //         "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
 //       ],
-//       appConfig.staking.rewardPerEpoch
+//       stakingConfig.rewardPerEpoch
 //     );
 
 //     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -3620,8 +3620,8 @@ describe("StakeManager", function () {
 //       clusterRegistryInstance.address,
 //       pond.address,
 //       [PONDTokenId, MPONDTokenId],
-//       [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-//       [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+//       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+//       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold]
 //     );
 
 //     const blockData = await ethers.provider.getBlock("latest");
@@ -3670,13 +3670,13 @@ describe("StakeManager", function () {
 //         nearEpochSelectorInstance.address, // invalid epoch selector
 //         "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
 //       ],
-//       appConfig.staking.rewardPerEpoch
+//       stakingConfig.rewardPerEpoch
 //     );
 
 //     await mpond.grantRole(await mpond.WHITELIST_ROLE(), stakeManagerInstance.address);
 //     expect(await mpond.hasRole(await mpond.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
-//     await pond.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+//     await pond.transfer(clusterRewardsInstance.address, stakingConfig.rewardPerEpoch * 100);
 
 //     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
 //   });
@@ -3685,7 +3685,7 @@ describe("StakeManager", function () {
 //     const StakeManager = await ethers.getContractFactory("StakeManager");
 //     await upgrades.upgradeProxy(stakeManagerInstance.address, StakeManager.connect(stakeManagerOwner), { kind: "uups" });
 
-//     await pond.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+//     await pond.transfer(clusterRewardsInstance.address, stakingConfig.rewardPerEpoch * 100);
 
 //     expect(await stakeManagerInstance.lockWaitTime(REDELEGATION_LOCK)).to.equal(5);
 //   });

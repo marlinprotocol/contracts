@@ -1,11 +1,11 @@
 import { ethers, upgrades, network } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
-// const REWARD_PER_EPOCH = appConfig.staking.rewardPerEpoch;
+// const REWARD_PER_EPOCH = stakingConfig.rewardPerEpoch;
 const REWARD_PER_EPOCH = BN.from(10).pow(21).mul(35);
 
 describe("StakeManager With Received Staking", function () {
@@ -191,9 +191,9 @@ describe("StakeManager With Received Staking", function () {
         clusterRegistry.address,
         pond.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold],
-      [appConfig.staking.PondWeightForDelegation, appConfig.staking.MPondWeightForDelegation]
+        [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+        [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
       );
 
     await clusterRegistry.initialize(lockWaitTimes, rewardDelegators.address);
@@ -262,8 +262,8 @@ describe("StakeManager With Received Staking", function () {
       expect(await rewardDelegators.tokenList(0)).to.eq(pondTokenId);
       expect(await rewardDelegators.tokenList(1)).to.eq(mpondTokenId);
 
-      expect(await rewardDelegators.rewardFactor(pondTokenId)).to.eq(appConfig.staking.PondRewardFactor);
-      expect(await rewardDelegators.rewardFactor(mpondTokenId)).to.eq(appConfig.staking.MPondRewardFactor);
+      expect(await rewardDelegators.rewardFactor(pondTokenId)).to.eq(stakingConfig.PondRewardFactor);
+      expect(await rewardDelegators.rewardFactor(mpondTokenId)).to.eq(stakingConfig.MPondRewardFactor);
     });
 
     it("Cluster Rewards", async function () {
