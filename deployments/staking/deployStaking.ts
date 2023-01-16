@@ -1,5 +1,5 @@
 import { Contract } from 'ethers';
-import { ethers, upgrades } from 'hardhat';
+import { ethers } from 'hardhat';
 import { deploy as deployClusterRegistry } from './ClusterRegistry';
 import { deploy as deployClusterRewards } from './ClusterRewards';
 import { deploy as deployClusterSelector } from './ClusterSelector';

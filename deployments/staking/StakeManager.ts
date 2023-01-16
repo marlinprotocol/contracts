@@ -1,17 +1,7 @@
 import { ethers, run, upgrades } from 'hardhat';
-import { BigNumber as BN, Contract } from 'ethers';
+import { Contract } from 'ethers';
 import * as fs from 'fs';
 const config = require('./config');
-
-declare module 'ethers' {
-  interface BigNumber {
-    e18(this: BigNumber): BigNumber;
-  }
-}
-BN.prototype.e18 = function () {
-  return this.mul(BN.from(10).pow(18))
-}
-
 
 export async function deploy(rewardDelegators: string): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
@@ -57,7 +47,7 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
     rewardDelegators,
     chainConfig.staking.waitTimes.redelegation,
     chainConfig.staking.waitTimes.undelegation,
-    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82", // unused
+    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82", // TODO: remove this var as init arg
   ], { kind: "uups" });
 
   console.log("Deployed addr:", stakeManager.address);

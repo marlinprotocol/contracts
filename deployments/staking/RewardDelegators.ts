@@ -1,16 +1,6 @@
 import { ethers, run, upgrades } from 'hardhat';
-import { BigNumber as BN, Contract } from 'ethers';
+import { Contract } from 'ethers';
 import * as fs from 'fs';
-
-declare module 'ethers' {
-  interface BigNumber {
-    e18(this: BigNumber): BigNumber;
-  }
-}
-BN.prototype.e18 = function () {
-  return this.mul(BN.from(10).pow(18))
-}
-
 
 export async function deployNoInit(): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
