@@ -112,6 +112,7 @@ contract ClusterRewards is
 //-------------------------------- Admin functions start --------------------------------//
 
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
+    bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
     uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
 
     mapping(address => uint256) public clusterRewards;
@@ -119,11 +120,11 @@ contract ClusterRewards is
     mapping(bytes32 => uint256) public rewardWeight;
     uint256 public totalRewardWeight;
     uint256 public totalRewardsPerEpoch;
-    uint256 public __unused_1;
+    uint256 public payoutDenomination;
 
-    mapping(uint256 => uint256) public __unused_2;
-    uint256 public __unused_3;
-    uint256 public __unused_4;
+    mapping(uint256 => uint256) public rewardDistributedPerEpoch;
+    uint256 public latestNewEpochRewardAt;
+    uint256 public rewardDistributionWaitTime;
 
     mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
     mapping(bytes32 => IEpochSelector) public epochSelectors; // networkId -> epochSelector
@@ -132,12 +133,18 @@ contract ClusterRewards is
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch, address epochSelector);
     event NetworkRemoved(bytes32 networkId);
     event NetworkUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch, address epochSelector);
+    event ClusterRewarded(bytes32 networkId);
     event ReceiverStakingUpdated(address receiverStaking);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
     modifier onlyClaimer() {
         require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
+        _;
+    }
+
+    modifier onlyFeeder() {
+        require(hasRole(FEEDER_ROLE, _msgSender()), "only feeder");
         _;
     }
 
@@ -204,6 +211,36 @@ contract ClusterRewards is
 
 //-------------------------------- User functions start --------------------------------//
 
+    function feed(
+        bytes32 _networkId,
+        address[] calldata _clusters,
+        uint256[] calldata _payouts,
+        uint256 _epoch
+    ) external onlyFeeder {
+        uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
+        if(rewardDistributed == 0) {
+            require(
+                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime,
+                "CRW:F-Cant distribute reward for new epoch within such short interval"
+            );
+            latestNewEpochRewardAt = block.timestamp;
+        }
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
+        uint256 currentPayoutDenomination = payoutDenomination;
+        uint256 networkRewardWeight = rewardWeight[_networkId];
+        for(uint256 i=0; i < _clusters.length; i++) {
+            uint256 clusterReward = ((currentTotalRewardsPerEpoch * networkRewardWeight * _payouts[i]) / totalRewardWeight) / currentPayoutDenomination;
+            rewardDistributed = rewardDistributed + clusterReward;
+            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
+        }
+        require(
+            rewardDistributed <= totalRewardsPerEpoch,
+            "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
+        );
+        rewardDistributedPerEpoch[_epoch] = rewardDistributed;
+        emit ClusterRewarded(_networkId);
+    }
+
     function issueTickets(bytes32 _networkId, uint256[] memory _epoch, address[][] memory _clusters, uint256[][] memory _tickets) external {
         uint256 numberOfEpochs = _epoch.length;
         require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
@@ -250,7 +287,9 @@ contract ClusterRewards is
     }
 
     function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
-        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
+        (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
+        return 0;
+        // return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
 //-------------------------------- User functions end --------------------------------//
