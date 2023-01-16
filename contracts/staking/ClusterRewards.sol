@@ -226,11 +226,19 @@ contract ClusterRewards is
         uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
 
-        for(uint256 i=0; i < _clusters.length; i++) {
-            require(ifArrayHasElement(_selectedClusters, _clusters[i]), "Invalid cluster to issue ticket");
-            clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+        unchecked {
+            for(uint256 i=0; i < _clusters.length; ++i) {
+                if(_selectedClusters[i] != _clusters[i]) {
+                    require(ifArrayHasElement(_selectedClusters, _clusters[i]), "CRW:IT-Invalid cluster to issue ticket");
+                }
+                require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Invalid ticket count");
 
-            _epochTicketsIssued += _tickets[i];
+                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
+                // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
+                clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+                // cant overflow as tickets <= 1e18
+                _epochTicketsIssued += _tickets[i];
+            }
         }
 
         require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Excessive tickets issued");
