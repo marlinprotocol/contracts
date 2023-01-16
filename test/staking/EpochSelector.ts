@@ -56,12 +56,13 @@ describe("Testing Epoch Selector", function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     epochSelector = await upgrades.deployProxy(EpochSelector, [
       admin.address,
+      "0x000000000000000000000000000000000000dEaD", 
       numberOfClustersToSelect,
       pond.address,
       new BN(10).pow(20).toString()
     ], {
       kind: "uups",
-      constructorArgs: [blockData.timestamp]
+      constructorArgs: [blockData.timestamp, 4*60*60]
     });
   });
 

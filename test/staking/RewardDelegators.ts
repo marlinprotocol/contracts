@@ -4,7 +4,7 @@ import { BigNumber as BN, Signer, Contract, BigNumber } from "ethers";
 import exp from "constants";
 import { Sign, sign } from "crypto";
 import cluster, { Address } from "cluster";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 declare module "ethers" {
   interface BigNumber {
@@ -60,8 +60,9 @@ describe("RewardDelegators", function () {
         clusterRegistryInstance.address,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+        [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
       )
     ).to.be.reverted;
   });
@@ -78,8 +79,9 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId, mpondTokenId]);
@@ -97,8 +99,9 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { kind: "uups" });
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
@@ -117,8 +120,9 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
     await expect(
       upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {
@@ -173,8 +177,9 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
   });
 
@@ -292,8 +297,9 @@ describe("RewardDelegators", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
   });
 
@@ -303,7 +309,7 @@ describe("RewardDelegators", function () {
   });
 
   it(" cannot add for already existing tokenId", async () => {
-    await expect(rewardDelegators.addRewardFactor(pondTokenId, appConfig.staking.PondRewardFactor)).to.be.reverted;
+    await expect(rewardDelegators.addRewardFactor(pondTokenId, stakingConfig.PondRewardFactor)).to.be.reverted;
   });
 
   it("cannot add 0 reward Factor", async () => {
@@ -332,7 +338,7 @@ describe("RewardDelegators", function () {
   });
 
   it("non owner cannot update reward Factor", async () => {
-    await expect(rewardDelegators.connect(signers[1]).updateRewardFactor(pondTokenId, appConfig.staking.PondRewardFactor + 1)).to.be
+    await expect(rewardDelegators.connect(signers[1]).updateRewardFactor(pondTokenId, stakingConfig.PondRewardFactor + 1)).to.be
       .reverted;
   });
 
@@ -346,7 +352,7 @@ describe("RewardDelegators", function () {
   });
 
   it("owner can update rewardFactor", async () => {
-    let tx = await (await rewardDelegators.updateRewardFactor(pondTokenId, appConfig.staking.PondRewardFactor + 1)).wait();
+    let tx = await (await rewardDelegators.updateRewardFactor(pondTokenId, stakingConfig.PondRewardFactor + 1)).wait();
     expect(tx.events[0].event).to.equal("RewardsUpdated");
   });
 });
@@ -457,8 +463,9 @@ describe("RewardDelegators Deployment", function () {
         clusterRegistryInstance.address,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+        [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
       )
     ).to.be.reverted;
   });
@@ -473,8 +480,9 @@ describe("RewardDelegators Deployment", function () {
         clusterRegistryInstance.address,
         pondInstance.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+        [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
       ],
       { kind: "uups" }
     );
@@ -487,28 +495,10 @@ describe("RewardDelegators Deployment", function () {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[0]
+      stakingConfig.undelegationWaitTime,
     );
 
     const blockData = await ethers.provider.getBlock("latest");
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      numberOfClustersToSelect,
-      pondInstance.address,
-      BigNumber.from(10).pow(20)
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
-    let role = await epochSelectorInstance.UPDATER_ROLE();
-    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
-
-    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
-    expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
-
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
       constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
@@ -517,6 +507,21 @@ describe("RewardDelegators Deployment", function () {
     });
 
     await receiverStaking.initialize(addrs[0]);
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      rewardDelegatorsInstance.address,
+      numberOfClustersToSelect,
+      pondInstance.address,
+      BigNumber.from(10).pow(20)
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
+
+    await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
+    expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
     await clusterRewardsInstance.initialize(
       addrs[0],
@@ -529,13 +534,13 @@ describe("RewardDelegators Deployment", function () {
         "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
         "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
       ],
-      appConfig.staking.rewardPerEpoch
+      stakingConfig.rewardPerEpoch
     );
 
-    await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pondInstance.transfer(clusterRewardsInstance.address, stakingConfig.rewardPerEpoch * 100);
     // initialize contract and check if all variables are correctly set(including admin)
     expect(await stakeManagerInstance.lockWaitTime(await stakeManagerInstance.UNDELEGATION_LOCK_SELECTOR())).to.equal(
-      appConfig.staking.undelegationWaitTime
+      stakingConfig.undelegationWaitTime
     );
   });
 
@@ -667,7 +672,7 @@ describe("RewardDelegators Deployment", function () {
     const rewardDelegatorsBal = await pondInstance.balanceOf(rewardDelegatorsInstance.address);
 
     // transfer POND for rewards
-    await pondInstance.transfer(rewardDelegatorsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pondInstance.transfer(rewardDelegatorsInstance.address, stakingConfig.rewardPerEpoch * 100);
     await rewardDelegatorsInstance.connect(rewardDelegatorsOwner)._updateRewards(await registeredCluster.getAddress());
 
     // Checking Cluster Reward
@@ -748,8 +753,8 @@ describe("RewardDelegators Deployment", function () {
     const cluster1Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster1.getAddress());
     const cluster2Reward = await clusterRewardsInstance.clusterRewards(await registeredCluster2.getAddress());
 
-    // expect(cluster1Reward).to.equal(Math.round((((10 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
-    // expect(cluster2Reward).to.equal(Math.round((((4 + 2) / (10 + 2 + 4 + 2)) * appConfig.staking.rewardPerEpoch) / 3));
+    // expect(cluster1Reward).to.equal(Math.round((((10 + 2) / (10 + 2 + 4 + 2)) * stakingConfig.rewardPerEpoch) / 3));
+    // expect(cluster2Reward).to.equal(Math.round((((4 + 2) / (10 + 2 + 4 + 2)) * stakingConfig.rewardPerEpoch) / 3));
 
     // issue tickets have no link with total delegations to cluster, hence skipping it.
     expect(cluster1Reward).to.eq(cluster2Reward);
@@ -762,15 +767,15 @@ describe("RewardDelegators Deployment", function () {
     let accPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), pondTokenId);
     let accMPondRewardPerShare = await rewardDelegatorsInstance.getAccRewardPerShare(await registeredCluster1.getAddress(), mpondTokenId);
     // substract 1 from the delegator rewards according to contract changes?
-    // expect(PondBalance1After.sub(PondBalance1Before)).to.equal(Math.round(appConfig.staking.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1)); // TODO
+    // expect(PondBalance1After.sub(PondBalance1Before)).to.equal(Math.round(stakingConfig.rewardPerEpoch * 1 / 3 * (2.0 / 3 * 1 / 2 + 1.0 / 3 * 1 / 2) - 1)); // TODO
     // feed data again to the oracle
     // await feedData([registeredCluster, registeredCluster1, registeredCluster2, registeredCluster3, registeredCluster4]);
     // // do some delegations for both users to the cluster
     // let PondBalance2Before = await PONDInstance.balanceOf(delegator2);
     // await delegate(delegator2, [registeredCluster1, registeredCluster2], [0, 4], [2000000, 0]);PondBalance1Before
     // let PondBalance2After = await PONDInstance.balanceOf(delegator2);
-    // console.log(PondBalance2After.sub(PondBalance2Before).toString(), appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
-    // assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(appConfig.staking.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
+    // console.log(PondBalance2After.sub(PondBalance2Before).toString(), stakingConfig.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5)));
+    // assert(PondBalance2After.sub(PondBalance2Before).toString() == parseInt(stakingConfig.rewardPerEpoch*((2.0/3*9/10*5/6+1.0/3*19/20*1/3)+(7.0/12*9/10*5/7+5.0/12*19/20*1/5))));
   });
 
   it("withdraw reward", async () => {
@@ -863,6 +868,7 @@ describe("RewardDelegators Deployment", function () {
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
       addrs[0],
+      rewardDelegatorsInstance.address,
       numberOfClustersToSelect,
       pondInstance.address,
       BigNumber.from(10).pow(20)
@@ -870,9 +876,6 @@ describe("RewardDelegators Deployment", function () {
       kind: "uups",
       constructorArgs: [blockData.timestamp]
     });
-
-    let role = await epochSelectorInstance.UPDATER_ROLE();
-    await epochSelectorInstance.connect(signers[0]).grantRole(role, rewardDelegatorsInstance.address);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
 
@@ -882,8 +885,7 @@ describe("RewardDelegators Deployment", function () {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      appConfig.staking.undelegationWaitTime,
-      addrs[0]
+      stakingConfig.undelegationWaitTime
     );
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
@@ -902,13 +904,13 @@ describe("RewardDelegators Deployment", function () {
       epochSelectorInstance.address,
       [ethers.utils.id("testing")],
       [100],
-      appConfig.staking.rewardPerEpoch
+      stakingConfig.rewardPerEpoch
     );
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
     expect(await mpondInstance.hasRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address)).to.be.true;
 
-    await pondInstance.transfer(clusterRewardsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pondInstance.transfer(clusterRewardsInstance.address, stakingConfig.rewardPerEpoch * 100);
 
     // register cluster
     await clusterRegistryInstance
@@ -993,7 +995,7 @@ describe("RewardDelegators Deployment", function () {
     expect(cluster4Reward).to.equal(10000);
 
     // transfer POND for rewards
-    await pondInstance.transfer(rewardDelegatorsInstance.address, appConfig.staking.rewardPerEpoch * 100);
+    await pondInstance.transfer(rewardDelegatorsInstance.address, stakingConfig.rewardPerEpoch * 100);
     await rewardDelegatorsInstance
       .connect(delegator1)
       ["withdrawRewards(address,address)"](await delegator1.getAddress(), await registeredCluster4.getAddress());
@@ -1147,8 +1149,6 @@ describe("RewardDelegators Deployment", function () {
     registeredCluster: Signer
   ): Promise<number | string> {
     let currentEpoch = (await epochSelecotor.getCurrentEpoch()).toString();
-    let elementsInTree = await epochSelecotor.getTotalElements();
-    console.log({ elementsInTree });
 
     for (;;) {
       let clusters = (await epochSelecotor.getClusters(currentEpoch)) as string[];

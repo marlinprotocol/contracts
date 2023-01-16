@@ -1,19 +1,8 @@
-import { ethers, upgrades } from 'hardhat';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { ethers, run, upgrades } from 'hardhat';
+import { Contract } from 'ethers';
 import * as fs from 'fs';
 
-
-declare module 'ethers' {
-  interface BigNumber {
-    e18(this: BigNumber): BigNumber;
-  }
-}
-BN.prototype.e18 = function () {
-  return this.mul(BN.from(10).pow(18))
-}
-
-
-async function main() {
+export async function deployNoInit(): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -26,9 +15,10 @@ async function main() {
     addresses[chainId] = {};
   }
 
+  const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
   if(addresses[chainId]['RewardDelegators'] !== undefined) {
     console.log("Existing deployment:", addresses[chainId]['RewardDelegators']);
-    return;
+    return RewardDelegators.attach(addresses[chainId]['RewardDelegators']);
   }
 
   let signers = await ethers.getSigners();
@@ -36,7 +26,6 @@ async function main() {
 
   console.log("Signer addrs:", addrs);
 
-  const RewardDelegators = await ethers.getContractFactory('RewardDelegators');
   let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
 
   console.log("Deployed addr:", rewardDelegators.address);
@@ -44,13 +33,29 @@ async function main() {
   addresses[chainId]['RewardDelegators'] = rewardDelegators.address;
 
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+
+  return rewardDelegators;
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
+export async function verify() {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  console.log("Chain Id:", chainId);
+
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(fs.existsSync('address.json')) {
+    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+  }
+
+  if(addresses[chainId] === undefined || addresses[chainId]['RewardDelegators'] === undefined) {
+    throw new Error("Reward Delegators not deployed");
+  }
+
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['RewardDelegators']);
+
+  await run("verify:verify", {
+    address: implAddress,
+    constructorArguments: []
   });
 
-
+  console.log("Reward Delegators verified");
+}

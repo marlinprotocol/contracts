@@ -1,5 +1,5 @@
-const networks = require("./networks");
-const deployContract = require("./helpers");
+const networks = require("../networks");
+const deployContract = require("../helpers");
 
 if (!networks[process.env.NETWORK]) {
   console.log("NETWORK not declared or valid in env variables");

@@ -1,7 +1,7 @@
 import '@nomiclabs/hardhat-ethers';
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomiclabs/hardhat-waffle";
+// import "@nomiclabs/hardhat-waffle";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
 import dotenv from 'dotenv';
@@ -20,9 +20,8 @@ export default {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
     },
-    arb2: {
-      url: "http://127.0.0.1:1248/",
-      accounts: "remote",
+    local: {
+      url: "http://host.docker.internal:8545/",
       timeout: 600000,
     },
     arb1: {
@@ -58,6 +57,7 @@ export default {
   solidity: {
     version: "0.8.17",
     settings: {
+      // viaIR: true,
       optimizer: {
         enabled: true,
         runs: 10000,
@@ -94,5 +94,8 @@ export default {
       },
     }],
   },
+  gasReporter: {
+    enabled: true
+  }
 };
 

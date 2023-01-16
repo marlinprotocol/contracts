@@ -1,8 +1,9 @@
-import { ethers, upgrades, network, waffle } from "hardhat";
+import { ethers, upgrades, network } from "hardhat";
+import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 import { sign } from "crypto";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 import { testERC165 } from "../helpers/erc165.ts";
 import { testAdminRole, testRole } from "../helpers/rbac.ts";
@@ -49,8 +50,7 @@ describe("StakeManager", function () {
         [false, true],
         addrs[3],
         REDELEGATION_WAIT_TIME,
-        UNDELEGATION_WAIT_TIME,
-        addrs[4]
+        UNDELEGATION_WAIT_TIME
       )
     ).to.be.reverted;
   });
@@ -66,7 +66,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -98,7 +97,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -131,7 +129,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -151,7 +148,6 @@ testERC165("StakeManager", async function (signers: Signer[], addrs: string[]) {
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -181,7 +177,6 @@ testAdminRole("StakeManager", async function (signers: Signer[], addrs: string[]
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -199,7 +194,6 @@ testRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -230,7 +224,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -377,7 +370,6 @@ describe("StakeManager", function () {
       addrs[10],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -594,7 +586,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -605,7 +597,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -904,7 +895,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -915,7 +906,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -1217,7 +1207,6 @@ describe("StakeManager", function () {
       addrs[10],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -1432,7 +1421,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1443,7 +1432,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1692,7 +1680,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1703,7 +1691,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1819,7 +1806,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1830,7 +1817,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1948,7 +1934,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -1959,7 +1945,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2122,7 +2107,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2133,7 +2118,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2254,7 +2238,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2265,7 +2249,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2390,7 +2373,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2401,7 +2384,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2551,7 +2533,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2562,7 +2544,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2668,7 +2649,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2679,7 +2660,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2794,7 +2774,7 @@ describe("StakeManager", function () {
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await waffle.deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
     await rewardDelegators.mock.delegate.returns();
     const StakeManager = await ethers.getContractFactory("StakeManager");
     stakeManager = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
@@ -2805,7 +2785,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);

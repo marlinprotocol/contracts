@@ -1,11 +1,11 @@
 import { ethers, upgrades, network } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
-// const REWARD_PER_EPOCH = appConfig.staking.rewardPerEpoch;
+// const REWARD_PER_EPOCH = stakingConfig.rewardPerEpoch;
 const REWARD_PER_EPOCH = BN.from(10).pow(21).mul(35);
 
 describe("StakeManager With Received Staking", function () {
@@ -156,21 +156,22 @@ describe("StakeManager With Received Staking", function () {
       initializer: false,
     });
 
+    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
+
     let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
     for (let index = 0; index < supportedNetworks.length; index++) {
       let epochSelectorContract = await upgrades.deployProxy(EpochSelector, [
         await epochSelectorAdmin.getAddress(),
+        rewardDelegators.address,
         5,
         pond.address,
         BN.from(10).pow(20).toString()
       ], {
         kind: "uups",
-        constructorArgs: [blockData.timestamp]
+        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
       });
       epochSelectors.push(epochSelectorContract);
     }
-
-    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
 
     await clusterRewards.initialize(
       await clusterRewardsAdmin.getAddress(),
@@ -190,8 +191,9 @@ describe("StakeManager With Received Staking", function () {
         clusterRegistry.address,
         pond.address,
         [pondTokenId, mpondTokenId],
-        [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-        [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+        [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+        [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
       );
 
     await clusterRegistry.initialize(lockWaitTimes, rewardDelegators.address);
@@ -205,21 +207,15 @@ describe("StakeManager With Received Staking", function () {
         rewardDelegators.address,
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        await stakeManagerGateway.getAddress()
       );
 
     // derivations
-    let UPDATER_ROLE = await epochSelectors[0].UPDATER_ROLE();
     epochDuration = BN.from(await epochSelectors[0].EPOCH_LENGTH()).toNumber();
 
     //post deployment operations
     await mpond.grantRole(await mpond.WHITELIST_ROLE(), stakeManager.address);
     await mpond.grantRole(await mpond.WHITELIST_ROLE(), await mpondWhiteListedAddress.getAddress());
     await mpond.transfer(await mpondWhiteListedAddress.getAddress(), await mpond.totalSupply());
-
-    await epochSelectors[0].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await epochSelectors[1].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await epochSelectors[2].connect(epochSelectorAdmin).grantRole(UPDATER_ROLE, rewardDelegators.address);
   });
 
   beforeEach(async function () {
@@ -265,8 +261,8 @@ describe("StakeManager With Received Staking", function () {
       expect(await rewardDelegators.tokenList(0)).to.eq(pondTokenId);
       expect(await rewardDelegators.tokenList(1)).to.eq(mpondTokenId);
 
-      expect(await rewardDelegators.rewardFactor(pondTokenId)).to.eq(appConfig.staking.PondRewardFactor);
-      expect(await rewardDelegators.rewardFactor(mpondTokenId)).to.eq(appConfig.staking.MPondRewardFactor);
+      expect(await rewardDelegators.rewardFactor(pondTokenId)).to.eq(stakingConfig.PondRewardFactor);
+      expect(await rewardDelegators.rewardFactor(mpondTokenId)).to.eq(stakingConfig.MPondRewardFactor);
     });
 
     it("Cluster Rewards", async function () {

@@ -12,16 +12,13 @@ interface IClusterRegistry {
         address _rewardAddress,
         address _clientKey
     ) external;
-    function updateCluster(
-        uint256 _commission,
-        bytes32 _networkId,
-        address _rewardAddress,
-        address _clientKey
-    ) external;
-    function updateCommission(uint256 _commission) external;
-    function switchNetwork(bytes32 _networkId) external;
+    function requestCommissionUpdate(uint256 _commission) external;
+    function updateCommission() external;
+    function requestNetworkSwitch(bytes32 _networkId) external;
+    function switchNetwork() external;
     function updateRewardAddress(address _rewardAddress) external;
     function updateClientKey(address _clientKey) external;
+    function requestUnregister() external;
     function unregister() external;
     function isClusterValid(address _cluster) external returns(bool);
     function getCommission(address _cluster) external returns(uint256);

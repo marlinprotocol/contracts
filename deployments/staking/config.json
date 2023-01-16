@@ -1,0 +1,53 @@
+{
+    "421613": {
+        "cluster": {
+            "waitTimes": [
+                180,
+                240,
+                300
+            ]
+        },
+        "startTime": 1673222400,
+        "epochLength": 14400,
+        "noOfClustersToSelect": 5,
+        "selectionReward": {
+            "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
+            "amount": "1000000000000000000"
+        },
+        "staking": {
+            "tokens": {
+                "POND": {
+                    "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
+                    "address": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
+                    "rewardFactor": "100",
+                    "weightForThreshold": "0",
+                    "weightForDelegation": "1",
+                    "delegatable": false
+                },
+                "MPOND": {
+                    "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
+                    "address": "0x0B3d9b224496C2A2Fa1a4096D8EB4D350eFd9079",
+                    "rewardFactor": "100",
+                    "weightForThreshold": "1000000",
+                    "weightForDelegation": "1000000",
+                    "delegatable": true
+                }
+            },
+            "thresholdForSelection": {
+                "ETH": "500000000000000000"
+            },
+            "rewardWeights": {
+                "ETH": "1000000000000000000"
+            },
+            "waitTimes": {
+                "redelegation": 360,
+                "undelegation": 420
+            },
+            "receiver": {
+                "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C"
+            }
+        },
+        "totalRewardsPerEpoch": "4692550000000000000000",
+        "admin": "0xd7E109d2219b5b5b90656FB8B33F2ba679b22062"
+    }
+}

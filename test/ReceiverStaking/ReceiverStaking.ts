@@ -315,7 +315,7 @@ describe("Receiver Staking at start", async () => {
       const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch);
       expect(epochBalance).to.equal(minBalance, `incorrect epoch balance after deposit in epoch ${currentEpoch} at index ${i}`);
     }
-  });
+  }).timeout(100000);
 });
 
 async function timeTravel(time: number) {

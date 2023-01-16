@@ -77,7 +77,8 @@ contract RewardDelegators is
         address _PONDAddress,
         bytes32[] memory _tokenIds,
         uint256[] memory _rewardFactors,
-        uint256[] memory _weightsForThreshold
+        uint128[] memory _weightsForThreshold,
+        uint128[] memory _weightsForDelegation
     )
         initializer
         public
@@ -110,7 +111,7 @@ contract RewardDelegators is
 
         for(uint256 i=0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
-            _updateWeightForThreshold(_tokenIds[i], _weightsForThreshold[i]);
+            _updateTokenWeights(_tokenIds[i], _weightsForThreshold[i], _weightsForDelegation[i]);
             tokenIndex[_tokenIds[i]] = tokenList.length;
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
@@ -127,7 +128,10 @@ contract RewardDelegators is
         mapping(bytes32 => uint256) accRewardPerShare;
     }
 
-    uint256 private constant POND_PER_MPOND = 1_000_000;
+    struct TokenWeight {
+        uint128 forThreshold;
+        uint128 forDelegation;
+    }
 
     mapping(address => Cluster) clusters;
 
@@ -139,8 +143,8 @@ contract RewardDelegators is
     IClusterRegistry public clusterRegistry;
     IERC20Upgradeable public PONDToken;
 
-    mapping(bytes32 => uint256) public weightForThreshold; // tokenId -> weight towards threshold for selection
     mapping(bytes32 => uint256) public thresholdForSelection; // networkId -> threshold
+    mapping(bytes32 => TokenWeight) public tokenWeights; // tokenId -> TokenWeight
 
     event AddReward(bytes32 tokenId, uint256 rewardFactor);
     event RemoveReward(bytes32 tokenId);
@@ -328,7 +332,7 @@ contract RewardDelegators is
     }
 
     function _updateEpochSelector(bytes32 _networkId, address _cluster, IEpochSelector _epochSelector) internal {
-        uint256 totalDelegations = _getTotalDelegations(_cluster, _networkId);
+        uint256 totalDelegations = _getEffectiveDelegation(_cluster, _networkId);
 
         if(address(_epochSelector) != address(0)) {
             // if total delegation is more than 0.5 million pond, then insert into selector
@@ -345,14 +349,16 @@ contract RewardDelegators is
 
     function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
-        _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        if(address(_epochSelector) != address(0)) {
+            _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        }
     }
 
     function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
         IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        require(address(_epochSelector) != address(0), "RD:UES-invalid epoch selector");
-        _epochSelector.deleteIfPresent(_cluster);
+        if(address(_epochSelector) != address(0)) {
+            _epochSelector.deleteIfPresent(_cluster);
+        }
     }
 
     function undelegate(
@@ -471,14 +477,14 @@ contract RewardDelegators is
         emit ThresholdForSelectionUpdated(_networkId, _newThreshold);
     }
 
-    event WeightForThresholdUpdated(bytes32 tokenId, uint256 weight);
-    function updateWeightForThreshold(bytes32 tokenId, uint256 newWeight) onlyAdmin external {
-        _updateWeightForThreshold(tokenId, newWeight);
+    event TokenWeightsUpdated(bytes32 tokenId, uint256 thresholdWeight, uint256 delegationWeight);
+    function updateTokenWeights(bytes32 tokenId, uint128 thresholdWeight, uint128 delegationWeight) onlyAdmin external {
+        _updateTokenWeights(tokenId, thresholdWeight, delegationWeight);
     }
 
-    function _updateWeightForThreshold(bytes32 tokenId, uint256 newWeight) internal {
-        weightForThreshold[tokenId] = newWeight;
-        emit WeightForThresholdUpdated(tokenId, newWeight);
+    function _updateTokenWeights(bytes32 tokenId, uint128 thresholdWeight, uint128 delegationWeight) internal {
+        tokenWeights[tokenId] = TokenWeight(thresholdWeight, delegationWeight);
+        emit TokenWeightsUpdated(tokenId, thresholdWeight, delegationWeight);
     }
 
     event RefreshClusterDelegation(address indexed cluster);
@@ -494,7 +500,7 @@ contract RewardDelegators is
             bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
             require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
 
-            uint256 totalDelegations = _getTotalDelegations(cluster, _networkId);
+            uint256 totalDelegations = _getEffectiveDelegation(cluster, _networkId);
 
             if(totalDelegations != 0){
                 filteredClustersList[addressIndex] = cluster;
@@ -509,18 +515,22 @@ contract RewardDelegators is
 
     }
 
-    function _getTotalDelegations(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
+    function _getEffectiveDelegation(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
         uint256 _totalWeight;
         for(uint256 i=0; i < tokenList.length; i++) {
             bytes32 _tokenId = tokenList[i];
-            uint256 _weight = weightForThreshold[_tokenId];
-            if(_weight != 0) {
-                _totalWeight += _weight * clusters[cluster].totalDelegations[_tokenId];
+            TokenWeight memory _weights = tokenWeights[_tokenId];
+            uint256 _clusterTokenDelegation = clusters[cluster].totalDelegations[_tokenId];
+            if(_weights.forThreshold != 0) {
+                _totalWeight += _weights.forThreshold * _clusterTokenDelegation;
+            }
+            if(_weights.forDelegation != 0) {
+                totalDelegations += _weights.forDelegation * _clusterTokenDelegation;
             }
         }
-        if(_totalWeight >= thresholdForSelection[networkId]){
-            totalDelegations = _totalWeight;
+        if(_totalWeight < thresholdForSelection[networkId]){
+            // if threshold is not met, delegations don't count
+            return 0;
         }
-        // else totalDelegations should be considered 0
     }
 }

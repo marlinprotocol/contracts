@@ -9,4 +9,3 @@
   "include": ["./scripts", "./test", "./deployments"],
   "files": ["./hardhat.config.ts"]
 }
-

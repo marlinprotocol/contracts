@@ -1,7 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-const appConfig = require("../../app-config");
+const stakingConfig = require("../config/staking.json");
 
 declare module "ethers" {
   interface BigNumber {
@@ -77,8 +77,9 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await expect(clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address)).to.be.reverted;
@@ -99,8 +100,9 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -128,8 +130,9 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -158,8 +161,9 @@ describe("ClusterRegistry", function () {
       clusterRegistryInstance.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -212,8 +216,9 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -299,8 +304,9 @@ describe("ClusterRegistry", function () {
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
@@ -392,27 +398,6 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      5,
-      pondInstance.address,
-      ethers.utils.parseEther("1").toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
-    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      5,
-      pondInstance.address,
-      ethers.utils.parseEther("1").toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
       constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
@@ -421,6 +406,35 @@ describe("ClusterRegistry", function () {
     });
 
     await receiverStaking.initialize(addrs[0]);
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      kind: "uups",
+      initializer: false,
+    });
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      rewardDelegators.address,
+      5,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
+
+    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      rewardDelegators.address,
+      5,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(
@@ -444,25 +458,18 @@ describe("ClusterRegistry", function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
 
-    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      kind: "uups",
-      initializer: false,
-    });
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
-    let UPDATER_ROLE = await nearEpochSelector.UPDATER_ROLE();
-    await nearEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await dotEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
   });
 
   it("can register new cluster", async () => {
@@ -515,12 +522,16 @@ describe("ClusterRegistry", function () {
     await expect(clusterRegistry.connect(signers[1]).unregister()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
-    await clusterRegistry.unregister();
+    await clusterRegistry.requestUnregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await skipTime(39);
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
     await skipTime(2);
+    expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.true;
+    await clusterRegistry.unregister();
     expect(await clusterRegistry.callStatic.isClusterValid(addrs[0])).to.be.false;
+    // no request and cluster as cluster was unregistered
+    await expect(clusterRegistry.unregister()).to.be.reverted;
   });
 });
 
@@ -565,27 +576,6 @@ describe("ClusterRegistry", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      5,
-      pondInstance.address,
-      ethers.utils.parseEther("1").toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
-    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
-      addrs[0],
-      5,
-      pondInstance.address,
-      ethers.utils.parseEther("1").toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp]
-    });
-
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
     receiverStaking = await upgrades.deployProxy(ReceiverStaking, {
       constructorArgs: [blockData.timestamp, 4 * 3600, pondInstance.address],
@@ -594,6 +584,35 @@ describe("ClusterRegistry", function () {
     });
 
     await receiverStaking.initialize(addrs[0]);
+
+    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+      kind: "uups",
+      initializer: false,
+    });
+
+    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    dotEpochSelector = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      rewardDelegators.address,
+      5,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
+
+    nearEpochSelector = await upgrades.deployProxy(EpochSelector, [
+      addrs[0],
+      rewardDelegators.address,
+      5,
+      pondInstance.address,
+      ethers.utils.parseEther("1").toString()
+    ], {
+      kind: "uups",
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+    });
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     clusterRewardsInstance = await upgrades.deployProxy(
@@ -617,53 +636,63 @@ describe("ClusterRegistry", function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     clusterRegistry = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
 
-    const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
-      kind: "uups",
-      initializer: false,
-    });
     await rewardDelegators.initialize(
       stakeManagerInstance.address,
       clusterRewardsInstance.address,
       clusterRegistry.address,
       pondInstance.address,
       [pondTokenId, mpondTokenId],
-      [appConfig.staking.PondRewardFactor, appConfig.staking.MPondRewardFactor],
-      [appConfig.staking.PondWeightForThreshold, appConfig.staking.MPondWeightForThreshold]
+      [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+      [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
     );
 
     await clusterRegistry.initialize(WAIT_TIMES, rewardDelegators.address);
-    let UPDATER_ROLE = await nearEpochSelector.UPDATER_ROLE();
-    await nearEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
-    await dotEpochSelector.connect(signers[0]).grantRole(UPDATER_ROLE, rewardDelegators.address);
     await clusterRegistry.register(DOTHASH, 7, addrs[1], addrs[2]);
   });
 
   it("updates commission correctly", async () => {
-    await expect(clusterRegistry.connect(signers[1]).updateCommission(15)).to.be.reverted;
-    await expect(clusterRegistry.updateCommission(150)).to.be.reverted;
+    await expect(clusterRegistry.connect(signers[1]).requestCommissionUpdate(15)).to.be.reverted;
+    // commission can't be more than 100
+    await expect(clusterRegistry.requestCommissionUpdate(150)).to.be.reverted;
+    // can't update without any request
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
-    await clusterRegistry.updateCommission(15);
+    await clusterRegistry.requestCommissionUpdate(15);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await skipTime(19);
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
     await skipTime(2);
+    // commission won't change before update request is enforced
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
+    await clusterRegistry.updateCommission();
+    // commission should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
   });
 
   it("switches network correctly", async () => {
     const NEARHASH = ethers.utils.id("NEAR");
-
-    await expect(clusterRegistry.connect(signers[1]).switchNetwork(NEARHASH)).to.be.reverted;
+    // unregistered  user can't request network switch
+    await expect(clusterRegistry.connect(signers[1]).requestNetworkSwitch(NEARHASH)).to.be.reverted;
+    // can't switch network without any request
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
-    await clusterRegistry.switchNetwork(NEARHASH);
+    await clusterRegistry.requestNetworkSwitch(NEARHASH);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await skipTime(29);
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
     await skipTime(2);
+    // network won't change before update request is enforced
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    await clusterRegistry.switchNetwork();
+    // network should change now that update request is enforced
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
   });
 
   it("updates reward address correctly", async () => {
@@ -682,6 +711,7 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[3]);
   });
 
+  // not relevant anymore as the function is removed
   it("updates cluster params correctly", async () => {
     const NEARHASH = ethers.utils.id("NEAR");
 
@@ -707,7 +737,22 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
+    // commission update wait time is not over yet
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
+    // switch network wait time is not over yet
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
+
     await skipTime(2);
+
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // enforce request as wait time is complete
+    await clusterRegistry.updateCommission();
+    // switch network wait time is not over yet
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
@@ -722,6 +767,17 @@ describe("ClusterRegistry", function () {
     expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
 
     await skipTime(2);
+
+    expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
+    // doesn't change yet as request wait time is over but itt is not enforced yet
+    expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
+    // enforce request as wait time is complete
+    await clusterRegistry.switchNetwork();
 
     expect(await clusterRegistry.callStatic.getCommission(addrs[0])).to.equal(BN.from(15));
     expect(await clusterRegistry.callStatic.getNetwork(addrs[0])).to.equal(NEARHASH);
