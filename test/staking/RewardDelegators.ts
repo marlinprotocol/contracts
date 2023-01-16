@@ -496,7 +496,6 @@ describe("RewardDelegators Deployment", function () {
       rewardDelegatorsInstance.address,
       5,
       stakingConfig.undelegationWaitTime,
-      addrs[0]
     );
 
     const blockData = await ethers.provider.getBlock("latest");
@@ -886,8 +885,7 @@ describe("RewardDelegators Deployment", function () {
       [false, true],
       rewardDelegatorsInstance.address,
       5,
-      stakingConfig.undelegationWaitTime,
-      addrs[0]
+      stakingConfig.undelegationWaitTime
     );
 
     let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");

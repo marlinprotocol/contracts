@@ -207,7 +207,6 @@ describe("StakeManager With Received Staking", function () {
         rewardDelegators.address,
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        await stakeManagerGateway.getAddress()
       );
 
     // derivations

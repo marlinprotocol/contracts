@@ -69,8 +69,7 @@ contract StakeManager is
         bool[] memory _delegatable,
         address _rewardDelegatorsAddress,
         uint256 _redelegationWaitTime,
-        uint256 _undelegationWaitTime,
-        address _unused
+        uint256 _undelegationWaitTime
     )
         initializer
         public

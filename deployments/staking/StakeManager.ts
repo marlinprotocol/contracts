@@ -46,8 +46,7 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
     delegatable,
     rewardDelegators,
     chainConfig.staking.waitTimes.redelegation,
-    chainConfig.staking.waitTimes.undelegation,
-    "0xcbb94d13fb90c28368e4358f3ecce248ae4b6c82", // TODO: remove this var as init arg
+    chainConfig.staking.waitTimes.undelegation
   ], { kind: "uups" });
 
   console.log("Deployed addr:", stakeManager.address);

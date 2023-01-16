@@ -50,8 +50,7 @@ describe("StakeManager", function () {
         [false, true],
         addrs[3],
         REDELEGATION_WAIT_TIME,
-        UNDELEGATION_WAIT_TIME,
-        addrs[4]
+        UNDELEGATION_WAIT_TIME
       )
     ).to.be.reverted;
   });
@@ -67,7 +66,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -99,7 +97,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -132,7 +129,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -152,7 +148,6 @@ testERC165("StakeManager", async function (signers: Signer[], addrs: string[]) {
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -182,7 +177,6 @@ testAdminRole("StakeManager", async function (signers: Signer[], addrs: string[]
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -200,7 +194,6 @@ testRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
       addrs[3],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[4],
     ],
     { kind: "uups" }
   );
@@ -231,7 +224,6 @@ describe("StakeManager", function () {
         addrs[3],
         REDELEGATION_WAIT_TIME,
         UNDELEGATION_WAIT_TIME,
-        addrs[4],
       ],
       { kind: "uups" }
     );
@@ -378,7 +370,6 @@ describe("StakeManager", function () {
       addrs[10],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -606,7 +597,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -916,7 +906,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -1218,7 +1207,6 @@ describe("StakeManager", function () {
       addrs[10],
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
 
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
@@ -1444,7 +1432,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1704,7 +1691,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1831,7 +1817,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -1960,7 +1945,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2134,7 +2118,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2266,7 +2249,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2402,7 +2384,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2563,7 +2544,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2680,7 +2660,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
@@ -2806,7 +2785,6 @@ describe("StakeManager", function () {
       rewardDelegators.address,
       REDELEGATION_WAIT_TIME,
       UNDELEGATION_WAIT_TIME,
-      addrs[2]
     );
     await mpond.grantRole(ethers.utils.id("WHITELIST_ROLE"), stakeManager.address);
     await mpond.approve(stakeManager.address, 10000);
