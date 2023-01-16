@@ -1,23 +1,11 @@
-import { ethers, upgrades } from 'hardhat';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { ethers } from 'hardhat';
 import * as fs from 'fs';
 
 
-declare module 'ethers' {
-  interface BigNumber {
-    e18(this: BigNumber): BigNumber;
-  }
-}
-BN.prototype.e18 = function () {
-  return this.mul(BN.from(10).pow(18))
-}
-
-
 async function main() {
-  let name = process.env.NAME || 'Token';
-  let wname = process.env.WNAME || 'TokenGateway';
-  let amount = BN.from(process.env.AMOUNT || 1).e18();
-  console.log(name, wname, amount);
+  let name = process.env.NAME || 'MPond';
+  let wname = process.env.WNAME || 'MPondGateway';
+  console.log(name);
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
@@ -45,9 +33,9 @@ async function main() {
 
   console.log("Deployed addr:", mpond.address);
 
-  await mpond.transfer(
-    addresses[chainId][wname],
-    amount
+  await mpond.grantRole(
+    await mpond.WHITELIST_ROLE(),
+    addresses[chainId][wname]
   );
 }
 

@@ -1,5 +1,5 @@
 import { ethers, upgrades } from 'hardhat';
-import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { BigNumber as BN } from 'ethers';
 import * as fs from 'fs';
 
 
@@ -14,10 +14,6 @@ BN.prototype.e18 = function () {
 
 
 async function main() {
-  let name = process.env.NAME || 'MPond';
-  let wname = process.env.WNAME || 'MPondGateway';
-  console.log(name);
-
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -26,11 +22,12 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined ||
-     addresses[chainId][name] === undefined ||
-     addresses[chainId][wname] === undefined
-  ) {
-    console.log("Missing dependencies");
+  if(addresses[chainId] === undefined) {
+    addresses[chainId] = {};
+  }
+
+  if(addresses[chainId]['MPond'] !== undefined) {
+    console.log("Existing deployment:", addresses[chainId]['MPond']);
     return;
   }
 
@@ -40,14 +37,13 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const MPond = await ethers.getContractFactory('MPond');
-  let mpond = MPond.attach(addresses[chainId][name]);
+  let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
 
   console.log("Deployed addr:", mpond.address);
 
-  await mpond.grantRole(
-    await mpond.WHITELIST_ROLE(),
-    addresses[chainId][wname]
-  );
+  addresses[chainId]['MPond'] = mpond.address;
+
+  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
 }
 
 main()
