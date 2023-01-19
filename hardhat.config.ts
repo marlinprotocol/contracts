@@ -1,11 +1,9 @@
 import '@nomiclabs/hardhat-ethers';
 import "@nomiclabs/hardhat-etherscan";
 import "@nomicfoundation/hardhat-chai-matchers";
-// import "@nomiclabs/hardhat-waffle";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
 import dotenv from 'dotenv';
-
 
 dotenv.config();
 
@@ -20,9 +18,8 @@ export default {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
     },
-    local: {
-      url: "http://host.docker.internal:8545/",
-      timeout: 600000,
+    docker: {
+      url: "http://host.docker.internal:8545/"
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
@@ -35,23 +32,6 @@ export default {
     arbg: {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
-    },
-    arbRinkeby: {
-      url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_RINKEBY_DEPLOYER_KEY] : undefined,
-    },
-    rinkeby: {
-      url: "https://rinkeby.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
-      accounts: process.env.RINKEBY_DEPLOYER_KEY !== undefined ? [process.env.RINKEBY_DEPLOYER_KEY] : undefined,
-    },
-    ftm: {
-      url: "https://rpc.ftm.tools/",
-      accounts: process.env.FANTOM_DEPLOYER_KEY !== undefined ? [process.env.FANTOM_DEPLOYER_KEY] : undefined,
-    },
-    ei: {
-      url: "https://goerli-rollup.arbitrum.io/rpc",
-      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
-      tag: 'ei',
     },
   },
   solidity: {
@@ -81,9 +61,8 @@ export default {
   etherscan: {
     apiKey: {
       mainnet: process.env.ETHERSCAN_API_KEY,
-      // arb1: process.env.ARBISCAN_API_KEY,
+      arb1: process.env.ARBISCAN_API_KEY,
       arbg: process.env.ARBISCAN_API_KEY,
-      // ftm: process.env.FTMSCAN_API_KEY,
     },
     customChains: [{
       network: "arbg",
@@ -93,9 +72,6 @@ export default {
         browserURL: "https://goerli.arbiscan.io",
       },
     }],
-  },
-  gasReporter: {
-    enabled: true
   }
 };
 

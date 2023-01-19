@@ -1,5 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { benchmarkDeployment } from './helpers/deployment';
 
 
 declare module 'ethers' {
@@ -21,42 +22,7 @@ describe('Pond', function () {
     addrs = await Promise.all(signers.map(a => a.getAddress()));
   });
 
-  it('deploy logic', async function () {
-    const Pond = await ethers.getContractFactory('Pond');
-    let pond = await Pond.deploy();
-
-    let receipt = await pond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('deploy proxy without initialize', async function () {
-    const Pond = await ethers.getContractFactory('Pond');
-    let pond = await upgrades.deployProxy(Pond, { kind: "uups", initializer: false });
-
-    let receipt = await pond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('initialize', async function () {
-    const Pond = await ethers.getContractFactory('Pond');
-    let pond = await upgrades.deployProxy(Pond, { kind: "uups", initializer: false });
-
-    let tx = await pond.initialize("Marlin POND", "POND");
-    let receipt = await tx.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('deploy proxy with initialize', async function () {
-    const Pond = await ethers.getContractFactory('Pond');
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-
-    let receipt = await pond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
+  benchmarkDeployment('Pond', [], ["Marlin POND", "POND"]);
 
   it('transfer all to new address', async function () {
     const Pond = await ethers.getContractFactory('Pond');

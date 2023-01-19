@@ -1,5 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 import { BigNumber as BN, Signer, Contract } from 'ethers';
+import { benchmarkDeployment } from './helpers/deployment';
 
 
 declare module 'ethers' {
@@ -21,42 +22,7 @@ describe('MPond', function () {
     addrs = await Promise.all(signers.map(a => a.getAddress()));
   });
 
-  it('deploy logic', async function () {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpond = await MPond.deploy();
-
-    let receipt = await mpond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('deploy proxy without initialize', async function () {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpond = await upgrades.deployProxy(MPond, { kind: "uups", initializer: false });
-
-    let receipt = await mpond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('initialize', async function () {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpond = await upgrades.deployProxy(MPond, { kind: "uups", initializer: false });
-
-    let tx = await mpond.initialize();
-    let receipt = await tx.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
-
-  it('deploy proxy with initialize', async function () {
-    const MPond = await ethers.getContractFactory('MPond');
-    let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
-
-    let receipt = await mpond.deployTransaction.wait();
-
-    console.log("Gas used: ", receipt.gasUsed.sub(21000).toNumber());
-  });
+  benchmarkDeployment('MPond', [], []);
 
   it('grant first whitelist', async function () {
     const MPond = await ethers.getContractFactory('MPond');

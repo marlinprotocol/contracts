@@ -536,7 +536,7 @@ describe("StakeManager With Received Staking", function () {
                 pondTokenId,
                 mpondTokenId
               )
-            ).to.be.revertedWith("Invalid cluster to issue ticket");
+            ).to.be.revertedWith("CRW:IT-Invalid cluster to issue ticket");
           });
 
           it("Invalid Receiver can't submit tickets", async function () {
