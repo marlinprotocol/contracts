@@ -1,6 +1,6 @@
 import { ethers, upgrades } from "hardhat";
 
-export function benchmarkDeployment(name: string, constructorArgs: any[], initArgs: any[]) {
+export function benchmark(name: string, constructorArgs: any[], initArgs: any[]) {
     describe(`${name} Deployment`, async () => {
         it('deploy logic', async function () {
             const ContractFactory = await ethers.getContractFactory(name);

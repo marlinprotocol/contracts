@@ -10,6 +10,7 @@ dotenv.config();
 export default {
   networks: {
     hardhat: {
+      chainId: 9876543210,
       accounts: {
         count: 350
       }
@@ -32,7 +33,7 @@ export default {
     arbg: {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
-    },
+    }
   },
   solidity: {
     version: "0.8.17",

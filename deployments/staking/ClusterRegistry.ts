@@ -3,39 +3,42 @@ import { Contract } from 'ethers';
 import * as fs from 'fs';
 const config = require('./config');
 
-export async function deploy(rewardDelegatorsAddress: string): Promise<Contract> {
+export async function deploy(rewardDelegatorsAddress: string, noLog?: boolean): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
-  console.log("Chain Id:", chainId);
 
   const chainConfig = config[chainId];
 
-  var addresses: {[key: string]: {[key: string]: string}} = {};
-  if(fs.existsSync('address.json')) {
-    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
-  }
-
-  if(addresses[chainId] === undefined) {
-    addresses[chainId] = {};
-  }
-
   const ClusterRegistry = await ethers.getContractFactory('ClusterRegistry');
-  if(addresses[chainId]['ClusterRegistry'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['ClusterRegistry']);
-    return ClusterRegistry.attach(addresses[chainId]['ClusterRegistry']);
-  }
 
-  let signers = await ethers.getSigners();
-  let addrs = await Promise.all(signers.map(a => a.getAddress()));
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(!noLog) {
+    console.log("Chain Id:", chainId);
+
+    if(fs.existsSync('address.json')) {
+      addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+    }
+  
+    if(addresses[chainId] === undefined) {
+      addresses[chainId] = {};
+    }
+  
+    if(addresses[chainId]['ClusterRegistry'] !== undefined) {
+      console.log("Existing deployment:", addresses[chainId]['ClusterRegistry']);
+      return ClusterRegistry.attach(addresses[chainId]['ClusterRegistry']);
+    }
+  }
 
   const waitTimes = chainConfig.cluster.waitTimes;
 
   let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [waitTimes, rewardDelegatorsAddress], { kind: "uups" });
 
-  console.log("Deployed addr:", clusterRegistry.address);
+  if(!noLog) {
+    console.log("Deployed addr:", clusterRegistry.address);
 
-  addresses[chainId]['ClusterRegistry'] = clusterRegistry.address;
+    addresses[chainId]['ClusterRegistry'] = clusterRegistry.address;
 
-  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+    fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+  }
 
   return clusterRegistry;
 }

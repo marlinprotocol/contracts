@@ -1,6 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 import { BigNumber as BN, Signer, Contract } from 'ethers';
-import { benchmarkDeployment } from './helpers/deployment';
+import { benchmark as benchmarkDeployment } from './helpers/deployment';
 
 
 declare module 'ethers' {

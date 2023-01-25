@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "npx hardhat test",
+    "benchmark": "npx hardhat test benchmarks/*.ts",
     "solhint": "solhint -f table contracts/**/*.sol",
     "compile": "npx hardhat compile",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@ethereum-waffle/mock-contract": "^3.4.4",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.4",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-etherscan": "^3.1.2",
     "@openzeppelin/hardhat-upgrades": "1.21.0",

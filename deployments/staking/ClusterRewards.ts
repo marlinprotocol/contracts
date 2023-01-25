@@ -3,34 +3,35 @@ import { Contract } from 'ethers';
 import * as fs from 'fs';
 const config = require('./config');
 
-export async function deploy(rewardDelegators: string, receiverStaking: string, epochSelectorMap: any): Promise<Contract> {
+export async function deploy(rewardDelegators: string, receiverStaking: string, epochSelectorMap: any, admin?: string, noLog?: boolean): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
-  console.log("Chain Id:", chainId);
 
   const chainConfig = config[chainId];
 
-  var addresses: {[key: string]: {[key: string]: string}} = {};
-  if(fs.existsSync('address.json')) {
-    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
-  }
-
-  if(addresses[chainId] === undefined) {
-    addresses[chainId] = {};
-  }
-
   const ClusterRewards = await ethers.getContractFactory('ClusterRewards');
 
-  if(addresses[chainId]['ClusterRewards'] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]['ClusterRewards']);
-    return ClusterRewards.attach(addresses[chainId]['ClusterRewards']);
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(!noLog) {
+    console.log("Chain Id:", chainId);
+
+    if(fs.existsSync('address.json')) {
+      addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+    }
+
+    if(addresses[chainId] === undefined) {
+      addresses[chainId] = {};
+    }
+
+    if(addresses[chainId]['ClusterRewards'] !== undefined) {
+      console.log("Existing deployment:", addresses[chainId]['ClusterRewards']);
+      return ClusterRewards.attach(addresses[chainId]['ClusterRewards']);
+    }
   }
 
-  let signers = await ethers.getSigners();
-  let addrs = await Promise.all(signers.map(a => a.getAddress()));
 
-  const networkIds = [];
-  const rewardWeights = [];
-  const epochSelectors = [];
+  const networkIds: string[] = [];
+  const rewardWeights: string[] = [];
+  const epochSelectors: string[] = [];
 
   for(let network in chainConfig.staking.rewardWeights) {
     networkIds.push(ethers.utils.id(network));
@@ -38,8 +39,10 @@ export async function deploy(rewardDelegators: string, receiverStaking: string, 
     epochSelectors.push(epochSelectorMap[network]);
   }
 
+  if(!admin) admin = chainConfig.admin;
+
   let clusterRewards = await upgrades.deployProxy(ClusterRewards, [
-    chainConfig.admin,
+    admin,
     rewardDelegators,
     receiverStaking,
     networkIds,
@@ -48,11 +51,13 @@ export async function deploy(rewardDelegators: string, receiverStaking: string, 
     chainConfig.totalRewardsPerEpoch
   ], { kind: "uups" });
 
-  console.log("Deployed addr:", clusterRewards.address);
+  if(!noLog) {
+    console.log("Deployed addr:", clusterRewards.address);
+    
+    addresses[chainId]['ClusterRewards'] = clusterRewards.address;
 
-  addresses[chainId]['ClusterRewards'] = clusterRewards.address;
-
-  fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+    fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+  }
 
   return clusterRewards;
 }

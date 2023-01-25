@@ -3,46 +3,64 @@ import { Contract } from "ethers";
 import * as fs from "fs";
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, admin?: string, startTime?: number, epochLength?: number, selectionReward?: { token:string, amount: string}, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
-  console.log("Chain Id:", chainId);
 
   const chainConfig = config[chainId];
 
-  var addresses: { [key: string]: { [key: string]: string } } = {};
-  if (fs.existsSync("address.json")) {
-    addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
-  }
-
-  if (addresses[chainId] === undefined) {
-    addresses[chainId] = {};
-  }
-
   const EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-  if (addresses[chainId]["EpochSelector_"+network] !== undefined) {
-    console.log("Existing deployment:", addresses[chainId]["EpochSelector_"+network]);
-    return EpochSelector.attach(addresses[chainId]["EpochSelector_"+network]);
+
+  var addresses: { [key: string]: { [key: string]: string } } = {};
+  if(!noLog) {
+    console.log("Chain Id:", chainId);
+
+    if (fs.existsSync("address.json")) {
+      addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
+    }
+  
+    if (addresses[chainId] === undefined) {
+      addresses[chainId] = {};
+    }
+  
+    if (addresses[chainId]["EpochSelector_"+network] !== undefined) {
+      console.log("Existing deployment:", addresses[chainId]["EpochSelector_"+network]);
+      return EpochSelector.attach(addresses[chainId]["EpochSelector_"+network]);
+    }
   }
 
-  let signers = await ethers.getSigners();
+  if(selectionReward === undefined) {
+    selectionReward = {
+      token: chainConfig.selectionReward.token,
+      amount: chainConfig.selectionReward.amount
+    };
+  }
+
+  if(admin == undefined) {
+    admin = chainConfig.admin;
+  }
+
+  if(startTime == undefined) startTime = chainConfig.startTime;
+  if(epochLength == undefined) epochLength = chainConfig.epochLength;
 
   const epochSelector = await upgrades.deployProxy(EpochSelector, [
-    chainConfig.admin,
+    admin,
     rewardDelegators,
     chainConfig.noOfClustersToSelect,
-    chainConfig.selectionReward.token,
-    chainConfig.selectionReward.amount
+    selectionReward.token,
+    selectionReward.amount
   ], {
     kind: "uups",
-    constructorArgs: [chainConfig.startTime, chainConfig.epochLength]
+    constructorArgs: [startTime, epochLength]
   });
 
-  console.log("Deployed addr:", epochSelector.address);
+  if(!noLog) {
+    console.log("Deployed addr:", epochSelector.address);
+    
+    addresses[chainId]["EpochSelector_"+network] = epochSelector.address;
 
-  addresses[chainId]["EpochSelector_"+network] = epochSelector.address;
-
-  fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
+    fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
+  }
 
   return epochSelector;
 }
