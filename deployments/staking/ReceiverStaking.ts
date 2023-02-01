@@ -1,6 +1,7 @@
 import { ethers, run, upgrades } from 'hardhat';
 import { Contract } from 'ethers';
 import * as fs from 'fs';
+import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
 
@@ -54,6 +55,19 @@ export async function deploy(admin?: string, startTime?: number, epochLength?: n
   }
 
   return receiverStaking;
+}
+
+export async function upgrade(startTime?: number, epochLength?: number, stakingToken?: string) {
+  let chainId = (await ethers.provider.getNetwork()).chainId
+  const chainConfig = config[chainId];
+
+  if(startTime == undefined) startTime = chainConfig.startTime;
+  if(epochLength == undefined) epochLength = chainConfig.epochLength;
+  if(stakingToken == undefined) stakingToken = chainConfig.staking.receiver.token;
+
+  await upgradeUtil('ReceiverStaking', 'ReceiverStaking', [
+    startTime, epochLength, stakingToken
+  ]);
 }
 
 export async function verify() {

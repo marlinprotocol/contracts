@@ -1,6 +1,7 @@
 import { ethers, run, upgrades } from 'hardhat';
 import { Contract } from 'ethers';
 import * as fs from 'fs';
+import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
 export async function deploy(rewardDelegators: string, receiverStaking: string, epochSelectorMap: any, admin?: string, noLog?: boolean): Promise<Contract> {
@@ -60,6 +61,10 @@ export async function deploy(rewardDelegators: string, receiverStaking: string, 
   }
 
   return clusterRewards;
+}
+
+export async function upgrade() {
+  await upgradeUtil('ClusterRewards', 'ClusterRewards', []);
 }
 
 export async function verify() {

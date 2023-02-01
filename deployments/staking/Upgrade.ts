@@ -1,7 +1,7 @@
 import { ethers, upgrades } from 'hardhat';
 import * as fs from 'fs';
 
-export async function upgrade(contractName: string, constructorArgs?: any[]) {
+export async function upgrade(contractName: string, contractId: string, constructorArgs?: any[]) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -11,7 +11,7 @@ export async function upgrade(contractName: string, constructorArgs?: any[]) {
   }
 
   if(addresses[chainId] === undefined ||
-     addresses[chainId][contractName] === undefined
+     addresses[chainId][contractId] === undefined
   ) {
     console.log("Missing dependencies");
     return;
@@ -23,7 +23,7 @@ export async function upgrade(contractName: string, constructorArgs?: any[]) {
   console.log("Signer addrs:", addrs);
 
   const CF = await ethers.getContractFactory(contractName);
-  let c = await upgrades.upgradeProxy(addresses[chainId][contractName], CF, { 
+  let c = await upgrades.upgradeProxy(addresses[chainId][contractId], CF, { 
     kind: "uups",
     constructorArgs
   });

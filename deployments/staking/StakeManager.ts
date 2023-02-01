@@ -1,6 +1,7 @@
 import { ethers, run, upgrades } from 'hardhat';
 import { Contract } from 'ethers';
 import * as fs from 'fs';
+import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
 export async function deploy(rewardDelegators: string): Promise<Contract> {
@@ -29,9 +30,9 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
 
   console.log("Signer addrs:", addrs);
 
-  const tokenIds = [];
-  const tokenAddresses = [];
-  const delegatable = [];
+  const tokenIds: string[] = [];
+  const tokenAddresses: string[] = [];
+  const delegatable: boolean[] = [];
 
   for(let token in chainConfig.staking.tokens) {
     const tokenInfo = chainConfig.staking.tokens[token];
@@ -56,6 +57,10 @@ export async function deploy(rewardDelegators: string): Promise<Contract> {
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
 
   return stakeManager;
+}
+
+export async function upgrade() {
+  await upgradeUtil('StakeManager', 'StakeManager', []);
 }
 
 export async function verify() {

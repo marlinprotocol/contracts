@@ -1,6 +1,7 @@
 import { ethers, run, upgrades } from "hardhat";
 import { Contract } from "ethers";
 import * as fs from "fs";
+import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
 export async function deploy(network: string, rewardDelegators: string, admin?: string, startTime?: number, epochLength?: number, selectionReward?: { token:string, amount: string}, noLog?: boolean): Promise<Contract> {
@@ -63,6 +64,18 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
   }
 
   return epochSelector;
+}
+
+export async function upgrade(network: string, startTime?: string, epochLength?: number) {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  const chainConfig = config[chainId];
+
+  if(startTime == undefined) startTime = chainConfig.startTime;
+  if(epochLength == undefined) epochLength = chainConfig.epochLength;
+
+  await upgradeUtil("EpochSelectorUpgradeable", `EpochSelector_${network}`, [
+    chainConfig.startTime, chainConfig.epochLength
+  ]);
 }
 
 export async function verify(network: string) {
