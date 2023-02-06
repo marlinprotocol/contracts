@@ -39,6 +39,9 @@ contract ReceiverStaking is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IERC20Upgradeable public immutable STAKING_TOKEN;
 
+    mapping(address => address) public signerToStaker;
+    mapping(address => address) public stakerToSigner;
+
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
         _;
@@ -57,10 +60,49 @@ contract ReceiverStaking is
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
+    function deposit(uint256 amount, address _signer) external {
+        _deposit(msg.sender, amount);
+        setSigner(_signer);
+    }
+
+    function setSigner(address _signer) public {
+        require(stakerToSigner[msg.sender] == address(0), "staker has a signer");
+        require(signerToStaker[_signer] == address(0), "signer already mapped");
+        stakerToSigner[msg.sender] = _signer;
+        signerToStaker[_signer] = msg.sender;
+        emit SignerUpdated(msg.sender, _signer);
+    }
+
+    function updateSigner(address _signer) external {
+        address _prevSigner = stakerToSigner[msg.sender];
+        require(_prevSigner != address(0), "signer doesnt exist");
+        require(signerToStaker[_signer] == address(0), "signer already mapped");
+        stakerToSigner[msg.sender] = _signer;
+        signerToStaker[_signer] = msg.sender;
+        delete signerToStaker[_prevSigner];
+        emit SignerUpdated(msg.sender, _signer);
+    }
+
+    function removeSigner() external {
+        address _signer = stakerToSigner[msg.sender];
+        require(_signer != address(0), "signer doesn't exist");
+        delete stakerToSigner[msg.sender];
+        delete signerToStaker[_signer];
+        emit SignerUpdated(msg.sender, address(0));
+    }
+
+    function deposit(address stakeFor, uint256 amount) external {
+        _deposit(stakeFor, amount);
+    }
+
     function deposit(uint256 amount) external {
-        address sender = msg.sender;
-        STAKING_TOKEN.transferFrom(sender, address(this), amount);
-        _mint(sender, amount);
+        _deposit(msg.sender, amount);
+    }
+
+    function _deposit(address stakeFor, uint256 amount) internal {
+        require(amount != 0, "0 deposit");
+        STAKING_TOKEN.transferFrom(msg.sender, address(this), amount);
+        _mint(stakeFor, amount);
     }
 
     function withdraw(uint256 amount) external {
@@ -70,7 +112,12 @@ contract ReceiverStaking is
     }
 
     /// @inheritdoc IReceiverStaking
-    function getStakeInfo(address user, uint256 epoch) external override view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch) {
+    function getStakeInfo(address signer, uint256 epoch) external override view returns(
+        uint256 userStake, 
+        uint256 totalStake, 
+        uint256 currentEpoch
+    ) {
+        address user = signerToStaker[signer];
         userStake = balanceOfAt(user, epoch);
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();
@@ -84,7 +131,7 @@ contract ReceiverStaking is
         address from,
         address to,
         uint256 amount
-    ) internal virtual override {
+    ) internal override {
         require(from == address(0) || to == address(0), "Staking Positions transfer not allowed");
         if(block.timestamp < START_TIME) return;
         super._beforeTokenTransfer(from, to, amount);
@@ -94,7 +141,7 @@ contract ReceiverStaking is
         address from, 
         address to, 
         uint256
-    ) internal virtual override {
+    ) internal override {
         if(to == address(0)) {
             // burn
             uint256 _updatedBalance = balanceOf(from);
@@ -102,7 +149,6 @@ contract ReceiverStaking is
             if(userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
                 // current balance is lowest in epoch
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
-                emit BalanceUpdate(from, _getCurrentSnapshotId(), _updatedBalance);
             }
         }
     }
