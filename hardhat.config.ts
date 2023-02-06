@@ -10,7 +10,6 @@ dotenv.config();
 export default {
   networks: {
     hardhat: {
-      chainId: 9876543210,
       accounts: {
         count: 350
       }
@@ -18,9 +17,6 @@ export default {
     eth: {
       url: "https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161",
       accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
-    },
-    docker: {
-      url: "http://host.docker.internal:8545/"
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
