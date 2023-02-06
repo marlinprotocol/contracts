@@ -112,15 +112,19 @@ contract ReceiverStaking is
     }
 
     /// @inheritdoc IReceiverStaking
-    function getStakeInfo(address signer, uint256 epoch) external override view returns(
-        uint256 userStake, 
-        uint256 totalStake, 
-        uint256 currentEpoch
-    ) {
-        address user = signerToStaker[signer];
-        userStake = balanceOfAt(user, epoch);
+    function getEpochInfo(uint256 epoch) external override view returns(uint256 totalStake, uint256 currentEpoch) {
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();
+    }
+
+
+    function balanceOfAt(address account, uint256 snapshotId) public view override returns (uint256) {
+        return ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
+    }
+
+    function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256) {
+        address account = signerToStaker[signer];
+        return ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {

@@ -13,9 +13,10 @@ interface IReceiverStaking {
     /// @return Length of each epoch
     function EPOCH_LENGTH() external view returns(uint256);
 
-    /// @notice Get Staking Info of user at given epoch
-    /// @return userStake User Stake
+    /// @notice Get Info at given epoch
     /// @return totalStake Total Stake by all users
     /// @return currentEpoch Current epoch
-    function getStakeInfo(address user, uint256 epoch) external view returns(uint256 userStake, uint256 totalStake, uint256 currentEpoch);
+    function getEpochInfo(uint256 epoch) external view returns(uint256 totalStake, uint256 currentEpoch);
+
+    function balanceOfSignerAt(address signer, uint256 snapshotId) external view returns (uint256);
 }
