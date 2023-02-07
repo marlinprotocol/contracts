@@ -224,6 +224,7 @@ contract ClusterRewards is
         uint256[] calldata _payouts,
         uint256 _epoch
     ) external onlyFeeder {
+        require(receiverStaking.START_TIME() < block.timestamp, "CRW:F-Invalid method");
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
             require(
@@ -256,13 +257,12 @@ contract ClusterRewards is
         address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
 
-        require(_totalNetworkRewardsPerEpoch != 0, "no rewards");
-        require(_signedTickets.length > 0);
+        require(_totalNetworkRewardsPerEpoch != 0, "CRW:SIT-No rewards for network");
 
         for(uint256 i=0; i < _signedTickets.length; i++) {
-            address _receiver = _verifySignedTicket(_signedTickets[i]);
+            address _signer = _verifySignedTicket(_signedTickets[i]);
             _processReceiverTickets(
-                _receiver, 
+                _signer, 
                 _epoch, 
                 _selectedClusters, 
                 _signedTickets[i].tickets,
@@ -272,17 +272,16 @@ contract ClusterRewards is
         }
     }
 
-    function _processReceiverTickets(address _receiver, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
+    function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
+        (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
         uint256 _epochTicketsIssued = ticketsIssued[_receiver][_epoch];
-        uint256 _epochReceiverStake = receiverStaking.balanceOfSignerAt(_receiver, _epoch);
 
-        require(_tickets.length > 0);
+        require(_epochReceiverStake != 0, "CRW:IPRT-Not eligible to issue tickets");
 
         unchecked {
             for(uint256 i=0; i < _tickets.length; ++i) {
                 require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
-                require(_tickets[i] != 0);
-                require(_epochReceiverStake != 0, "no stake for receiver");
+                // TODO: Can we remove this check ?
                 require(_selectedClusters[i] !=  address(0), "CRW:IPRT-Invalid cluster");
 
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
@@ -297,11 +296,11 @@ contract ClusterRewards is
         ticketsIssued[_receiver][_epoch] = _epochTicketsIssued;
     }
 
-    function _verifySignedTicket(SignedTicket memory _signedTicket) internal pure returns(address _receiver) {
+    function _verifySignedTicket(SignedTicket memory _signedTicket) internal pure returns(address _signer) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_signedTicket.tickets))));
-        _receiver = ecrecover(prefixedHashMessage, _signedTicket.v, _signedTicket.r, _signedTicket.s);
-        require(_receiver != address(0), "CRW:IVST-Invalid signature");
+        _signer = ecrecover(prefixedHashMessage, _signedTicket.v, _signedTicket.r, _signedTicket.s);
+        require(_signer != address(0), "CRW:IVST-Invalid signature");
     }
 
     function issueTickets(bytes32 _networkId, uint256[] memory _epoch, uint256[][] memory _tickets) external {
@@ -316,7 +315,6 @@ contract ClusterRewards is
         (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
 
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
-        // require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
 
         address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
 

@@ -43,10 +43,10 @@ describe("Receiver Staking before start", function () {
     await timeTravel(early);
     // Note: Snapshot id starts from 1, 0 is invalid.
     const {
-      userStake: balanceAtStakingStart,
       totalStake: totalSupplyAtStakingStart,
       currentEpoch,
-    } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    } = await receiverStaking.getEpochInfo(1);
+    const balanceAtStakingStart = await receiverStaking.balanceOfAt(signerAddresses[0], currentEpoch);
     expect(balanceAtStakingStart).to.equal(0, "starting balance non zero at start");
     expect(totalSupplyAtStakingStart).to.equal(0, "total balance non zero at start");
     expect(currentEpoch).to.equal(1, "Wrong epoch number calc");
@@ -98,7 +98,7 @@ describe("Admin calls", async () => {
   //     const amount = BigNumber.from(Math.floor(Math.random() * 10) + "000000000000000000");
   //     await stakingToken.transfer(userAddress, amount);
   //     await stakingToken.connect(user).approve(receiverStaking.address, amount);
-  //     await expect(receiverStaking.connect(user).deposit(amount)).to.be.reverted;
+  //     await expect(receiverStaking.connect(user)["deposit(uint256,address)"](amount)).to.be.reverted;
   // });
 
   it("upgrade contract", async () => {
@@ -163,7 +163,7 @@ describe("Receiver Staking at start", async () => {
       const timeToTravel = Math.floor(Math.random() * 1000000);
       time += timeToTravel;
       await timeTravel(timeToTravel);
-      const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+      const { currentEpoch } = await receiverStaking.getEpochInfo(1);
       const calculatedEpoch = Math.floor(time / EPOCH_LENGTH + 1);
       expect(currentEpoch).to.equal(calculatedEpoch);
     }
@@ -171,28 +171,31 @@ describe("Receiver Staking at start", async () => {
 
   it("deposit without enough balance", async () => {
     const user = signers[3];
+    const signerAddress = await signers[5].getAddress();
     const amount = parseInt(Math.random() * 100 + "");
-    await expect(receiverStaking.connect(user).deposit(amount)).to.be.reverted;
+    await expect(receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress)).to.be.reverted;
   });
 
   it("deposit with not enough allowance", async () => {
     const user = signers[2];
+    const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
     const amount = parseInt(Math.random() * 100 + "");
     await stakingToken.transfer(userAddress, amount);
-    await expect(receiverStaking.connect(user).deposit(amount)).to.be.reverted;
+    await expect(receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress)).to.be.reverted;
   });
 
   it("deposit with enough allowance check before snapshot", async () => {
     const user = signers[5];
+    const signerAddress = await signers[7].getAddress();
     const userAddress = await user.getAddress();
     receiverStaking = receiverStaking.connect(user);
     const amount = parseInt(Math.random() * 10 + "") + "000000000000000000";
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
-    await expect(receiverStaking.deposit(amount)).to.changeTokenBalances(stakingToken, [receiverStaking, user], [amount, "-" + amount]);
+    await expect(receiverStaking["deposit(uint256,address)"](amount, signerAddress)).to.changeTokenBalances(stakingToken, [receiverStaking, user], [amount, "-" + amount]);
 
-    const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const balance = await receiverStaking.balanceOf(userAddress);
     expect(balance).to.equal(amount, "incorrect balance after deposit");
@@ -202,14 +205,15 @@ describe("Receiver Staking at start", async () => {
 
   it("deposit with enough allowance", async () => {
     const user = signers[5];
+    const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
     const amount = parseInt(Math.random() * 10 + "") + "000000000000000000";
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
-    await receiverStaking.connect(user).deposit(amount);
+    await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
     await timeTravel(EPOCH_LENGTH);
 
-    const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const balance = await receiverStaking.balanceOf(userAddress);
     expect(balance).to.equal(amount, "incorrect balance after deposit");
@@ -219,16 +223,17 @@ describe("Receiver Staking at start", async () => {
 
   it("deposit and withdraw check before transfer", async () => {
     const user = signers[7];
+    const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
     const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
-    await receiverStaking.connect(user).deposit(amount);
+    await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
 
     const withdrawalAmount = amount.div(3);
     await receiverStaking.connect(user).withdraw(withdrawalAmount);
 
-    const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const balance = await receiverStaking.balanceOf(userAddress);
     expect(balance).to.equal(amount.sub(withdrawalAmount), "incorrect balance after deposit");
@@ -238,17 +243,18 @@ describe("Receiver Staking at start", async () => {
 
   it("deposit and withdraw", async () => {
     const user = signers[7];
+    const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
     const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
-    await receiverStaking.connect(user).deposit(amount);
+    await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
     await timeTravel(EPOCH_LENGTH);
 
     const withdrawalAmount = amount.div(3);
     await receiverStaking.connect(user).withdraw(withdrawalAmount);
 
-    const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const balance = await receiverStaking.balanceOf(userAddress);
     expect(balance).to.equal(amount.sub(withdrawalAmount), "incorrect balance after deposit");
@@ -258,17 +264,18 @@ describe("Receiver Staking at start", async () => {
 
   it("snapshot maintains min balance during epoch", async () => {
     const user = signers[7];
+    const signerAddress = await signers[7].getAddress();
     const userAddress = await user.getAddress();
     const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
     await stakingToken.transfer(userAddress, amount.mul(2));
     await stakingToken.connect(user).approve(receiverStaking.address, amount.mul(2));
-    await receiverStaking.connect(user).deposit(amount);
+    await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
     await timeTravel(EPOCH_LENGTH);
 
     await receiverStaking.connect(user).withdraw(amount.div(5));
-    await receiverStaking.connect(user).deposit(amount.mul(2).div(5));
+    await receiverStaking.connect(user)["deposit(uint256)"](amount.mul(2).div(5));
 
-    const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+    const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const userBalance = await receiverStaking.balanceOf(userAddress);
     expect(userBalance).to.equal(amount.mul(6).div(5), "incorrect balance after deposit");
@@ -278,6 +285,8 @@ describe("Receiver Staking at start", async () => {
 
   it("snapshot maintain min balance over multiple epochs and multiple deposits per epoch", async () => {
     const user = signers[8];
+    const signerAddress = await signers[6].getAddress();
+    await receiverStaking.connect(user).setSigner(signerAddress);
     const userAddress = await user.getAddress();
     const amount = BigNumber.from(parseInt(Math.random() * 1000 + "") + "000000000000000");
     const numberOfEpochs = 10;
@@ -290,10 +299,10 @@ describe("Receiver Staking at start", async () => {
       for (let j = 0; j < numberOfActionsInEpoch; j++) {
         const rand = parseInt(Math.random() * 2 + "");
         if (rand == 0) {
-          const randAmount = BigNumber.from(parseInt(Math.random() * 1000 + "") + "000000000000000");
+          const randAmount = BigNumber.from(parseInt(Math.random() * 999 + 1 + "") + "000000000000000");
           expectedBalance = expectedBalance.add(randAmount);
           await stakingToken.connect(user).approve(receiverStaking.address, randAmount);
-          await receiverStaking.connect(user).deposit(randAmount);
+          await receiverStaking.connect(user)["deposit(uint256)"](randAmount);
         } else if (rand == 1) {
           const balance = await receiverStaking.balanceOf(userAddress);
           const withdrawAmount = balance.mul(Math.floor(Math.random() * 10000)).div(10000);
@@ -305,9 +314,9 @@ describe("Receiver Staking at start", async () => {
         travelTime += timeToTravel;
         await timeTravel(timeToTravel);
       }
-      const { currentEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+      const { currentEpoch } = await receiverStaking.getEpochInfo(1);
       await timeTravel(EPOCH_LENGTH - travelTime);
-      const { currentEpoch: newEpoch } = await receiverStaking.getStakeInfo(signerAddresses[0], 1);
+      const { currentEpoch: newEpoch } = await receiverStaking.getEpochInfo(1);
       expect(newEpoch.sub(currentEpoch)).to.equal(1);
 
       const userBalance = await receiverStaking.balanceOf(userAddress);

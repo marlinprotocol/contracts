@@ -18,5 +18,5 @@ interface IReceiverStaking {
     /// @return currentEpoch Current epoch
     function getEpochInfo(uint256 epoch) external view returns(uint256 totalStake, uint256 currentEpoch);
 
-    function balanceOfSignerAt(address signer, uint256 snapshotId) external view returns (uint256);
+    function balanceOfSignerAt(address signer, uint256 snapshotId) external view returns (uint256 balance, address receiver);
 }

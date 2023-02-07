@@ -65,6 +65,26 @@ contract ReceiverStaking is
         setSigner(_signer);
     }
 
+    function deposit(address stakeFor, uint256 amount) external {
+        _deposit(stakeFor, amount);
+    }
+
+    function deposit(uint256 amount) external {
+        _deposit(msg.sender, amount);
+    }
+
+    function _deposit(address stakeFor, uint256 amount) internal {
+        require(amount != 0, "0 deposit");
+        STAKING_TOKEN.transferFrom(msg.sender, address(this), amount);
+        _mint(stakeFor, amount);
+    }
+
+    function withdraw(uint256 amount) external {
+        address sender = msg.sender;
+        _burn(sender, amount);
+        STAKING_TOKEN.transfer(sender, amount);
+    }
+
     function setSigner(address _signer) public {
         require(stakerToSigner[msg.sender] == address(0), "staker has a signer");
         require(signerToStaker[_signer] == address(0), "signer already mapped");
@@ -91,26 +111,6 @@ contract ReceiverStaking is
         emit SignerUpdated(msg.sender, address(0));
     }
 
-    function deposit(address stakeFor, uint256 amount) external {
-        _deposit(stakeFor, amount);
-    }
-
-    function deposit(uint256 amount) external {
-        _deposit(msg.sender, amount);
-    }
-
-    function _deposit(address stakeFor, uint256 amount) internal {
-        require(amount != 0, "0 deposit");
-        STAKING_TOKEN.transferFrom(msg.sender, address(this), amount);
-        _mint(stakeFor, amount);
-    }
-
-    function withdraw(uint256 amount) external {
-        address sender = msg.sender;
-        _burn(sender, amount);
-        STAKING_TOKEN.transfer(sender, amount);
-    }
-
     /// @inheritdoc IReceiverStaking
     function getEpochInfo(uint256 epoch) external override view returns(uint256 totalStake, uint256 currentEpoch) {
         totalStake = totalSupplyAt(epoch);
@@ -122,9 +122,9 @@ contract ReceiverStaking is
         return ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
-    function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256) {
-        address account = signerToStaker[signer];
-        return ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
+    function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256 balance, address account) {
+        account = signerToStaker[signer];
+        balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
