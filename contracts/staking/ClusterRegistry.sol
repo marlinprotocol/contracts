@@ -263,6 +263,7 @@ contract ClusterRegistry is
             isClusterValid(_msgSender()),
             "CR:UCK-Cluster not registered"
         );
+        require(_clientKey != address(0), "CR:UCK - Client key cannot be zero");
         require(clientKeys[_clientKey] ==  address(0), "CR:UCK - Client key is already used");
         delete clientKeys[clusters[_msgSender()].clientKey];
         clusters[_msgSender()].clientKey = _clientKey;
