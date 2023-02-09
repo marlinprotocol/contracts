@@ -12,7 +12,7 @@ export default {
     hardhat: {
       chainId: 9876543210,
       accounts: {
-        count: 350
+        count: 500
       }
     },
     eth: {

@@ -56,7 +56,7 @@ describe("Cluster Rewards", async () => {
             console.log((await receivers[0].getAddress()), (await receiverStaking.balanceOf(await receivers[0].getAddress())));
         });
 
-        it.only("to single epoch, tickets to 1 - 5 clusters, input clusters ordered", async () => {
+        it("to single epoch, tickets to 1 - 5 clusters, input clusters ordered", async () => {
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
             const selectedReceiver: Signer = receivers[selectedReceiverIndex];
 
@@ -86,7 +86,7 @@ describe("Cluster Rewards", async () => {
 
         it("to single epoch, tickets to 1 - 5 clusters, input clusters in random order", async () => {});
 
-        it.only("single epochs, 1 receivers signed tickets to all selected clusters each", async () => {
+        it("single epochs, 1 receivers signed tickets to all selected clusters each", async () => {
             const noOfReceivers = 1;
             // const selectedReceiverIndex: number = Math.floor(Math.random()*(receivers.length - noOfReceivers));
             const selectedReceivers: Signer[] = receivers.slice(0, noOfReceivers);

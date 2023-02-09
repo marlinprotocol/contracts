@@ -357,7 +357,7 @@ describe("RewardDelegators", function () {
   });
 });
 
-describe.only("RewardDelegators Deployment", function () {
+describe("RewardDelegators Deployment", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: Contract;
@@ -739,14 +739,21 @@ describe.only("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker)["deposit(uint256)"](pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
+    let [epoch, clusters] = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
+
+    const tickets: BigNumber[] = [];
+    for(let i=0; i < clusters.length; i++) {
+      let value = BigNumber.from(0);
+      if(clusters[i] == (await registeredCluster1.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      tickets.push(value);
+    }
 
     await clusterRewardsInstance
-      .connect(receiverStaker)
+      .connect(receiverSigner)
       ["issueTickets(bytes32,uint256,uint256[])"](
         ethers.utils.id("DOT"),
         epoch,
-        [BigNumber.from(10).pow(18).div(2), BigNumber.from(10).pow(18).div(2)]
+        tickets
       );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
@@ -795,20 +802,29 @@ describe.only("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker)["deposit(uint256)"](pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster3)).toString();
+    let [epoch, clusters] = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster3));
+
+    const tickets: BigNumber[] = [];
+    for(let i=0; i < clusters.length; i++) {
+      let value = BigNumber.from(0);
+      if(clusters[i] == (await registeredCluster3.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      tickets.push(value);
+    }
+
+    console.log({tickets})
 
     await clusterRewardsInstance
-      .connect(receiverStaker)
+      .connect(receiverSigner)
       ["issueTickets(bytes32,uint256,uint256[])"](
         ethers.utils.id("DOT"),
         epoch,
-        [await registeredCluster3.getAddress()],
-        [BigNumber.from(10).pow(18)]
+        tickets
       );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
     const clusterReward = await clusterRewardsInstance.clusterRewards(await registeredCluster3.getAddress());
+    console.log("clusterReward", clusterReward.toString())
     const clusterCommission = Math.ceil((Number(clusterReward) / 100) * commission);
 
     const delegatorOldBalance = await pondInstance.balanceOf(await delegator3.getAddress());
@@ -978,15 +994,21 @@ describe.only("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker)["deposit(uint256)"](pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster4)).toString();
+    let [epoch, clusters] = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster4));
+
+    const tickets: BigNumber[] = [];
+    for(let i=0; i < clusters.length; i++) {
+      let value = BigNumber.from(0);
+      if(clusters[i] == (await registeredCluster.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      tickets.push(value);
+    }
 
     await clusterRewardsInstance
-      .connect(receiverStaker)
-      ["issueTickets(bytes32,uint256,address[],uint256[])"](
+      .connect(receiverSigner)
+      ["issueTickets(bytes32,uint256,uint256[])"](
         ethers.utils.id("DOT"),
         epoch,
-        [await registeredCluster4.getAddress()],
-        [BigNumber.from(10).pow(18)]
+        tickets
       );
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);

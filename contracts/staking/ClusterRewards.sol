@@ -319,6 +319,7 @@ contract ClusterRewards is
         address[] memory _selectedClusters = epochSelectors[_networkId].getClusters(_epoch);
 
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+        require(_totalNetworkRewardsPerEpoch != 0, "CRW:IT-No rewards for network");
 
         _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets, _totalNetworkRewardsPerEpoch, _epochTotalStake);
 
@@ -336,9 +337,7 @@ contract ClusterRewards is
     }
 
     function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
-        (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
-        return 0;
-        // return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
+        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
 //-------------------------------- User functions end --------------------------------//
