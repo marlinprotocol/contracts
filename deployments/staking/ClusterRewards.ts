@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(rewardDelegators: string, receiverStaking: string, epochSelectorMap: any, admin?: string, noLog?: boolean): Promise<Contract> {
+export async function deploy(rewardDelegators: string, receiverStaking: string, clusterSelectorMap: any, admin?: string, noLog?: boolean): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
   const chainConfig = config[chainId];
@@ -32,12 +32,12 @@ export async function deploy(rewardDelegators: string, receiverStaking: string, 
 
   const networkIds: string[] = [];
   const rewardWeights: string[] = [];
-  const epochSelectors: string[] = [];
+  const clusterSelectors: string[] = [];
 
   for(let network in chainConfig.staking.rewardWeights) {
     networkIds.push(ethers.utils.id(network));
     rewardWeights.push(chainConfig.staking.rewardWeights[network]);
-    epochSelectors.push(epochSelectorMap[network]);
+    clusterSelectors.push(clusterSelectorMap[network]);
   }
 
   if(!admin) admin = chainConfig.admin;
@@ -48,13 +48,13 @@ export async function deploy(rewardDelegators: string, receiverStaking: string, 
     receiverStaking,
     networkIds,
     rewardWeights,
-    epochSelectors,
+    clusterSelectors,
     chainConfig.totalRewardsPerEpoch
   ], { kind: "uups" });
 
   if(!noLog) {
     console.log("Deployed addr:", clusterRewards.address);
-    
+
     addresses[chainId]['ClusterRewards'] = clusterRewards.address;
 
     fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');

@@ -13,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "./interfaces/IClusterRewards.sol";
 import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
-import "./EpochSelection/EpochSelector.sol";
+import "./ClusterSelector.sol";
 
 contract RewardDelegators is
     Initializable,  // initializer
@@ -269,8 +269,8 @@ contract RewardDelegators is
         }
 
         bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
-        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+        _updateClusterSelector(_networkId, _cluster, _clusterSelector);
 
         if(_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
@@ -331,33 +331,33 @@ contract RewardDelegators is
         clusters[_cluster].rewardDebt[_delegator][_tokenId] = (_accRewardPerShare * _newBalance) / (10**30);
     }
 
-    function _updateEpochSelector(bytes32 _networkId, address _cluster, IEpochSelector _epochSelector) internal {
+    function _updateClusterSelector(bytes32 _networkId, address _cluster, IClusterSelector _clusterSelector) internal {
         uint256 totalDelegations = _getEffectiveDelegation(_cluster, _networkId);
 
-        if(address(_epochSelector) != address(0)) {
+        if(address(_clusterSelector) != address(0)) {
             // if total delegation is more than 0.5 million pond, then insert into selector
             if(totalDelegations != 0){
                 // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint64
-                _epochSelector.upsert(_cluster, uint64(totalDelegations.sqrt()));
+                _clusterSelector.upsert(_cluster, uint64(totalDelegations.sqrt()));
             }
             // if not, update it to zero
             else{
-                _epochSelector.deleteIfPresent(_cluster);
+                _clusterSelector.deleteIfPresent(_cluster);
             }
         }
     }
 
     function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
-        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        if(address(_epochSelector) != address(0)) {
-            _updateEpochSelector(_networkId, _cluster, _epochSelector);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+        if(address(_clusterSelector) != address(0)) {
+            _updateClusterSelector(_networkId, _cluster, _clusterSelector);
         }
     }
 
     function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
-        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
-        if(address(_epochSelector) != address(0)) {
-            _epochSelector.deleteIfPresent(_cluster);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+        if(address(_clusterSelector) != address(0)) {
+            _clusterSelector.deleteIfPresent(_cluster);
         }
     }
 
@@ -492,7 +492,7 @@ contract RewardDelegators is
         address[] memory filteredClustersList;
         uint64[] memory balances;
 
-        IEpochSelector _epochSelector = clusterRewards.epochSelectors(_networkId);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
 
         uint256 addressIndex=0;
         for (uint256 index = 0; index < clusterList.length; index++) {
@@ -511,7 +511,7 @@ contract RewardDelegators is
 
         }
 
-        _epochSelector.upsertMultiple(filteredClustersList, balances);
+        _clusterSelector.upsertMultiple(filteredClustersList, balances);
 
     }
 

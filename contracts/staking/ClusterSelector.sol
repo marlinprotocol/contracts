@@ -10,11 +10,11 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "./TreeUpgradeable.sol";
-import "../interfaces/IEpochSelector.sol";
+import "./tree/TreeUpgradeable.sol";
+import "./interfaces/IClusterSelector.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
-contract EpochSelectorUpgradeable is
+contract ClusterSelector is
     Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
     ERC165Upgradeable,  // supportsInterface
@@ -23,7 +23,7 @@ contract EpochSelectorUpgradeable is
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable,  // public upgrade,
     TreeUpgradeable, // storage tree
-    IEpochSelector // interface
+    IClusterSelector // interface
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -38,11 +38,11 @@ contract EpochSelectorUpgradeable is
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable override START_TIME;
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable override EPOCH_LENGTH;
 
@@ -110,8 +110,8 @@ contract EpochSelectorUpgradeable is
 
     /// @notice initializes the logic contract without any admins
     //          safeguard against takeover of the logic contract
-    /// @dev startTime and epochLength should match the values in receiverStaking. 
-    ///     Inconsistent values in receiverStaking and epochSelector can make data here invalid
+    /// @dev startTime and epochLength should match the values in receiverStaking.
+    ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor(uint256 _startTime, uint256 _epochLength) initializer {
         START_TIME = _startTime;
@@ -150,12 +150,12 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Cluster Selection starts --------------------------------//
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     function getCurrentEpoch() public view override returns (uint256) {
         return (block.timestamp - START_TIME) / EPOCH_LENGTH;
     }
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     function selectClusters() public override returns (address[] memory selectedClusters) {
         uint256 nextEpoch = getCurrentEpoch() + 1;
         selectedClusters = clustersSelected[nextEpoch];
@@ -236,7 +236,7 @@ contract EpochSelectorUpgradeable is
         _delete_unchecked(node, addressToIndexMap[node]);
     }
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     function deleteIfPresent(address node) external override onlyRole(UPDATER_ROLE) {
         _deleteIfPresent(node);
     }
@@ -245,7 +245,7 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Admin functions starts --------------------------------//
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external override onlyRole(ADMIN_ROLE) {
         require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
         numberOfClustersToSelect = _numberOfClusters;
@@ -285,7 +285,7 @@ contract EpochSelectorUpgradeable is
 
     //-------------------------------- Admin functions ends --------------------------------//
 
-    /// @inheritdoc IEpochSelector
+    /// @inheritdoc IClusterSelector
     function getClusters(uint256 epochNumber) public override view returns (address[] memory) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected

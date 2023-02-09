@@ -28,7 +28,7 @@ describe("StakeManager With Received Staking", function () {
   //users
   let clusterRewardsAdmin: Signer;
   let stakeManagerGateway: Signer;
-  let epochSelectorAdmin: Signer;
+  let clusterSelectorAdmin: Signer;
   let stakeManagerAdmin: Signer;
   let receiverStakingAdmin: Signer;
   let mpondWhiteListedAddress: Signer;
@@ -56,7 +56,7 @@ describe("StakeManager With Received Staking", function () {
   const supportedNetworksWeights = [50, 30, 20];
   const supportedNetworkIds = supportedNetworks.map((a) => ethers.utils.id(a));
   const lockWaitTimes = [20, 21, 22];
-  const epochSelectors: Contract[] = [];
+  const clusterSelectors: Contract[] = [];
 
   // derived data;
   let clusterAddresses: string[];
@@ -87,7 +87,7 @@ describe("StakeManager With Received Staking", function () {
 
     clusterRewardsAdmin = signers[1];
     stakeManagerGateway = signers[2];
-    epochSelectorAdmin = signers[3];
+    clusterSelectorAdmin = signers[3];
     stakeManagerAdmin = signers[4];
     receiverStakingAdmin = signers[5];
     mpondWhiteListedAddress = signers[6];
@@ -158,10 +158,10 @@ describe("StakeManager With Received Staking", function () {
 
     await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     for (let index = 0; index < supportedNetworks.length; index++) {
-      let epochSelectorContract = await upgrades.deployProxy(EpochSelector, [
-        await epochSelectorAdmin.getAddress(),
+      let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
+        await clusterSelectorAdmin.getAddress(),
         rewardDelegators.address,
         5,
         pond.address,
@@ -170,7 +170,7 @@ describe("StakeManager With Received Staking", function () {
         kind: "uups",
         constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
       });
-      epochSelectors.push(epochSelectorContract);
+      clusterSelectors.push(clusterSelectorContract);
     }
 
     await clusterRewards.initialize(
@@ -179,7 +179,7 @@ describe("StakeManager With Received Staking", function () {
       receiverStaking.address,
       supportedNetworkIds,
       supportedNetworksWeights,
-      epochSelectors.map((a) => a.address),
+      clusterSelectors.map((a) => a.address),
       REWARD_PER_EPOCH
     );
 
@@ -210,7 +210,7 @@ describe("StakeManager With Received Staking", function () {
       );
 
     // derivations
-    epochDuration = BN.from(await epochSelectors[0].EPOCH_LENGTH()).toNumber();
+    epochDuration = BN.from(await clusterSelectors[0].EPOCH_LENGTH()).toNumber();
 
     //post deployment operations
     await mpond.grantRole(await mpond.WHITELIST_ROLE(), stakeManager.address);
@@ -272,9 +272,9 @@ describe("StakeManager With Received Staking", function () {
       expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, await clusterRewardsAdmin.getAddress())).to.be.true;
       expect(await clusterRewards.hasRole(CLAIMER_ROLE, rewardDelegators.address)).to.be.true;
 
-      expect(await clusterRewards.epochSelectors(supportedNetworkIds[0])).to.be.eq(epochSelectors[0].address);
-      expect(await clusterRewards.epochSelectors(supportedNetworkIds[1])).to.be.eq(epochSelectors[1].address);
-      expect(await clusterRewards.epochSelectors(supportedNetworkIds[2])).to.be.eq(epochSelectors[2].address);
+      expect(await clusterRewards.clusterSelectors(supportedNetworkIds[0])).to.be.eq(clusterSelectors[0].address);
+      expect(await clusterRewards.clusterSelectors(supportedNetworkIds[1])).to.be.eq(clusterSelectors[1].address);
+      expect(await clusterRewards.clusterSelectors(supportedNetworkIds[2])).to.be.eq(clusterSelectors[2].address);
 
       expect(await clusterRewards.receiverStaking()).to.be.eq(receiverStaking.address);
 
@@ -370,13 +370,13 @@ describe("StakeManager With Received Staking", function () {
         });
 
         it("All 5 clusters should be selected", async function () {
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
           let nextEpoch = BN.from(currentEpoch).add(1).toString();
 
-          await epochSelectors[0].connect(epochSelectorAdmin).selectClusters();
+          await clusterSelectors[0].connect(clusterSelectorAdmin).selectClusters();
           await skipEpoch();
 
-          let clusters = (await epochSelectors[0].getClusters(nextEpoch)) as string[];
+          let clusters = (await clusterSelectors[0].getClusters(nextEpoch)) as string[];
 
           for (let index = 0; index < totalClusters; index++) {
             expect(clusters.includes(clusterAddresses[index])).to.be.true;
@@ -394,9 +394,9 @@ describe("StakeManager With Received Staking", function () {
           const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets];
           await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -405,7 +405,7 @@ describe("StakeManager With Received Staking", function () {
             clusterAddresses.slice(0, totalClusters),
             weights,
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -432,10 +432,10 @@ describe("StakeManager With Received Staking", function () {
           const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), fration.mul(5)];
           await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
 
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -444,7 +444,7 @@ describe("StakeManager With Received Staking", function () {
             clusterAddresses.slice(0, totalClusters),
             weights,
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -476,9 +476,9 @@ describe("StakeManager With Received Staking", function () {
           const weights = [zero, zero, zero, zero, fration];
           await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
           const [pondRewards, mpondRewards] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -487,7 +487,7 @@ describe("StakeManager With Received Staking", function () {
             clusterAddresses.slice(0, totalClusters),
             weights,
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -517,10 +517,10 @@ describe("StakeManager With Received Staking", function () {
             const fraction = BN.from(10).pow(18);
             await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
             await skipEpoch();
-            let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+            let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
             await expect(
               issueTicketsForClusters(
-                epochSelectors[0],
+                clusterSelectors[0],
                 rewardDelegators,
                 clusterRegistry,
                 pond,
@@ -529,7 +529,7 @@ describe("StakeManager With Received Staking", function () {
                 [clusterAddresses[5]],
                 [fraction],
                 currentEpoch,
-                epochSelectorAdmin,
+                clusterSelectorAdmin,
                 skipEpoch,
                 clusterRewards,
                 mpondWhiteListedAddress,
@@ -546,7 +546,7 @@ describe("StakeManager With Received Staking", function () {
             await skipEpoch();
             await skipEpoch();
 
-            let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toNumber();
+            let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toNumber();
 
             await expect(
               clusterRewards
@@ -567,9 +567,9 @@ describe("StakeManager With Received Staking", function () {
           const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets];
           await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
           await skipEpoch();
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
           const [, , clusterCommisionReceived] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -578,7 +578,7 @@ describe("StakeManager With Received Staking", function () {
             clusterAddresses.slice(0, totalClusters),
             weights,
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -614,10 +614,10 @@ describe("StakeManager With Received Staking", function () {
           await receiverDeposit(pond, receiverStaking, receiver2, minPondToUseByReceiver);
           const fraction = BN.from(10).pow(18);
           await skipEpoch();
-          let currentEpoch = (await epochSelectors[0].getCurrentEpoch()).toString();
+          let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
 
           const [, , clusterCommisionReceived1] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -626,7 +626,7 @@ describe("StakeManager With Received Staking", function () {
             [clusterAddress1],
             [fraction],
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -634,7 +634,7 @@ describe("StakeManager With Received Staking", function () {
             mpondTokenId
           );
           const [, , clusterCommisionReceived2] = await issueTicketsForClusters(
-            epochSelectors[0],
+            clusterSelectors[0],
             rewardDelegators,
             clusterRegistry,
             pond,
@@ -643,7 +643,7 @@ describe("StakeManager With Received Staking", function () {
             [clusterAddress2],
             [fraction],
             currentEpoch,
-            epochSelectorAdmin,
+            clusterSelectorAdmin,
             skipEpoch,
             clusterRewards,
             mpondWhiteListedAddress,
@@ -740,7 +740,7 @@ describe("StakeManager With Received Staking", function () {
 
       it("Check Selection Func", async function () {
         const randomMaticClusters = getRandomElementsFromArray(maticClusterAddresses, 1);
-        const [, selectedMaticClusters] = await mineTillGivenClustersAreSelected(epochSelectors[2], randomMaticClusters, skipEpoch);
+        const [, selectedMaticClusters] = await mineTillGivenClustersAreSelected(clusterSelectors[2], randomMaticClusters, skipEpoch);
 
         for (let index = 0; index < randomMaticClusters.length; index++) {
           const randomMaticCluster = randomMaticClusters[index];
@@ -900,9 +900,9 @@ describe("StakeManager With Received Staking", function () {
             randomMaticClustersTotalMPondDelegation.push(totalMPondDelegation);
           }
 
-          [ethClustersSelectedAt] = await mineTillGivenClustersAreSelected(epochSelectors[0], randomEthClusters, skipEpoch);
-          [dotClustersSelectedAt] = await mineTillGivenClustersAreSelected(epochSelectors[1], randomDotClusters, skipEpoch);
-          [maticClustersSelectedAt] = await mineTillGivenClustersAreSelected(epochSelectors[2], randomMaticClusters, skipEpoch);
+          [ethClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[0], randomEthClusters, skipEpoch);
+          [dotClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[1], randomDotClusters, skipEpoch);
+          [maticClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[2], randomMaticClusters, skipEpoch);
 
           await populateEpochReward(pond, pondHoldingAddress, rewardDelegators);
           await skipEpoch();
@@ -915,7 +915,7 @@ describe("StakeManager With Received Staking", function () {
           clusterSelectedAtEpoch: string,
           randomClustersSelected: string[],
           receiversUsedHere: Signer[],
-          epochSelector: Contract,
+          clusterSelector: Contract,
           networkId: string,
           commissionChecker: (comm: string | BN) => void = function () {}
         ): Promise<void> => {
@@ -942,7 +942,7 @@ describe("StakeManager With Received Staking", function () {
             const receiver = receiversUsedHere[index];
 
             const [, , clusterCommisionReceived] = await issueTicketsForClusters(
-              epochSelector,
+              clusterSelector,
               rewardDelegators,
               clusterRegistry,
               pond,
@@ -951,7 +951,7 @@ describe("StakeManager With Received Staking", function () {
               randomClustersSelected,
               weights,
               epoch,
-              epochSelectorAdmin,
+              clusterSelectorAdmin,
               skipEpoch,
               clusterRewards,
               mpondWhiteListedAddress,
@@ -978,21 +978,21 @@ describe("StakeManager With Received Staking", function () {
           }
         };
         it("Commission received proportional to (issued tickets * commission percent) -- ETH", async function () {
-          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, epochSelectors[0], supportedNetworkIds[0]);
+          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, clusterSelectors[0], supportedNetworkIds[0]);
         });
 
         it("Commission received proportional to (issued tickets * commission percent) -- DOT", async function () {
-          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, epochSelectors[1], supportedNetworkIds[1]);
+          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, clusterSelectors[1], supportedNetworkIds[1]);
         });
 
         it("Commission received proportional to (issued tickets * commission percent) -- MATIC", async function () {
-          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, epochSelectors[2], supportedNetworkIds[2]);
+          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, clusterSelectors[2], supportedNetworkIds[2]);
         });
 
         it("Commission received proportional to (issued tickets * commission percent) -- (ETH,DOT,MATIC)", async function () {
-          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, epochSelectors[0], supportedNetworkIds[0]);
-          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, epochSelectors[1], supportedNetworkIds[1]);
-          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, epochSelectors[2], supportedNetworkIds[2]);
+          await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, clusterSelectors[0], supportedNetworkIds[0]);
+          await test_scene(dotClustersSelectedAt, randomDotClusters, dotReceiversToUse, clusterSelectors[1], supportedNetworkIds[1]);
+          await test_scene(maticClustersSelectedAt, randomMaticClusters, maticReceiversToUse, clusterSelectors[2], supportedNetworkIds[2]);
         });
       });
     });
@@ -1000,13 +1000,13 @@ describe("StakeManager With Received Staking", function () {
 });
 
 const mineTillGivenClustersAreSelected = async (
-  epochSelector: Contract,
+  clusterSelector: Contract,
   clusterAddresses: string[],
   whenNotFound: () => Promise<void>
 ): Promise<[string, string[]]> => {
-  let currentEpoch = (await epochSelector.getCurrentEpoch()).toString();
+  let currentEpoch = (await clusterSelector.getCurrentEpoch()).toString();
   for (;;) {
-    let clusters = (await epochSelector.getClusters(currentEpoch)) as string[];
+    let clusters = (await clusterSelector.getClusters(currentEpoch)) as string[];
     clusters = clusters.map((a) => a.toLowerCase());
     clusterAddresses = clusterAddresses.map((a) => a.toLowerCase());
 
@@ -1020,7 +1020,7 @@ const mineTillGivenClustersAreSelected = async (
       return [currentEpoch, clusters];
     } else {
       await whenNotFound();
-      await epochSelector.selectClusters();
+      await clusterSelector.selectClusters();
       currentEpoch = BN.from(currentEpoch.toString()).add(1).toString();
     }
   }
@@ -1076,7 +1076,7 @@ const newDelegation = async (
 };
 
 const issueTicketsForClusters = async (
-  epochSelectorInstance: Contract,
+  clusterSelectorInstance: Contract,
   rewardDelegatorsInstance: Contract,
   clusterRegistryInstance: Contract,
   pondInstance: Contract,
@@ -1085,7 +1085,7 @@ const issueTicketsForClusters = async (
   clustersToIssueTicketsTo: string[],
   weights: BN[],
   currentEpoch: string,
-  epochSelectorAdmin: Signer,
+  clusterSelectorAdmin: Signer,
   skipEpochFunc: () => Promise<void>,
   clusterRewardsInstance: Contract,
   anyRandomSigner: Signer,
@@ -1105,7 +1105,7 @@ const issueTicketsForClusters = async (
   );
 
   let currentPlusOne = BN.from(currentEpoch).add(1).toString();
-  await epochSelectorInstance.connect(epochSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
+  await clusterSelectorInstance.connect(clusterSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
 
   // console.log({ currentPlusOne, networkIds, weights: weights.map((a) => a.toString()), clustersToIssueTicketsTo });
   const clusterRewardBalancesBefore: BN[] = [];

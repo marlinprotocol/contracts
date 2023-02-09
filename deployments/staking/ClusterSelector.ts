@@ -10,7 +10,7 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
 
   const chainConfig = config[chainId];
 
-  const EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
+  const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
 
   var addresses: { [key: string]: { [key: string]: string } } = {};
   if(!noLog) {
@@ -19,14 +19,14 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
     if (fs.existsSync("address.json")) {
       addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
     }
-  
+
     if (addresses[chainId] === undefined) {
       addresses[chainId] = {};
     }
-  
-    if (addresses[chainId]["EpochSelector_"+network] !== undefined) {
-      console.log("Existing deployment:", addresses[chainId]["EpochSelector_"+network]);
-      return EpochSelector.attach(addresses[chainId]["EpochSelector_"+network]);
+
+    if (addresses[chainId]["ClusterSelector_"+network] !== undefined) {
+      console.log("Existing deployment:", addresses[chainId]["ClusterSelector_"+network]);
+      return ClusterSelector.attach(addresses[chainId]["ClusterSelector_"+network]);
     }
   }
 
@@ -44,7 +44,7 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
 
-  const epochSelector = await upgrades.deployProxy(EpochSelector, [
+  const epochSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
     rewardDelegators,
     chainConfig.noOfClustersToSelect,
@@ -57,8 +57,8 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
 
   if(!noLog) {
     console.log("Deployed addr:", epochSelector.address);
-    
-    addresses[chainId]["EpochSelector_"+network] = epochSelector.address;
+
+    addresses[chainId]["ClusterSelector_"+network] = epochSelector.address;
 
     fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
   }
@@ -73,7 +73,7 @@ export async function upgrade(network: string, startTime?: string, epochLength?:
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
 
-  await upgradeUtil("EpochSelectorUpgradeable", `EpochSelector_${network}`, [
+  await upgradeUtil("ClusterSelector", `ClusterSelector_${network}`, [
     chainConfig.startTime, chainConfig.epochLength
   ]);
 }
@@ -89,11 +89,11 @@ export async function verify(network: string) {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined || addresses[chainId]["EpochSelector_"+network] === undefined) {
+  if(addresses[chainId] === undefined || addresses[chainId]["ClusterSelector_"+network] === undefined) {
     throw new Error("Epoch Selector not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["EpochSelector_"+network]);
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["ClusterSelector_"+network]);
 
   await run("verify:verify", {
     address: implAddress,

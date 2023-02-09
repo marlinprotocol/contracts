@@ -396,7 +396,7 @@ describe("RewardDelegators Deployment", function () {
   let registeredClusterRewardAddress3: string;
   let registeredClusterRewardAddress4: string;
 
-  let epochSelectorInstance: Contract;
+  let clusterSelectorInstance: Contract;
   let numberOfClustersToSelect: number = 5;
 
   let receiverStaking: Contract;
@@ -508,8 +508,8 @@ describe("RewardDelegators Deployment", function () {
 
     await receiverStaking.initialize(addrs[0]);
 
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    clusterSelectorInstance = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
       rewardDelegatorsInstance.address,
       numberOfClustersToSelect,
@@ -530,9 +530,9 @@ describe("RewardDelegators Deployment", function () {
       [ethers.utils.id("DOT"), ethers.utils.id("MATIC"), ethers.utils.id("ETH")],
       [100, 100, 100],
       [
-        epochSelectorInstance.address,
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
-        "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+        clusterSelectorInstance.address,
+        "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
+        "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
       ],
       stakingConfig.rewardPerEpoch
     );
@@ -638,7 +638,7 @@ describe("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster)).toString();
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, clusterSelectorInstance, registeredCluster)).toString();
 
     await ethers.provider.send("evm_increaseTime", [4 * 60 * 61]);
     await ethers.provider.send("evm_mine", []);
@@ -728,7 +728,7 @@ describe("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster1)).toString();
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, clusterSelectorInstance, registeredCluster1)).toString();
 
     await clusterRewardsInstance
       .connect(receiverStaker)
@@ -794,7 +794,7 @@ describe("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster3)).toString();
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, clusterSelectorInstance, registeredCluster3)).toString();
 
     await clusterRewardsInstance
       .connect(receiverStaker)
@@ -865,8 +865,8 @@ describe("RewardDelegators Deployment", function () {
     await clusterRegistryInstance.initialize(lockWaitTimes, rewardDelegatorsInstance.address);
 
     const blockData = await ethers.provider.getBlock("latest");
-    let EpochSelector = await ethers.getContractFactory("EpochSelectorUpgradeable");
-    epochSelectorInstance = await upgrades.deployProxy(EpochSelector, [
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    clusterSelectorInstance = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
       rewardDelegatorsInstance.address,
       numberOfClustersToSelect,
@@ -877,7 +877,7 @@ describe("RewardDelegators Deployment", function () {
       constructorArgs: [blockData.timestamp]
     });
 
-    await rewardDelegatorsInstance.connect(signers[0]).updateEpochSelector(epochSelectorInstance.address);
+    await rewardDelegatorsInstance.connect(signers[0]).updateClusterSelector(clusterSelectorInstance.address);
 
     await stakeManagerInstance.initialize(
       [testTokenId],
@@ -901,7 +901,7 @@ describe("RewardDelegators Deployment", function () {
       addrs[0],
       rewardDelegatorsInstance.address,
       receiverStaking.address,
-      epochSelectorInstance.address,
+      clusterSelectorInstance.address,
       [ethers.utils.id("testing")],
       [100],
       stakingConfig.rewardPerEpoch
@@ -977,7 +977,7 @@ describe("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
 
-    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, epochSelectorInstance, registeredCluster4)).toString();
+    let epoch = (await mineTillGivenClusterIsSelected(receiverStaking, clusterSelectorInstance, registeredCluster4)).toString();
 
     await clusterRewardsInstance
       .connect(receiverStaker)
@@ -1145,13 +1145,13 @@ describe("RewardDelegators Deployment", function () {
 
   async function mineTillGivenClusterIsSelected(
     receiverStaking: Contract,
-    epochSelecotor: Contract,
+    clusterSelector: Contract,
     registeredCluster: Signer
   ): Promise<number | string> {
-    let currentEpoch = (await epochSelecotor.getCurrentEpoch()).toString();
+    let currentEpoch = (await clusterSelector.getCurrentEpoch()).toString();
 
     for (;;) {
-      let clusters = (await epochSelecotor.getClusters(currentEpoch)) as string[];
+      let clusters = (await clusterSelector.getClusters(currentEpoch)) as string[];
       console.log({ clusters, currentEpoch });
       clusters = clusters.map((a) => a.toLowerCase());
 
@@ -1164,7 +1164,7 @@ describe("RewardDelegators Deployment", function () {
         await ethers.provider.send("evm_increaseTime", [4 * 60 * 61]);
         await ethers.provider.send("evm_mine", []);
 
-        await epochSelecotor.connect(registeredCluster).selectClusters();
+        await clusterSelector.connect(registeredCluster).selectClusters();
         currentEpoch = BigNumber.from(currentEpoch.toString()).add(1).toString();
       }
     }

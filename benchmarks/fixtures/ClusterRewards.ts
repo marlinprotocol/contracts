@@ -1,7 +1,7 @@
 import { ethers, upgrades } from "hardhat";
 import { BigNumber, BigNumberish, Signer, utils, Wallet } from "ethers";
 import { deploy as deployClusterRewards } from "../../deployments/staking/ClusterRewards";
-import { deploy as deployEpochSelector } from "../../deployments/staking/ClusterSelector";
+import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
 import cluster from "cluster";
 
@@ -19,19 +19,19 @@ export async function deployFixture() {
 
     const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, 4*3600, pond.address, true);
 
-    const epochSelector = await deployEpochSelector("ETH", addrs[1], addrs[0], blockData.timestamp, 4 * 3600, {
+    const clusterSelector = await deployClusterSelector("ETH", addrs[1], addrs[0], blockData.timestamp, 4 * 3600, {
         token: pond.address,
         amount: ethers.utils.parseEther('1').toString()
     }, true);
 
     const clusterRewards = await deployClusterRewards(addrs[1], receiverStaking.address, {
-        "ETH": epochSelector.address
+        "ETH": clusterSelector.address
     }, addrs[0], true);
 
     return {
         pond,
         receiverStaking,
-        epochSelector,
+        clusterSelector,
         clusterRewards,
         admin: signers[0],
         rewardDelegatorsMock: signers[1]
@@ -48,7 +48,7 @@ export async function initDataFixture() {
     const {
         pond,
         receiverStaking,
-        epochSelector,
+        clusterSelector,
         clusterRewards,
         admin,
         rewardDelegatorsMock
@@ -69,7 +69,7 @@ export async function initDataFixture() {
 
     // insert clusterData into selector
     for(let i=0; i < clusters.length; i+=50) {
-        await epochSelector.connect(rewardDelegatorsMock).upsertMultiple(clusters.slice(i, i+50), balances.slice(i, i+50));
+        await clusterSelector.connect(rewardDelegatorsMock).upsertMultiple(clusters.slice(i, i+50), balances.slice(i, i+50));
     }
 
     for(let i=0; i < receiverCount; i++) {
@@ -89,7 +89,7 @@ export async function initDataFixture() {
     return {
         pond,
         receiverStaking,
-        epochSelector,
+        clusterSelector,
         clusterRewards,
         admin,
         rewardDelegatorsMock,

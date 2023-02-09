@@ -24,7 +24,7 @@ describe("Cluster Rewards", async () => {
     describe("issue tickets", async () => {
         let pond: Contract;
         let receiverStaking: Contract;
-        let epochSelector: Contract;
+        let clusterSelector: Contract;
         let clusterRewards: Contract;
         let admin: Signer;
         let rewardDelegatorsMock: Signer;
@@ -39,7 +39,7 @@ describe("Cluster Rewards", async () => {
             ({
                 pond,
                 receiverStaking,
-                epochSelector,
+                clusterSelector,
                 clusterRewards,
                 admin,
                 rewardDelegatorsMock,
@@ -55,15 +55,15 @@ describe("Cluster Rewards", async () => {
             for(let i=1; i <= 5; i++) {
                 // skip first epoch
                 await skipTime(EPOCH_LENGTH);
-                
+
                 // select clusters for next epoch
-                await epochSelector.selectClusters();
+                await clusterSelector.selectClusters();
 
                 // skip to next epoch
                 await skipTime(EPOCH_LENGTH);
-                
-                let epoch = await epochSelector.getCurrentEpoch();
-                let clusters: string[] = await epochSelector.getClusters(epoch);
+
+                let epoch = await clusterSelector.getCurrentEpoch();
+                let clusters: string[] = await clusterSelector.getClusters(epoch);
                 const tickets: BigNumber[] = randomlyDivideInXPieces(MAX_TICKETS, i);
 
                 // skip to next epoch so that tickets can be distributed for previous epoch
@@ -90,15 +90,15 @@ describe("Cluster Rewards", async () => {
             for(let i=1; i <= 6; i++) {
                 // skip first epoch
                 await skipTime(EPOCH_LENGTH);
-                
+
                 // select clusters for next epoch
-                await epochSelector.selectClusters();
+                await clusterSelector.selectClusters();
 
                 // skip to next epoch
                 await skipTime(EPOCH_LENGTH);
-                
-                let epoch = await epochSelector.getCurrentEpoch();
-                let clusters: string[] = await epochSelector.getClusters(epoch);
+
+                let epoch = await clusterSelector.getCurrentEpoch();
+                let clusters: string[] = await clusterSelector.getClusters(epoch);
                 selectedClusters.push(clusters);
                 const tickets: BigNumber[] = randomlyDivideInXPieces(MAX_TICKETS, clusters.length);
 
