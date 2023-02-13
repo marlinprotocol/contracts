@@ -8,7 +8,8 @@ import "@openzeppelin/contracts-upgradeable/utils/ArraysUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-// NOTE: This is a slightly modified version of ERC20SnapshotUpgradeable OZ contract(changes are mentioned at relevant lines)
+// MARLIN: This is a modified version of ERC20SnapshotUpgradeable OZ contract
+// changes are marked with "MARLIN:"
 
 /**
  * @dev This contract extends an ERC20 token with a snapshot mechanism. When a snapshot is created, the balances and
@@ -63,7 +64,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         uint256[] values;
     }
 
-    //  NOTE: Exposes balance snapshots of an account which is not present in standard OZ contract
+    // MARLIN: removed private to expose balance snapshots of an account
     mapping(address => Snapshots) _accountBalanceSnapshots;
     Snapshots private _totalSupplySnapshots;
 

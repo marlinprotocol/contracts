@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 import "./interfaces/IClusterSelector.sol";
-import "./interfaces/IReceiverStaking.sol";
+import "./ReceiverStaking.sol";
 import "./interfaces/IClusterRewards.sol";
 
 contract ClusterRewards is
@@ -127,7 +127,7 @@ contract ClusterRewards is
 
     mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
     mapping(bytes32 => IClusterSelector) public clusterSelectors; // networkId -> clusterSelector
-    IReceiverStaking public receiverStaking;
+    ReceiverStaking public receiverStaking;
 
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch, address clusterSelector);
     event NetworkRemoved(bytes32 networkId);
@@ -187,7 +187,7 @@ contract ClusterRewards is
     }
 
     function _updateReceiverStaking(address _receiverStaking) internal {
-        receiverStaking = IReceiverStaking(_receiverStaking);
+        receiverStaking = ReceiverStaking(_receiverStaking);
         emit ReceiverStakingUpdated(_receiverStaking);
     }
 
