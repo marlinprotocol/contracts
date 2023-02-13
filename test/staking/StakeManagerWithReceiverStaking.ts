@@ -156,7 +156,7 @@ describe("StakeManager With Received Staking", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(await receiverStakingAdmin.getAddress());
+    await receiverStaking.initialize(await receiverStakingAdmin.getAddress(), "rPOND", "Receiver POND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     for (let index = 0; index < supportedNetworks.length; index++) {
