@@ -260,7 +260,7 @@ contract ClusterRewards is
         require(_totalNetworkRewardsPerEpoch != 0, "CRW:SIT-No rewards for network");
 
         for(uint256 i=0; i < _signedTickets.length; i++) {
-            address _signer = _verifySignedTicket(_signedTickets[i]);
+            address _signer = _verifySignedTicket(_signedTickets[i], _epoch);
             _processReceiverTickets(
                 _signer, 
                 _epoch, 
@@ -274,31 +274,44 @@ contract ClusterRewards is
 
     function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
-        uint256 _epochTicketsIssued = ticketsIssued[_receiver][_epoch];
+        require(!isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
         require(_epochReceiverStake != 0, "CRW:IPRT-Not eligible to issue tickets");
 
         unchecked {
             for(uint256 i=0; i < _tickets.length; ++i) {
                 require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
-                // TODO: Can we remove this check ?
-                require(_selectedClusters[i] !=  address(0), "CRW:IPRT-Invalid cluster");
 
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
-                // cant overflow as tickets <= 1e18
-                _epochTicketsIssued += _tickets[i];
             }
         }
 
-        require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Excessive tickets issued");
-        ticketsIssued[_receiver][_epoch] = _epochTicketsIssued;
+        _markAsIssued(_receiver, _epoch);
     }
 
-    function _verifySignedTicket(SignedTicket memory _signedTicket) internal pure returns(address _signer) {
+    function isTicketsIssued(address _receiver, uint256 _epoch) public view returns(bool) {
+        unchecked {
+            uint256 _index = _epoch/256;
+            uint256 _pos = _epoch%256;
+            uint256 _issuedFlags = ticketsIssued[_receiver][_index];
+            return ((_issuedFlags >> (255-_pos)) & 1) == 1;
+        }
+    }
+
+    function _markAsIssued(address _receiver, uint256 _epoch) internal {
+        unchecked {
+            uint256 _index = _epoch/256;
+            uint256 _pos = _epoch%256;
+            uint256 _issuedFlags = ticketsIssued[_receiver][_index];
+            ticketsIssued[_receiver][_index] = _issuedFlags | 2**(255-_pos);    
+        }
+    }
+
+    function _verifySignedTicket(SignedTicket memory _signedTicket, uint256 _epoch) internal pure returns(address _signer) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_signedTicket.tickets))));
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_epoch, _signedTicket.tickets))));
         _signer = ecrecover(prefixedHashMessage, _signedTicket.v, _signedTicket.r, _signedTicket.s);
         require(_signer != address(0), "CRW:IVST-Invalid signature");
     }
