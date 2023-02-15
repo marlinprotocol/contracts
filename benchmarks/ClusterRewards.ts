@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import  { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
-import { deployFixture as deployClusterRewardsFixture, initDataFixture } from "./fixtures/ClusterRewards";
+import { initDataFixture } from "./fixtures/ClusterRewards";
 import { BigNumber, BigNumberish, constants, Contract, Signer, utils } from "ethers";
 import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
 
@@ -30,6 +30,7 @@ describe("Cluster Rewards", async () => {
         let rewardDelegatorsMock: Signer;
         let nodesInserted: number;
         let receivers: Signer[];
+        let receiverSigners: Signer[];
 
         const MAX_TICKETS = BigNumber.from(10).pow(18);
         const EPOCH_LENGTH = 4*3600;
@@ -51,14 +52,14 @@ describe("Cluster Rewards", async () => {
                 admin,
                 rewardDelegatorsMock,
                 nodesInserted,
-                receivers
+                receivers,
+                receiverSigners
             } = await loadFixture(initDataFixture));
-            console.log((await receivers[0].getAddress()), (await receiverStaking.balanceOf(await receivers[0].getAddress())));
         });
 
         it("to single epoch, tickets to 1 - 5 clusters, input clusters ordered", async () => {
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
-            const selectedReceiver: Signer = receivers[selectedReceiverIndex];
+            const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
 
             for(let i=1; i <= 5; i++) {
                 // skip first epoch
@@ -76,7 +77,7 @@ describe("Cluster Rewards", async () => {
                 // skip to next epoch so that tickets can be distributed for previous epoch
                 await skipTime(EPOCH_LENGTH);
 
-                const tx = await clusterRewards.connect(selectedReceiver)["issueTickets(bytes32,uint256,uint256[])"](
+                const tx = await clusterRewards.connect(selectedReceiverSigner)["issueTickets(bytes32,uint256,uint256[])"](
                     ethers.utils.id("ETH"), epoch, tickets
                 );
                 const receipt = await tx.wait();
@@ -84,31 +85,8 @@ describe("Cluster Rewards", async () => {
             }
         });
 
-        it("to single epoch, tickets to 1 - 5 clusters, input clusters in random order", async () => {});
-
-        it("single epochs, 1 receivers signed tickets to all selected clusters each", async () => {
-            const noOfReceivers = 1;
-            // const selectedReceiverIndex: number = Math.floor(Math.random()*(receivers.length - noOfReceivers));
-            const selectedReceivers: Signer[] = receivers.slice(0, noOfReceivers);
-
-            const signedTickets: SignedTicket[] = [];
-
-            for(let i=0; i < selectedReceivers.length; i++) {
-                const tickets = randomlyDivideInXPieces(MAX_TICKETS, 5).map(val => val.toString());
-
-                const messageHash = utils.keccak256(utils.defaultAbiCoder.encode(["uint256[]"], [tickets]));
-                const signedMessage = await selectedReceivers[i].signMessage(messageHash);
-                const splitSig = utils.splitSignature(signedMessage);
-                signedTickets[i] = {
-                    tickets,
-                    v: splitSig.v,
-                    r: splitSig.r,
-                    s: splitSig.s
-                };
-            }
-
-            console.log(JSON.stringify(signedTickets, null, 2))
-
+        it("single epochs, 50 receivers signed tickets to all selected clusters each", async () => {
+            const noOfReceivers = 50;
             // skip first epoch
             await skipTime(EPOCH_LENGTH);
 
@@ -123,10 +101,25 @@ describe("Cluster Rewards", async () => {
             // skip to next epoch so that tickets can be distributed for previous epoch
             await skipTime(EPOCH_LENGTH);
 
-            console.log((await receivers[0].getAddress()), (await receiverStaking.balanceOf(await receivers[0].getAddress())));
-            console.log((await receiverStaking.balanceOfAt(await receivers[0].getAddress(), epoch)));
-            console.log((await receiverStaking.balanceOfAt(await receivers[0].getAddress(), epoch - 1)));
-            // console.log((await receiverStaking.balanceOfAt(await receivers[0].getAddress(), epoch + 1)));
+            // const selectedReceiverIndex: number = Math.floor(Math.random()*(receivers.length - noOfReceivers));
+            const selectedReceiverSigners: Signer[] = receiverSigners.slice(0, noOfReceivers);
+
+            const signedTickets: SignedTicket[] = [];
+
+            for(let i=0; i < selectedReceiverSigners.length; i++) {
+                const tickets = randomlyDivideInXPieces(MAX_TICKETS, 5).map(val => val.toString());
+
+                const messageHash = utils.keccak256(utils.defaultAbiCoder.encode(["uint256", "uint256[]"], [epoch, tickets]));
+                const arrayifyHash = ethers.utils.arrayify(messageHash);
+                const signedMessage = await selectedReceiverSigners[i].signMessage(arrayifyHash);
+                const splitSig = utils.splitSignature(signedMessage);
+                signedTickets[i] = {
+                    tickets,
+                    v: splitSig.v,
+                    r: splitSig.r,
+                    s: splitSig.s
+                };
+            }
 
             const tx = await clusterRewards["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](
                 ethers.utils.id("ETH"), epoch, signedTickets
@@ -134,14 +127,12 @@ describe("Cluster Rewards", async () => {
 
             const receipt = await tx.wait();
             console.log(`gas used : ${receipt.gasUsed.sub(21000).toNumber()}`);
-
-            console.log((await clusterRewards.ticketsIssued((await selectedReceivers[0].getAddress()), epoch)))
-            console.log((await clusterRewards.clusterRewards((await epochSelector.getClusters(epoch))[0])))
+            console.log(receipt.gasUsed.mul(1600).mul(6).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
 
         it("multiple epochs (1-6), tickets to all selected clusters", async () => {
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
-            const selectedReceiver: Signer = receivers[selectedReceiverIndex];
+            const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
 
             const selectedClusters: string[][] = [];
             const issuedTickets: BigNumber[][] = [];
@@ -166,13 +157,14 @@ describe("Cluster Rewards", async () => {
                 epochs.push(epoch);
                 // skip to next epoch so that tickets can be distributed for previous epoch
                 await skipTime(EPOCH_LENGTH);
-
-                const tx = await clusterRewards.connect(selectedReceiver)["issueTickets(bytes32,uint256[],uint256[][])"](
-                    ethers.utils.id("ETH"), epochs, issuedTickets
-                );
-                const receipt = await tx.wait();
-                console.log(`gas used for ${i} epochs : ${receipt.gasUsed.sub(21000).toNumber()}`);
             }
+
+            const tx = await clusterRewards.connect(selectedReceiverSigner)["issueTickets(bytes32,uint256[],uint256[][])"](
+                ethers.utils.id("ETH"), epochs, issuedTickets
+            );
+            const receipt = await tx.wait();
+            console.log(`gas used for 6 epochs : ${receipt.gasUsed.sub(21000).toNumber()}`);
+            console.log(receipt.gasUsed.mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
     });
 

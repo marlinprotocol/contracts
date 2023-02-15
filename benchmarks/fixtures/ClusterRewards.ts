@@ -59,6 +59,7 @@ export async function initDataFixture() {
     const clusters: string[] = [];
     const balances: BigNumberish[] = [];
     const receivers: Signer[] = [];
+    const receiverSigners: Signer[] = [];
 
     // generate clusters and balance data
     for(let i=0; i < nodesToInsert; i++) {
@@ -75,15 +76,21 @@ export async function initDataFixture() {
     for(let i=0; i < receiverCount; i++) {
         // create receiver and stake
         const receiver = Wallet.createRandom().connect(ethers.provider);
+        const receiverSigner = Wallet.createRandom().connect(ethers.provider);
         receivers.push(receiver);
+        receiverSigners.push(receiverSigner);
         const depositAmount = BigNumber.from(ethers.utils.randomBytes(32)).mod(tokenSupply.div(receiverCount));
         await preAllocEthSigner.sendTransaction({
             to: receiver.address,
             value: utils.parseEther("0.5").toString()
-        })
+        });
+        await preAllocEthSigner.sendTransaction({
+            to: receiverSigner.address,
+            value: utils.parseEther("0.5").toString()
+        });
         await pond.transfer(receiver.address, depositAmount);
         await pond.connect(receiver).approve(receiverStaking.address, depositAmount);
-        await receiverStaking.connect(receiver).deposit(depositAmount);
+        await receiverStaking.connect(receiver)["deposit(uint256,address)"](depositAmount, receiverSigner.address);
     }
 
     return {
@@ -94,6 +101,7 @@ export async function initDataFixture() {
         admin,
         rewardDelegatorsMock,
         nodesInserted: nodesToInsert,
-        receivers
+        receivers,
+        receiverSigners
     };
 }
