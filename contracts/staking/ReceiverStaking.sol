@@ -115,27 +115,30 @@ contract ReceiverStaking is
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
+        address _from,
+        address _to,
+        uint256 _amount
     ) internal virtual override(ERC20Upgradeable, ERC20SnapshotUpgradeable) {
-        require(from == address(0) || to == address(0), "Staking Positions transfer not allowed");
-        super._beforeTokenTransfer(from, to, amount);
+        require(_from == address(0) || _to == address(0), "Staking Positions transfer not allowed");
+        super._beforeTokenTransfer(_from, _to, _amount);
     }
 
     function _afterTokenTransfer(
-        address from,
-        address to,
+        address _from,
+        address _to,
         uint256
     ) internal virtual override {
-        if(to == address(0)) {
+        if(_to == address(0)) {
             // burn
-            uint256 _updatedBalance = balanceOf(from);
-            Snapshots storage userSnapshots = _accountBalanceSnapshots[from];
-            if(userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
+            uint256 _updatedBalance = balanceOf(_from);
+            Snapshots storage userSnapshots = _accountBalanceSnapshots[_from];
+            if(
+                userSnapshots.values.length > 0 &&
+                userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance
+            ) {
                 // current balance is lowest in epoch
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
-                emit BalanceUpdate(from, _getCurrentSnapshotId(), _updatedBalance);
+                emit BalanceUpdate(_from, _getCurrentSnapshotId(), _updatedBalance);
             }
         }
     }
