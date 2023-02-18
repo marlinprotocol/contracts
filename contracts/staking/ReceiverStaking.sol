@@ -162,6 +162,7 @@ contract ReceiverStaking is
                 }
                 _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1] -= _dropInMin;
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
+                emit BalanceUpdate(_from, _currentSnapshotId, _updatedBalance);
             }
         }
     }
