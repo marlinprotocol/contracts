@@ -136,9 +136,32 @@ contract ReceiverStaking is
                 userSnapshots.values.length > 0 &&
                 userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance
             ) {
-                // current balance is lowest in epoch
+                uint256 _dropInMin = userSnapshots.values[userSnapshots.values.length - 1] - _updatedBalance;
+                uint256 _currentSnapshotId = _getCurrentSnapshotId();
+                uint256 _previousSnapshotId = _currentSnapshotId - 1;
+                // Lowest balance in epoch
+                if(
+                    userSnapshots.values.length == 1 ||
+                    userSnapshots.ids[userSnapshots.values.length - 2] != _previousSnapshotId
+                ) {
+                    // Last epoch didn't have a snapshot for user
+                    userSnapshots.ids[userSnapshots.ids.length - 1] = _previousSnapshotId;
+                    userSnapshots.ids.push(_currentSnapshotId);
+                    userSnapshots.values.push(_updatedBalance);
+                }
+                if(
+                    _totalSupplySnapshots.values.length == 1 ||
+                    _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 2] != _previousSnapshotId
+                ) {
+                    // Previous epoch didn't have a snapshot
+                    _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 1] = _previousSnapshotId;
+                    _totalSupplySnapshots.ids.push(_currentSnapshotId);
+                    _totalSupplySnapshots.values.push(
+                        _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1]
+                    );
+                }
+                _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1] -= _dropInMin;
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
-                emit BalanceUpdate(_from, _getCurrentSnapshotId(), _updatedBalance);
             }
         }
     }

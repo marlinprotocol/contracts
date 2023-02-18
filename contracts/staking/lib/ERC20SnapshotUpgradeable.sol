@@ -66,7 +66,8 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
 
     // MARLIN: removed private to expose balance snapshots of an account
     mapping(address => Snapshots) _accountBalanceSnapshots;
-    Snapshots private _totalSupplySnapshots;
+    // MARLIN: removed private to expose supply snapshots
+    Snapshots _totalSupplySnapshots;
 
     // Snapshot ids increase monotonically, with the first value being 1. An id of 0 is invalid.
     CountersUpgradeable.Counter private _currentSnapshotId;
