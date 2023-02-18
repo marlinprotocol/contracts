@@ -2,8 +2,6 @@ import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
-import { sign } from "crypto";
-const stakingConfig = require("../config/staking.json");
 
 import { testERC165 } from "../helpers/erc165.ts";
 import { testAdminRole, testRole } from "../helpers/rbac.ts";
