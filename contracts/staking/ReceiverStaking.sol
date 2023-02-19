@@ -89,12 +89,47 @@ contract ReceiverStaking is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IERC20Upgradeable public immutable STAKING_TOKEN;
 
-    event BalanceUpdate(address indexed _address, uint256 indexed epoch, uint256 balance);
+    mapping(address => address) public signerToStaker;
+    mapping(address => address) public stakerToSigner;
+
+    event SignerUpdated(address indexed staker, address indexed from, address indexed to);
+    event BalanceUpdated(address indexed staker, uint256 indexed epoch, uint256 balance);
+
+    function _setSigner(address _staker, address _signer) internal {
+        require(signerToStaker[_signer] == address(0), "signer has a staker");
+
+        address _oldSigner = stakerToSigner[_staker];
+        if(_oldSigner != address(0)) {
+            delete signerToStaker[_oldSigner];
+        }
+        stakerToSigner[_staker] = _signer;
+
+        if(_signer != address(0)) {
+            signerToStaker[_signer] = _staker;
+        }
+        emit SignerUpdated(_staker, _oldSigner, _signer);
+    }
+
+    function setSigner(address _signer) external {
+        _setSigner(_msgSender(), _signer);
+    }
+
+    function _deposit(uint256 _amount, address _from, address _to) internal {
+        STAKING_TOKEN.transferFrom(_from, address(this), _amount);
+        _mint(_to, _amount);
+    }
 
     function deposit(uint256 _amount) external {
-        address _sender = _msgSender();
-        STAKING_TOKEN.transferFrom(_sender, address(this), _amount);
-        _mint(_sender, _amount);
+        _deposit(_amount, _msgSender(), _msgSender());
+    }
+
+    function depositFor(uint256 _amount, address _staker) external {
+        _deposit(_amount, _msgSender(), _staker);
+    }
+
+    function depositAndSetSigner(uint256 _amount, address _signer) external {
+        _deposit(_amount, _msgSender(), _msgSender());
+        _setSigner(_msgSender(), _signer);
     }
 
     function withdraw(uint256 _amount) external {
@@ -107,6 +142,16 @@ contract ReceiverStaking is
         _userStake = balanceOfAt(_user, _epoch);
         _totalStake = totalSupplyAt(_epoch);
         _currentEpoch = _getCurrentSnapshotId();
+    }
+
+    function getEpochInfo(uint256 epoch) external view returns(uint256 totalStake, uint256 currentEpoch) {
+        totalStake = totalSupplyAt(epoch);
+        currentEpoch = _getCurrentSnapshotId();
+    }
+
+    function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256 balance, address account) {
+        account = signerToStaker[signer];
+        balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
@@ -162,7 +207,7 @@ contract ReceiverStaking is
                 }
                 _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1] -= _dropInMin;
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
-                emit BalanceUpdate(_from, _currentSnapshotId, _updatedBalance);
+                emit BalanceUpdated(_from, _currentSnapshotId, _updatedBalance);
             }
         }
     }

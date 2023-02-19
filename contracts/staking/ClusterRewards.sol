@@ -112,6 +112,7 @@ contract ClusterRewards is
 //-------------------------------- Admin functions start --------------------------------//
 
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
+    bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
     uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
 
     mapping(address => uint256) public clusterRewards;
@@ -119,11 +120,11 @@ contract ClusterRewards is
     mapping(bytes32 => uint256) public rewardWeight;
     uint256 public totalRewardWeight;
     uint256 public totalRewardsPerEpoch;
-    uint256 public __unused_1;
+    uint256 public payoutDenomination;
 
-    mapping(uint256 => uint256) public __unused_2;
-    uint256 public __unused_3;
-    uint256 public __unused_4;
+    mapping(uint256 => uint256) public rewardDistributedPerEpoch;
+    uint256 public latestNewEpochRewardAt;
+    uint256 public rewardDistributionWaitTime;
 
     mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
     mapping(bytes32 => IClusterSelector) public clusterSelectors; // networkId -> clusterSelector
@@ -132,12 +133,18 @@ contract ClusterRewards is
     event NetworkAdded(bytes32 networkId, uint256 rewardPerEpoch, address clusterSelector);
     event NetworkRemoved(bytes32 networkId);
     event NetworkUpdated(bytes32 networkId, uint256 updatedRewardPerEpoch, address clusterSelector);
+    event ClusterRewarded(bytes32 networkId);
     event ReceiverStakingUpdated(address receiverStaking);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
     modifier onlyClaimer() {
         require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
+        _;
+    }
+
+    modifier onlyFeeder() {
+        require(hasRole(FEEDER_ROLE, _msgSender()), "only feeder");
         _;
     }
 
@@ -204,45 +211,130 @@ contract ClusterRewards is
 
 //-------------------------------- User functions start --------------------------------//
 
-    function issueTickets(bytes32 _networkId, uint256[] memory _epoch, address[][] memory _clusters, uint256[][] memory _tickets) external {
-        uint256 numberOfEpochs = _epoch.length;
-        require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
-        require(numberOfEpochs == _clusters.length, "CRW:MIT-invalid inputs");
-        for(uint256 i=0; i < numberOfEpochs; i++) {
-            issueTickets(_networkId, _epoch[i], _clusters[i], _tickets[i]);
+    struct SignedTicket {
+        uint256[] tickets;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
+    function feed(
+        bytes32 _networkId,
+        address[] calldata _clusters,
+        uint256[] calldata _payouts,
+        uint256 _epoch
+    ) external onlyFeeder {
+        require(receiverStaking.START_TIME() < block.timestamp, "CRW:F-Invalid method");
+        uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
+        if(rewardDistributed == 0) {
+            require(
+                block.timestamp > latestNewEpochRewardAt + rewardDistributionWaitTime,
+                "CRW:F-Cant distribute reward for new epoch within such short interval"
+            );
+            latestNewEpochRewardAt = block.timestamp;
+        }
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
+        uint256 currentPayoutDenomination = payoutDenomination;
+        uint256 networkRewardWeight = rewardWeight[_networkId];
+        for(uint256 i=0; i < _clusters.length; i++) {
+            uint256 clusterReward = ((currentTotalRewardsPerEpoch * networkRewardWeight * _payouts[i]) / totalRewardWeight) / currentPayoutDenomination;
+            rewardDistributed = rewardDistributed + clusterReward;
+            clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
+        }
+        require(
+            rewardDistributed <= totalRewardsPerEpoch,
+            "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
+        );
+        rewardDistributedPerEpoch[_epoch] = rewardDistributed;
+        emit ClusterRewarded(_networkId);
+    }
+
+    function issueTickets(bytes32 _networkId, uint256 _epoch, SignedTicket[] memory _signedTickets) external {
+        (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
+
+        require(_epoch < _currentEpoch, "CRW:SIT-Epoch not completed");
+
+        address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
+        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+
+        require(_totalNetworkRewardsPerEpoch != 0, "CRW:SIT-No rewards for network");
+
+        for(uint256 i=0; i < _signedTickets.length; i++) {
+            address _signer = _verifySignedTicket(_signedTickets[i], _epoch);
+            _processReceiverTickets(
+                _signer,
+                _epoch,
+                _selectedClusters,
+                _signedTickets[i].tickets,
+                _totalNetworkRewardsPerEpoch,
+                _epochTotalStake
+            );
+            emit TicketsIssued(_networkId, _epoch, _signer);
         }
     }
 
-    function issueTickets(bytes32 _networkId, uint256 _epoch, address[] memory _clusters, uint256[] memory _tickets) public {
-        require(_clusters.length == _tickets.length, "CRW:IT-invalid inputs");
-
-        (uint256 _epochReceiverStake, uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getStakeInfo(msg.sender, _epoch);
-
-        require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
-        require(_epochReceiverStake != 0, "CRW:IT-Not eligible to issue tickets");
-
-        address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
-
-        uint256 _epochTicketsIssued = ticketsIssued[msg.sender][_epoch];
-        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+    function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
+        (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
+        require(!isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
+        require(_epochReceiverStake != 0, "CRW:IPRT-Not eligible to issue tickets");
 
         unchecked {
-            for(uint256 i=0; i < _clusters.length; ++i) {
-                if(_selectedClusters[i] != _clusters[i]) {
-                    require(ifArrayHasElement(_selectedClusters, _clusters[i]), "CRW:IT-Invalid cluster to issue ticket");
-                }
-                require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Invalid ticket count");
+            for(uint256 i=0; i < _tickets.length; ++i) {
+                require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
 
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
-                clusterRewards[_clusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
-                // cant overflow as tickets <= 1e18
-                _epochTicketsIssued += _tickets[i];
+                clusterRewards[_selectedClusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
             }
         }
 
-        require(_epochTicketsIssued <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IT-Excessive tickets issued");
-        ticketsIssued[msg.sender][_epoch] = _epochTicketsIssued;
+        _markAsIssued(_receiver, _epoch);
+    }
+
+    function isTicketsIssued(address _receiver, uint256 _epoch) public view returns(bool) {
+        unchecked {
+            uint256 _index = _epoch/256;
+            uint256 _pos = _epoch%256;
+            uint256 _issuedFlags = ticketsIssued[_receiver][_index];
+            return ((_issuedFlags >> (255-_pos)) & 1) == 1;
+        }
+    }
+
+    function _markAsIssued(address _receiver, uint256 _epoch) internal {
+        unchecked {
+            uint256 _index = _epoch/256;
+            uint256 _pos = _epoch%256;
+            uint256 _issuedFlags = ticketsIssued[_receiver][_index];
+            ticketsIssued[_receiver][_index] = _issuedFlags | 2**(255-_pos);
+        }
+    }
+
+    function _verifySignedTicket(SignedTicket memory _signedTicket, uint256 _epoch) internal pure returns(address _signer) {
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_epoch, _signedTicket.tickets))));
+        _signer = ecrecover(prefixedHashMessage, _signedTicket.v, _signedTicket.r, _signedTicket.s);
+        require(_signer != address(0), "CRW:IVST-Invalid signature");
+    }
+
+    function issueTickets(bytes32 _networkId, uint256[] memory _epoch, uint256[][] memory _tickets) external {
+        uint256 numberOfEpochs = _epoch.length;
+        require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
+        for(uint256 i=0; i < numberOfEpochs; i++) {
+            issueTickets(_networkId, _epoch[i], _tickets[i]);
+        }
+    }
+
+    function issueTickets(bytes32 _networkId, uint256 _epoch, uint256[] memory _tickets) public {
+        (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
+
+        require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
+
+        address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
+
+        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+        require(_totalNetworkRewardsPerEpoch != 0, "CRW:IT-No rewards for network");
+
+        _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets, _totalNetworkRewardsPerEpoch, _epochTotalStake);
 
         emit TicketsIssued(_networkId, _epoch, msg.sender);
     }

@@ -489,12 +489,9 @@ contract RewardDelegators is
 
     event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
-        address[] memory filteredClustersList;
-        uint64[] memory balances;
-
+        uint64[] memory balances = new uint64[](clusterList.length);
         IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
 
-        uint256 addressIndex=0;
         for (uint256 index = 0; index < clusterList.length; index++) {
             address cluster = clusterList[index];
             bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
@@ -502,17 +499,11 @@ contract RewardDelegators is
 
             uint256 totalDelegations = _getEffectiveDelegation(cluster, _networkId);
 
-            if(totalDelegations != 0){
-                filteredClustersList[addressIndex] = cluster;
-                balances[addressIndex] = uint64(totalDelegations.sqrt());
-                addressIndex++;
-                emit RefreshClusterDelegation(cluster);
-            }
-
+            balances[index] = uint64(totalDelegations.sqrt());
+            emit RefreshClusterDelegation(cluster);
         }
 
-        _clusterSelector.upsertMultiple(filteredClustersList, balances);
-
+        _clusterSelector.upsertMultiple(clusterList, balances);
     }
 
     function _getEffectiveDelegation(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){
