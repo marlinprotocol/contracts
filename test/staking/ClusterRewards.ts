@@ -46,7 +46,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
@@ -191,7 +191,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
@@ -282,7 +282,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
@@ -385,7 +385,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
@@ -477,7 +477,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
@@ -646,7 +646,7 @@ describe("ClusterRewards", function () {
       initializer: false,
     });
 
-    await receiverStaking.initialize(addrs[0]);
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     clusterSelector = await upgrades.deployProxy(ClusterSelector, [
