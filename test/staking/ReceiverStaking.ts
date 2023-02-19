@@ -25,16 +25,36 @@ async function skipTime(t: number) {
   await skipBlocks(1);
 }
 
+async function skipToTimestamp(t: number) {
+  await ethers.provider.send("evm_mine", [t]);
+}
 
-let startTime = Math.floor(Date.now()/1000) + 10000;
+
+let startTime = Math.floor(Date.now()/1000) + 100000;
 
 describe("ReceiverStaking", function () {
   let signers: Signer[];
   let addrs: string[];
 
-  beforeEach(async function () {
+  let snapshot: any;
+
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+  });
+
+  beforeEach(async function () {
+    snapshot = await network.provider.request({
+      method: "evm_snapshot",
+      params: [],
+    });
+  });
+
+  afterEach(async function () {
+    await network.provider.request({
+      method: "evm_revert",
+      params: [snapshot],
+    });
   });
 
   it("deploys with initialization disabled", async function () {
@@ -153,7 +173,9 @@ describe("ReceiverStaking", function () {
   let pond: Contract;
   let receiverStaking: Contract;
 
-  beforeEach(async function () {
+  let snapshot: any;
+
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -177,6 +199,20 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.START_TIME()).to.equal(startTime);
     expect(await receiverStaking.EPOCH_LENGTH()).to.equal(3600);
     expect(await receiverStaking.STAKING_TOKEN()).to.equal(pond.address);
+  });
+
+  beforeEach(async function () {
+    snapshot = await network.provider.request({
+      method: "evm_snapshot",
+      params: [],
+    });
+  });
+
+  afterEach(async function () {
+    await network.provider.request({
+      method: "evm_revert",
+      params: [snapshot],
+    });
   });
 
   it("name is Receiver POND", async function () {
@@ -264,7 +300,7 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2500);
     expect(await pond.balanceOf(addrs[1])).to.equal(500);
 
-    await skipTime(startTime - Math.floor(Date.now()/1000));
+    await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
@@ -288,7 +324,7 @@ describe("ReceiverStaking", function () {
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 2000);
 
-    await skipTime(startTime - Math.floor(Date.now()/1000));
+    await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(1000);
@@ -377,7 +413,7 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2200);
     expect(await pond.balanceOf(addrs[1])).to.equal(700);
 
-    await skipTime(startTime - Math.floor(Date.now()/1000));
+    await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
@@ -406,7 +442,7 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2500);
     expect(await pond.balanceOf(addrs[1])).to.equal(500);
 
-    await skipTime(startTime - Math.floor(Date.now()/1000));
+    await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
