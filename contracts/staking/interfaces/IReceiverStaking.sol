@@ -7,6 +7,12 @@ interface IReceiverStaking {
     /// @param signer Address of signer
     event SignerUpdated(address staker, address signer);
 
+    /// @notice Event emitted when balance at a snapshot is updated
+    /// @param user Address of user whose balance is updated
+    /// @param snapshotId epoch in which balance was updated
+    /// @param balance value to which balance was updated
+    event BalanceUpdate(address user, uint256 snapshotId, uint256 balance);
+
     /// @return Time when earliest epoch starts
     function START_TIME() external view returns(uint256);
 

@@ -33,7 +33,8 @@ describe("Cluster Rewards", async () => {
         let receiverSigners: Signer[];
 
         const MAX_TICKETS = BigNumber.from(10).pow(18);
-        const EPOCH_LENGTH = 4*3600;
+        const DAY = 60*60*24;
+        const EPOCH_LENGTH = 2*60*60;
 
         interface SignedTicket {
             tickets: BigNumberish[];
@@ -130,7 +131,7 @@ describe("Cluster Rewards", async () => {
             console.log(receipt.gasUsed.mul(1600).mul(6).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
 
-        it("multiple epochs (1-6), tickets to all selected clusters", async () => {
+        it("all epochs in a day, tickets to all selected clusters", async () => {
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
             const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
 
@@ -138,7 +139,7 @@ describe("Cluster Rewards", async () => {
             const issuedTickets: BigNumber[][] = [];
             const epochs: number[] = [];
 
-            for(let i=1; i <= 6; i++) {
+            for(let i=1; i <= DAY/EPOCH_LENGTH; i++) {
                 // skip first epoch
                 await skipTime(EPOCH_LENGTH);
                 
@@ -163,7 +164,7 @@ describe("Cluster Rewards", async () => {
                 ethers.utils.id("ETH"), epochs, issuedTickets
             );
             const receipt = await tx.wait();
-            console.log(`gas used for 6 epochs : ${receipt.gasUsed.sub(21000).toNumber()}`);
+            console.log(`gas used for ${DAY/EPOCH_LENGTH} epochs : ${receipt.gasUsed.sub(21000).toNumber()}`);
             console.log(receipt.gasUsed.mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
     });

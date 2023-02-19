@@ -1,7 +1,6 @@
 import { ethers, network, upgrades } from "hardhat";
-import { BigNumber as BN, Signer, Contract, BigNumber, providers } from "ethers";
+import { BigNumber as BN, Signer, Contract } from "ethers";
 import { expect } from "chai";
-import { time, timeStamp } from "console";
 
 const timeToStart = 24 * 60 * 60;
 const runs = 100;
@@ -31,6 +30,124 @@ describe("Receiver Staking before start", function () {
         constructorArgs: [START_TIME, EPOCH_LENGTH, stakingToken.address],
       })
     ).deployed();
+  });
+
+  it.only("deposit and withdraw before start", async () => {
+    const user: Signer = signers[1];
+    const signerAddress: string = await signers[2].getAddress();
+    const anotherUser: Signer = signers[3];
+    const anotherSignerAddress: string = await signers[4].getAddress();;
+    const amount: BN = BN.from(parseInt(Math.random() * 1000 + "") + "0000000000000000");
+    const anotherAmount: BN = BN.from(parseInt(Math.random() * 1000 + "") + "0000000000000000");
+    const withdrawAmount: BN = amount.mul(Math.floor(Math.random() * 10000)).div(10000);
+    const anotherWithdrawAmount: BN = anotherAmount.mul(Math.floor(Math.random() * 10000)).div(10000);
+
+    const userAddress = await user.getAddress();
+    await stakingToken.transfer(userAddress, amount);
+    await stakingToken.connect(user).approve(receiverStaking.address, amount);
+    // deposit in 2 parts
+    const firstPartOfDeposit: BN = amount.mul(Math.floor(Math.random() * 9999 + 1)).div(10000);
+    await receiverStaking.connect(user)["deposit(uint256,address)"](firstPartOfDeposit, signerAddress);
+
+    const anotherUserAddress = await anotherUser.getAddress();
+    await stakingToken.transfer(anotherUserAddress, anotherAmount);
+    await stakingToken.connect(anotherUser).approve(receiverStaking.address, anotherAmount);
+    // deposit in 2 parts
+    const anotherFirstPartOfDeposit: BN = anotherAmount.mul(Math.floor(Math.random() * 9999 + 1)).div(10000);
+    await receiverStaking.connect(anotherUser)["deposit(uint256,address)"](anotherFirstPartOfDeposit, anotherSignerAddress);
+
+    // check balances after first deposit
+    expect(await receiverStaking.balanceOf(userAddress)).to.equal(firstPartOfDeposit);
+    expect(await receiverStaking.balanceOf(anotherUserAddress)).to.equal(anotherFirstPartOfDeposit);
+    expect(await receiverStaking.totalSupply()).to.equal(firstPartOfDeposit.add(anotherFirstPartOfDeposit));
+
+    // deposit remaining amount
+    await receiverStaking.connect(user)["deposit(uint256)"](amount.sub(firstPartOfDeposit));
+    await receiverStaking.connect(anotherUser)["deposit(uint256)"](anotherAmount.sub(anotherFirstPartOfDeposit));
+
+    // cant get data for 0th epoch
+    await expect(receiverStaking.getEpochInfo(0)).to.be.revertedWith("ERC20Snapshot: id is 0");
+    // cant get data for future epochs
+    await expect(receiverStaking.getEpochInfo(1)).to.be.revertedWith("ERC20Snapshot: nonexistent id");
+    await expect(receiverStaking.getEpochInfo(4)).to.be.revertedWith("ERC20Snapshot: nonexistent id");
+
+    // check balances after deposit
+    expect(await receiverStaking.balanceOf(userAddress)).to.equal(amount);
+    expect(await receiverStaking.balanceOf(anotherUserAddress)).to.equal(anotherAmount);
+    expect(await receiverStaking.totalSupply()).to.equal(anotherAmount.add(amount));
+
+    // TODO: Add test for withdraw from random address which might not have balance
+    // can't withdraw more than what is deposited
+    await expect(receiverStaking.connect(user).withdraw(amount.add(1))).to.be.revertedWith("ERC20: burn amount exceeds balance");
+    await expect(receiverStaking.connect(anotherUser).withdraw(anotherAmount.add(1))).to.be.revertedWith("ERC20: burn amount exceeds balance");
+
+    // withdraw some part of deposit
+    await receiverStaking.connect(user).withdraw(withdrawAmount);
+    await receiverStaking.connect(anotherUser).withdraw(anotherWithdrawAmount);
+
+    // check balances after withdraw
+    expect(await receiverStaking.balanceOf(userAddress)).to.equal(amount.sub(withdrawAmount));
+    expect(await receiverStaking.balanceOf(anotherUserAddress)).to.equal(anotherAmount.sub(anotherWithdrawAmount));
+    expect(await receiverStaking.totalSupply()).to.equal(anotherAmount.add(amount).sub(withdrawAmount).sub(anotherWithdrawAmount));
+
+    await timeTravel(timeToStart);
+
+    const {totalStake, currentEpoch} = await receiverStaking.getEpochInfo(1);
+    expect(currentEpoch).to.equal(1, "Incorrect epoch at start");
+    // check user balances
+    expect(await receiverStaking.balanceOf(user)).to.equal(amount.sub(withdrawAmount), "incorrect user balance");
+    expect(await receiverStaking.balanceOfAt(user, 1).to.equal(amount.sub(withdrawAmount), "incorrect user balance at epoch 1"));
+    expect(await receiverStaking.balanceOfSignerAt(signerAddress, 1)).to.equal(amount.sub(withdrawAmount), "incorrect user balance by signer at epoch 1");
+    // check another user balances
+    expect(await receiverStaking.balanceOf(anotherUser)).to.equal(anotherAmount.sub(anotherWithdrawAmount), "incorrect user balance");
+    expect(await receiverStaking.balanceOfAt(anotherUser, 1).to.equal(anotherAmount.sub(anotherWithdrawAmount), "incorrect user balance at epoch 1"));
+    expect(await receiverStaking.balanceOfSignerAt(anotherSignerAddress, 1)).to.equal(anotherAmount.sub(anotherWithdrawAmount), "incorrect user balance by signer at epoch 1");
+    // check total supply
+    expect(await receiverStaking.totalSupply()).to.equal(amount.add(anotherAmount).sub(withdrawAmount).sub(anotherWithdrawAmount), "incorrect total supply");
+    expect(await receiverStaking.totalSupplyAt(1)).to.equal(amount.add(anotherAmount).sub(withdrawAmount).sub(anotherWithdrawAmount), "incorrect total supply at epoch 1");
+  });
+
+  describe.only("Deposit before start", async () => {
+    const user: Signer = signers[1];
+    const signerAddress: string = await signers[2].getAddress();
+    const anotherUser: Signer = signers[3];
+    const anotherSignerAddress: string = await signers[4].getAddress();;
+    const amount: BN = BN.from(parseInt(Math.random() * 1000 + "") + "0000000000000000");
+    const anotherAmount: BN = BN.from(parseInt(Math.random() * 1000 + "") + "0000000000000000");
+
+    beforeEach(async () => {
+      const userAddress = await user.getAddress();
+      await stakingToken.transfer(userAddress, amount);
+      await stakingToken.connect(user).approve(receiverStaking.address, amount);
+      await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
+
+      const anotherUserAddress = await anotherUser.getAddress();
+      await stakingToken.transfer(anotherUserAddress, anotherAmount);
+      await stakingToken.connect(anotherUser).approve(receiverStaking.address, anotherAmount);
+      await receiverStaking.connect(anotherUser)["deposit(uint256,address)"](anotherAmount, anotherSignerAddress);
+
+      await timeTravel(timeToStart);
+    });
+
+    it("check balances for epoch 1", async () => {
+      const {totalStake, currentEpoch} = await receiverStaking.getEpochInfo(1);
+      expect(currentEpoch).to.equal(1, "Incorrect epoch at start");
+      // check user balances
+      expect(await receiverStaking.balanceOf(user)).to.equal(amount, "incorrect user balance");
+      expect(await receiverStaking.balanceOfAt(user, 1).to.equal(amount, "incorrect user balance at epoch 1"));
+      expect(await receiverStaking.balanceOfSignerAt(signerAddress, 1)).to.equal(amount, "incorrect user balance by signer at epoch 1");
+      // check another user balances
+      expect(await receiverStaking.balanceOf(anotherUser)).to.equal(anotherAmount, "incorrect user balance");
+      expect(await receiverStaking.balanceOfAt(anotherUser, 1).to.equal(anotherAmount, "incorrect user balance at epoch 1"));
+      expect(await receiverStaking.balanceOfSignerAt(anotherSignerAddress, 1)).to.equal(anotherAmount, "incorrect user balance by signer at epoch 1");
+      // check total supply
+      expect(await receiverStaking.totalSupply()).to.equal(amount.add(anotherAmount), "incorrect total supply");
+      expect(await receiverStaking.totalSupplyAt(1)).to.equal(amount.add(anotherAmount), "incorrect total supply at epoch 1");
+    });
+
+    it("more withdrawals and deposits in first epoch", async ()  => {
+      
+    })
   });
 
   it("State at start", async () => {
@@ -95,7 +212,7 @@ describe("Admin calls", async () => {
   //     // can't deposit old tokens if staking token updated
   //     const user = signers[5];
   //     const userAddress = await user.getAddress();
-  //     const amount = BigNumber.from(Math.floor(Math.random() * 10) + "000000000000000000");
+  //     const amount = BN.from(Math.floor(Math.random() * 10) + "000000000000000000");
   //     await stakingToken.transfer(userAddress, amount);
   //     await stakingToken.connect(user).approve(receiverStaking.address, amount);
   //     await expect(receiverStaking.connect(user)["deposit(uint256,address)"](amount)).to.be.reverted;
@@ -190,7 +307,7 @@ describe("Receiver Staking at start", async () => {
     const signerAddress = await signers[7].getAddress();
     const userAddress = await user.getAddress();
     receiverStaking = receiverStaking.connect(user);
-    const amount = parseInt(Math.random() * 10 + "") + "000000000000000000";
+    const amount = BN.from(parseInt((Math.random() * 99 + 1) + "") + "00000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
     await expect(receiverStaking["deposit(uint256,address)"](amount, signerAddress)).to.changeTokenBalances(stakingToken, [receiverStaking, user], [amount, "-" + amount]);
@@ -207,7 +324,7 @@ describe("Receiver Staking at start", async () => {
     const user = signers[5];
     const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
-    const amount = parseInt(Math.random() * 10 + "") + "000000000000000000";
+    const amount = BN.from(parseInt((Math.random() * 99 + 1) + "") + "00000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
     await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
@@ -225,7 +342,7 @@ describe("Receiver Staking at start", async () => {
     const user = signers[7];
     const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
-    const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
+    const amount = BN.from(parseInt((Math.random() * 99 + 1) + "") + "00000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
     await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
@@ -245,7 +362,7 @@ describe("Receiver Staking at start", async () => {
     const user = signers[7];
     const signerAddress = await signers[6].getAddress();
     const userAddress = await user.getAddress();
-    const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
+    const amount = BN.from(parseInt((Math.random() * 99 + 1) + "") + "00000000000000000");
     await stakingToken.transfer(userAddress, amount);
     await stakingToken.connect(user).approve(receiverStaking.address, amount);
     await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
@@ -257,16 +374,18 @@ describe("Receiver Staking at start", async () => {
     const { currentEpoch } = await receiverStaking.getEpochInfo(1);
 
     const balance = await receiverStaking.balanceOf(userAddress);
-    expect(balance).to.equal(amount.sub(withdrawalAmount), "incorrect balance after deposit");
+    expect(balance).to.equal(amount.sub(withdrawalAmount), "incorrect balance after deposit and withdraw");
     const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch.toString());
-    expect(epochBalance.toString()).to.equal(amount.sub(withdrawalAmount), "incorrect epoch balance after deposit");
+    const epochTotalSupply = await receiverStaking.totalSupplyAt(currentEpoch.toString());
+    expect(epochBalance.toString()).to.equal(amount.sub(withdrawalAmount), "incorrect user epoch balance after deposit and withdraw");
+    expect(epochTotalSupply).to.equal(epochBalance, "incorrect supply after deposit and withdraw");
   });
 
   it("snapshot maintains min balance during epoch", async () => {
     const user = signers[7];
     const signerAddress = await signers[7].getAddress();
     const userAddress = await user.getAddress();
-    const amount = BigNumber.from(parseInt(Math.random() * 10 + "") + "000000000000000000");
+    const amount = BN.from(parseInt((Math.random() * 99 + 1) + "") + "00000000000000000");
     await stakingToken.transfer(userAddress, amount.mul(2));
     await stakingToken.connect(user).approve(receiverStaking.address, amount.mul(2));
     await receiverStaking.connect(user)["deposit(uint256,address)"](amount, signerAddress);
@@ -280,7 +399,9 @@ describe("Receiver Staking at start", async () => {
     const userBalance = await receiverStaking.balanceOf(userAddress);
     expect(userBalance).to.equal(amount.mul(6).div(5), "incorrect balance after deposit");
     const epochBalance = await receiverStaking.balanceOfAt(userAddress, currentEpoch.toString());
+    const epochTotalSupply = await receiverStaking.totalSupplyAt(currentEpoch.toString());
     expect(epochBalance.toString()).to.equal(amount.mul(4).div(5), "incorrect epoch balance after deposit");
+    expect(epochTotalSupply.toString()).to.equal(amount.mul(4).div(5), "incorrect epoch balance after deposit");
   });
 
   it("snapshot maintain min balance over multiple epochs and multiple deposits per epoch", async () => {
@@ -288,18 +409,18 @@ describe("Receiver Staking at start", async () => {
     const signerAddress = await signers[6].getAddress();
     await receiverStaking.connect(user).setSigner(signerAddress);
     const userAddress = await user.getAddress();
-    const amount = BigNumber.from(parseInt(Math.random() * 1000 + "") + "000000000000000");
+    const amount = BN.from(parseInt((Math.random() * 999 +  1) + "") + "000000000000000");
     const numberOfEpochs = 10;
     const numberOfActionsInEpoch = 100;
     await stakingToken.transfer(userAddress, amount.mul(numberOfEpochs * numberOfActionsInEpoch));
-    let expectedBalance = BigNumber.from(0);
+    let expectedBalance = BN.from(0);
     for (let i = 0; i < numberOfEpochs; i++) {
       let minBalance = await receiverStaking.balanceOf(userAddress);
       let travelTime = 0;
       for (let j = 0; j < numberOfActionsInEpoch; j++) {
         const rand = parseInt(Math.random() * 2 + "");
         if (rand == 0) {
-          const randAmount = BigNumber.from(parseInt(Math.random() * 999 + 1 + "") + "000000000000000");
+          const randAmount = BN.from(parseInt((Math.random() * 999 + 1) + "") + "000000000000000");
           expectedBalance = expectedBalance.add(randAmount);
           await stakingToken.connect(user).approve(receiverStaking.address, randAmount);
           await receiverStaking.connect(user)["deposit(uint256)"](randAmount);

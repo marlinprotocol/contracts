@@ -3,7 +3,8 @@ import { BigNumber, BigNumberish, Signer, utils, Wallet } from "ethers";
 import { deploy as deployClusterRewards } from "../../deployments/staking/ClusterRewards";
 import { deploy as deployEpochSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
-import cluster from "cluster";
+
+const EPOCH_LENGTH  = 2*60*60;
 
 export async function deployFixture() {
     const signers = await ethers.getSigners();
@@ -17,9 +18,9 @@ export async function deployFixture() {
         kind: "uups",
     });
 
-    const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, 4*3600, pond.address, true);
+    const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
 
-    const epochSelector = await deployEpochSelector("ETH", addrs[1], addrs[0], blockData.timestamp, 4 * 3600, {
+    const epochSelector = await deployEpochSelector("ETH", addrs[1], addrs[0], blockData.timestamp, EPOCH_LENGTH, {
         token: pond.address,
         amount: ethers.utils.parseEther('1').toString()
     }, true);
@@ -39,7 +40,7 @@ export async function deployFixture() {
 }
 
 export async function initDataFixture() {
-    const nodesToInsert: number = 200;
+    const nodesToInsert: number = 75;
     const receiverCount: number = 100;
 
     const signers = await ethers.getSigners();

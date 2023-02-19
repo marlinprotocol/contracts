@@ -63,9 +63,9 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         uint256[] values;
     }
 
-    //  NOTE: Exposes balance snapshots of an account which is not present in standard OZ contract
+    //  NOTE: Exposes balance and total supply snapshots of an account which is not present in standard OZ contract
     mapping(address => Snapshots) _accountBalanceSnapshots;
-    Snapshots private _totalSupplySnapshots;
+    Snapshots _totalSupplySnapshots;
 
     // Snapshot ids increase monotonically, with the first value being 1. An id of 0 is invalid.
     CountersUpgradeable.Counter private _currentSnapshotId;

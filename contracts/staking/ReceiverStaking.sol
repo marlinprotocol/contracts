@@ -128,6 +128,7 @@ contract ReceiverStaking is
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
+        if(block.timestamp < START_TIME) return 0;
         return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
     }
 
@@ -137,22 +138,49 @@ contract ReceiverStaking is
         uint256 amount
     ) internal override {
         require(from == address(0) || to == address(0), "Staking Positions transfer not allowed");
-        if(block.timestamp < START_TIME) return;
         super._beforeTokenTransfer(from, to, amount);
     }
 
     function _afterTokenTransfer(
-        address from, 
-        address to, 
+        address _from,
+        address _to,
         uint256
-    ) internal override {
-        if(to == address(0)) {
+    ) internal virtual override {
+        if(_to == address(0)) {
             // burn
-            uint256 _updatedBalance = balanceOf(from);
-            Snapshots storage userSnapshots = _accountBalanceSnapshots[from];
-            if(userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
-                // current balance is lowest in epoch
+            uint256 _updatedBalance = balanceOf(_from);
+            Snapshots storage userSnapshots = _accountBalanceSnapshots[_from];
+            if(
+                userSnapshots.values.length > 0 &&
+                userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance
+            ) {
+                uint256 _dropInMin = userSnapshots.values[userSnapshots.values.length - 1] - _updatedBalance;
+                uint256 _currentSnapshotId = _getCurrentSnapshotId();
+                uint256 _previousSnapshotId = _currentSnapshotId - 1;
+                // Lowest balance in epoch
+                if(
+                    userSnapshots.values.length == 1 ||
+                    userSnapshots.ids[userSnapshots.values.length - 2] != _previousSnapshotId
+                ) {
+                    // Last epoch didn't have a snapshot for user
+                    userSnapshots.ids[userSnapshots.ids.length - 1] = _previousSnapshotId;
+                    userSnapshots.ids.push(_currentSnapshotId);
+                    userSnapshots.values.push(_updatedBalance);
+                }
+                if(
+                    _totalSupplySnapshots.values.length == 1 ||
+                    _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 2] != _previousSnapshotId
+                ) {
+                    // Previous epoch didn't have a snapshot
+                    _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 1] = _previousSnapshotId;
+                    _totalSupplySnapshots.ids.push(_currentSnapshotId);
+                    _totalSupplySnapshots.values.push(
+                        _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1]
+                    );
+                }
+                _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1] -= _dropInMin;
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;
+                emit BalanceUpdate(_from, _currentSnapshotId, _updatedBalance);
             }
         }
     }
