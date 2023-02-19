@@ -79,9 +79,22 @@ describe("Testing Cluster Selector", function () {
   });
 
   describe("Test after inserting", function () {
+    let snapshot: any;
     beforeEach(async () => {
       let role = await clusterSelector.UPDATER_ROLE();
       await clusterSelector.connect(admin).grantRole(role, updater.address);
+
+      snapshot = await network.provider.request({
+        method: "evm_snapshot",
+        params: [],
+      });
+    });
+
+    afterEach(async function () {
+      await network.provider.request({
+        method: "evm_revert",
+        params: [snapshot],
+      });
     });
 
     it("Add a number", async () => {
