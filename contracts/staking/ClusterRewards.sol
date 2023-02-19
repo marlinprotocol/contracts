@@ -269,6 +269,7 @@ contract ClusterRewards is
                 _totalNetworkRewardsPerEpoch, 
                 _epochTotalStake
             );
+            emit TicketsIssued(_networkId, _epoch, _signer);
         }
     }
 
