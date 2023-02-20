@@ -37,7 +37,7 @@ export async function deploy(admin?: string, startTime?: number, epochLength?: n
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
   if(stakingToken == undefined) stakingToken = chainConfig.staking.receiver.token;
 
-  let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [ admin ], { 
+  let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [ admin, "Receiver POND", "rPOND" ], { 
     kind: "uups",
     constructorArgs: [
       startTime,

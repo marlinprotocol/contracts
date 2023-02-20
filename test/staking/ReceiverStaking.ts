@@ -232,6 +232,63 @@ describe("ReceiverStaking", function () {
   });
 });
 
+describe("Receiver Staking signer functions", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let pond: Contract;
+  let receiverStaking: Contract;
+
+  let snapshot: any;
+
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, pond.address],
+      }
+    );
+  });
+
+  beforeEach(async function () {
+    snapshot = await network.provider.request({
+      method: "evm_snapshot",
+      params: [],
+    });
+  });
+
+  afterEach(async function () {
+    await network.provider.request({
+      method: "evm_revert",
+      params: [snapshot],
+    });
+  });
+
+  it("user can set signer", async () => {
+    const user1 = signers[1];
+    const signerAddr1 = addrs[2];
+    const user2 = signers[3];
+    const signerAddr2 = addrs[4];
+
+    await receiverStaking.connect(user1).setSigner(ethers.constants.AddressZero);
+    await receiverStaking.connect(user1).setSigner(signerAddr1);
+    await receiverStaking.connect(user2).setSigner(signerAddr2);
+    await expect(receiverStaking.connect(user1).setSigner(signerAddr2)).to.be.revertedWith("signer has a staker");
+
+    await receiverStaking.connect(user1).setSigner(ethers.constants.AddressZero);
+    await receiverStaking.connect(user2).setSigner(signerAddr1);
+    await receiverStaking.connect(user1).setSigner(signerAddr2);
+  })
+});
+
 describe("ReceiverStaking", function () {
   let signers: Signer[];
   let addrs: string[];

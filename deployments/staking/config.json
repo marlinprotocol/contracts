@@ -8,7 +8,7 @@
             ]
         },
         "startTime": 1673222400,
-        "epochLength": 14400,
+        "epochLength": 900,
         "noOfClustersToSelect": 5,
         "selectionReward": {
             "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
