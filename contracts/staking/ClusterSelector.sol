@@ -150,20 +150,19 @@ contract ClusterSelector is
     }
 
     function selectClusters() public returns (address[] memory _selectedClusters) {
-        uint256 nextEpoch = getCurrentEpoch() + 1;
-        _selectedClusters = clustersSelected[nextEpoch];
+        uint256 _epoch = getCurrentEpoch() + 1;
+        _selectedClusters = clustersSelected[_epoch];
+        require(_selectedClusters.length == 0);
 
-        if (_selectedClusters.length == 0) {
-            // select and save from the tree
-            uint256 randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
-            _selectedClusters = _selectN(randomizer, numberOfClustersToSelect);
-            clustersSelected[nextEpoch] = _selectedClusters;
-            for (uint256 index = 0; index < _selectedClusters.length; index++) {
-                emit ClusterSelected(nextEpoch, _selectedClusters[index]);
-            }
-
-            _dispenseReward(msg.sender);
+        // select and save from the tree
+        uint256 _randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
+        _selectedClusters = _selectN(_randomizer, numberOfClustersToSelect);
+        clustersSelected[_epoch] = _selectedClusters;
+        for (uint256 _index = 0; _index < _selectedClusters.length; _index++) {
+            emit ClusterSelected(_epoch, _selectedClusters[_index]);
         }
+
+        _dispenseReward(_msgSender());
     }
 
     /// @notice Updates the missing cluster in case epoch was not selected by anyone
