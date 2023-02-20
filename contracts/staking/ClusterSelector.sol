@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./tree/TreeUpgradeable.sol";
-import "./interfaces/IClusterSelector.sol";
+
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract ClusterSelector is
@@ -22,29 +22,57 @@ contract ClusterSelector is
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable,  // public upgrade,
-    TreeUpgradeable, // storage tree
-    IClusterSelector // interface
+    TreeUpgradeable // storage tree
 {
+    // in case we add more contracts in the inheritance chain
+    uint256[500] private __gap_0;
+
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    /// @notice initializes the logic contract without any admins
+    //          safeguard against takeover of the logic contract
+    /// @dev startTime and epochLength should match the values in receiverStaking.
+    ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor(uint256 _startTime, uint256 _epochLength) initializer {
+        START_TIME = _startTime;
+        EPOCH_LENGTH = _epochLength;
+    }
+
+    //-------------------------------- Overrides start --------------------------------//
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._grantRole(role, account);
+    }
+
+    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+        super._revokeRole(role, account);
+
+        // protect against accidentally removing all admins
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+    }
+
+    function _authorizeUpgrade(address /*account*/) onlyRole(DEFAULT_ADMIN_ROLE) internal view override {}
+
+    //-------------------------------- Overrides end --------------------------------//
 
     //-------------------------------- Constants start --------------------------------//
 
     /// @notice ID for update role
-    bytes32 public constant UPDATER_ROLE = keccak256(abi.encode("updater"));
-
-    /// @notice ID for admin role
-    bytes32 public constant ADMIN_ROLE = keccak256(abi.encode("admin"));
+    bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     /// @notice ID for reward control
-    bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256(abi.encode("reward-control"));
+    bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256("REWARD_CONTROLLER_ROLE");
 
-    /// @inheritdoc IClusterSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable override START_TIME;
+    uint256 public immutable START_TIME;
 
-    /// @inheritdoc IClusterSelector
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable override EPOCH_LENGTH;
+    uint256 public immutable EPOCH_LENGTH;
 
     //-------------------------------- Constants end --------------------------------//
 
@@ -61,6 +89,8 @@ contract ClusterSelector is
 
     /// @notice Reward Token
     address public rewardToken;
+
+    uint256[46] private __gap_1;
 
     //-------------------------------- Variables end --------------------------------//
 
@@ -85,38 +115,7 @@ contract ClusterSelector is
 
     //-------------------------------- Events end --------------------------------//
 
-    //-------------------------------- Overrides start --------------------------------//
-
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-
-    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super._grantRole(role, account);
-    }
-
-    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
-        super._revokeRole(role, account);
-
-        // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
-    }
-
-    function _authorizeUpgrade(address /*account*/) onlyRole(ADMIN_ROLE) internal view override {}
-
-    //-------------------------------- Overrides end --------------------------------//
-
     //-------------------------------- Init starts --------------------------------/
-
-    /// @notice initializes the logic contract without any admins
-    //          safeguard against takeover of the logic contract
-    /// @dev startTime and epochLength should match the values in receiverStaking.
-    ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 _startTime, uint256 _epochLength) initializer {
-        START_TIME = _startTime;
-        EPOCH_LENGTH = _epochLength;
-    }
 
     function initialize(
         address _admin,
@@ -125,7 +124,6 @@ contract ClusterSelector is
         address _rewardToken,
         uint256 _rewardForSelectingClusters
     ) external initializer {
-
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
@@ -134,39 +132,34 @@ contract ClusterSelector is
         __UUPSUpgradeable_init_unchained();
         __TreeUpgradeable_init_unchained();
 
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(REWARD_CONTROLLER_ROLE, _admin);
+        _setupRole(UPDATER_ROLE, _updater);
+
         numberOfClustersToSelect = _numberOfClustersToSelect;
-
-        _setRoleAdmin(REWARD_CONTROLLER_ROLE, ADMIN_ROLE);
-        _setRoleAdmin(UPDATER_ROLE, ADMIN_ROLE);
-        _grantRole(REWARD_CONTROLLER_ROLE, _admin);
-        _grantRole(ADMIN_ROLE, _admin);
-        _grantRole(UPDATER_ROLE, _updater);
-
-        rewardToken = _rewardToken;
         rewardForSelectingClusters = _rewardForSelectingClusters;
+        rewardToken = _rewardToken;
     }
 
     //-------------------------------- Init ends --------------------------------//
 
     //-------------------------------- Cluster Selection starts --------------------------------//
 
-    /// @inheritdoc IClusterSelector
-    function getCurrentEpoch() public view override returns (uint256) {
+    function getCurrentEpoch() public view returns (uint256) {
         return (block.timestamp - START_TIME) / EPOCH_LENGTH;
     }
 
-    /// @inheritdoc IClusterSelector
-    function selectClusters() public override returns (address[] memory selectedClusters) {
+    function selectClusters() public returns (address[] memory _selectedClusters) {
         uint256 nextEpoch = getCurrentEpoch() + 1;
-        selectedClusters = clustersSelected[nextEpoch];
+        _selectedClusters = clustersSelected[nextEpoch];
 
-        if (selectedClusters.length == 0) {
+        if (_selectedClusters.length == 0) {
             // select and save from the tree
             uint256 randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
-            selectedClusters = _selectN(randomizer, numberOfClustersToSelect);
-            clustersSelected[nextEpoch] = selectedClusters;
-            for (uint256 index = 0; index < selectedClusters.length; index++) {
-                emit ClusterSelected(nextEpoch, selectedClusters[index]);
+            _selectedClusters = _selectN(randomizer, numberOfClustersToSelect);
+            clustersSelected[nextEpoch] = _selectedClusters;
+            for (uint256 index = 0; index < _selectedClusters.length; index++) {
+                emit ClusterSelected(nextEpoch, _selectedClusters[index]);
             }
 
             _dispenseReward(msg.sender);
@@ -202,42 +195,35 @@ contract ClusterSelector is
 
     //-------------------------------- Tree interactions starts --------------------------------//
 
-    /// @inheritdoc IClusterSelector
-    function upsert(address newNode, uint64 balance) external override onlyRole(UPDATER_ROLE) {
+    function upsert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _upsert(newNode, balance);
     }
 
-    /// @inheritdoc IClusterSelector
-    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external override onlyRole(UPDATER_ROLE) {
+    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
             _upsert(newNodes[i], balances[i]);
         }
     }
 
-    /// @inheritdoc IClusterSelector
-    function insert_unchecked(address newNode, uint64 balance) external override onlyRole(UPDATER_ROLE) {
+    function insert_unchecked(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _insert_unchecked(newNode, balance);
     }
 
-    /// @inheritdoc IClusterSelector
-    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external override onlyRole(UPDATER_ROLE) {
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
         for(uint256 i=0; i < newNodes.length; i++) {
             _insert_unchecked(newNodes[i], balances[i]);
         }
     }
 
-    /// @inheritdoc IClusterSelector
-    function update_unchecked(address node, uint64 balance) external override onlyRole(UPDATER_ROLE) {
+    function update_unchecked(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _update_unchecked(node, balance);
     }
 
-    /// @inheritdoc IClusterSelector
-    function delete_unchecked(address node) external override onlyRole(UPDATER_ROLE) {
+    function delete_unchecked(address node) external onlyRole(UPDATER_ROLE) {
         _delete_unchecked(node, addressToIndexMap[node]);
     }
 
-    /// @inheritdoc IClusterSelector
-    function deleteIfPresent(address node) external override onlyRole(UPDATER_ROLE) {
+    function deleteIfPresent(address node) external onlyRole(UPDATER_ROLE) {
         _deleteIfPresent(node);
     }
 
@@ -245,8 +231,7 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions starts --------------------------------//
 
-    /// @inheritdoc IClusterSelector
-    function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external override onlyRole(ADMIN_ROLE) {
+    function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
         numberOfClustersToSelect = _numberOfClusters;
         emit UpdateNumberOfClustersToSelect(_numberOfClusters);
@@ -285,8 +270,7 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions ends --------------------------------//
 
-    /// @inheritdoc IClusterSelector
-    function getClusters(uint256 epochNumber) public override view returns (address[] memory) {
+    function getClusters(uint256 epochNumber) public view returns (address[] memory) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
         require(epochNumber <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
