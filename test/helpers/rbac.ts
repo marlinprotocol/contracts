@@ -1,7 +1,6 @@
-import { ethers, network } from "hardhat";
-import { Signer, Contract } from "ethers";
 import { expect } from "chai";
-
+import { Contract, Signer } from "ethers";
+import { ethers, network } from "hardhat";
 
 export function testAdminRole(name: string, deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>) {
   describe(name, function () {
@@ -78,7 +77,6 @@ export function testAdminRole(name: string, deployer: (signers: Signer[], addrs:
   });
 }
 
-
 export function testRole(name: string, deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>, role: string) {
   describe(name, function () {
     let signers: Signer[];
@@ -97,15 +95,15 @@ export function testRole(name: string, deployer: (signers: Signer[], addrs: stri
 
     beforeEach(async function () {
       snapshot = await network.provider.request({
-	method: "evm_snapshot",
-	params: [],
+        method: "evm_snapshot",
+        params: [],
       });
     });
 
     afterEach(async function () {
       await network.provider.request({
-	method: "evm_revert",
-	params: [snapshot],
+        method: "evm_revert",
+        params: [snapshot],
       });
     });
 
@@ -142,4 +140,3 @@ export function testRole(name: string, deployer: (signers: Signer[], addrs: stri
     });
   });
 }
-

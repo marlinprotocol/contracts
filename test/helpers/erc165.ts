@@ -1,9 +1,12 @@
-import { ethers } from "hardhat";
-import { Signer, Contract } from "ethers";
 import { expect } from "chai";
+import { Contract, Signer } from "ethers";
+import { ethers, network } from "hardhat";
 
-
-export function testERC165(name: string, deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>, interfaces: {[key: string]: string[]} = {}) {
+export function testERC165(
+  name: string,
+  deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>,
+  interfaces: { [key: string]: string[] } = {}
+) {
   describe(name, function () {
     let signers: Signer[];
     let addrs: string[];
@@ -47,7 +50,7 @@ export function testERC165(name: string, deployer: (signers: Signer[], addrs: st
       expect(await contract.supportsInterface("0xffffffff")).to.be.false;
     });
 
-    Object.keys(interfaces).map(iname => {
+    Object.keys(interfaces).map((iname) => {
       it(`supports ${iname}`, async function () {
         const iid = makeInterfaceId(interfaces[iname]);
         expect(await contract.supportsInterface(iid)).to.be.true;
@@ -55,4 +58,3 @@ export function testERC165(name: string, deployer: (signers: Signer[], addrs: st
     });
   });
 }
-

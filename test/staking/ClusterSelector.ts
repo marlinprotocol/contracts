@@ -1,10 +1,15 @@
-import { ethers, network, upgrades } from "hardhat";
-import { BigNumber as BN } from "bignumber.js";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { isAddress, keccak256 } from "ethers/lib/utils";
+import { BigNumber as BN } from "bignumber.js";
 import { expect } from "chai";
-import { Contract } from "ethers";
 import dotenv from "dotenv";
+import { BigNumber } from "ethers";
+import { isAddress, keccak256 } from "ethers/lib/utils";
+import { ethers, upgrades } from "hardhat";
+import { ClusterSelector, Pond } from "../../typechain-types";
+import { FuzzedAddress, FuzzedNumber } from "../../utils/fuzzer";
+import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
+import { getClusterSelector, getPond } from "../../utils/typechainConvertor";
+import { BIG_ZERO, getRandomElementsFromArray, skipBlocks, skipTime } from "../helpers/common";
 
 dotenv.config();
 
@@ -22,17 +27,18 @@ type Counter = {
 
 let totalNumberOfElementsUsedInTest: number; //to be used globally on this test.
 
-describe("Testing Cluster Selector", function () {
-  let clusterSelector: Contract;
+describe("Testing Epoch Selector", function () {
+  let clusterSelector: ClusterSelector;
+  let pondInstance: Pond;
   let admin: SignerWithAddress;
   let user: SignerWithAddress;
   let updater: SignerWithAddress;
 
   let numberOfClustersToSelect: number = 5;
   let numberOfAddressesWithLargeBalances = 10;
-  let numberOfElementsInTree = 300 - numberOfAddressesWithLargeBalances;
+  let numberOfElementsInTree = 12 - numberOfAddressesWithLargeBalances;
 
-  let numberOfSelections: number = 1000; // number of trials
+  let numberOfSelections: number = 2; // number of trials
 
   totalNumberOfElementsUsedInTest = numberOfElementsInTree + numberOfAddressesWithLargeBalances;
 
@@ -43,7 +49,7 @@ describe("Testing Cluster Selector", function () {
     numberOfSelections = 1000;
   }
 
-  beforeEach(async () => {
+  before(async () => {
     [admin, user, updater] = await ethers.getSigners();
     const blockNum = await ethers.provider.getBlockNumber();
     const blockData = await ethers.provider.getBlock(blockNum);
@@ -52,9 +58,10 @@ describe("Testing Cluster Selector", function () {
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
       kind: "uups",
     });
+    pondInstance = getPond(pond.address, admin);
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    clusterSelector = await upgrades.deployProxy(ClusterSelector, [
+    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
       admin.address,
       "0x000000000000000000000000000000000000dEaD",
       numberOfClustersToSelect,
@@ -64,7 +71,10 @@ describe("Testing Cluster Selector", function () {
       kind: "uups",
       constructorArgs: [blockData.timestamp, 4*60*60]
     });
+    clusterSelector = getClusterSelector(clusterSelectorContract.address, admin);
   });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("Check deployment", async () => {
     expect(isAddress(clusterSelector.address)).eq(true);
@@ -78,23 +88,25 @@ describe("Testing Cluster Selector", function () {
     );
   });
 
+  it("Check flushing tokens", async () => {
+    const Pond = await ethers.getContractFactory("Pond");
+    const pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    await pond.transfer(clusterSelector.address, new BN(10).pow(18).multipliedBy("10000000000").toFixed());
+
+    await clusterSelector.connect(admin).flushTokens(pond.address, await user.getAddress()); // admin is reward controller in this suite
+  });
+
   describe("Test after inserting", function () {
-    let snapshot: any;
-    beforeEach(async () => {
+    before(async () => {
       let role = await clusterSelector.UPDATER_ROLE();
       await clusterSelector.connect(admin).grantRole(role, updater.address);
-
-      snapshot = await network.provider.request({
-        method: "evm_snapshot",
-        params: [],
-      });
     });
 
-    afterEach(async function () {
-      await network.provider.request({
-        method: "evm_revert",
-        params: [snapshot],
-      });
+    it("update reward token", async () => {
+      const randomTokenAddress = ethers.utils.getAddress(FuzzedAddress.random());
+      await expect(clusterSelector.connect(admin).updateRewardToken(randomTokenAddress))
+        .to.emit(clusterSelector, "UpdateRewardToken")
+        .withArgs(randomTokenAddress);
     });
 
     it("Add a number", async () => {
@@ -105,7 +117,106 @@ describe("Testing Cluster Selector", function () {
       expect(node.value).eq(1);
     });
 
-    it("Multiple entry call", async () => {
+    it("should fail: select clusters when not clusters selected in previous epoch", async () => {
+      await skipTime(ethers, 5 * 4 * 3600);
+      await skipBlocks(ethers, 1);
+
+      const nextEpoch = (await clusterSelector.getCurrentEpoch()).add(1);
+
+      await expect(clusterSelector.getClusters(nextEpoch)).to.be.revertedWith("6"); // 6 = cluster selection not complete.... try removing hardcoding
+    });
+
+    it("no cluster should be selected in 0th epoch", async () => {
+      expect(await clusterSelector.getClusters(0)).to.be.empty;
+    });
+
+    it("update number of clusters to select", async () => {
+      await expect(clusterSelector.connect(admin).updateNumberOfClustersToSelect(10))
+        .to.emit(clusterSelector, "UpdateNumberOfClustersToSelect")
+        .withArgs(10);
+    });
+
+    it("update missing clusters", async () => {
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 20; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+      await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
+
+      await skipTime(ethers, 1 * 3600);
+      await skipBlocks(ethers, 1);
+
+      await clusterSelector.selectClusters();
+
+      await skipTime(ethers, 6 * 3600);
+      await skipBlocks(ethers, 1);
+
+      const newEpoch = await clusterSelector.getCurrentEpoch();
+
+      // make some random transaction
+      await pondInstance.transfer(clusterSelector.address, 1);
+
+      await clusterSelector.connect(updater).updateMissingClusters(newEpoch.sub(1));
+    });
+
+    it("Check token dispensation", async () => {
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 20; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+      await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
+
+      await skipTime(ethers, 4 * 3600);
+      await skipBlocks(ethers, 1);
+
+      const reward = await clusterSelector.rewardForSelectingClusters();
+      await pondInstance.transfer(clusterSelector.address, reward);
+
+      await expect(() => clusterSelector.selectClusters()).to.changeTokenBalances(
+        pondInstance,
+        [admin, clusterSelector],
+        [reward, BIG_ZERO.sub(reward)]
+      );
+    });
+
+    it("if selection is missed, last selected clusters should ", async () => {
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 20; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+      await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
+
+      await skipTime(ethers, 4 * 3600);
+      await skipBlocks(ethers, 1);
+      const currentEpoch = await clusterSelector.getCurrentEpoch();
+      await clusterSelector.selectClusters();
+
+      const selectionEpoch = currentEpoch.add(1);
+      const clusters = await clusterSelector.getClusters(selectionEpoch);
+
+      await skipTime(ethers, 4 * 3600);
+      await skipBlocks(ethers, 1);
+
+      const newEpoch = await clusterSelector.getCurrentEpoch();
+      const newClusters = await clusterSelector.getClusters(newEpoch);
+
+      for (let index = 0; index < newClusters.length; index++) {
+        const element = newClusters[index];
+        expect(clusters.includes(element)).to.be.true;
+      }
+    });
+
+    it("Multiple entry call", async function () {
+      this.timeout(100000);
       const addresses = [];
       const balances = [];
       for (let index = 0; index < 200; index++) {
@@ -117,18 +228,96 @@ describe("Testing Cluster Selector", function () {
       await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
     });
 
+    it("Delete all elements from tree", async function () {
+      this.timeout(300000);
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 200; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+
+      await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
+
+      for (let index = 0; index < addresses.length; index++) {
+        const element = addresses[index];
+        await clusterSelector.connect(updater).delete_unchecked(element);
+        if (index % 10 == 0) {
+          await clusterSelector.connect(updater).deleteIfPresent(element);
+        }
+      }
+    });
+
+    it("check upsert", async function () {
+      this.timeout(100000);
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 200; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+
+      const sortedAddresses = addresses.filter((val, index) => index % 2 == 0);
+      const sortedBalances = balances.filter((val, index) => index % 2 == 0);
+
+      await clusterSelector.connect(updater).insertMultiple_unchecked(sortedAddresses, sortedBalances);
+      await clusterSelector.connect(updater).upsertMultiple(
+        addresses,
+        balances.map((a) => FuzzedNumber.randomInRange(1, BigNumber.from(a).mul(10)))
+      );
+
+      await clusterSelector.connect(updater).upsert(getRandomElementsFromArray(addresses, 1)[0], FuzzedNumber.randomInRange(200, 2000));
+    });
+
+    it("delete if present", async function() {
+      this.timeout(100000);
+      const addresses = [];
+      const balances = [];
+      for (let index = 0; index < 200; index++) {
+        const address = randomAddressGenerator("salt" + index);
+        addresses.push(address);
+        balances.push(getRandomNumber());
+      }
+
+      await clusterSelector.connect(updater).insertMultiple_unchecked(addresses, balances);
+
+      const addressNotPresent = FuzzedAddress.random();
+      // TODO
+      // await expect(clusterSelector.connect(updater).delete_unchecked(addressNotPresent)).to.be.reverted;
+
+      await clusterSelector.connect(updater).deleteIfPresent(addressNotPresent);
+      await clusterSelector.connect(updater).deleteIfPresent(getRandomElementsFromArray(addresses, 1)[0]);
+    });
+
     it("Total Clusters less than clusters to select", async () => {
+      const MAX_ELEMS_AT_ONCE = 49;
       const allAddresses = [];
+      let tempAddress: string[] = [];
+      let balance: number[] = [];
+
       const noOfElements = Math.floor(Math.random() * numberOfClustersToSelect) + 1;
       for (let index = 0; index < noOfElements; index++) {
         const address = randomAddressGenerator("salt" + index);
-        await clusterSelector.connect(updater).insert_unchecked(address, getRandomNumber());
+        // await clusterSelector.connect(updater).insert_unchecked(address, getRandomNumber());
+        tempAddress.push(address);
+        balance.push(getRandomNumber());
 
-        if (index % 100 == 0 || index == noOfElements - 1) {
+        if (noOfElements > 100 && (index % 100 == 0 || index == noOfElements - 1)) {
           console.log(`Elements in tree ${index}/${noOfElements}`);
         }
 
+        if (tempAddress.length >= MAX_ELEMS_AT_ONCE) {
+          await clusterSelector.connect(updater).insertMultiple_unchecked(tempAddress, balance);
+          tempAddress = [];
+          balance = [];
+        }
         allAddresses.push(ethers.utils.getAddress(address));
+      }
+
+      for (let index = 0; index < tempAddress.length; index++) {
+        await clusterSelector.connect(updater).insert_unchecked(tempAddress[index], balance[index]);
       }
 
       await clusterSelector.selectClusters();
@@ -140,16 +329,32 @@ describe("Testing Cluster Selector", function () {
     });
 
     it("Multiple entries", async () => {
+      const MAX_ELEMS_AT_ONCE = 59;
       const allAddresses = [];
+      let tempAddress: string[] = [];
+      let balance: number[] = [];
+
       for (let index = 0; index < numberOfElementsInTree; index++) {
         const address = randomAddressGenerator("salt" + index);
-        await clusterSelector.connect(updater).insert_unchecked(address, getRandomNumber());
+        // await clusterSelector.connect(updater).insert_unchecked(address, getRandomNumber());
+        tempAddress.push(address);
+        balance.push(getRandomNumber());
 
-        if (index % 100 == 0 || index == numberOfElementsInTree - 1) {
+        if (numberOfElementsInTree > 200 && (index % 100 == 0 || index == numberOfElementsInTree - 1)) {
           console.log(`Elements in tree ${index}/${numberOfElementsInTree}`);
         }
 
+        if (tempAddress.length >= MAX_ELEMS_AT_ONCE) {
+          await clusterSelector.connect(updater).insertMultiple_unchecked(tempAddress, balance);
+          tempAddress = [];
+          balance = [];
+        }
+
         allAddresses.push(address);
+      }
+
+      for (let index = 0; index < tempAddress.length; index++) {
+        await clusterSelector.connect(updater).insert_unchecked(tempAddress[index], balance[index]);
       }
 
       const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
@@ -255,7 +460,7 @@ function containsDuplicates(array: string[]) {
 
 async function getUnSelectedClustersData(
   account: SignerWithAddress,
-  clusterSelector: Contract,
+  clusterSelector: ClusterSelector,
   allAddresses: string[],
   selectedAddresses: string[]
 ): Promise<Balances[]> {
@@ -285,7 +490,7 @@ async function getUnSelectedClustersData(
   return balances;
 }
 
-async function getSelectedClusters(account: SignerWithAddress, clusterSelector: Contract): Promise<Balances[]> {
+async function getSelectedClusters(account: SignerWithAddress, clusterSelector: ClusterSelector): Promise<Balances[]> {
   await clusterSelector.connect(account).selectClusters();
   const clustersSelected = await clusterSelector.connect(account).callStatic.selectClusters();
 
@@ -341,7 +546,7 @@ function getRandomNumber(): number {
 
 async function addAddressWithLargeBalance(
   numberOfAddressesWithLargeBalances: number,
-  clusterSelector: Contract,
+  clusterSelector: ClusterSelector,
   updater: SignerWithAddress
 ): Promise<string[]> {
   const addressesToNote: string[] = [];

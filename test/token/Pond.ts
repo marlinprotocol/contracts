@@ -5,7 +5,6 @@ import { BigNumber as BN, Signer, Contract } from "ethers";
 import { testERC165 } from "../helpers/erc165.ts";
 import { testAdminRole, testRole } from "../helpers/rbac.ts";
 
-
 declare module "ethers" {
   interface BigNumber {
     e18(this: BigNumber): BigNumber;
@@ -58,29 +57,25 @@ describe("Pond", function () {
   });
 });
 
-
-testERC165("Pond", async function () {
-  const Pond = await ethers.getContractFactory("Pond");
-  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-  return pond;
-}, {
-  "IAccessControl": [
-    "hasRole(bytes32,address)",
-    "getRoleAdmin(bytes32)",
-    "grantRole(bytes32,address)",
-    "revokeRole(bytes32,address)",
-    "renounceRole(bytes32,address)",
-  ],
-  "IAccessControlEnumerable": [
-    "getRoleMember(bytes32,uint256)",
-    "getRoleMemberCount(bytes32)"
-  ],
-  "IArbToken": [
-    "bridgeMint(address,uint256)",
-    "bridgeBurn(address,uint256)",
-    "l1Address()",
-  ],
-});
+testERC165(
+  "Pond",
+  async function () {
+    const Pond = await ethers.getContractFactory("Pond");
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    return pond;
+  },
+  {
+    IAccessControl: [
+      "hasRole(bytes32,address)",
+      "getRoleAdmin(bytes32)",
+      "grantRole(bytes32,address)",
+      "revokeRole(bytes32,address)",
+      "renounceRole(bytes32,address)",
+    ],
+    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
+    IArbToken: ["bridgeMint(address,uint256)", "bridgeBurn(address,uint256)", "l1Address()"],
+  }
+);
 
 testAdminRole("Pond", async function (signers: Signer[], addrs: string[]) {
   const Pond = await ethers.getContractFactory("Pond");
@@ -173,11 +168,15 @@ describe("Pond", function () {
   });
 });
 
-testRole("Pond", async function (signers: Signer[], addrs: string[]) {
-  const Pond = await ethers.getContractFactory("Pond");
-  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-  return pond;
-}, "BRIDGE_ROLE");
+testRole(
+  "Pond",
+  async function (signers: Signer[], addrs: string[]) {
+    const Pond = await ethers.getContractFactory("Pond");
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    return pond;
+  },
+  "BRIDGE_ROLE"
+);
 
 describe("Pond", function () {
   let signers: Signer[];

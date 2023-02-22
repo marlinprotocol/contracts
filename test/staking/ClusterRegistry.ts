@@ -1,12 +1,32 @@
-import { ethers, upgrades } from "hardhat";
-import { deployMockContract } from "@ethereum-waffle/mock-contract";
+import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
-import { BigNumber as BN, Signer, Contract } from "ethers";
-const stakingConfig = require("../config/staking.json");
+import { BigNumber as BN, Contract, Signer } from "ethers";
+import { ethers, upgrades } from "hardhat";
 
-import { testERC165 } from "../helpers/erc165.ts";
-import { testAdminRole, testRole } from "../helpers/rbac.ts";
-
+import {
+  ClusterRegistry,
+  ClusterRewards,
+  ClusterSelector,
+  MPond,
+  Pond,
+  ReceiverStaking,
+  RewardDelegators,
+  StakeManager,
+} from "../../typechain-types";
+import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
+import {
+  getClusterRegistry,
+  getClusterRewards,
+  getClusterSelector,
+  getMpond,
+  getPond,
+  getReceiverStaking,
+  getRewardDelegators,
+  getStakeManager,
+} from "../../utils/typechainConvertor";
+import { skipTime } from "../helpers/common";
+import { testERC165 } from "../helpers/erc165";
+import { testAdminRole, testRole } from "../helpers/rbac";
 
 declare module "ethers" {
   interface BigNumber {
@@ -17,20 +37,11 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18));
 };
 
-async function skipBlocks(n: number) {
-  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
-}
-
-async function skipTime(t: number) {
-  await ethers.provider.send("evm_increaseTime", [t]);
-  await skipBlocks(1);
-}
-
 const COMMISSION_LOCK = "0x7877e81172e1242eb265a9ff5a14c913d44197a6e15e0bc1d984f40be9096403";
 const SWITCH_NETWORK_LOCK = "0x18981a75d138782f14f3fbd4153783a0dc1558f28dc5538bf045e7de84cb2ae2";
 const UNREGISTER_LOCK = "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a73cc8c7080c";
 const SELECTORS = [COMMISSION_LOCK, SWITCH_NETWORK_LOCK, UNREGISTER_LOCK];
-const WAIT_TIMES = [120, 300, 600];
+const WAIT_TIMES: number[] = [120, 300, 600];
 
 describe("ClusterRegistry", function () {
   let signers: Signer[];
@@ -41,6 +52,8 @@ describe("ClusterRegistry", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
   });
 
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
   it("deploys with initialization disabled", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await ClusterRegistry.deploy();
@@ -50,14 +63,7 @@ describe("ClusterRegistry", function () {
 
   it("deploys as proxy and initializes", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(
-      ClusterRegistry,
-      [
-        WAIT_TIMES,
-        addrs[11],
-      ],
-      { kind: "uups" },
-    );
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
 
     await Promise.all(
       SELECTORS.map(async (s, idx) => {
@@ -70,14 +76,7 @@ describe("ClusterRegistry", function () {
 
   it("upgrades", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(
-      ClusterRegistry,
-      [
-        WAIT_TIMES,
-        addrs[11],
-      ],
-      { kind: "uups" },
-    );
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
     await upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry, { kind: "uups" });
 
     await Promise.all(
@@ -91,90 +90,74 @@ describe("ClusterRegistry", function () {
 
   it("does not upgrade without admin", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    const clusterRegistry = await upgrades.deployProxy(
-      ClusterRegistry,
-      [
-        WAIT_TIMES,
-        addrs[11],
-      ],
-      { kind: "uups" },
-    );
+    const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
 
     await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.reverted;
   });
 });
 
-testERC165("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
-  const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-  let clusterRegistry = await upgrades.deployProxy(
-    ClusterRegistry,
-    [
-      WAIT_TIMES,
-      addrs[11],
+testERC165(
+  "ClusterRegistry",
+  async function (signers: Signer[], addrs: string[]) {
+    const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
+    let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
+    return clusterRegistry;
+  },
+  {
+    IAccessControl: [
+      "hasRole(bytes32,address)",
+      "getRoleAdmin(bytes32)",
+      "grantRole(bytes32,address)",
+      "revokeRole(bytes32,address)",
+      "renounceRole(bytes32,address)",
     ],
-    { kind: "uups" },
-  );
-  return clusterRegistry;
-}, {
-  "IAccessControl": [
-    "hasRole(bytes32,address)",
-    "getRoleAdmin(bytes32)",
-    "grantRole(bytes32,address)",
-    "revokeRole(bytes32,address)",
-    "renounceRole(bytes32,address)",
-  ],
-  "IAccessControlEnumerable": [
-    "getRoleMember(bytes32,uint256)",
-    "getRoleMemberCount(bytes32)"
-  ],
-});
+    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
+  }
+);
 
 testAdminRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
   const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-  let clusterRegistry = await upgrades.deployProxy(
-    ClusterRegistry,
-    [
-      WAIT_TIMES,
-      addrs[11],
-    ],
-    { kind: "uups" },
-  );
+  let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
   return clusterRegistry;
 });
 
 describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
-  let clusterRegistry: Contract;
-  let rewardDelegators: Contract;
 
-  let snapshot: any;
+  let clusterRegistry: ClusterRegistry;
+  let pond: Pond;
+  let pondTokenId: string;
+  let mpond: MPond;
+  let mpondTokenId: string;
+  let rewardDelegators: RewardDelegators;
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
+    const Pond = await ethers.getContractFactory("Pond");
+    let pondContract = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = getPond(pondContract.address, signers[0]);
+
+    const MPond = await ethers.getContractFactory("MPond");
+    let mpondContract = await upgrades.deployProxy(MPond, { kind: "uups" });
+    mpond = getMpond(mpondContract.address, signers[0]);
+
+    pondTokenId = ethers.utils.keccak256(pond.address);
+    mpondTokenId = ethers.utils.keccak256(mpond.address);
+
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-    rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
+    let rewardDelegatorsContract = await deployMockContract(signers[0], RewardDelegators.interface.format());
+    rewardDelegators = getRewardDelegators(rewardDelegatorsContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, rewardDelegators.address], { kind: "uups" });
+    let clusterRegistryContract = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, rewardDelegators.address], { kind: "uups" });
+    clusterRegistry = getClusterRegistry(clusterRegistryContract.address, signers[0]);
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("non admin cannot update lockWaitTime", async () => {
     await expect(clusterRegistry.connect(signers[1]).updateLockWaitTime(COMMISSION_LOCK, 10)).to.be.reverted;
@@ -206,37 +189,40 @@ describe("ClusterRegistry", function () {
 describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
-  let clusterRegistry: Contract;
+
+  let clusterRegistry: ClusterRegistry;
+  let pond: Pond;
+  let pondTokenId: string;
+  let mpond: MPond;
+  let mpondTokenId: string;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
-
-  let snapshot: any;
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const Pond = await ethers.getContractFactory("Pond");
+    let pondContract = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = getPond(pondContract.address, signers[0]);
+
+    const MPond = await ethers.getContractFactory("MPond");
+    let mpondContract = await upgrades.deployProxy(MPond, { kind: "uups" });
+    mpond = getMpond(mpondContract.address, signers[0]);
+
+    pondTokenId = ethers.utils.keccak256(pond.address);
+    mpondTokenId = ethers.utils.keccak256(mpond.address);
 
     // mock reward delegators
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, rewardDelegators.address], { kind: "uups" });
+    let clusterRegistryContract = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, rewardDelegators.address], { kind: "uups" });
+    clusterRegistry = getClusterRegistry(clusterRegistryContract.address, signers[0]);
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can register new cluster", async () => {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
@@ -317,7 +303,7 @@ describe("ClusterRegistry", function () {
 
     await clusterRegistry.requestUnregister();
 
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
 
     await rewardDelegators.mock.updateClusterDelegation.reverts();
@@ -335,84 +321,259 @@ describe("ClusterRegistry", function () {
 describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
-  let clusterRegistry: Contract;
-  let rewardDelegators: Contract;
+
+  let clusterRegistry: ClusterRegistry;
+  let pond: Pond;
+  let pondTokenId: string;
+  let mpond: MPond;
+  let mpondTokenId: string;
+  let clusterRewardsInstance: ClusterRewards;
+  let stakeManagerInstance: StakeManager;
+  let rewardDelegators: MockContract;
+  let dotClusterSelector: ClusterSelector;
+  let nearClusterSelector: ClusterSelector;
+  let receiverStaking: ReceiverStaking;
+  const ETHHASH = ethers.utils.id("ETH");
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
-
-  let snapshot: any;
+  const NETWORK_IDS = [ETHHASH, DOTHASH, NEARHASH];
+  const ETHWEIGHT = 100;
+  const DOTWEIGHT = 200;
+  const NEARWEIGHT = 300;
+  const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-    // mock reward delegators
+    const Pond = await ethers.getContractFactory("Pond");
+    let pondContract = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = getPond(pondContract.address, signers[0]);
+
+    const MPond = await ethers.getContractFactory("MPond");
+    let mpondContract = await upgrades.deployProxy(MPond, { kind: "uups" });
+    mpond = getMpond(mpondContract.address, signers[0]);
+
+    pondTokenId = ethers.utils.keccak256(pond.address);
+    mpondTokenId = ethers.utils.keccak256(mpond.address);
+
+    const StakeManager = await ethers.getContractFactory("StakeManager");
+    let stakeManagerInstanceContract = await upgrades.deployProxy(StakeManager, { kind: "uups", initializer: false });
+    stakeManagerInstance = getStakeManager(stakeManagerInstanceContract.address, signers[0]);
+
+    const blockData = await ethers.provider.getBlock("latest");
+
+    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
+      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
+      kind: "uups",
+      initializer: false,
+    });
+    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
+
+    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
+
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
     rewardDelegators = await deployMockContract(signers[0], RewardDelegators.interface.format());
 
+    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let dotClusterSelectorContract = await upgrades.deployProxy(
+      ClusterSelector,
+      [addrs[0], rewardDelegators.address, 5, pond.address, ethers.utils.parseEther("1").toString()],
+      {
+        kind: "uups",
+        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
+      }
+    );
+    dotClusterSelector = getClusterSelector(dotClusterSelectorContract.address, signers[0]);
+
+    let nearClusterSelectorContract = await upgrades.deployProxy(
+      ClusterSelector,
+      [addrs[0], rewardDelegators.address, 5, pond.address, ethers.utils.parseEther("1").toString()],
+      {
+        kind: "uups",
+        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
+      }
+    );
+    nearClusterSelector = getClusterSelector(nearClusterSelectorContract.address, signers[0]);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [
+          "0x000000000000000000000000000000000000dEaD", // invalid epoch selector
+          dotClusterSelector.address,
+          nearClusterSelector.address,
+        ],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
+
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-    clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, rewardDelegators.address], { kind: "uups" });
+    let clusterRegistryContract = await upgrades.deployProxy(ClusterRegistry, { kind: "uups", initializer: false });
+    clusterRegistry = getClusterRegistry(clusterRegistryContract.address, signers[0]);
+    let tempWaitTimes: [number, number, number] = [WAIT_TIMES[0], WAIT_TIMES[1], WAIT_TIMES[2]];
+    await clusterRegistry.initialize(tempWaitTimes, rewardDelegators.address);
 
     await rewardDelegators.mock.updateClusterDelegation.returns();
-    await clusterRegistry.register(DOTHASH, 7, addrs[11], addrs[12]);
+    await clusterRegistry.register(DOTHASH, 7, addrs[1], addrs[2]);
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
     await rewardDelegators.mock.updateClusterDelegation.reverts();
 
-    clusterData = await clusterRegistry.getRewardInfo(addrs[0]);
-    expect(clusterData[0]).to.equal(7);
-    expect(clusterData[1]).to.equal(addrs[11]);
+    let rewardInfo = await clusterRegistry.getRewardInfo(addrs[0]);
+    expect(rewardInfo[0]).to.equal(7);
+    expect(rewardInfo[1]).to.equal(addrs[1]);
+
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  it("updates commission correctly", async () => {
+    await expect(clusterRegistry.connect(signers[1]).requestCommissionUpdate(15)).to.be.reverted;
+    // commission can't be more than 100
+    await expect(clusterRegistry.requestCommissionUpdate(150)).to.be.reverted;
+    // can't update without any request
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
-  it("can update commission, network, reward address, client key", async () => {
-    await clusterRegistry.updateCluster(70, NEARHASH, addrs[21], addrs[22]);
-    let clusterData = await clusterRegistry.getCluster(addrs[0]);
-    expect(clusterData.networkId).to.equal(DOTHASH);
-    expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[22]);
-    expect(clusterData.isValidCluster).to.be.true;
-
-    await skipTime(WAIT_TIMES[0]);
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    await clusterRegistry.requestCommissionUpdate(15);
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    await skipTime(ethers, WAIT_TIMES[0] - 10);
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    await skipTime(ethers, 10);
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
     await clusterRegistry.updateCommission();
 
-    clusterData = await clusterRegistry.getCluster(addrs[0]);
+    let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
-    expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[22]);
+    expect(clusterData.commission).to.equal(15);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await rewardDelegators.mock.removeClusterDelegation.reverts();
-    await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
-    await rewardDelegators.mock.updateClusterDelegation.reverts();
-    await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    // await rewardDelegators.mock.removeClusterDelegation.reverts();
+    // await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
+    // await rewardDelegators.mock.updateClusterDelegation.reverts();
+    // await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
+    // await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    await clusterRegistry.requestNetworkSwitch(NEARHASH);
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    await skipTime(ethers, WAIT_TIMES[1] - 10);
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    await skipTime(ethers, 10);
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+
+    // set mocks for network switch
+    await rewardDelegators.mock.updateClusterDelegation.returns();
+    await rewardDelegators.mock.removeClusterDelegation.returns();
+    
+    await clusterRegistry.switchNetwork();
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(NEARHASH);
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
+  });
+
+  it("updates reward address correctly", async () => {
+    await expect(clusterRegistry.connect(signers[1]).updateRewardAddress(addrs[3])).to.be.reverted;
+
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[1]);
+    await clusterRegistry.updateRewardAddress(addrs[3]);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+  });
+
+  it("updates client key correctly", async () => {
+    await expect(clusterRegistry.connect(signers[1]).updateClientKey(addrs[3])).to.be.reverted;
+
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[2]);
+    await clusterRegistry.updateClientKey(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[3]);
+  });
+
+  // not relevant anymore as the function is removed
+  it("updates cluster params correctly", async () => {
+    const NEARHASH = ethers.utils.id("NEAR");
+
+    await expect(clusterRegistry.connect(signers[1]).updateCluster(7, DOTHASH, addrs[1], addrs[2])).to.be.reverted;
+    await expect(clusterRegistry.updateCluster(150, DOTHASH, addrs[1], addrs[2])).to.be.reverted;
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[1]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[2]);
+
+    await clusterRegistry.updateCluster(15, NEARHASH, addrs[3], addrs[4]);
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    await skipTime(ethers, WAIT_TIMES[0] - 5);
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    await skipTime(ethers, 10);
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(7));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // enforce request as wait time is complete
+    await clusterRegistry.updateCommission();
+    // switch network wait time is not over yet
+    await expect(clusterRegistry.switchNetwork()).to.be.reverted;
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(15));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0] - 10);
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(15));
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    await skipTime(ethers, 10);
+
+    expect(await clusterRegistry.getCommission(addrs[0])).to.equal(BN.from(15));
+    // doesn't change yet as request wait time is over but itt is not enforced yet
+    expect(await clusterRegistry.getNetwork(addrs[0])).to.equal(DOTHASH);
+    expect(await clusterRegistry.getRewardAddress(addrs[0])).to.equal(addrs[3]);
+    expect(await clusterRegistry.getClientKey(addrs[0])).to.equal(addrs[4]);
+
+    // no request after the previous request was enforced and closed
+    await expect(clusterRegistry.updateCommission()).to.be.reverted;
+    // set mocks for network switch
+    await rewardDelegators.mock.updateClusterDelegation.returns();
+    await rewardDelegators.mock.removeClusterDelegation.returns();
+    // enforce request as wait time is complete
     await clusterRegistry.switchNetwork();
 
-    clusterData = await clusterRegistry.getCluster(addrs[0]);
+    let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
-    expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[22]);
+    expect(clusterData.commission).to.equal(15);
+    expect(clusterData.rewardAddress).to.equal(addrs[3]);
+    expect(clusterData.clientKey).to.equal(addrs[4]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -422,31 +583,31 @@ describe("ClusterRegistry", function () {
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(70);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -455,17 +616,17 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
@@ -473,13 +634,13 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
   });
@@ -493,7 +654,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -507,7 +668,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -527,7 +688,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -541,7 +702,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -557,32 +718,32 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -592,31 +753,31 @@ describe("ClusterRegistry", function () {
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -625,17 +786,17 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
@@ -643,13 +804,13 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
   });
@@ -660,31 +821,31 @@ describe("ClusterRegistry", function () {
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -693,17 +854,17 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
@@ -711,13 +872,13 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
   });
@@ -731,7 +892,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -745,7 +906,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -761,32 +922,32 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(70);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -795,32 +956,32 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await clusterRegistry.switchNetwork();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(NEARHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -830,31 +991,31 @@ describe("ClusterRegistry", function () {
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
     expect(clusterData.rewardAddress).to.equal(addrs[21]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 
@@ -863,17 +1024,17 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
@@ -881,13 +1042,13 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
   });
@@ -897,32 +1058,32 @@ describe("ClusterRegistry", function () {
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
     await rewardDelegators.mock.updateClusterDelegation.reverts();
     await rewardDelegators.mock.updateClusterDelegation.withArgs(addrs[0], NEARHASH).returns();
-    await skipTime(WAIT_TIMES[1] - WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[1] - WAIT_TIMES[0]);
     await expect(clusterRegistry.switchNetwork()).to.be.reverted;
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
-    expect(clusterData.rewardAddress).to.equal(addrs[11]);
-    expect(clusterData.clientKey).to.equal(addrs[12]);
+    expect(clusterData.rewardAddress).to.equal(addrs[1]);
+    expect(clusterData.clientKey).to.equal(addrs[2]);
     expect(clusterData.isValidCluster).to.be.true;
   });
 });
@@ -958,19 +1119,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request commission update", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
@@ -993,7 +1142,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1032,24 +1181,12 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update commission after wait time", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
 
     await clusterRegistry.updateCommission();
 
@@ -1064,7 +1201,7 @@ describe("ClusterRegistry", function () {
   it("cannot update commission again after update", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
 
     await clusterRegistry.updateCommission();
 
@@ -1081,13 +1218,13 @@ describe("ClusterRegistry", function () {
   it("cannot update commission before wait time", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(WAIT_TIMES[0] - 10);
+    await skipTime(ethers, WAIT_TIMES[0] - 10);
 
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
   });
 
   it("cannot update commission without request", async () => {
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
 
     await expect(clusterRegistry.updateCommission()).to.be.reverted;
   });
@@ -1095,12 +1232,12 @@ describe("ClusterRegistry", function () {
   it("cannot update commission if unregistered after request", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0]);
 
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1140,19 +1277,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request network switch", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
@@ -1171,7 +1296,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1211,24 +1336,12 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can switch network after wait time", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1]);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1247,7 +1360,7 @@ describe("ClusterRegistry", function () {
   it("cannot switch network again after update", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1]);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1268,7 +1381,7 @@ describe("ClusterRegistry", function () {
   it("cannot switch network before wait time", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(WAIT_TIMES[1] - 10);
+    await skipTime(ethers, WAIT_TIMES[1] - 10);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1278,7 +1391,7 @@ describe("ClusterRegistry", function () {
   });
 
   it("cannot switch network without request", async () => {
-    await skipTime(WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1]);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1290,12 +1403,12 @@ describe("ClusterRegistry", function () {
   it("cannot switch network if unregistered after request", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1]);
 
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1338,19 +1451,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update client key", async () => {
     await clusterRegistry.updateClientKey(addrs[22]);
@@ -1389,7 +1490,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1428,19 +1529,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update reward address", async () => {
     await clusterRegistry.updateRewardAddress(addrs[21]);
@@ -1461,7 +1550,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1500,19 +1589,7 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request unregister", async () => {
     await clusterRegistry.requestUnregister();
@@ -1530,7 +1607,7 @@ describe("ClusterRegistry", function () {
   it("cannot request unregister if unregistered", async () => {
     await clusterRegistry.requestUnregister();
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1569,25 +1646,13 @@ describe("ClusterRegistry", function () {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  beforeEach(async function () {
-    snapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
-  });
-
-  afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [snapshot],
-    });
-  });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can unregister after wait time", async () => {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).reverts();
 
@@ -1599,7 +1664,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
     await clusterRegistry.unregister();
 
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -1612,14 +1677,14 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2] - 10);
+    await skipTime(ethers, WAIT_TIMES[2] - 10);
 
     await expect(clusterRegistry.unregister()).to.be.reverted;
   });
 
   it("cannot unregister without request", async () => {
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2]);
 
     await expect(clusterRegistry.unregister()).to.be.reverted;
   });
