@@ -1,6 +1,8 @@
 import { ethers, upgrades } from "hardhat";
-import { expect, util } from "chai";
-import { BigNumber as BN, Signer, Contract } from "ethers";
+import { expect } from "chai";
+import { BigNumber as BN, Signer } from "ethers";
+import { Bridge, MPond, Pond } from "../../typechain-types";
+import { getBridge, getMpond, getPond } from "../../utils/typechainConvertor";
 
 declare module "ethers" {
   interface BigNumber {
@@ -15,29 +17,33 @@ BN.prototype.e18 = function () {
 describe.skip("Bridge", function () {
   let signers: Signer[];
   let addrs: string[];
-  let mpond: Contract;
-  let pond: Contract;
+  let mpond: MPond;
+  let pond: Pond;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const MPond = await ethers.getContractFactory("MPond");
-    mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
+    let mpondContract = await upgrades.deployProxy(MPond, { kind: "uups" });
+    mpond = getMpond(mpondContract.address, signers[0]);
 
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pondContract = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = getPond(pondContract.address, signers[0]);
   });
 
   it("deploys with initialization disabled", async function () {
     const Bridge = await ethers.getContractFactory("Bridge");
-    let bridge = await Bridge.deploy();
+    let bridgeContract = await Bridge.deploy();
+    let bridge = getBridge(bridgeContract.address, signers[0]);
     await expect(bridge.initialize(mpond.address, pond.address, addrs[1])).to.be.reverted;
   });
 
   it("deploys as proxy and initializes", async function () {
     const Bridge = await ethers.getContractFactory("Bridge");
-    let bridge = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridgeContract = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridge = getBridge(bridgeContract.address, signers[0]);
 
     expect(await bridge.mpond()).to.equal(mpond.address);
     expect(await bridge.pond()).to.equal(pond.address);
@@ -53,7 +59,8 @@ describe.skip("Bridge", function () {
 
   it("upgrades", async function () {
     const Bridge = await ethers.getContractFactory("Bridge");
-    let bridge = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridgeContract = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridge = getBridge(bridgeContract.address, signers[0]);
     await upgrades.upgradeProxy(bridge.address, Bridge, { kind: "uups" });
 
     expect(await bridge.mpond()).to.equal(mpond.address);
@@ -70,7 +77,8 @@ describe.skip("Bridge", function () {
 
   it("does not upgrade without admin", async function () {
     const Bridge = await ethers.getContractFactory("Bridge");
-    let bridge = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridgeContract = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridge = getBridge(bridgeContract.address, signers[0]);
     await expect(upgrades.upgradeProxy(bridge.address, Bridge.connect(signers[1]), { kind: "uups" })).to.be.reverted;
   });
 });
@@ -78,7 +86,7 @@ describe.skip("Bridge", function () {
 describe.skip("Bridge", function () {
   let signers: Signer[];
   let addrs: string[];
-  let bridge: Contract;
+  let bridge: Bridge;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
@@ -91,7 +99,8 @@ describe.skip("Bridge", function () {
     const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
 
     const Bridge = await ethers.getContractFactory("Bridge");
-    bridge = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridgeContract = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    bridge = getBridge(bridgeContract.address, signers[0]);
   });
 
   it("admin can change staking contract", async () => {
@@ -195,25 +204,29 @@ describe.skip("Bridge", function () {
 describe.skip("Bridge", function () {
   let signers: Signer[];
   let addrs: string[];
-  let bridge: Contract;
-  let mpond: Contract;
-  let pond: Contract;
+  let bridge: Bridge;
+  let mpond: MPond;
+  let pond: Pond;
 
   beforeEach(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const MPond = await ethers.getContractFactory("MPond");
-    mpond = await upgrades.deployProxy(MPond, [], { kind: "uups" });
+    let mpondContract = await upgrades.deployProxy(MPond, [], { kind: "uups" });
+    mpond = getMpond(mpondContract.address, signers[0]);
+
     let WHITELIST_ROLE = await mpond.WHITELIST_ROLE();
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.transfer(addrs[2], BN.from(1000).e18());
 
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pondContract = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = getPond(pondContract.address, signers[0]);
 
     const Bridge = await ethers.getContractFactory("Bridge");
-    bridge = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    let bridgeContract = await upgrades.deployProxy(Bridge, [mpond.address, pond.address, addrs[1]], { kind: "uups" });
+    bridge = getBridge(bridgeContract.address, signers[0]);
 
     await pond.transfer(bridge.address, BN.from(1000000000).e18());
     await mpond.grantRole(WHITELIST_ROLE, bridge.address);
@@ -328,8 +341,8 @@ describe.skip("Bridge", function () {
     await mpond.approve(bridge.address, 100);
     await bridge.addLiquidity(100, 0);
 
-    await pond.transfer(addrs[3], 100 * (await bridge.pondPerMpond()));
-    await pond.connect(signers[3]).approve(bridge.address, 100 * (await bridge.pondPerMpond()));
+    await pond.transfer(addrs[3], (await bridge.pondPerMpond()).mul(100));
+    await pond.connect(signers[3]).approve(bridge.address, (await bridge.pondPerMpond()).mul(100));
     await bridge.connect(signers[3]).getMpond(100);
     expect(await mpond.balanceOf(addrs[3])).to.equal(100);
   });

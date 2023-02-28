@@ -105,6 +105,7 @@ contract ClusterRewards is
         }
         totalRewardWeight = _weight;
         _changeRewardPerEpoch(_totalRewardsPerEpoch);
+        payoutDenomination = 10e18;
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -137,11 +138,6 @@ contract ClusterRewards is
     event ReceiverStakingUpdated(address receiverStaking);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
-
-    modifier onlyClaimer() {
-        require(hasRole(CLAIMER_ROLE, _msgSender()), "only claimer");
-        _;
-    }
 
     modifier onlyFeeder() {
         require(hasRole(FEEDER_ROLE, _msgSender()), "only feeder");
@@ -260,7 +256,7 @@ contract ClusterRewards is
         require(_totalNetworkRewardsPerEpoch != 0, "CRW:SIT-No rewards for network");
 
         for(uint256 i=0; i < _signedTickets.length; i++) {
-            address _signer = _verifySignedTicket(_signedTickets[i], _epoch);
+            address _signer = _verifySignedTicket(_signedTickets[i], _networkId, _epoch);
             _processReceiverTickets(
                 _signer,
                 _epoch,
@@ -279,13 +275,18 @@ contract ClusterRewards is
         require(_epochReceiverStake != 0, "CRW:IPRT-Not eligible to issue tickets");
 
         unchecked {
+            uint256 _totalTickets;
             for(uint256 i=0; i < _tickets.length; ++i) {
                 require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
 
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+
+                // cant overflow as tickets[i] <= 1e18
+                _totalTickets += _tickets[i];
             }
+            require(_totalTickets == RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Total ticket count invalid");
         }
 
         _markAsIssued(_receiver, _epoch);
@@ -309,9 +310,9 @@ contract ClusterRewards is
         }
     }
 
-    function _verifySignedTicket(SignedTicket memory _signedTicket, uint256 _epoch) internal pure returns(address _signer) {
+    function _verifySignedTicket(SignedTicket memory _signedTicket, bytes32 _networkId, uint256 _epoch) internal pure returns(address _signer) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_epoch, _signedTicket.tickets))));
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_networkId, _epoch,_signedTicket.tickets))));
         _signer = ecrecover(prefixedHashMessage, _signedTicket.v, _signedTicket.r, _signedTicket.s);
         require(_signer != address(0), "CRW:IVST-Invalid signature");
     }
@@ -319,8 +320,10 @@ contract ClusterRewards is
     function issueTickets(bytes32 _networkId, uint256[] memory _epoch, uint256[][] memory _tickets) external {
         uint256 numberOfEpochs = _epoch.length;
         require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
-        for(uint256 i=0; i < numberOfEpochs; i++) {
-            issueTickets(_networkId, _epoch[i], _tickets[i]);
+        unchecked {
+            for(uint256 i=0; i < numberOfEpochs; ++i) {
+                issueTickets(_networkId, _epoch[i], _tickets[i]);
+            }
         }
     }
 
@@ -354,16 +357,4 @@ contract ClusterRewards is
     }
 
 //-------------------------------- User functions end --------------------------------//
-
-    /// @notice Checks if the array has an element in it
-    /// @param array Array to check
-    /// @param element Element to check in the array
-    function ifArrayHasElement(address[] memory array, address element) internal pure returns (bool) {
-        for (uint256 index = 0; index < array.length; index++) {
-            if (element == array[index]) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

@@ -444,29 +444,6 @@ contract RewardDelegators is
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
 
-    function applyDiffs(
-        address[] calldata _delegators,
-        address[] calldata _clusters,
-        bytes32[] calldata _tokens,
-        uint256[] calldata _allAmounts,
-        bool[] calldata _isDelegations
-    ) external onlyAdmin {
-        require(_delegators.length == _clusters.length);
-        require(_delegators.length * _tokens.length == _allAmounts.length);
-        require(_delegators.length == _isDelegations.length);
-
-        for(uint256 _idx = 0; _idx < _delegators.length; _idx++) {
-            address _delegator = _delegators[_idx];
-            address _cluster = _clusters[_idx];
-            uint256[] memory _amounts = _allAmounts[(_idx*_tokens.length):((_idx+1)*_tokens.length)];
-            bool _isDelegation = _isDelegations[_idx];
-
-            for(uint256 _tidx = 0; _tidx < _tokens.length; _tidx++) {
-                _updateBalances(_cluster, _delegator, _tokens[_tidx], _amounts[_tidx], _isDelegation);
-            }
-        }
-    }
-
     event ThresholdForSelectionUpdated(bytes32 networkId, uint256 newThreshold);
     function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) onlyAdmin external {
         _updateThresholdForSelection(networkId, newThreshold);
@@ -489,21 +466,34 @@ contract RewardDelegators is
 
     event RefreshClusterDelegation(address indexed cluster);
     function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) onlyAdmin external {
+        address[] memory validClusters = new address[](clusterList.length);
         uint64[] memory balances = new uint64[](clusterList.length);
         IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
 
-        for (uint256 index = 0; index < clusterList.length; index++) {
-            address cluster = clusterList[index];
-            bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
-            require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
+        uint256 noOfClustersToUpdate;
+        unchecked {
+            for (uint256 index = 0; index < clusterList.length; ++index) {
+                address cluster = clusterList[index];
+                bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
+                require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
 
-            uint256 totalDelegations = _getEffectiveDelegation(cluster, _networkId);
+                uint256 totalDelegations = _getEffectiveDelegation(cluster, _networkId);
 
-            balances[index] = uint64(totalDelegations.sqrt());
-            emit RefreshClusterDelegation(cluster);
+                if(totalDelegations == 0) continue;
+
+                validClusters[noOfClustersToUpdate] = clusterList[index];
+                balances[noOfClustersToUpdate] = uint64(totalDelegations.sqrt());
+                ++noOfClustersToUpdate;
+                emit RefreshClusterDelegation(cluster);
+            }
         }
 
-        _clusterSelector.upsertMultiple(clusterList, balances);
+        assembly {
+            mstore(validClusters, noOfClustersToUpdate)
+            mstore(balances, noOfClustersToUpdate)
+        }
+
+        _clusterSelector.upsertMultiple(validClusters, balances);
     }
 
     function _getEffectiveDelegation(address cluster, bytes32 networkId) internal view returns(uint256 totalDelegations){

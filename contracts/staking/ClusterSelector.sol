@@ -185,9 +185,8 @@ contract ClusterSelector is
         if (clusters.length == 0) {
             clusters = _updateMissingClusters(anyPreviousEpochNumber - 1);
             clustersSelected[anyPreviousEpochNumber] = clusters;
-        } else {
-            return clusters;
         }
+        return clusters;
     }
 
     //-------------------------------- Cluster Selection ends --------------------------------//
@@ -239,7 +238,7 @@ contract ClusterSelector is
     /// @notice Updates the reward token
     /// @param _rewardToken Address of the reward token
     function updateRewardToken(address _rewardToken) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_rewardToken == rewardToken, "Update reward token");
+        require(_rewardToken != rewardToken, "Update reward token");
         rewardToken = _rewardToken;
         emit UpdateRewardToken(_rewardToken);
     }

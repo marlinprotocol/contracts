@@ -14,3 +14,5 @@ coverage.json
 .openzeppelin/unknown-31337.json
 .openzeppelin/*-9876543210.json
 .gitsigners
+typechain-types/*
+*.log

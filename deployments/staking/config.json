@@ -50,7 +50,7 @@
         "totalRewardsPerEpoch": "4692550000000000000000",
         "admin": "0xd7E109d2219b5b5b90656FB8B33F2ba679b22062"
     },
-    "9876543210": {
+    "31337": {
         "cluster": {
             "waitTimes": [
                 180,
