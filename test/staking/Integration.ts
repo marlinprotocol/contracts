@@ -352,8 +352,9 @@ describe("Integration", function () {
 
     it("Only 1 receiver, all cluster should get equal reward", async () => {
       const receiver = receivers[0];
-      let equiWeightedTickets = BN.from(10).pow(18).div(totalClusters);
-      const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets];
+      const totalWeight = BN.from(10).pow(18);
+      let equiWeightedTickets = totalWeight.div(totalClusters);
+      const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, totalWeight.sub(equiWeightedTickets.mul(4))];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
@@ -391,8 +392,9 @@ describe("Integration", function () {
 
     it("Only 1 receiver, tickets ratio 1:2:3:4:5", async () => {
       const receiver = receivers[0];
-      let fration = BN.from(10).pow(18).div(15);
-      const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), fration.mul(5)];
+      const totalWeight = BN.from(10).pow(18);
+      let fration = totalWeight.div(15);
+      const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), totalWeight.sub(fration.mul(10))];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
@@ -422,13 +424,13 @@ describe("Integration", function () {
       for (let index = 0; index < pondRewards.length; index++) {
         const element = pondRewards[index];
         expect(element).gt(0);
-        expect(element.mul(scaler).div(pondRewards[0])).to.be.eq(scaler.mul(index + 1));
+        expect(element.mul(scaler).div(pondRewards[0])).to.be.eq(scaler.mul(weights[index]).div(fration));
       }
 
       for (let index = 0; index < mpondRewards.length; index++) {
         const element = mpondRewards[index];
         expect(element).gt(0);
-        expect(element.mul(scaler).div(mpondRewards[0])).to.be.eq(scaler.mul(index + 1));
+        expect(element.mul(scaler).div(mpondRewards[0])).to.be.eq(scaler.mul(weights[index]).div(fration));
       }
     });
 
@@ -618,6 +620,37 @@ describe("Integration", function () {
       await expect(
         clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](supportedNetworkIds[0], currentEpoch, [fraction])
       ).to.be.revertedWith("CRW:IPRT-Not eligible to issue tickets");
+    });
+
+    it("Should fail: Receiver submits not equal to tickets allowed", async () => {
+      await skipEpoch();
+      await receiverDeposit(pond, receiverStaking, ethReceivers[0], BN.from(10).pow(18));
+      await skipEpoch();
+      await skipEpoch();
+      let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toNumber();
+      let currentPlusOne = BN.from(currentEpoch).add(1).toString();
+      await clusterSelectors[0].selectClusters();
+      await skipEpoch();
+      const selectedClusters = await clusterSelectors[0].getClusters(currentPlusOne);
+
+      const totalTickets = await clusterRewards.RECEIVER_TICKETS_PER_EPOCH();
+      const firstClusterTickets = totalTickets.mul(2).div(3);
+
+      await expect(
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+          supportedNetworkIds[0], 
+          currentPlusOne, 
+          [firstClusterTickets, totalTickets.sub(firstClusterTickets).add(1)]
+        )
+      ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+
+      await expect(
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+          supportedNetworkIds[0], 
+          currentPlusOne, 
+          [firstClusterTickets, totalTickets.sub(firstClusterTickets).sub(1)]
+        )
+      ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
     });
   });
 
