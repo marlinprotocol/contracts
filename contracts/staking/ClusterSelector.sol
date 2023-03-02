@@ -146,11 +146,14 @@ contract ClusterSelector is
     //-------------------------------- Cluster Selection starts --------------------------------//
 
     function getCurrentEpoch() public view returns (uint256) {
-        return (block.timestamp - START_TIME) / EPOCH_LENGTH;
+        return (block.timestamp - START_TIME) / EPOCH_LENGTH + 1;
     }
 
     function selectClusters() public returns (address[] memory _selectedClusters) {
+        // select for next epoch
         uint256 _epoch = getCurrentEpoch() + 1;
+
+        // can select only once per epoch
         _selectedClusters = clustersSelected[_epoch];
         require(_selectedClusters.length == 0);
 
