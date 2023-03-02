@@ -334,7 +334,6 @@ contract ClusterRewards is
         address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
 
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
-        require(_totalNetworkRewardsPerEpoch != 0, "CRW:IT-No rewards for network");
 
         _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets, _totalNetworkRewardsPerEpoch, _epochTotalStake);
 
