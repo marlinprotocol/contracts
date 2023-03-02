@@ -164,7 +164,7 @@ contract ClusterRegistry is
             "CR:R-Cluster is already registered"
         );
         require(_commission <= 100, "CR:R-Commission more than 100%");
-        require(clientKeys[_clientKey] ==  address(0), "CR:R - Client key is already used");
+        require(clientKeys[_clientKey] ==  address(0), "CR:R-Client key is already used");
         clusters[_msgSender()].commission = _commission;
         clusters[_msgSender()].rewardAddress = _rewardAddress;
         clusters[_msgSender()].clientKey = _clientKey;
