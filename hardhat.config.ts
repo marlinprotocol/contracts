@@ -71,6 +71,13 @@ export default {
         apiURL: "https://api-goerli.arbiscan.io/api",
         browserURL: "https://goerli.arbiscan.io",
       },
+    }, {
+      network: "arb1",
+      chainId: 42161,
+      urls: {
+        apiURL: "https://api.arbiscan.io/api",
+        browserURL: "https://arbiscan.io",
+      },
     }],
   },
   gasReporter: {
