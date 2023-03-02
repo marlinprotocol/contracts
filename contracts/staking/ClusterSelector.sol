@@ -181,26 +181,26 @@ contract ClusterSelector is
 
     /// @notice Updates the missing cluster in case epoch was not selected by anyone
     /// @notice The group of selected clusters will be selected again
-    /// @param anyPreviousEpochNumber Epoch Number to fix the missing clusters
-    function updateMissingClusters(uint256 anyPreviousEpochNumber) public returns (address[] memory previousSelectedClusters) {
-        uint256 currentEpoch = getCurrentEpoch();
-        require(anyPreviousEpochNumber <= currentEpoch, "cannot update future epochs");
-        return _updateMissingClusters(anyPreviousEpochNumber);
+    /// @param _epoch Epoch Number to fix the missing clusters
+    function updateMissingClusters(uint256 _epoch) public {
+        uint256 _currentEpoch = getCurrentEpoch();
+        require(_epoch <= _currentEpoch, "cannot update future epochs");
+        _updateMissingClusters(_epoch, _epoch);
     }
 
     /// @notice Internal function to Update the missing cluster in case epoch
-    /// @param anyPreviousEpochNumber Epoch Number to fix the missing clusters
-    function _updateMissingClusters(uint256 anyPreviousEpochNumber) internal returns (address[] memory previousSelectedClusters) {
-        if (anyPreviousEpochNumber == 0) {
-            return previousSelectedClusters;
+    /// @param _searchEpoch Epoch Number to search for the missing clusters
+    /// @param _writeEpoch Epoch Number to write the missing clusters
+    function _updateMissingClusters(uint256 _searchEpoch, uint256 _writeEpoch) internal {
+        if(_searchEpoch == 0) {
+            return;
         }
 
-        address[] memory clusters = clustersSelected[anyPreviousEpochNumber];
-        if (clusters.length == 0) {
-            clusters = _updateMissingClusters(anyPreviousEpochNumber - 1);
-            clustersSelected[anyPreviousEpochNumber] = clusters;
+        if (clustersSelected[_searchEpoch].length != 0) {
+            clustersSelected[_writeEpoch] = clustersSelected[_searchEpoch];
+        } else {
+            _updateMissingClusters(_searchEpoch - 1, _writeEpoch);
         }
-        return clusters;
     }
 
     //-------------------------------- Cluster Selection ends --------------------------------//
