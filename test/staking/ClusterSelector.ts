@@ -1,10 +1,10 @@
 import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
-import { BigNumber as BN, Signer, Contract } from "ethers";
+import { BigNumber as BN, Signer, Contract, utils, constants } from "ethers";
 
-import { testERC165 } from "../helpers/erc165.ts";
-import { testAdminRole, testRole } from "../helpers/rbac.ts";
+import { testERC165 } from "../helpers/erc165";
+import { testAdminRole, testRole } from "../helpers/rbac";
 
 
 declare module "ethers" {
@@ -251,7 +251,7 @@ describe("ClusterSelector", function () {
     clusterSelector = await upgrades.deployProxy(
       ClusterSelector,
       [
-          addrs[0],
+          addrs[1],
           addrs[11],
           5,
           addrs[12],
@@ -263,8 +263,8 @@ describe("ClusterSelector", function () {
       },
     );
 
-    expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
+    expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
+    expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
     expect(await clusterSelector.numberOfClustersToSelect()).to.equal(5);
     expect(await clusterSelector.rewardForSelectingClusters()).to.equal(100);
@@ -1410,5 +1410,105 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.addressToIndexMap(addrs[34])).to.equal(0);
     expect(await clusterSelector.indexToAddressMap(1)).to.equal(ethers.constants.AddressZero);
     await expect(clusterSelector.nodes(1)).to.be.reverted;
+  });
+
+  it("current epoch", async () => {
+    const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
+    await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWith("");
+    await skipToTimestamp(startTime);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
+    await skipTime(epochLength - 1);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
+    await skipTime(1);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(2);
+    await skipTime(1);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(2);
+    await skipTime(epochLength - 1 + epochLength*5);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(8);
+    await skipTime(epochLength*6 + epochLength/2);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
+    await skipTime(epochLength - epochLength/2 - 1);
+    expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
+  });
+
+  it("admin can update number of clusters to select", async () => {
+    await expect(clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(6))
+      .to.emit(clusterSelector, "UpdateNumberOfClustersToSelect")
+      .withArgs(6);
+    expect(await clusterSelector.numberOfClustersToSelect()).to.be.equal(6);
+    await expect(clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(0)).to.be.revertedWith("Should be a valid number");
+    await expect(clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(5))
+      .to.emit(clusterSelector, "UpdateNumberOfClustersToSelect")
+      .withArgs(5);
+    expect(await clusterSelector.numberOfClustersToSelect()).to.be.equal(5);
+
+    await expect(clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(5)).to.be.revertedWith("Should be a valid number");
+    await expect(clusterSelector.connect(signers[0]).updateNumberOfClustersToSelect(10)).to.be.reverted;
+    await expect(clusterSelector.connect(signers[11]).updateNumberOfClustersToSelect(10)).to.be.reverted;
+
+    await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
+    await expect(clusterSelector.connect(signers[3]).updateNumberOfClustersToSelect(10)).to.be.reverted;
+  });
+
+  it("reward controller can update reward token", async () => {
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[15]))
+      .to.emit(clusterSelector, "UpdateRewardToken")
+      .withArgs(addrs[15]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[11]))
+      .to.emit(clusterSelector, "UpdateRewardToken")
+      .withArgs(addrs[11]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[11]);
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[1]))
+      .to.emit(clusterSelector, "UpdateRewardToken")
+      .withArgs(addrs[1]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[1]);
+
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(constants.AddressZero)).to.be.revertedWith("Update reward token");
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[1])).to.be.revertedWith("Update reward token");
+    await clusterSelector.connect(signers[1]).updateRewardToken(addrs[11]);
+    await expect(clusterSelector.connect(signers[0]).updateRewardToken(addrs[15])).to.be.reverted;
+    await expect(clusterSelector.connect(signers[11]).updateRewardToken(addrs[15])).to.be.reverted;
+
+    await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
+    await clusterSelector.connect(signers[3]).updateRewardToken(addrs[15]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
+    await clusterSelector.connect(signers[1]).updateRewardToken(addrs[16]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[16]);
+
+    await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
+    await clusterSelector.connect(signers[3]).updateRewardToken(addrs[15]);
+    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
+    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[16])).to.be.reverted;
+  });
+
+  it("reward controller can update number of clusters to select", async () => {
+    await expect(clusterSelector.connect(signers[1]).updateRewardForSelection(6))
+      .to.emit(clusterSelector, "UpdateRewardForSelectingTheNodes")
+      .withArgs(6);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(6);
+    await expect(clusterSelector.connect(signers[1]).updateRewardForSelection(0))
+      .to.emit(clusterSelector, "UpdateRewardForSelectingTheNodes")
+      .withArgs(0);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(0);
+    await expect(clusterSelector.connect(signers[1]).updateRewardForSelection(5))
+      .to.emit(clusterSelector, "UpdateRewardForSelectingTheNodes")
+      .withArgs(5);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(5);
+
+    await expect(clusterSelector.connect(signers[1]).updateRewardForSelection(5)).to.be.revertedWith("Update reward");
+    await expect(clusterSelector.connect(signers[0]).updateRewardForSelection(10)).to.be.reverted;
+    await expect(clusterSelector.connect(signers[11]).updateRewardForSelection(10)).to.be.reverted;
+
+    await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
+    await clusterSelector.connect(signers[3]).updateRewardForSelection(15);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(15);
+    await clusterSelector.connect(signers[1]).updateRewardForSelection(16);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(16);
+
+    await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
+    await clusterSelector.connect(signers[3]).updateRewardForSelection(15);
+    expect(await clusterSelector.rewardForSelectingClusters()).to.be.equal(15);
+    await expect(clusterSelector.connect(signers[1]).updateRewardForSelection(16)).to.be.reverted;
   });
 });

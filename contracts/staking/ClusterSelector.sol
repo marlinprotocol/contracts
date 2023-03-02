@@ -252,9 +252,17 @@ contract ClusterSelector is
     /// @notice Updates the reward token
     /// @param _rewardToken Address of the reward token
     function updateRewardToken(address _rewardToken) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_rewardToken != rewardToken, "Update reward token");
+        require(_rewardToken != address(0) && _rewardToken != rewardToken, "Update reward token");
         rewardToken = _rewardToken;
         emit UpdateRewardToken(_rewardToken);
+    }
+
+    /// @notice Updates the reward amount for selecting clusters
+    /// @param _reward Amount of reward for selecting clusters
+    function updateRewardForSelection(uint256 _reward) external onlyRole(REWARD_CONTROLLER_ROLE) {
+        require(_reward != rewardForSelectingClusters, "Update reward");
+        rewardForSelectingClusters = _reward;
+        emit UpdateRewardForSelectingTheNodes(_reward);
     }
 
     /// @notice Flush Tokens to address. Can be only called by REWARD_CONTROLLER
