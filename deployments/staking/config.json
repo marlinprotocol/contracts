@@ -1,4 +1,14 @@
 {
+    "42161": {
+        "startTime": 1678147200,
+        "epochLength": 900,
+        "staking": {
+            "receiver": {
+                "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD"
+            }
+        },
+        "admin": "0x3F5f1Dc1af8897eA74Bf93bfA17F450D88af9FB0"
+    },
     "421613": {
         "cluster": {
             "waitTimes": [
