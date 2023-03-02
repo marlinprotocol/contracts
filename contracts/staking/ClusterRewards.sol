@@ -115,6 +115,7 @@ contract ClusterRewards is
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
     bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
     uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
+    uint256 constant SWITCHING_PERIOD = 4 days;
 
     mapping(address => uint256) public clusterRewards;
 
@@ -220,7 +221,7 @@ contract ClusterRewards is
         uint256[] calldata _payouts,
         uint256 _epoch
     ) external onlyFeeder {
-        require(receiverStaking.START_TIME() < block.timestamp, "CRW:F-Invalid method");
+        require(receiverStaking.START_TIME() + SWITCHING_PERIOD + 1 days > block.timestamp, "CRW:F-Invalid method");
         uint256 rewardDistributed = rewardDistributedPerEpoch[_epoch];
         if(rewardDistributed == 0) {
             require(
@@ -229,7 +230,7 @@ contract ClusterRewards is
             );
             latestNewEpochRewardAt = block.timestamp;
         }
-        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch;
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch*1 days/receiverStaking.EPOCH_LENGTH();
         uint256 currentPayoutDenomination = payoutDenomination;
         uint256 networkRewardWeight = rewardWeight[_networkId];
         for(uint256 i=0; i < _clusters.length; i++) {
@@ -238,7 +239,7 @@ contract ClusterRewards is
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
         }
         require(
-            rewardDistributed <= totalRewardsPerEpoch,
+            rewardDistributed <= currentTotalRewardsPerEpoch,
             "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
         );
         rewardDistributedPerEpoch[_epoch] = rewardDistributed;
@@ -252,8 +253,6 @@ contract ClusterRewards is
 
         address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
-
-        require(_totalNetworkRewardsPerEpoch != 0, "CRW:SIT-No rewards for network");
 
         for(uint256 i=0; i < _signedTickets.length; i++) {
             address _signer = _verifySignedTicket(_signedTickets[i], _networkId, _epoch);
@@ -353,6 +352,7 @@ contract ClusterRewards is
     }
 
     function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
+        if(block.timestamp < receiverStaking.START_TIME() + SWITCHING_PERIOD) return 0;
         return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
