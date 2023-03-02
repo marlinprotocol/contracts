@@ -119,10 +119,14 @@ contract TreeUpgradeable is Initializable {
         // left and right sum will always be 0 for last node
 
         _sub_unchecked(_lastNodeIndex, _lastNodeValue);
-        _update_unchecked(_index, _lastNodeValue);
 
-        indexToAddressMap[_index] = _lastNodeAddress;
-        addressToIndexMap[_lastNodeAddress] = _index;
+        // only swap if not last node
+        if(_index != _lastNodeIndex) {
+            _update_unchecked(_index, _lastNodeValue);
+
+            indexToAddressMap[_index] = _lastNodeAddress;
+            addressToIndexMap[_lastNodeAddress] = _index;
+        }
 
         delete indexToAddressMap[_lastNodeIndex];
         delete addressToIndexMap[_addr];
