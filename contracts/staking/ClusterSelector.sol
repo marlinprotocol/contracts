@@ -149,6 +149,17 @@ contract ClusterSelector is
         return (block.timestamp - START_TIME) / EPOCH_LENGTH + 1;
     }
 
+    /// @notice If contract has sufficient balance, transfer it to given address
+    /// @param _to Address to transfer tokens to
+    function _dispenseReward(address _to) internal {
+        if (rewardForSelectingClusters != 0) {
+            IERC20Upgradeable _rewardToken = IERC20Upgradeable(rewardToken);
+            if (_rewardToken.balanceOf(address(this)) >= rewardForSelectingClusters) {
+                _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
+            }
+        }
+    }
+
     function selectClusters() public returns (address[] memory _selectedClusters) {
         // select for next epoch
         uint256 _epoch = getCurrentEpoch() + 1;
@@ -244,17 +255,6 @@ contract ClusterSelector is
         require(_rewardToken != rewardToken, "Update reward token");
         rewardToken = _rewardToken;
         emit UpdateRewardToken(_rewardToken);
-    }
-
-    /// @notice If contract has sufficient balance, transfer it to given address
-    /// @param _to Address to transfer tokens to
-    function _dispenseReward(address _to) internal {
-        if (rewardForSelectingClusters != 0) {
-            IERC20Upgradeable _rewardToken = IERC20Upgradeable(rewardToken);
-            if (_rewardToken.balanceOf(address(this)) >= rewardForSelectingClusters) {
-                _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
-            }
-        }
     }
 
     /// @notice Flush Tokens to address. Can be only called by REWARD_CONTROLLER
