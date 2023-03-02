@@ -184,7 +184,7 @@ contract ClusterSelector is
     /// @param anyPreviousEpochNumber Epoch Number to fix the missing clusters
     function updateMissingClusters(uint256 anyPreviousEpochNumber) public returns (address[] memory previousSelectedClusters) {
         uint256 currentEpoch = getCurrentEpoch();
-        require(anyPreviousEpochNumber < currentEpoch, "Can't update current or more epochs");
+        require(anyPreviousEpochNumber <= currentEpoch, "cannot update future epochs");
         return _updateMissingClusters(anyPreviousEpochNumber);
     }
 
