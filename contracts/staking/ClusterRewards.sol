@@ -240,11 +240,11 @@ contract ClusterRewards is
             );
             latestNewEpochRewardAt = block.timestamp;
         }
-        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch*1 days/receiverStaking.EPOCH_LENGTH();
         uint256 currentPayoutDenomination = payoutDenomination;
         uint256 networkRewardWeight = rewardWeight[_networkId];
+        uint256 currentTotalRewardsPerEpoch = totalRewardsPerEpoch*1 days/receiverStaking.EPOCH_LENGTH()*networkRewardWeight/totalRewardWeight;
         for(uint256 i=0; i < _clusters.length; i++) {
-            uint256 clusterReward = ((currentTotalRewardsPerEpoch * networkRewardWeight * _payouts[i]) / totalRewardWeight) / currentPayoutDenomination;
+            uint256 clusterReward = (currentTotalRewardsPerEpoch * _payouts[i]) / currentPayoutDenomination;
             rewardDistributed = rewardDistributed + clusterReward;
             clusterRewards[_clusters[i]] = clusterRewards[_clusters[i]] + clusterReward;
         }
