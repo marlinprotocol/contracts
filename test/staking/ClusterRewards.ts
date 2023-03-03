@@ -1,13 +1,31 @@
-import { BigNumber as BN } from "bignumber.js";
+import { ethers, upgrades, network } from "hardhat";
+import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
-import { deployMockContract } from "ethereum-waffle";
-import { BigNumber, BigNumberish, Contract, Signer } from "ethers";
-import { ethers, upgrades } from "hardhat";
+import { BigNumber as BN, Signer, Contract } from "ethers";
+
+import { testERC165 } from "../helpers/erc165";
+import { testAdminRole, testRole } from "../helpers/rbac";
+
 import { ClusterRewards, ClusterSelector, Pond, ReceiverStaking } from "../../typechain-types";
 import { FuzzedNumber } from "../../utils/fuzzer";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
 import { getClusterRewards, getClusterSelector, getPond, getReceiverStaking } from "../../utils/typechainConvertor";
 import { getRandomElementsFromArray } from "../helpers/common";
+
+
+async function skipBlocks(n: number) {
+  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
+}
+
+async function skipTime(t: number) {
+  await ethers.provider.send("evm_increaseTime", [t]);
+  await skipBlocks(1);
+}
+
+async function skipToTimestamp(t: number) {
+  await ethers.provider.send("evm_mine", [t]);
+}
+
 
 const ETHHASH = ethers.utils.id("ETH");
 const DOTHASH = ethers.utils.id("DOT");
@@ -19,47 +37,18 @@ const NEARWEIGHT = 300;
 const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 const TOTALWEIGHT = ETHWEIGHT + DOTWEIGHT + NEARWEIGHT;
 
-const e16 = BigNumber.from(10).pow(16);
-const e18 = BigNumber.from(10).pow(18);
-const e20 = BigNumber.from(10).pow(20);
-const e22 = BigNumber.from(10).pow(22);
+const e16 = BN.from(10).pow(16);
+const e18 = BN.from(10).pow(18);
+const e20 = BN.from(10).pow(20);
+const e22 = BN.from(10).pow(22);
 
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
-  let clusterSelector: ClusterSelector;
-  let receiverStaking: ReceiverStaking;
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-
-    const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD", 5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
@@ -70,52 +59,87 @@ describe("ClusterRewards", function () {
 
     await expect(
       clusterRewards.initialize(
+        addrs[0],
         addrs[1],
-        addrs[2],
-        receiverStaking.address,
+        addrs[10],
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
-        60000
+        [addrs[11], addrs[12], addrs[13]],
+        60000,
       )
-    ).to.be.reverted;
+    ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
   it("deploys as proxy and initializes", async function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+
+    await expect(upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        addrs[10],
+        NETWORK_IDS,
+        [ETHWEIGHT, DOTWEIGHT],
+        [addrs[11], addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    )).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa");
+
+    await expect(upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        addrs[10],
+        NETWORK_IDS,
+        WEIGHTS,
+        [addrs[11], addrs[12]],
+        60000,
+      ],
+      { kind: "uups" }
+    )).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding clusterSelector and vice versa");
+
+    await expect(upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        addrs[10],
+        NETWORK_IDS,
+        WEIGHTS,
+        [addrs[11], addrs[12], ethers.constants.AddressZero],
+        60000,
+      ],
+      { kind: "uups" }
+    )).to.be.revertedWith("CRW:CN-ClusterSelector must exist");
+
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
       [
+        addrs[0],
         addrs[1],
-        addrs[2],
-        receiverStaking.address,
+        addrs[10],
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
     );
 
-    expect(await clusterRewards.hasRole(await clusterRewards.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
-    expect(await clusterRewards.hasRole(await clusterRewards.CLAIMER_ROLE(), addrs[2])).to.be.true;
-    await Promise.all(
-      NETWORK_IDS.map(async (nid, idx) => {
-        expect(await clusterRewards.rewardWeight(nid)).to.equal(WEIGHTS[idx]);
-      })
-    );
+    expect(await clusterRewards.hasRole(await clusterRewards.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(await clusterRewards.hasRole(await clusterRewards.CLAIMER_ROLE(), addrs[1])).to.be.true;
+    expect(await clusterRewards.rewardWeight(ETHHASH)).to.equal(ETHWEIGHT);
+    expect(await clusterRewards.rewardWeight(DOTHASH)).to.equal(DOTWEIGHT);
+    expect(await clusterRewards.rewardWeight(NEARHASH)).to.equal(NEARWEIGHT);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
     expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(60000);
-    expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(clusterSelector.address);
-    expect(await clusterRewards.receiverStaking()).to.equal(receiverStaking.address);
+    expect(await clusterRewards.clusterSelectors(ETHHASH)).to.equal(addrs[11]);
+    expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(addrs[12]);
+    expect(await clusterRewards.clusterSelectors(NEARHASH)).to.equal(addrs[13]);
+    expect(await clusterRewards.receiverStaking()).to.equal(addrs[10]);
   });
 
   it("upgrades", async function () {
@@ -125,14 +149,10 @@ describe("ClusterRewards", function () {
       [
         addrs[0],
         addrs[1],
-        receiverStaking.address,
+        addrs[10],
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
@@ -141,13 +161,15 @@ describe("ClusterRewards", function () {
 
     expect(await clusterRewards.hasRole(await clusterRewards.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterRewards.hasRole(await clusterRewards.CLAIMER_ROLE(), addrs[1])).to.be.true;
-    await Promise.all(
-      NETWORK_IDS.map(async (nid, idx) => {
-        expect(await clusterRewards.rewardWeight(nid)).to.equal(WEIGHTS[idx]);
-      })
-    );
+    expect(await clusterRewards.rewardWeight(ETHHASH)).to.equal(ETHWEIGHT);
+    expect(await clusterRewards.rewardWeight(DOTHASH)).to.equal(DOTWEIGHT);
+    expect(await clusterRewards.rewardWeight(NEARHASH)).to.equal(NEARWEIGHT);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
     expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(60000);
+    expect(await clusterRewards.clusterSelectors(ETHHASH)).to.equal(addrs[11]);
+    expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(addrs[12]);
+    expect(await clusterRewards.clusterSelectors(NEARHASH)).to.equal(addrs[13]);
+    expect(await clusterRewards.receiverStaking()).to.equal(addrs[10]);
   });
 
   it("does not upgrade without admin", async function () {
@@ -157,154 +179,104 @@ describe("ClusterRewards", function () {
       [
         addrs[0],
         addrs[1],
-        receiverStaking.address,
+        addrs[10],
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
     );
-    await expect(upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), { kind: "uups" })).to.be.reverted;
+    await expect(upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), { kind: "uups" })).to.be.revertedWith("only admin");
   });
 });
 
-describe("ClusterRewards", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let clusterRewards: ClusterRewards;
-  let clusterSelector: ClusterSelector;
-  let receiverStaking: ReceiverStaking;
-
-  before(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-
-    const blockData = await ethers.provider.getBlock("latest");
-
-    const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD", 5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
-
+testERC165(
+  "ClusterRegistry",
+  async function (signers: Signer[], addrs: string[]) {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [
         addrs[0],
         addrs[1],
-        receiverStaking.address,
+        addrs[10],
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
     );
-    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
-  });
-
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
-
-  it("supports ERC167", async function () {
-    const iid = ethers.utils.id("supportsInterface(bytes4)").substr(0, 10);
-    expect(await clusterRewards.supportsInterface(iid)).to.be.true;
-  });
-
-  it("does not support 0xffffffff", async function () {
-    expect(await clusterRewards.supportsInterface("0xffffffff")).to.be.false;
-  });
-
-  function makeInterfaceId(interfaces: string[]): string {
-    return ethers.utils.hexlify(
-      interfaces.map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10))).reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
-    );
-  }
-
-  it("supports IAccessControl", async function () {
-    let interfaces = [
+    let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+    return clusterRewards;
+  },
+  {
+    IAccessControl: [
       "hasRole(bytes32,address)",
       "getRoleAdmin(bytes32)",
       "grantRole(bytes32,address)",
       "revokeRole(bytes32,address)",
       "renounceRole(bytes32,address)",
-    ];
-    const iid = makeInterfaceId(interfaces);
-    expect(await clusterRewards.supportsInterface(iid)).to.be.true;
-  });
+    ],
+    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
+  }
+);
 
-  it("supports IAccessControlEnumerable", async function () {
-    let interfaces = ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"];
-    const iid = makeInterfaceId(interfaces);
-    expect(await clusterRewards.supportsInterface(iid)).to.be.true;
-  });
+testAdminRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
+  const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+  let clusterRewardsContract = await upgrades.deployProxy(
+    ClusterRewards,
+    [
+      addrs[0],
+      addrs[1],
+      addrs[10],
+      NETWORK_IDS,
+      WEIGHTS,
+      [addrs[11], addrs[12], addrs[13]],
+      60000,
+    ],
+    { kind: "uups" }
+  );
+  let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+  return clusterRewards;
 });
+
+testRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
+  const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+  let clusterRewardsContract = await upgrades.deployProxy(
+    ClusterRewards,
+    [
+      addrs[0],
+      addrs[1],
+      addrs[10],
+      NETWORK_IDS,
+      WEIGHTS,
+      [addrs[11], addrs[12], addrs[13]],
+      60000,
+    ],
+    { kind: "uups" }
+  );
+  let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+  return clusterRewards;
+}, "CLAIMER_ROLE");
+
+let startTime = Math.floor(Date.now()/1000) + 100000;
 
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
+  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
-  let DEFAULT_ADMIN_ROLE: string;
-  let clusterSelector: ClusterSelector;
-  let receiverStaking: ReceiverStaking;
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-
-    const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD", 5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewardsContract = await upgrades.deployProxy(
@@ -315,217 +287,7 @@ describe("ClusterRewards", function () {
         receiverStaking.address,
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
-        60000,
-      ],
-      { kind: "uups" }
-    );
-    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
-
-    DEFAULT_ADMIN_ROLE = await clusterRewards.DEFAULT_ADMIN_ROLE();
-  });
-
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
-
-  it("admin can grant admin role", async function () {
-    await clusterRewards.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant admin role", async function () {
-    await expect(clusterRewards.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke admin role", async function () {
-    await clusterRewards.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await clusterRewards.revokeRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke admin role", async function () {
-    await clusterRewards.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(clusterRewards.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can renounce own admin role if there are other admins", async function () {
-    await clusterRewards.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await clusterRewards.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("admin cannot renounce own admin role if there are no other admins", async function () {
-    await expect(clusterRewards.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
-  });
-
-  it("admin cannot renounce admin role of other admins", async function () {
-    await clusterRewards.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
-
-    await expect(clusterRewards.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
-  });
-});
-
-describe("ClusterRewards", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let clusterRewards: ClusterRewards;
-  let CLAIMER_ROLE: string;
-  let clusterSelector: ClusterSelector;
-  let receiverStaking: ReceiverStaking;
-
-  before(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-
-    const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD", 5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
-
-    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsContract = await upgrades.deployProxy(
-      ClusterRewards,
-      [
-        addrs[0],
-        addrs[1],
-        receiverStaking.address,
-        NETWORK_IDS,
-        WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
-        60000,
-      ],
-      { kind: "uups" }
-    );
-    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
-
-    CLAIMER_ROLE = await clusterRewards.CLAIMER_ROLE();
-  });
-
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
-
-  it("admin can grant claimer role", async function () {
-    await clusterRewards.grantRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.true;
-  });
-
-  it("non admin cannot grant claimer role", async function () {
-    await expect(clusterRewards.connect(signers[1]).grantRole(CLAIMER_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("admin can revoke claimer role", async function () {
-    await clusterRewards.grantRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.true;
-
-    await clusterRewards.revokeRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.false;
-  });
-
-  it("non admin cannot revoke claimer role", async function () {
-    await clusterRewards.grantRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.true;
-
-    await expect(clusterRewards.connect(signers[2]).revokeRole(CLAIMER_ROLE, addrs[1])).to.be.reverted;
-  });
-
-  it("whitelisted signer can renounce own claimer role", async function () {
-    await clusterRewards.grantRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.true;
-
-    await clusterRewards.connect(signers[1]).renounceRole(CLAIMER_ROLE, addrs[1]);
-    expect(await clusterRewards.hasRole(CLAIMER_ROLE, addrs[1])).to.be.false;
-  });
-});
-
-describe("ClusterRewards", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let pond: Pond;
-  let clusterRewards: ClusterRewards;
-  let clusterSelector: ClusterSelector;
-  let receiverStaking: ReceiverStaking;
-
-  before(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-
-    const Pond = await ethers.getContractFactory("Pond");
-    let pondContract = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-    pond = getPond(pondContract.address, signers[0]);
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
-
-    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsContract = await upgrades.deployProxy(
-      ClusterRewards,
-      [
-        addrs[0],
-        addrs[1],
-        receiverStaking.address,
-        NETWORK_IDS,
-        WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
@@ -536,101 +298,222 @@ describe("ClusterRewards", function () {
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("admin can add network", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newClusterSelector.address);
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, clusterSelector.address);
 
     expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(newClusterSelector.address);
+    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(clusterSelector.address);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT + 400);
-  });
-
-  it("admin cannot add existing network", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newClusterSelector.address);
-    expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(newClusterSelector.address);
-    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT + 400);
-
-    newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newClusterSelector.address)).to.be.reverted;
   });
 
   it("admin can add network with zero weight", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 0, newClusterSelector.address);
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 0, clusterSelector.address);
+
     expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(0);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(newClusterSelector.address);
+    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(clusterSelector.address);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
   });
 
-  it("admin can update network weight to zero", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, newClusterSelector.address);
-    expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(newClusterSelector.address);
-    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT + 400);
+  it("admin cannot add existing network", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
 
-    await clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), 0, newClusterSelector.address);
-    expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(0);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(newClusterSelector.address);
-    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
-
-    let updatedClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-
-    await clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), 400, updatedClusterSelector.address);
-    expect(await clusterRewards.rewardWeight(ethers.utils.id("POLYGON"))).to.equal(400);
-    expect(await clusterRewards.clusterSelectors(ethers.utils.id("POLYGON"))).to.equal(updatedClusterSelector.address);
-    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT + 400);
+    await expect(clusterRewards.addNetwork(ethers.utils.id("ETH"), 400, clusterSelector.address)).to.be.revertedWith("CRW:AN-Network already exists");
   });
 
-  it("admin cannot add network with clusterSelector as zero address", async function () {
-    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 40, ethers.constants.AddressZero)).to.be.reverted;
+  it("admin cannot add network with invalid cluster selector", async function () {
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, ethers.constants.AddressZero)).to.be.revertedWith("CRW:AN-ClusterSelector must exist");
+  });
+
+  it("admin cannot add network if start time does not match", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime+1);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, clusterSelector.address)).to.be.revertedWith("CRW:AN-start time inconsistent");
+  });
+
+  it("admin cannot add network if epoch length does not match", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(901);
+
+    await expect(clusterRewards.addNetwork(ethers.utils.id("POLYGON"), 400, clusterSelector.address)).to.be.revertedWith("CRW:AN-epoch length inconsistent");
   });
 
   it("non admin cannot add network", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await expect(clusterRewards.connect(signers[1]).addNetwork(ethers.utils.id("POLYGON"), 400, newClusterSelector.address)).to.be.reverted;
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.connect(signers[1]).addNetwork(ethers.utils.id("POLYGON"), 400, clusterSelector.address)).to.be.revertedWith("only admin");
   });
+});
+
+describe("ClusterRewards", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let receiverStaking: Contract;
+  let clusterRewards: ClusterRewards;
+
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [addrs[11], addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+  });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+  it("admin can update cluster selector", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await clusterRewards.updateNetwork(ethers.utils.id("ETH"), ETHWEIGHT, clusterSelector.address);
+
+    expect(await clusterRewards.rewardWeight(ethers.utils.id("ETH"))).to.equal(ETHWEIGHT);
+    expect(await clusterRewards.clusterSelectors(ethers.utils.id("ETH"))).to.equal(clusterSelector.address);
+    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
+  });
+
+  it("admin cannot update cluster selector to zero", async function () {
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("ETH"), ETHWEIGHT, ethers.constants.AddressZero)).to.be.revertedWith("CRW:UN-ClusterSelector must exist");
+  });
+
+  it("admin cannot update cluster selector if start time does not match", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime+1);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("ETH"), ETHWEIGHT, clusterSelector.address)).to.be.revertedWith("CRW:UN-start time inconsistent");
+  });
+
+  it("admin cannot update cluster selector if epoch length does not match", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(901);
+
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("ETH"), ETHWEIGHT, clusterSelector.address)).to.be.revertedWith("CRW:UN-epoch length inconsistent");
+  });
+
+  it("admin can update reward weight", async function () {
+    await clusterRewards.updateNetwork(ethers.utils.id("ETH"), 400, addrs[11]);
+
+    expect(await clusterRewards.rewardWeight(ethers.utils.id("ETH"))).to.equal(400);
+    expect(await clusterRewards.clusterSelectors(ethers.utils.id("ETH"))).to.equal(addrs[11]);
+    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT + 400 - ETHWEIGHT);
+  });
+
+  it("admin can update reward weight to zero", async function () {
+    await clusterRewards.updateNetwork(ethers.utils.id("ETH"), 0, addrs[11]);
+
+    expect(await clusterRewards.rewardWeight(ethers.utils.id("ETH"))).to.equal(0);
+    expect(await clusterRewards.clusterSelectors(ethers.utils.id("ETH"))).to.equal(addrs[11]);
+    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT - ETHWEIGHT);
+  });
+
+  it("admin cannot update cluster selector and weight for non existent network", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), ETHWEIGHT, clusterSelector.address)).to.be.revertedWith("CRW:UN-Network doesnt exist");
+  });
+
+  it("non admin cannot update cluster selector", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.connect(signers[1]).updateNetwork(ethers.utils.id("ETH"), ETHWEIGHT, clusterSelector.address)).to.be.revertedWith("only admin");
+  });
+
+  it("non admin cannot update weight", async function () {
+    await expect(clusterRewards.connect(signers[1]).updateNetwork(ethers.utils.id("ETH"), 400, addrs[11])).to.be.revertedWith("only admin");
+  });
+
+  it("non admin cannot update cluster selector and weight", async function () {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    let clusterSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    await clusterSelector.mock.START_TIME.returns(startTime);
+    await clusterSelector.mock.EPOCH_LENGTH.returns(900);
+
+    await expect(clusterRewards.connect(signers[1]).updateNetwork(ethers.utils.id("ETH"), 400, clusterSelector.address)).to.be.revertedWith("only admin");
+  });
+});
+
+describe("ClusterRewards", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let receiverStaking: Contract;
+  let clusterRewards: ClusterRewards;
+
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [addrs[11], addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+  });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("admin can remove network", async function () {
     await clusterRewards.removeNetwork(ethers.utils.id("DOT"));
@@ -646,54 +529,22 @@ describe("ClusterRewards", function () {
   it("non admin cannot remove network", async function () {
     await expect(clusterRewards.connect(signers[1]).removeNetwork(ethers.utils.id("DOT"))).to.be.reverted;
   });
-
-  it("admin can update receive staking", async () => {
-    const anyOtherAddress = getRandomElementsFromArray(addrs, 1)[0];
-    await expect(clusterRewards.connect(signers[0]).updateReceiverStaking(anyOtherAddress))
-      .to.emit(clusterRewards, "ReceiverStakingUpdated")
-      .withArgs(anyOtherAddress);
-  });
 });
 
 describe("ClusterRewards", function () {
   let signers: Signer[];
   let addrs: string[];
-  let pond: Pond;
+  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
-  let receiverStaking: ReceiverStaking;
-  let clusterSelector: ClusterSelector;
 
   before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-    const blockNum = await ethers.provider.getBlockNumber();
-    const blockData = await ethers.provider.getBlock(blockNum);
-
-    const Pond = await ethers.getContractFactory("Pond");
-    let pondContract = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
-      kind: "uups",
-    });
-    pond = getPond(pondContract.address, signers[0]);
-
-    let ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStakingContract = await upgrades.deployProxy(ReceiverStaking, {
-      constructorArgs: [blockData.timestamp, 4 * 3600, pond.address],
-      kind: "uups",
-      initializer: false,
-    });
-    receiverStaking = getReceiverStaking(receiverStakingContract.address, signers[0]);
-
-    await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
-
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewardsContract = await upgrades.deployProxy(
@@ -704,11 +555,7 @@ describe("ClusterRewards", function () {
         receiverStaking.address,
         NETWORK_IDS,
         WEIGHTS,
-        [
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-          clusterSelector.address,
-          "0x000000000000000000000000000000000000dEaD", // invalid cluster selector
-        ],
+        [addrs[11], addrs[12], addrs[13]],
         60000,
       ],
       { kind: "uups" }
@@ -718,306 +565,764 @@ describe("ClusterRewards", function () {
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-  it("admin can change network reward", async function () {
-    await clusterRewards.updateNetwork(ethers.utils.id("DOT"), 400, clusterSelector.address);
-    expect(await clusterRewards.rewardWeight(ethers.utils.id("DOT"))).to.equal(400);
-    expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT - DOTWEIGHT + 400);
+  it("admin can update receiver staking", async function () {
+    await clusterRewards.updateReceiverStaking(addrs[10]);
+    expect(await clusterRewards.receiverStaking()).to.equal(addrs[10]);
   });
 
-  it("admin can change network reward", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await clusterRewards.updateNetwork(ethers.utils.id("DOT"), DOTWEIGHT, newClusterSelector.address);
-    expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(newClusterSelector.address);
+  it("non admin cannot update receiver staking", async function () {
+    await expect(clusterRewards.connect(signers[1]).updateReceiverStaking(addrs[10])).to.be.reverted;
   });
 
-  it("admin cannot change non-existing network reward", async function () {
-    await expect(clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), 400, clusterSelector.address)).to.be.reverted;
+  it("admin can update reward per epoch", async function () {
+    await clusterRewards.changeRewardPerEpoch(30000);
+    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(30000);
   });
 
-  it("admin cannot change clusterSelector of non-existing network", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await expect(clusterRewards.updateNetwork(ethers.utils.id("POLYGON"), DOTWEIGHT, newClusterSelector.address)).to.be.reverted;
+  it("non admin cannot update reward per epoch", async function () {
+    await expect(clusterRewards.connect(signers[1]).changeRewardPerEpoch(30000)).to.be.reverted;
   });
 
-  it("non admin cannot change network reward", async function () {
-    let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let newClusterSelector = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0], "0x000000000000000000000000000000000000dEaD",  5, pond.address, new BN(10).pow(18).toString()
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
-    await expect(clusterRewards.connect(signers[1]).updateNetwork(ethers.utils.id("DOT"), 400, newClusterSelector.address)).to.be.reverted;
+  it("admin can update reward wait time", async function () {
+    await clusterRewards.updateRewardWaitTime(30000);
+    expect(await clusterRewards.rewardDistributionWaitTime()).to.equal(30000);
   });
 
-  it("admin can change rewards per epoch", async function () {
-    await clusterRewards.changeRewardPerEpoch(200);
-    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(200);
-  });
-
-  it("non admin cannot change rewards per epoch", async function () {
-    await expect(clusterRewards.connect(signers[1]).changeRewardPerEpoch(200)).to.be.reverted;
+  it("non admin cannot update reward wait time", async function () {
+    await expect(clusterRewards.connect(signers[1]).updateRewardWaitTime(30000)).to.be.reverted;
   });
 });
 
 describe("ClusterRewards", function () {
-  let clusterRewards: ClusterRewards;
-  let signers: Signer[] = [];
-  let addrs: string[] = [];
-
+  let signers: Signer[];
+  let addrs: string[];
   let receiverStaking: Contract;
-  let es1: Contract;
-  let es2: Contract;
-  let es3: Contract;
+  let clusterRewards: ClusterRewards;
 
-  let epochNumbersToUse: number[] = [1, 2, 3, 4, 5]; // keep this is ascending order for tests to run
-
-  let clustersToSelect: number = 5;
-
-  let ethClusters: Signer[] = [];
-  let dotClusters: Signer[] = [];
-  let nearClusters: Signer[] = [];
-
-  let ethClusterAddresses: string[];
-  let dotClusterAddresses: string[];
-  let nearClusterAddresses: string[];
-
-  let receiver: Signer;
-  let claimer: Signer;
-
-  let totalRewardsPerEpoch = FuzzedNumber.randomInRange(e16.mul(5), e18.mul(10));
-
-  before(async () => {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
-    claimer = signers[1];
 
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
-
-    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    es1 = await deployMockContract(signers[0], ClusterSelector.interface.format());
-    es2 = await deployMockContract(signers[0], ClusterSelector.interface.format());
-    es3 = await deployMockContract(signers[0], ClusterSelector.interface.format());
+    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [es1.address, es2.address, es3.address], totalRewardsPerEpoch],
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [addrs[11], addrs[12], addrs[13]],
+        60000,
+      ],
       { kind: "uups" }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
-    ethClusters = signers.slice(350, 365);
-    dotClusters = signers.slice(335, 350);
-    nearClusters = signers.slice(320, 335);
-
-    ethClusterAddresses = await Promise.all(ethClusters.map((a) => a.getAddress()));
-    dotClusterAddresses = await Promise.all(dotClusters.map((a) => a.getAddress()));
-    nearClusterAddresses = await Promise.all(nearClusters.map((a) => a.getAddress()));
-
-    for (let index = 0; index < epochNumbersToUse.length; index++) {
-      const element = epochNumbersToUse[index];
-      await es1.mock.getClusters.withArgs(element).returns(getRandomElementsFromArray(ethClusterAddresses, clustersToSelect));
-      await es2.mock.getClusters.withArgs(element).returns(getRandomElementsFromArray(dotClusterAddresses, clustersToSelect));
-      await es3.mock.getClusters.withArgs(element).returns(getRandomElementsFromArray(nearClusterAddresses, clustersToSelect));
-    }
-
-    receiver = signers[13]; // can be any number not used
-
-    for (let index = 0; index < epochNumbersToUse.length; index++) {
-      const element = epochNumbersToUse[index];
-      await receiverStaking.mock.getEpochInfo
-        .withArgs(element)
-        .returns(FuzzedNumber.randomInRange(e18, e20), epochNumbersToUse[epochNumbersToUse.length - 1]);
-
-      await receiverStaking.mock.balanceOfSignerAt
-        .withArgs(await receiver.getAddress(), element)
-        .returns(FuzzedNumber.randomInRange(e18, e20), await receiver.getAddress());
-    }
+    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.updateRewardWaitTime(43200);
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-  it("Issue tickets single epoch", async () => {
-    const receiverAddress = await receiver.getAddress();
-    const epoch = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), 1)[0]; // exclude last epoch
-    const tickets = [FuzzedNumber.randomInRange(e16, e18)];
+  it("feeder can feed rewards before start time", async function () {
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    // uint256 _index = _epoch/256;
-    // uint256 _pos = _epoch%256;
-    // uint256 _issuedFlags = ticketsIssued[_receiver][_index];
-    // ticketsIssued[_receiver][_index] = _issuedFlags | 2**(255-_pos);
-
-    const flagsBefore = await getFlagData(clusterRewards.connect(receiver), receiverAddress, epoch);
-    await clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, epoch, tickets);
-    const flagsAfter = await getFlagData(clusterRewards.connect(receiver), receiverAddress, epoch);
-
-    const pos = BigNumber.from(epoch).mod(256);
-    const expectedFlagsAfter = flagsBefore.add(BigNumber.from(2).pow(BigNumber.from(255).sub(pos)));
-
-    expect(expectedFlagsAfter).to.eq(flagsAfter);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
   });
 
-  it("Should Fail: Issue tickets multiple times in same epoch", async () => {
-    const epoch = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), 1)[0]; // exclude last epoch
-    const tickets = [FuzzedNumber.randomInRange(e16, e18)];
+  it("feeder can feed rewards after start time", async function () {
+    await skipToTimestamp(startTime + 10);
 
-    await clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, epoch, tickets);
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    await expect(clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, epoch, tickets)).to.be.reverted;
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
   });
 
-  it("Issue tickets multiple epochs and claim", async () => {
-    const numberOfEpochs = 3; //
-    const epochs = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), numberOfEpochs);
-    const tickets = [
-      [
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-      ],
-      [
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-      ],
-      [
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-        FuzzedNumber.randomInRange(e16, e18).div(5),
-      ],
-    ];
+  it("feeder can feed rewards till 1 day after switching time", async function () {
+    await skipToTimestamp(startTime + 3*86400 + 21600 + 85000);
 
-    await clusterRewards.connect(receiver)["issueTickets(bytes32,uint256[],uint256[][])"](NEARHASH, epochs, tickets);
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    for (let index = 0; index < nearClusterAddresses.length; index++) {
-      const element = nearClusterAddresses[index];
-      const prevReward = await clusterRewards.clusterRewards(element);
-      await clusterRewards.connect(claimer).claimReward(element);
-
-      if (prevReward.gt(1)) {
-        const newReward = await clusterRewards.clusterRewards(element);
-        expect(newReward).eq(1);
-      }
-    }
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
   });
 
-  it("Issue Tickets (aggregate)", async () => {
-    const ticket = FuzzedNumber.randomInRange(e16, e18);
+  it("feeder cannot feed rewards after 1 day after switching time", async function () {
+    await skipToTimestamp(startTime + 3*86400 + 21600 + 90000);
 
-    const epoch = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), 1)[0]; // exclude last epoch
-    const abiCode = new ethers.utils.AbiCoder();
-    // bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_epoch, _signedTicket.tickets))));
-
-    const epoch_tickets = abiCode.encode(["bytes32", "uint256", "uint256[]"], [ETHHASH, epoch, [ticket]]);
-    const hashOf_epoch_tickets = ethers.utils.keccak256(epoch_tickets);
-    // console.log({hashOf_epoch_tickets: BigNumber.from(hashOf_epoch_tickets).toString()});
-    console.log({ hashOf_epoch_tickets });
-    const arraifiedHash = ethers.utils.arrayify(hashOf_epoch_tickets);
-    const signature = await receiver.signMessage(arraifiedHash);
-
-    const r = signature.slice(0, 66);
-    const s = "0x" + signature.slice(66, 130);
-    const v = parseInt(signature.slice(130, 132), 16);
-
-    const ticketDataToSubmit = [
-      {
-        tickets: [ticket],
-        v,
-        r,
-        s,
-      },
-    ];
-
-    await clusterRewards
-      .connect(claimer)
-      ["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, epoch, ticketDataToSubmit);
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)).to.be.revertedWith("CRW:F-Invalid method");
   });
 
-  it("Should Fail: Replay tickets", async () => {
-    const ticket = FuzzedNumber.randomInRange(e16, e18);
-
-    const epoch = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), 1)[0]; // exclude last epoch
-    const abiCode = new ethers.utils.AbiCoder();
-    // bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, keccak256(abi.encode(_epoch, _signedTicket.tickets))));
-
-    const epoch_tickets = abiCode.encode(["bytes32", "uint256", "uint256[]"], [ETHHASH, epoch, [ticket]]);
-    const hashOf_epoch_tickets = ethers.utils.keccak256(epoch_tickets);
-    // console.log({hashOf_epoch_tickets: BigNumber.from(hashOf_epoch_tickets).toString()});
-    console.log({ hashOf_epoch_tickets });
-    const arraifiedHash = ethers.utils.arrayify(hashOf_epoch_tickets);
-    const signature = await receiver.signMessage(arraifiedHash);
-
-    const r = signature.slice(0, 66);
-    const s = "0x" + signature.slice(66, 130);
-    const v = parseInt(signature.slice(130, 132), 16);
-
-    const ticketDataToSubmit = [
-      {
-        tickets: [ticket],
-        v,
-        r,
-        s,
-      },
-    ];
-
-    await clusterRewards
-      .connect(claimer)
-      ["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, epoch, ticketDataToSubmit);
-
-    const someOtherEpoch = FuzzedNumber.randomInRange(epoch + 1, epoch + 100);
-    await expect(
-      clusterRewards
-        .connect(claimer)
-        ["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, someOtherEpoch, ticketDataToSubmit)
-    ).to.be.reverted;
+  it("feeder cannot feed rewards exceeding total", async function () {
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22], addrs[23]], [e16.mul(10), e16.mul(50), e16.mul(41)], 1)).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
   });
 
-  it("Check Feed", async () => {
-    const cluster = getRandomElementsFromArray(nearClusterAddresses, 1)[0];
-    const payout = FuzzedNumber.randomInRange("1000000000", "100000000000");
-    const admin = signers[0];
-    const FEEDER_ROLE = await clusterRewards.FEEDER_ROLE();
-    await clusterRewards.connect(admin).grantRole(FEEDER_ROLE, await admin.getAddress());
+  it("feeder can feed rewards in multiple parts", async function () {
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
 
-    const epoch = getRandomElementsFromArray(epochNumbersToUse.slice(0, 4), 1)[0]; // exclude last epoch
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(96000);
 
-    await receiverStaking.mock.START_TIME.returns(1111111); // any block time stamp
-    await expect(clusterRewards.connect(admin).feed(NEARHASH, [cluster], [payout], epoch))
-      .to.emit(clusterRewards, "ClusterRewarded")
-      .withArgs(NEARHASH);
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+  });
+
+  it("feeder cannot feed rewards in multiple parts exceeding total", async function () {
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(96000);
+
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[23]], [e16.mul(41)], 1)).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
+  });
+
+  it("feeder cannot feed rewards again before wait time", async function () {
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
+    await skipTime(40000);
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
+  });
+
+  it("feeder can feed rewards again after wait time", async function () {
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
+    await skipTime(40000);
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
+    await skipTime(5000);
+    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2);
+
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(192000);
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(576000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(2)).to.equal(192000);
+  });
+
+  it("non feeder cannot feed rewards", async function () {
+    await expect(clusterRewards.feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)).to.be.revertedWith("only feeder");
   });
 });
 
-async function getFlagData(clusterRewards: ClusterRewards, receiver: string, epoch: BigNumberish): Promise<BigNumber> {
-  // uint256 _index = _epoch/256;
-  // uint256 _pos = _epoch%256;
-  // uint256 _issuedFlags = ticketsIssued[_receiver][_index];
-  // ticketsIssued[_receiver][_index] = _issuedFlags | 2**(255-_pos);
+describe("ClusterRewards", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let receiverStaking: Contract;
+  let ethSelector: Contract;
+  let clusterRewards: ClusterRewards;
 
-  const index = BigNumber.from(epoch).div(256);
-  // const pos = BigNumber.from(epoch).mod(256);
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
-  const flags = await clusterRewards.ticketsIssued(receiver, index);
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
 
-  return flags;
-}
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    ethSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [ethSelector.address, addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+
+    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.updateRewardWaitTime(43200);
+  });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+  it("staker can submit tickets before switch with zero rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(0);
+  });
+
+  it("staker can submit tickets after switch with non zero rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
+    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 4, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 4)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 4)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(600);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(500);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(900);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(550);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(450);
+  });
+
+  it("staker cannot submit tickets multiple times for the same epoch", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
+    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)])).to.be.revertedWith("CRW:IPRT-Tickets already issued");
+  });
+
+  it("staker cannot submit tickets for future epochs", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 5).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(5).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 5, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)])).to.be.revertedWith("CRW:IT-Epoch not completed");
+  });
+
+  it("staker cannot submit partial tickets", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+  });
+
+  it("staker cannot submit excess tickets", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [2], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:MIT-invalid inputs");
+  });
+
+  it("staker cannot submit tickets over maximum", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)])).to.be.revertedWith("CRW:IPRT-Invalid ticket count");
+  });
+});
+
+describe("ClusterRewards", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let receiverStaking: Contract;
+  let ethSelector: Contract;
+  let clusterRewards: ClusterRewards;
+
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
+
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    ethSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [ethSelector.address, addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+
+    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.updateRewardWaitTime(43200);
+  });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+  it("staker can submit signed tickets before switch with zero rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    const signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    const tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(0);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(0);
+  });
+
+  it("staker can submit signed tickets after switch with non zero rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
+    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+
+    signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 4, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 4, tickets);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 4)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 4)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(600);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(500);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(900);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(550);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(450);
+  });
+
+  it("staker cannot submit signed tickets multiple times for the same epoch", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
+    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+
+    signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Tickets already issued");
+  });
+
+  it("staker cannot submit signed tickets for future epochs", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 5).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(5).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 5, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 5, tickets)).to.be.revertedWith("CRW:SIT-Epoch not completed");
+  });
+
+  it("staker cannot submit partial tickets", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+  });
+
+  it("staker cannot submit excess tickets", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+  });
+
+  it("staker cannot submit signed tickets over maximum", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Invalid ticket count");
+  });
+
+  it("staker cannot submit missigned tickets", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+
+    let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 3, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    let tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16),
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.reverted;
+
+    signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+      ["bytes32", "uint256", "uint256[]"],
+      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+    ))));
+    tickets = [
+      {
+        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        v: parseInt(signature.slice(130, 132), 16) - 5,
+        r: signature.slice(0, 66),
+        s: "0x" + signature.slice(66, 130),
+      },
+    ];
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.reverted;
+  });
+});
+
+describe("ClusterRewards", function () {
+  let signers: Signer[];
+  let addrs: string[];
+  let receiverStaking: Contract;
+  let ethSelector: Contract;
+  let clusterRewards: ClusterRewards;
+
+  before(async function () {
+    signers = await ethers.getSigners();
+    addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
+    await receiverStaking.mock.START_TIME.returns(startTime);
+    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
+
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    ethSelector = await deployMockContract(signers[0], ClusterSelector.interface.format());
+
+    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+    let clusterRewardsContract = await upgrades.deployProxy(
+      ClusterRewards,
+      [
+        addrs[0],
+        addrs[1],
+        receiverStaking.address,
+        NETWORK_IDS,
+        WEIGHTS,
+        [ethSelector.address, addrs[12], addrs[13]],
+        60000,
+      ],
+      { kind: "uups" }
+    );
+    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
+
+    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.updateRewardWaitTime(43200);
+  });
+
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+  it("claimer can claim rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[33]), 299);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[33]);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(1);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[31]), 99);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[31]);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(1);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[35]), 249);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[35]);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(1);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[34]), 149);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[34]);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(1);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[32]), 199);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[32]);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(1);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[36]), 0);
+    await clusterRewards.connect(signers[1]).claimReward(addrs[36]);
+    expect(await clusterRewards.clusterRewards(addrs[36])).to.equal(0);
+  });
+
+  it("non claimer cannot claim rewards", async function () {
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+
+    await skipToTimestamp(startTime + 4*86400);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+
+    await expect(clusterRewards.claimReward(addrs[33])).to.be.revertedWith(`AccessControl: account ${addrs[0].toLowerCase()} is missing role ${await clusterRewards.CLAIMER_ROLE()}`);
+  });
+});
+
