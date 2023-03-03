@@ -306,7 +306,7 @@ contract ClusterRewards is
             uint256 _index = _epoch/256;
             uint256 _pos = _epoch%256;
             uint256 _issuedFlags = ticketsIssued[_receiver][_index];
-            return ((_issuedFlags >> (255-_pos)) & 1) == 1;
+            return (_issuedFlags & 2**(255-_pos)) != 0;
         }
     }
 
