@@ -256,28 +256,6 @@ contract ClusterRewards is
         emit ClusterRewarded(_networkId);
     }
 
-    function issueTickets(bytes32 _networkId, uint256 _epoch, SignedTicket[] memory _signedTickets) external {
-        (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
-
-        require(_epoch < _currentEpoch, "CRW:SIT-Epoch not completed");
-
-        address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
-        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
-
-        for(uint256 i=0; i < _signedTickets.length; i++) {
-            address _signer = _verifySignedTicket(_signedTickets[i], _networkId, _epoch);
-            _processReceiverTickets(
-                _signer,
-                _epoch,
-                _selectedClusters,
-                _signedTickets[i].tickets,
-                _totalNetworkRewardsPerEpoch,
-                _epochTotalStake
-            );
-            emit TicketsIssued(_networkId, _epoch, _signer);
-        }
-    }
-
     function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
         require(!isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
@@ -333,6 +311,28 @@ contract ClusterRewards is
             for(uint256 i=0; i < numberOfEpochs; ++i) {
                 issueTickets(_networkId, _epoch[i], _tickets[i]);
             }
+        }
+    }
+
+    function issueTickets(bytes32 _networkId, uint256 _epoch, SignedTicket[] memory _signedTickets) external {
+        (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
+
+        require(_epoch < _currentEpoch, "CRW:SIT-Epoch not completed");
+
+        address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
+        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+
+        for(uint256 i=0; i < _signedTickets.length; i++) {
+            address _signer = _verifySignedTicket(_signedTickets[i], _networkId, _epoch);
+            _processReceiverTickets(
+                _signer,
+                _epoch,
+                _selectedClusters,
+                _signedTickets[i].tickets,
+                _totalNetworkRewardsPerEpoch,
+                _epochTotalStake
+            );
+            emit TicketsIssued(_networkId, _epoch, _signer);
         }
     }
 
