@@ -447,8 +447,6 @@ describe("RewardDelegators", function () {
   let clientKey4: string;
   let clientKey5: string;
 
-  const numberOfClustersToSelect = 5;
-
   const networkId = ethers.utils.id("DOT");
 
   const smallAmount = BigNumber.from(10).pow(20);
@@ -532,7 +530,7 @@ describe("RewardDelegators", function () {
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     let clusterSelectorContract = await upgrades.deployProxy(
       ClusterSelector,
-      [addrs[0], rewardDelegators.address, numberOfClustersToSelect, pondInstance.address, BigNumber.from(10).pow(20)],
+      [addrs[0], rewardDelegators.address, pondInstance.address, BigNumber.from(10).pow(20)],
       {
         kind: "uups",
         constructorArgs: [blockData.timestamp, 4 * 3600],
@@ -711,7 +709,6 @@ describe("RewardDelegators Deployment", function () {
   let registeredClusterRewardAddress4: string;
 
   let clusterSelectorInstance: ClusterSelector;
-  let numberOfClustersToSelect: number = 5;
 
   let receiverStaking: ReceiverStaking;
   let receiverStaker: Signer;
@@ -842,7 +839,6 @@ describe("RewardDelegators Deployment", function () {
     let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
       rewardDelegatorsInstance.address,
-      numberOfClustersToSelect,
       pondInstance.address,
       BigNumber.from(10).pow(20)
     ], {
@@ -1204,7 +1200,6 @@ describe("RewardDelegators Deployment", function () {
     let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
       rewardDelegatorsInstance.address,
-      numberOfClustersToSelect,
       pondInstance.address,
       BigNumber.from(10).pow(20)
     ], {

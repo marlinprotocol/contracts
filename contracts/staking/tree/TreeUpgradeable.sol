@@ -47,6 +47,10 @@ contract TreeUpgradeable is Initializable {
         nodes.push(Node(0, 0, 0));
     }
 
+    function nodesInTree() public view returns(uint256) {
+        return nodes.length - 1;
+    }
+
     // assumes index is not 0
     function _add_unchecked(uint256 _index, uint64 _value) internal {
         nodes[_index].value += _value;
@@ -197,12 +201,12 @@ contract TreeUpgradeable is Initializable {
             }
 
             // check current root
-            if (_searchNumber > _leftBound && _searchNumber <= _rightBound) {
+            if (_searchNumber >= _leftBound && _searchNumber < _rightBound) {
                 // current root matched, add in memory tree and return
                 // safemath: cannot exceed 2^65
                 _selectedPathTree[_mRootIndex].value += _root.value;
                 return (_rootIndex, _root.value, _mLastIndex);
-            } else if (_searchNumber <= _leftBound) {  // check left side
+            } else if (_searchNumber < _leftBound) {  // check left side
                 // search on left side
                 // separated out due to stack too deep errors
                 return _selectLeft(_rootIndex, _searchNumber, _selectedPathTree, _mRoot.left, _mRootIndex, _mLastIndex);
@@ -273,6 +277,10 @@ contract TreeUpgradeable is Initializable {
     function _selectN(uint256 _randomizer, uint256 _N) internal view returns (address[] memory _selectedNodes) {
         uint256 _nodeCount = nodes.length - 1;
         if(_N > _nodeCount) _N = _nodeCount;
+        if(_N == 0) return new address[](0);
+
+        // WARNING - don't declare any memory variables before this point
+
         MemoryNode[] memory _selectedPathTree;
         // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
         // To ensure random values are never accessed for the MemoryNodes, we always initialize before using an array node
@@ -292,8 +300,8 @@ contract TreeUpgradeable is Initializable {
             _totalWeightInTree += _root.leftSum + _root.rightSum;
         }
         uint256 _sumOfBalancesOfSelectedNodes = 0;
-
         _selectedNodes = new address[](_N);
+
         for (uint256 _index = 0; _index < _N; ) {
             _randomizer = uint256(keccak256(abi.encode(_randomizer, _index)));
             // yes, not the right way to get exact uniform distribution
