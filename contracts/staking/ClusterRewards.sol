@@ -138,6 +138,7 @@ contract ClusterRewards is
     event ClusterRewarded(bytes32 networkId);
     event ReceiverStakingUpdated(address receiverStaking);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
+    event RewardDistributionWaitTimeChanged(uint256 updatedWaitTime);
     event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
 
     modifier onlyFeeder() {
@@ -202,6 +203,15 @@ contract ClusterRewards is
     function _changeRewardPerEpoch(uint256 _updatedRewardPerEpoch) internal {
         totalRewardsPerEpoch = _updatedRewardPerEpoch;
         emit RewardPerEpochChanged(_updatedRewardPerEpoch);
+    }
+
+    function updateRewardWaitTime(uint256 _updatedWaitTime) external onlyAdmin {
+        _updateRewardWaitTime(_updatedWaitTime);
+    }
+
+    function _updateRewardWaitTime(uint256 _updatedWaitTime) internal {
+        rewardDistributionWaitTime = _updatedWaitTime;
+        emit RewardDistributionWaitTimeChanged(_updatedWaitTime);
     }
 
 //-------------------------------- Admin functions end --------------------------------//
