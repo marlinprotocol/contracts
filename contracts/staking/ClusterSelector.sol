@@ -164,13 +164,14 @@ contract ClusterSelector is
         // select for next epoch
         uint256 _epoch = getCurrentEpoch() + 1;
 
-        // can select only once per epoch
         _selectedClusters = clustersSelected[_epoch];
-        require(_selectedClusters.length == 0);
+        // can select till atleast one cluster is selected per epoch
+        require(_selectedClusters.length == 0, "CS:SC-Already selected for cluster");
 
         // select and save from the tree
         uint256 _randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
         _selectedClusters = _selectN(_randomizer, numberOfClustersToSelect);
+        require(_selectedClusters.length != 0, "CS:SC-No cluster selected");
         clustersSelected[_epoch] = _selectedClusters;
         for (uint256 _index = 0; _index < _selectedClusters.length; _index++) {
             emit ClusterSelected(_epoch, _selectedClusters[_index]);
@@ -283,7 +284,7 @@ contract ClusterSelector is
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
         require(epochNumber <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
-        if (epochNumber == 0) {
+        if (epochNumber <= 1) {
             return new address[](0);
         }
         address[] memory clusters = clustersSelected[epochNumber];
