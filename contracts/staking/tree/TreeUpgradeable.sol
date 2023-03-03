@@ -277,8 +277,9 @@ contract TreeUpgradeable is Initializable {
     function _selectN(uint256 _randomizer, uint256 _N) internal view returns (address[] memory _selectedNodes) {
         uint256 _nodeCount = nodes.length - 1;
         if(_N > _nodeCount) _N = _nodeCount;
-        _selectedNodes = new address[](_N);
-        if(_N == 0) return _selectedNodes;
+        if(_N == 0) return new address[](0);
+
+        // WARNING - don't declare any memory variables before this point
 
         MemoryNode[] memory _selectedPathTree;
         // assembly block sets memory for the MemoryNode array but does not zero initialize each value of each struct
@@ -299,6 +300,7 @@ contract TreeUpgradeable is Initializable {
             _totalWeightInTree += _root.leftSum + _root.rightSum;
         }
         uint256 _sumOfBalancesOfSelectedNodes = 0;
+        _selectedNodes = new address[](_N);
 
         for (uint256 _index = 0; _index < _N; ) {
             _randomizer = uint256(keccak256(abi.encode(_randomizer, _index)));

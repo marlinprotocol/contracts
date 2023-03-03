@@ -166,7 +166,7 @@ contract ClusterSelector is
 
         _selectedClusters = clustersSelected[_epoch];
         // can select till atleast one cluster is selected per epoch
-        require(_selectedClusters.length == 0, "CS:SC-Already selected for cluster");
+        require(_selectedClusters.length == 0, "CS:SC-Already selected");
 
         // select and save from the tree
         uint256 _randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));

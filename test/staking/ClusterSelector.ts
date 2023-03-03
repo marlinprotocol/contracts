@@ -1,7 +1,7 @@
 import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
-import { BigNumber as BN, Signer, Contract, utils, constants } from "ethers";
+import { BigNumber as BN, Signer, Contract, utils, constants, BigNumber } from "ethers";
 
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
@@ -1427,7 +1427,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.getCurrentEpoch()).to.equal(8);
     await skipTime(epochLength*6 + epochLength/2);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
-    await skipTime(epochLength - epochLength/2 - 1);
+    await skipTime(epochLength - epochLength/2 - 2);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
   });
 
@@ -1581,7 +1581,7 @@ describe("ClusterSelector", function () {
     await Pond.transfer(clusterSelector.address, rewardForSelection.mul(10000000));
 
     let selectedClusters: string[][] = [];
-    let epochLength = await clusterSelector.EPOCH_LENGTH();
+    let epochLength = (await clusterSelector.EPOCH_LENGTH()).toNumber();
     let clusters: string[] = [];
 
     await expect(clusterSelector.selectClusters()).to.be.reverted;
@@ -1598,30 +1598,66 @@ describe("ClusterSelector", function () {
     await expect(() => clusterSelector.selectClusters())
       .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[2] = await clusterSelector.getClusters(epochPlusOne);
-    expect(selectedClusters[2]).equals([addrs[31]]);
-    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected for cluster");
-    await skipTime(epochLength - 1);
-    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected for cluster");
-    await skipTime(1);
-    console.log("here")
+    expect(selectedClusters[2][0]).equals(addrs[31]);
+    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected");
+    await skipToTimestamp(epochLength + startTime - 2);
+    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected");
+    await skipToTimestamp(epochLength + startTime);
 
     expect(await clusterSelector.getCurrentEpoch()).equals(2);
 
     await clusterSelector.connect(signers[11]).upsert(addrs[32], 2);
     await clusters.push(addrs[32]);
-    await clusterSelector.selectClusters();
+    await expect(() => clusterSelector.selectClusters())
+      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[3] = await clusterSelector.getClusters(3);
     expect(selectedClusters[3].length).to.equal(2);
     expect(selectedClusters[3].every((cluster) => clusters.includes(cluster))).to.be.true;
-    console.log("here1")
+
     await clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(1);
     await expect(clusterSelector.selectClusters()).to.be.reverted;
 
-    await skipTime(epochLength);
+    await skipToTimestamp(epochLength*2 + startTime);
     expect(await clusterSelector.getCurrentEpoch()).equals(3);
-    await clusterSelector.selectClusters();
+    await expect(() => clusterSelector.selectClusters())
+      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[4] = await clusterSelector.getClusters(4);
     expect(selectedClusters[4].length).to.equal(1);
-    expect(selectedClusters[4][0] == addrs[32] || selectedClusters[4][0] == addrs[1]).to.be.true;
+    expect(selectedClusters[4][0] == addrs[32] || selectedClusters[4][0] == addrs[31]).to.be.true;
+
+    await clusterSelector.connect(signers[11]).delete_unchecked(addrs[31]);
+    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected");
+
+    await skipToTimestamp(epochLength*3 + startTime + epochLength*2/3);
+    expect(await clusterSelector.getCurrentEpoch()).equals(4);
+    await expect(() => clusterSelector.selectClusters())
+      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+    selectedClusters[5] = await clusterSelector.getClusters(5);
+    expect(selectedClusters[5].length).to.equal(1);
+    expect(selectedClusters[5][0].toLowerCase()).to.equal(addrs[32].toLowerCase());
+
+    await clusterSelector.connect(signers[11]).delete_unchecked(addrs[32]);
+    await skipToTimestamp(epochLength*4 + startTime + epochLength*2/3);
+    expect(await clusterSelector.getCurrentEpoch()).equals(5);
+    await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-No cluster selected");
+    await expect(clusterSelector.getClusters(6)).to.be.revertedWith("6");
+
+    let addresses: string[] = [], balances = [];
+    for(let i=0; i < 50; i++) {
+      addresses.push(addrs[33 + i]);
+      balances.push((Math.random()*10000).toFixed(0));
+    }
+    await clusterSelector.connect(signers[11]).upsertMultiple(addresses, balances);
+
+    await clusterSelector.connect(signers[1]).updateNumberOfClustersToSelect(5);
+    await skipToTimestamp(epochLength*8 + startTime + epochLength*1/3);
+    expect(await clusterSelector.getCurrentEpoch()).equals(9);
+    console.log("here")
+    await expect(() => clusterSelector.selectClusters())
+      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+    selectedClusters[10] = await clusterSelector.getClusters(10);
+    console.log(selectedClusters)
+    expect(selectedClusters[10].length).to.equal(5);
+    expect(selectedClusters[10].every((cluster) => addresses.includes(cluster))).to.be.true;
   });
 });
