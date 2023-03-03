@@ -105,7 +105,7 @@ contract ClusterRewards is
         }
         totalRewardWeight = _weight;
         _changeRewardPerEpoch(_totalRewardsPerEpoch);
-        payoutDenomination = 10e18;
+        payoutDenomination = 1e18;
     }
 
 //-------------------------------- Initializer end --------------------------------//
