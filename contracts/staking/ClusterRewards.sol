@@ -258,9 +258,9 @@ contract ClusterRewards is
 
     function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
-        require(!isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
-        require(_epochReceiverStake != 0, "CRW:IPRT-Not eligible to issue tickets");
+        require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
+        uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
         unchecked {
             uint256 _totalTickets;
             for(uint256 i=0; i < _tickets.length; ++i) {
@@ -268,7 +268,7 @@ contract ClusterRewards is
 
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
-                clusterRewards[_selectedClusters[i]] += _totalNetworkRewardsPerEpoch * _tickets[i] * _epochReceiverStake / _epochTotalStake / RECEIVER_TICKETS_PER_EPOCH;
+                clusterRewards[_selectedClusters[i]] += _rewardShare * _tickets[i] / RECEIVER_TICKETS_PER_EPOCH;
 
                 // cant overflow as tickets[i] <= 1e18
                 _totalTickets += _tickets[i];
