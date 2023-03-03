@@ -140,11 +140,10 @@ contract ReceiverStaking is
 
     function getStakeInfo(address _user, uint256 _epoch) external view returns(uint256 _userStake, uint256 _totalStake, uint256 _currentEpoch) {
         _userStake = balanceOfAt(_user, _epoch);
-        _totalStake = totalSupplyAt(_epoch);
-        _currentEpoch = _getCurrentSnapshotId();
+        (_totalStake, _currentEpoch) = getEpochInfo(_epoch);
     }
 
-    function getEpochInfo(uint256 epoch) external view returns(uint256 totalStake, uint256 currentEpoch) {
+    function getEpochInfo(uint256 epoch) public view returns(uint256 totalStake, uint256 currentEpoch) {
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();
     }

@@ -319,6 +319,122 @@ describe("Receiver Staking signer functions", function () {
     expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
     expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
   })
+
+  it("user can deposit and set signer", async () => {
+    const user1 = signers[10];
+    const user1Addr = await user1.getAddress();
+    const signerAddr1 = addrs[12];
+    await pond.transfer(user1Addr, 100000);
+    await pond.connect(user1).approve(receiverStaking.address, 100000);
+    const user2 = signers[13];
+    const user2Addr = await user2.getAddress();
+    const signerAddr2 = addrs[14];
+    await pond.transfer(user2Addr, 100000);
+    await pond.connect(user2).approve(receiverStaking.address, 100000);
+
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(100, ethers.constants.AddressZero))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [-100, 0, 100]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr1))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [-100, 0, 100]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(200, signerAddr2))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, -200, 200]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
+    await expect(receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr2)).to.be.revertedWith("signer has a staker");
+
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(300, ethers.constants.AddressZero))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [-300, 0, 300]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
+    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(500, signerAddr1))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, -500, 500]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(600, signerAddr2))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [-600, 0, 600]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
+  })
+
+  it("user can set signer without deposit", async () => {
+    const user1 = signers[10];
+    const user1Addr = await user1.getAddress();
+    const signerAddr1 = addrs[12];
+    await pond.transfer(user1Addr, 100000);
+    await pond.connect(user1).approve(receiverStaking.address, 100000);
+    const user2 = signers[13];
+    const user2Addr = await user2.getAddress();
+    const signerAddr2 = addrs[14];
+    await pond.transfer(user2Addr, 100000);
+    await pond.connect(user2).approve(receiverStaking.address, 100000);
+    
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, ethers.constants.AddressZero))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr1))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr2))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
+    await expect(receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2)).to.be.revertedWith("signer has a staker");
+
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, ethers.constants.AddressZero))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
+    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr1))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2))
+      .to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr2);
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
+  })
 });
 
 describe("ReceiverStaking", function () {
@@ -372,7 +488,7 @@ describe("ReceiverStaking", function () {
   it("can deposit before start time", async function () {
     await pond.approve(receiverStaking.address, 1000);
 
-    await receiverStaking.deposit(1000);
+    await receiverStaking.depositAndSetSigner(1000, addrs[6]);
 
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
@@ -382,7 +498,7 @@ describe("ReceiverStaking", function () {
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
 
-    await receiverStaking.connect(signers[1]).deposit(1500);
+    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -391,10 +507,22 @@ describe("ReceiverStaking", function () {
 
     await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    let epochInfo = await receiverStaking.getEpochInfo(1);
+    let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(1);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(1);
@@ -419,7 +547,7 @@ describe("ReceiverStaking", function () {
   it("can deposit after start time", async function () {
     await pond.approve(receiverStaking.address, 1000);
 
-    await receiverStaking.deposit(1000);
+    await receiverStaking.depositAndSetSigner(1000, addrs[6]);
 
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
@@ -431,11 +559,17 @@ describe("ReceiverStaking", function () {
 
     await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    let epochInfo = await receiverStaking.getEpochInfo(1);
+    let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(1000);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
-    await receiverStaking.connect(signers[1]).deposit(1500);
+    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -443,16 +577,34 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[1])).to.equal(500);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(0);
     expect(stakeInfo._totalStake).to.equal(1000);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
@@ -465,16 +617,34 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[1])).to.equal(0);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(3000);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(2000);
     expect(stakeInfo._totalStake).to.equal(3000);
     expect(stakeInfo._currentEpoch).to.equal(3);
@@ -488,7 +658,7 @@ describe("ReceiverStaking", function () {
 
   it("can withdraw before start time", async function () {
     await pond.approve(receiverStaking.address, 1000);
-    await receiverStaking.deposit(1000);
+    await receiverStaking.depositAndSetSigner(1000, addrs[6]);
 
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
@@ -497,7 +667,7 @@ describe("ReceiverStaking", function () {
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
-    await receiverStaking.connect(signers[1]).deposit(1500);
+    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -520,10 +690,22 @@ describe("ReceiverStaking", function () {
 
     await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    let epochInfo = await receiverStaking.getEpochInfo(1);
+    let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(1);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(1);
@@ -531,7 +713,7 @@ describe("ReceiverStaking", function () {
 
   it("can withdraw after start time", async function () {
     await pond.approve(receiverStaking.address, 1000);
-    await receiverStaking.deposit(1000);
+    await receiverStaking.depositAndSetSigner(1000, addrs[6]);
 
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
@@ -540,7 +722,7 @@ describe("ReceiverStaking", function () {
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
-    await receiverStaking.connect(signers[1]).deposit(1500);
+    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -549,29 +731,65 @@ describe("ReceiverStaking", function () {
 
     await skipToTimestamp(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    let epochInfo = await receiverStaking.getEpochInfo(1);
+    let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(1);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
@@ -584,19 +802,43 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2900));
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2400);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2400);
     expect(stakeInfo._currentEpoch).to.equal(2);
@@ -609,47 +851,107 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[1])).to.equal(700);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(2);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
@@ -662,28 +964,64 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2800));
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(2100);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2100);
     expect(stakeInfo._currentEpoch).to.equal(3);
@@ -696,111 +1034,255 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[1])).to.equal(900);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(3);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(4);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(4);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(4);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(4);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(4);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(4);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(4);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(4);
 
     await skipTime(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
@@ -813,46 +1295,106 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2700));
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(700);
     expect(stakeInfo._totalStake).to.equal(1800);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1800);
     expect(stakeInfo._currentEpoch).to.equal(5);
@@ -865,46 +1407,106 @@ describe("ReceiverStaking", function () {
     expect(await pond.balanceOf(addrs[1])).to.equal(1100);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(1000);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 1);
+    epochInfo = await receiverStaking.getEpochInfo(1);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 1);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1500);
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 2);
+    epochInfo = await receiverStaking.getEpochInfo(2);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 2);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1300);
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 3);
+    epochInfo = await receiverStaking.getEpochInfo(3);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 3);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(800);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 4);
+    epochInfo = await receiverStaking.getEpochInfo(4);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 4);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(1100);
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(5);
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[0]);
     expect(stakeInfo._userStake).to.equal(700);
     expect(stakeInfo._totalStake).to.equal(1600);
     expect(stakeInfo._currentEpoch).to.equal(5);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[1], 5);
+    epochInfo = await receiverStaking.getEpochInfo(5);
+    balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[7], 5);
+    expect(stakeInfo._totalStake).to.equal(epochInfo.totalStake);
+    expect(stakeInfo._currentEpoch).to.equal(epochInfo.currentEpoch);
+    expect(stakeInfo._userStake).to.equal(balanceOfSigner.balance);
+    expect(balanceOfSigner.account).to.equal(addrs[1]);
     expect(stakeInfo._userStake).to.equal(900);
     expect(stakeInfo._totalStake).to.equal(1600);
     expect(stakeInfo._currentEpoch).to.equal(5);
