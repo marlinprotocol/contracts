@@ -68,6 +68,9 @@ contract ClusterSelector is
     /// @notice ID for reward control
     bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256("REWARD_CONTROLLER_ROLE");
 
+    /// @notice Number of clusters selected in every epoch
+    uint256 public constant NUMBER_OF_CLUSTERS_TO_SELECT = 5;
+
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
 
@@ -77,9 +80,6 @@ contract ClusterSelector is
     //-------------------------------- Constants end --------------------------------//
 
     //-------------------------------- Variables start --------------------------------//
-
-    /// @notice Number of clusters selected in every epoch
-    uint256 public numberOfClustersToSelect;
 
     /// @notice clusters selected during each epoch
     mapping(uint256 => address[]) private clustersSelected;
@@ -101,10 +101,6 @@ contract ClusterSelector is
     /// @param cluster Address of cluster
     event ClusterSelected(uint256 indexed epoch, address indexed cluster);
 
-    /// @notice Event emited when the number of clusters to select is updated
-    /// @param newNumberOfClusters New number of clusters selected
-    event UpdateNumberOfClustersToSelect(uint256 newNumberOfClusters);
-
     /// @notice Event emited when the reward is updated
     /// @param newReward New Reward For selecting the tokens
     event UpdateRewardForSelectingTheNodes(uint256 newReward);
@@ -120,7 +116,6 @@ contract ClusterSelector is
     function initialize(
         address _admin,
         address _updater,
-        uint256 _numberOfClustersToSelect,
         address _rewardToken,
         uint256 _rewardForSelectingClusters
     ) external initializer {
@@ -136,7 +131,6 @@ contract ClusterSelector is
         _setupRole(REWARD_CONTROLLER_ROLE, _admin);
         _setupRole(UPDATER_ROLE, _updater);
 
-        numberOfClustersToSelect = _numberOfClustersToSelect;
         rewardForSelectingClusters = _rewardForSelectingClusters;
         rewardToken = _rewardToken;
     }
@@ -170,7 +164,7 @@ contract ClusterSelector is
 
         // select and save from the tree
         uint256 _randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
-        _selectedClusters = _selectN(_randomizer, numberOfClustersToSelect);
+        _selectedClusters = _selectN(_randomizer, NUMBER_OF_CLUSTERS_TO_SELECT);
         require(_selectedClusters.length != 0, "CS:SC-No cluster selected");
         clustersSelected[_epoch] = _selectedClusters;
         for (uint256 _index = 0; _index < _selectedClusters.length; _index++) {
@@ -243,12 +237,6 @@ contract ClusterSelector is
     //-------------------------------- Tree interactions ends --------------------------------//
 
     //-------------------------------- Admin functions starts --------------------------------//
-
-    function updateNumberOfClustersToSelect(uint256 _numberOfClusters) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_numberOfClusters != 0 && numberOfClustersToSelect != _numberOfClusters, "Should be a valid number");
-        numberOfClustersToSelect = _numberOfClusters;
-        emit UpdateNumberOfClustersToSelect(_numberOfClusters);
-    }
 
     /// @notice Updates the reward token
     /// @param _rewardToken Address of the reward token

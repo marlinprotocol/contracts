@@ -103,8 +103,6 @@ describe("Integration", function () {
     await skipTime(ethers, 1); // extra 1 second for safety
   };
 
-  const numberOfClustersToSelect: number = 5;
-
   before(async function() {
     this.timeout(400000);
     signers = await ethers.getSigners();
@@ -196,7 +194,6 @@ describe("Integration", function () {
         [
           await clusterSelectorAdmin.getAddress(),
           rewardDelegators.address,
-          numberOfClustersToSelect,
           pond.address,
           BN.from(10).pow(20).toString(),
         ],
@@ -290,9 +287,9 @@ describe("Integration", function () {
     }
   });
 
-  describe(`Only ETH Delegations, All Commissions equal, ${numberOfClustersToSelect} clusters, All Equal Delegations (by delegators)`, async function() {
+  describe(`Only ETH Delegations, All Commissions equal, 5 clusters, All Equal Delegations (by delegators)`, async function() {
     this.timeout(200000);
-    const totalClusters = numberOfClustersToSelect;
+    const totalClusters = 5;
     const delegatorsToUse = 20;
 
     saveAndRestoreStateToParent(async () => {

@@ -47,7 +47,6 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
   const epochSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
     rewardDelegators,
-    chainConfig.noOfClustersToSelect,
     selectionReward.token,
     selectionReward.amount
   ], {
