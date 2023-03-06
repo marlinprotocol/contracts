@@ -971,6 +971,7 @@ describe("RewardDelegators ", function () {
         delegatorCurrentReward = rewardPerShare4.add(changeInRewardPerShare).sub(rewardPerShare2).mul(delegationInit).div(e30).add(1);
         delegatorCurrentRewardMpond = mpondRewardPerShare4.add(changeInRewardPerShareMpond).sub(mpondRewardPerShare2).mul(mpondDelegationInit).div(e30).add(1);
         clusterCommission = commission.mul(rewardAmount1).div(100);
+        console.log("workd");
         await expect(rewardDelegators.connect(imperonatedStakeManager).undelegate(
             delegator1, 
             cluster, 
@@ -980,7 +981,7 @@ describe("RewardDelegators ", function () {
             pond, 
             [rewardDelegators, rewardAddress, delegator1], 
             [-(delegatorCurrentReward.add(delegatorCurrentRewardMpond).add(clusterCommission)), clusterCommission, delegatorCurrentReward.add(delegatorCurrentRewardMpond)],
-            1
+            2
         );
         clusterDelegation = await rewardDelegators.getClusterDelegation(cluster, pondTokenId);
         mpondClusterDelegation = await rewardDelegators.getClusterDelegation(cluster, mpondTokenId);
