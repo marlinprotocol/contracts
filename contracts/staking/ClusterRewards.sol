@@ -115,7 +115,7 @@ contract ClusterRewards is
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
     bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
     uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
-    uint256 constant SWITCHING_PERIOD = 3 days + 6 hours;
+    uint256 constant SWITCHING_PERIOD = 33 days;
 
     mapping(address => uint256) public clusterRewards;
 

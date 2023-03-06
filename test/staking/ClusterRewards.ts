@@ -649,7 +649,7 @@ describe("ClusterRewards", function () {
   });
 
   it("feeder can feed rewards till 1 day after switching time", async function () {
-    await skipToTimestamp(startTime + 3*86400 + 21600 + 85000);
+    await skipToTimestamp(startTime + 33*86400 + 85000);
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
@@ -659,7 +659,7 @@ describe("ClusterRewards", function () {
   });
 
   it("feeder cannot feed rewards after 1 day after switching time", async function () {
-    await skipToTimestamp(startTime + 3*86400 + 21600 + 90000);
+    await skipToTimestamp(startTime + 33*86400 + 90000);
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)).to.be.revertedWith("CRW:F-Invalid method");
   });
@@ -800,7 +800,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
 
@@ -836,7 +836,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
 
@@ -864,7 +864,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(5).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 5, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)])).to.be.revertedWith("CRW:IT-Epoch not completed");
   });
@@ -876,7 +876,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
@@ -888,7 +888,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [2], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:MIT-invalid inputs");
@@ -901,7 +901,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)])).to.be.revertedWith("CRW:IPRT-Invalid ticket count");
   });
@@ -985,7 +985,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1045,7 +1045,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1097,7 +1097,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(5).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1121,7 +1121,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1145,7 +1145,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1169,7 +1169,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1193,7 +1193,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
       ["bytes32", "uint256", "uint256[]"],
@@ -1273,7 +1273,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
@@ -1311,7 +1311,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 4*86400);
+    await skipToTimestamp(startTime + 34*86400);
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
