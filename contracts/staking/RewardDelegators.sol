@@ -78,7 +78,9 @@ contract RewardDelegators is
         bytes32[] memory _tokenIds,
         uint256[] memory _rewardFactors,
         uint128[] memory _weightsForThreshold,
-        uint128[] memory _weightsForDelegation
+        uint128[] memory _weightsForDelegation,
+        bytes32[] memory _networkIds,
+        uint256[] memory _thresholdsForSection
     )
         initializer
         public
@@ -86,6 +88,10 @@ contract RewardDelegators is
         require(
             _tokenIds.length == _rewardFactors.length,
             "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
+        );
+        require(
+            _networkIds.length == _thresholdsForSection.length,
+            "RD:I-Each NetworkId should have a corresponding threshold for selection and vice versa"
         );
 
         __Context_init_unchained();
@@ -115,6 +121,10 @@ contract RewardDelegators is
             tokenIndex[_tokenIds[i]] = tokenList.length;
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
+        }
+
+        for(uint256 i=0; i <  _networkIds.length; i++) {
+            _updateThresholdForSelection(_networkIds[i], _thresholdsForSection[i]);
         }
     }
 
