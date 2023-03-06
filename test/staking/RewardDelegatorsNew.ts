@@ -688,8 +688,8 @@ describe("RewardDelegators ", function () {
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
 
         // ----------------- Give reward when previous total delegation and user has no prev rewards ---------------
-        const amount1 = FuzzedNumber.randomInRange(100000, 500000);
-        const mpondAmount1 = FuzzedNumber.randomInRange(100000, 500000);
+        const amount1 = FuzzedNumber.randomInRange(e20, e22);
+        const mpondAmount1 = FuzzedNumber.randomInRange(e16, e18);
         await expect(rewardDelegators.delegate(delegator, cluster, [pondTokenId, mpondTokenId], [amount1, mpondAmount1]))
             .to.be.revertedWith("RD:OS-only stake contract can invoke");
 
@@ -840,7 +840,6 @@ describe("RewardDelegators ", function () {
         expect(rewardPerShare5.sub(rewardPerShare4).div(e14)).to.equal(rewardAmount1.sub(clusterCommission).div(2).mul(e30).div(clusterDelegationInit).div(e14));
         expect(mpondRewardPerShare5.sub(mpondRewardPerShare4).div(e14)).to.equal(rewardAmount1.sub(clusterCommission).div(2).mul(e30).div(mpondClusterDelegation).div(e14));
 
-        console.log("last one");
         // ----------------- Gives reward when previous delegation is non 0 and user has prev rewards, new rewards for cluster,0 commission ---------------
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster).returns(0, rewardAddress);
 
@@ -849,8 +848,10 @@ describe("RewardDelegators ", function () {
         delegationInit = await rewardDelegators.getDelegation(cluster, delegator, pondTokenId);
         mpondDelegationInit = await rewardDelegators.getDelegation(cluster, delegator, mpondTokenId);
         // TODO: Fix add(1) at the end
-        delegatorCurrentReward = rewardPerShare5.add(rewardAmount1.mul(e30).div(2).div(clusterDelegationInit)).sub(rewardPerShare3).mul(delegationInit).div(e30).add(1);
-        delegatorCurrentRewardMpond = mpondRewardPerShare5.add(rewardAmount1.mul(e30).div(2).div(mpondClusterDelegation)).sub(mpondRewardPerShare3).mul(mpondDelegationInit).div(e30).add(1);
+        let changeInRewardPerShare = rewardAmount1.mul(e30).div(2).div(clusterDelegationInit);
+        let changeInRewardPerShareMpond = rewardAmount1.mul(e30).div(2).div(mpondClusterDelegation);
+        delegatorCurrentReward = rewardPerShare5.add(changeInRewardPerShare).sub(rewardPerShare3).mul(delegationInit).div(e30).add(1);
+        delegatorCurrentRewardMpond = mpondRewardPerShare5.add(changeInRewardPerShareMpond).sub(mpondRewardPerShare3).mul(mpondDelegationInit).div(e30).add(1);
         await expect(rewardDelegators.connect(imperonatedStakeManager).delegate(
             delegator, 
             cluster, 
@@ -872,8 +873,8 @@ describe("RewardDelegators ", function () {
         expect(mpondClusterDelegation).to.equal(mpondClusterDelegationInit.add(mpondAmount2));
         expect(delegation).to.equal(delegationInit.add(amount2));
         expect(mpondDelegation).to.equal(mpondDelegationInit.add(mpondAmount2));
-        expect(rewardPerShare6.sub(rewardPerShare5)).to.equal(rewardAmount1.mul(e30).div(2).div(clusterDelegationInit));
-        expect(mpondRewardPerShare6.sub(mpondRewardPerShare5)).to.approximately(rewardAmount1.mul(e30).div(2).div(mpondClusterDelegation), 1);
+        expect(rewardPerShare6.sub(rewardPerShare5)).to.equal(changeInRewardPerShare);
+        expect(mpondRewardPerShare6.sub(mpondRewardPerShare5)).to.equal(changeInRewardPerShareMpond);
     });
 
     it("undelegate from cluster", async () => {
@@ -965,8 +966,10 @@ describe("RewardDelegators ", function () {
         delegationInit = await rewardDelegators.getDelegation(cluster, delegator1, pondTokenId);
         mpondDelegationInit = await rewardDelegators.getDelegation(cluster, delegator1, mpondTokenId);
         // TODO: Fix add(1) at the end
-        delegatorCurrentReward = rewardPerShare4.add(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(clusterDelegation)).sub(rewardPerShare2).mul(delegationInit).div(e30).add(1);
-        delegatorCurrentRewardMpond = mpondRewardPerShare4.add(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(mpondClusterDelegation)).sub(mpondRewardPerShare2).mul(mpondDelegationInit).div(e30).add(1);
+        let changeInRewardPerShare = rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(clusterDelegation);
+        let changeInRewardPerShareMpond = rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(mpondClusterDelegation);
+        delegatorCurrentReward = rewardPerShare4.add(changeInRewardPerShare).sub(rewardPerShare2).mul(delegationInit).div(e30).add(1);
+        delegatorCurrentRewardMpond = mpondRewardPerShare4.add(changeInRewardPerShareMpond).sub(mpondRewardPerShare2).mul(mpondDelegationInit).div(e30).add(1);
         clusterCommission = commission.mul(rewardAmount1).div(100);
         await expect(rewardDelegators.connect(imperonatedStakeManager).undelegate(
             delegator1, 
@@ -990,8 +993,8 @@ describe("RewardDelegators ", function () {
         expect(mpondClusterDelegation).to.equal(mpondClusterDelegationInit.sub(mpondAmount1.div(2)));
         expect(delegation).to.equal(delegationInit.sub(amount1.div(2)));
         expect(mpondDelegation).to.equal(mpondDelegationInit.sub(mpondAmount1.div(2)));
-        expect(rewardPerShare5.sub(rewardPerShare4)).to.equal(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(clusterDelegation));
-        expect(mpondRewardPerShare5.sub(mpondRewardPerShare4)).to.equal(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(mpondClusterDelegation));
+        expect(rewardPerShare5.sub(rewardPerShare4)).to.equal(changeInRewardPerShare);
+        expect(mpondRewardPerShare5.sub(mpondRewardPerShare4)).to.equal(changeInRewardPerShareMpond);
 
         // ----------------- Undelegate only pond when there are rewards for delegator and new rewards for cluster ---------------
 
