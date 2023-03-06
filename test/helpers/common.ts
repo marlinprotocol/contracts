@@ -1,4 +1,3 @@
-import BigNumber from "bignumber.js";
 import { BigNumber as BN } from "ethers";
 import { ethers as ethersForType } from "hardhat";
 
@@ -9,6 +8,19 @@ export async function skipBlocks(ethers: typeof ethersForType, n: number) {
 export async function skipTime(ethers: typeof ethersForType, t: number) {
   await ethers.provider.send("evm_increaseTime", [t]);
   await skipBlocks(ethers, 1);
+}
+
+export async function skipToTimestamp(ethers: typeof ethersForType, t: number) {
+  await ethers.provider.send("evm_mine", [t]);
+}
+
+export async function impersonate(ethers: typeof ethersForType, account: string) {
+  await ethers.provider.send("hardhat_impersonateAccount", [account]);
+  return ethers.getSigner(account);
+}
+
+export async function setBalance(ethers: typeof ethersForType, account: string, balance: BN) {
+  await ethers.provider.send("hardhat_setBalance", [account, balance.toHexString().replace("0x0", "0x")]);
 }
 
 export const random = (min: BN | string, max: BN | string): string => {
