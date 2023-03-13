@@ -87,8 +87,7 @@ contract ClusterSelector is
     /// @notice Reward that the msg.sender recevies when cluster are selected for the epoch;
     uint256 public rewardForSelectingClusters;
 
-    /// @notice Reward Token
-    address public rewardToken;
+    address __unused;
 
     uint256[46] private __gap_1;
 
@@ -105,10 +104,6 @@ contract ClusterSelector is
     /// @param newReward New Reward For selecting the tokens
     event UpdateRewardForSelectingTheNodes(uint256 newReward);
 
-    /// @notice Event emited when the reward token is emitted
-    /// @param _newRewardToken Address of the new reward token
-    event UpdateRewardToken(address _newRewardToken);
-
     //-------------------------------- Events end --------------------------------//
 
     //-------------------------------- Init starts --------------------------------/
@@ -116,7 +111,6 @@ contract ClusterSelector is
     function initialize(
         address _admin,
         address _updater,
-        address _rewardToken,
         uint256 _rewardForSelectingClusters
     ) external initializer {
         __Context_init_unchained();
@@ -132,7 +126,6 @@ contract ClusterSelector is
         _setupRole(UPDATER_ROLE, _updater);
 
         rewardForSelectingClusters = _rewardForSelectingClusters;
-        rewardToken = _rewardToken;
     }
 
     //-------------------------------- Init ends --------------------------------//
@@ -147,9 +140,9 @@ contract ClusterSelector is
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
         if (rewardForSelectingClusters != 0) {
-            IERC20Upgradeable _rewardToken = IERC20Upgradeable(rewardToken);
-            if (_rewardToken.balanceOf(address(this)) >= rewardForSelectingClusters) {
-                _rewardToken.safeTransfer(_to, rewardForSelectingClusters);
+            if (address(this).balance >= rewardForSelectingClusters) {
+                (bool success, ) = payable(_to).call{value: rewardForSelectingClusters}("");
+                require(success, "CS:IDR-dispensing reward failed");
             }
         }
     }
@@ -238,14 +231,6 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions starts --------------------------------//
 
-    /// @notice Updates the reward token
-    /// @param _rewardToken Address of the reward token
-    function updateRewardToken(address _rewardToken) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_rewardToken != address(0) && _rewardToken != rewardToken, "Update reward token");
-        rewardToken = _rewardToken;
-        emit UpdateRewardToken(_rewardToken);
-    }
-
     /// @notice Updates the reward amount for selecting clusters
     /// @param _reward Amount of reward for selecting clusters
     function updateRewardForSelection(uint256 _reward) external onlyRole(REWARD_CONTROLLER_ROLE) {
@@ -254,16 +239,11 @@ contract ClusterSelector is
         emit UpdateRewardForSelectingTheNodes(_reward);
     }
 
-    /// @notice Flush Tokens to address. Can be only called by REWARD_CONTROLLER
-    /// @param token Address of the token
+    /// @notice Flush reward to address. Can be only called by REWARD_CONTROLLER
     /// @param to Address to transfer to
-    function flushTokens(address token, address to) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        IERC20Upgradeable _token = IERC20Upgradeable(token);
-
-        uint256 remaining = _token.balanceOf(address(this));
-        if (remaining > 0) {
-            _token.safeTransfer(to, remaining);
-        }
+    function flushReward(address to) external onlyRole(REWARD_CONTROLLER_ROLE) {
+        (bool success, ) = payable(to).call{value: address(this).balance}("");
+        require(success, "CS:FR-Flushing reward failed");
     }
 
     //-------------------------------- Admin functions ends --------------------------------//
@@ -284,4 +264,6 @@ contract ClusterSelector is
             return clusters;
         }
     }
+
+    receive() external payable {}
 }
