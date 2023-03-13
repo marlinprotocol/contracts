@@ -141,8 +141,7 @@ contract ClusterSelector is
     function _dispenseReward(address _to) internal {
         if (rewardForSelectingClusters != 0) {
             if (address(this).balance >= rewardForSelectingClusters) {
-                (bool success, ) = payable(_to).call{value: rewardForSelectingClusters}("");
-                require(success, "CS:IDR-dispensing reward failed");
+                payable(_to).transfer(rewardForSelectingClusters);
             }
         }
     }
