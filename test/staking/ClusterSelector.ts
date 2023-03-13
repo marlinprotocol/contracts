@@ -1474,6 +1474,13 @@ describe("ClusterSelector", function () {
     await expect(clusterSelector.connect(signers[11]).flushReward(addrs[7])).to.be.reverted;
     await expect(() => clusterSelector.connect(signers[3]).flushReward(addrs[7]))
       .to.changeEtherBalances([clusterSelector, signers[7]], [-745, 745]);
+
+    await increaseBalance(ethers, clusterSelector.address, BN.from(845));
+    await expect(() => clusterSelector.connect(signers[3]).flushReward(clusterSelector.address))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [0, 0]);
+    const Pond = await ethers.getContractFactory("Pond");
+    const pond = await upgrades.deployProxy(Pond, ["POND", "Marlin POND"], { kind: "uups" });
+    await expect(clusterSelector.connect(signers[3]).flushReward(pond.address)).to.be.revertedWith("CS:FR-Flushing reward failed");
   });
 
   it("select clusters", async () => {
