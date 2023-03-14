@@ -5,6 +5,7 @@ import { BigNumber as BN, Signer, Contract, utils, constants, BigNumber } from "
 
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
+import { increaseBalance } from "../helpers/common";
 
 
 declare module "ethers" {
@@ -65,7 +66,6 @@ describe("ClusterSelector", function () {
       clusterSelector.initialize(
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
       )
     ).to.be.reverted;
@@ -78,7 +78,6 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
       ],
       {
@@ -91,7 +90,6 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
     expect(await clusterSelector.rewardForSelectingClusters()).to.equal(100);
-    expect(await clusterSelector.rewardToken()).to.equal(addrs[12]);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -103,7 +101,6 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
       ],
       {
@@ -117,7 +114,6 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
     expect(await clusterSelector.rewardForSelectingClusters()).to.equal(100);
-    expect(await clusterSelector.rewardToken()).to.equal(addrs[12]);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -129,7 +125,6 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
       ],
       {
@@ -149,7 +144,6 @@ testERC165("ClusterSelector", async function (signers: Signer[], addrs: string[]
     [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
     ],
     {
@@ -179,7 +173,6 @@ testAdminRole("ClusterSelector", async function (signers: Signer[], addrs: strin
     [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
     ],
     {
@@ -197,7 +190,6 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
     ],
     {
@@ -215,7 +207,6 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     [
         addrs[0],
         addrs[11],
-        addrs[12],
         100,
     ],
     {
@@ -243,7 +234,6 @@ describe("ClusterSelector", function () {
       [
           addrs[1],
           addrs[11],
-          addrs[12],
           100,
       ],
       {
@@ -256,7 +246,6 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
     expect(await clusterSelector.rewardForSelectingClusters()).to.equal(100);
-    expect(await clusterSelector.rewardToken()).to.equal(addrs[12]);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
     expect(await clusterSelector.nodesInTree()).to.equal(0);
@@ -1403,7 +1392,7 @@ describe("ClusterSelector", function () {
 
   it("current epoch", async () => {
     const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
-    await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWith("");
+    await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWith("Panic");
     await skipToTimestamp(startTime);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
     await skipTime(epochLength - 1);
@@ -1418,38 +1407,6 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
     await skipTime(epochLength - epochLength/2 - 2);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
-  });
-
-  it("reward controller can update reward token", async () => {
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[15]))
-      .to.emit(clusterSelector, "UpdateRewardToken")
-      .withArgs(addrs[15]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[11]))
-      .to.emit(clusterSelector, "UpdateRewardToken")
-      .withArgs(addrs[11]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[11]);
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[1]))
-      .to.emit(clusterSelector, "UpdateRewardToken")
-      .withArgs(addrs[1]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[1]);
-
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(constants.AddressZero)).to.be.revertedWith("Update reward token");
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[1])).to.be.revertedWith("Update reward token");
-    await clusterSelector.connect(signers[1]).updateRewardToken(addrs[11]);
-    await expect(clusterSelector.connect(signers[0]).updateRewardToken(addrs[15])).to.be.reverted;
-    await expect(clusterSelector.connect(signers[11]).updateRewardToken(addrs[15])).to.be.reverted;
-
-    await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
-    await clusterSelector.connect(signers[3]).updateRewardToken(addrs[15]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
-    await clusterSelector.connect(signers[1]).updateRewardToken(addrs[16]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[16]);
-
-    await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
-    await clusterSelector.connect(signers[3]).updateRewardToken(addrs[15]);
-    expect(await clusterSelector.rewardToken()).to.be.equal(addrs[15]);
-    await expect(clusterSelector.connect(signers[1]).updateRewardToken(addrs[16])).to.be.reverted;
   });
 
   it("reward controller can update reward to select clusters", async () => {
@@ -1483,72 +1440,45 @@ describe("ClusterSelector", function () {
   });
 
   it("reward controller can flush any erc20 token", async () => {
-    const PondFactory = await ethers.getContractFactory("Pond");
-    const Pond = await upgrades.deployProxy(PondFactory,["Marlin POND", "POND"], { kind: "uups" });
-
-    await clusterSelector.connect(signers[1]).updateRewardToken(Pond.address);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await Pond.transfer(clusterSelector.address, 145);
-    await expect(clusterSelector.connect(signers[11]).flushTokens(Pond.address, addrs[7])).to.be.reverted;
-    await expect(clusterSelector.connect(signers[0]).flushTokens(Pond.address, addrs[7])).to.be.reverted;
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [-145, 145]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [0, 0]);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(145));
+    await expect(clusterSelector.connect(signers[11]).flushReward(addrs[7])).to.be.reverted;
+    await expect(clusterSelector.connect(signers[0]).flushReward(addrs[7])).to.be.reverted;
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-145, 145]);
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [0, 0]);
     
-    await Pond.transfer(clusterSelector.address, 245);
-    const newPond = await upgrades.deployProxy(PondFactory,["Testing", "Test"], { kind: "uups" });
-    await clusterSelector.connect(signers[1]).updateRewardToken(newPond.address);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(newPond.address, addrs[7]))
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [-245, 245])
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0]);
-    await newPond.transfer(clusterSelector.address, 345);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(newPond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [-345, 345])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(newPond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await Pond.transfer(clusterSelector.address, 445);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(newPond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [-445, 445]);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(245));
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-245, 245]);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(345));
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-345, 345]);
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [0, 0]);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(445));
+    await expect(() => clusterSelector.connect(signers[1]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-445, 445]);
 
-    await newPond.transfer(clusterSelector.address, 545);
-    await Pond.transfer(clusterSelector.address, 645);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(545));
+    await increaseBalance(ethers, clusterSelector.address, BN.from(645));
     await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
-    await expect(() => clusterSelector.connect(signers[3]).flushTokens(newPond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [-545, 545])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [0, 0]);
-    await expect(() => clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [-645, 645]);
+    await expect(() => clusterSelector.connect(signers[3]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-1190, 1190]);
 
-    await Pond.transfer(clusterSelector.address, 745);
+    await increaseBalance(ethers, clusterSelector.address, BN.from(745));
     await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
-    await expect(clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7])).to.be.reverted;
-    await expect(clusterSelector.connect(signers[11]).flushTokens(Pond.address, addrs[7])).to.be.reverted;
-    await expect(() => clusterSelector.connect(signers[3]).flushTokens(Pond.address, addrs[7]))
-      .to.changeTokenBalances(newPond, [clusterSelector, signers[7]], [0, 0])
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[7]], [-745, 745]);
+    await expect(clusterSelector.connect(signers[1]).flushReward(addrs[7])).to.be.reverted;
+    await expect(clusterSelector.connect(signers[11]).flushReward(addrs[7])).to.be.reverted;
+    await expect(() => clusterSelector.connect(signers[3]).flushReward(addrs[7]))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [-745, 745]);
   });
 
   it("select clusters", async () => {
-    const PondFactory = await ethers.getContractFactory("Pond");
-    const Pond = await upgrades.deployProxy(PondFactory,["Marlin POND", "POND"], { kind: "uups" });
-    await clusterSelector.connect(signers[1]).updateRewardToken(Pond.address);
     const rewardForSelection = await clusterSelector.rewardForSelectingClusters();
-    await Pond.transfer(clusterSelector.address, rewardForSelection.mul(10000000));
+    await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
 
     let selectedClusters: string[][] = [];
     let epochLength = (await clusterSelector.EPOCH_LENGTH()).toNumber();
@@ -1572,7 +1502,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.nodesInTree()).to.equal(1);
     await clusters.push(addrs[31]);
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[2] = await clusterSelector.getClusters(epochPlusOne);
     expect(selectedClusters[2][0]).equals(addrs[31]);
     await expect(clusterSelector.selectClusters()).to.be.revertedWith("CS:SC-Already selected");
@@ -1586,7 +1516,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.nodesInTree()).to.equal(2);
     await clusters.push(addrs[32]);
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[3] = await clusterSelector.getClusters(3);
     expect(selectedClusters[3].length).to.equal(2);
     expect(selectedClusters[3].every((cluster) => clusters.includes(cluster))).to.be.true;
@@ -1596,7 +1526,7 @@ describe("ClusterSelector", function () {
     await skipToTimestamp(epochLength*2 + startTime);
     expect(await clusterSelector.getCurrentEpoch()).equals(3);
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[4] = await clusterSelector.getClusters(4);
     expect(selectedClusters[4].length).to.equal(2);
     expect(selectedClusters[3].every((cluster) => clusters.includes(cluster))).to.be.true;
@@ -1608,7 +1538,7 @@ describe("ClusterSelector", function () {
     await skipToTimestamp(epochLength*3 + startTime + epochLength*2/3);
     expect(await clusterSelector.getCurrentEpoch()).equals(4);
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[5] = await clusterSelector.getClusters(5);
     expect(selectedClusters[5].length).to.equal(1);
     expect(selectedClusters[5][0].toLowerCase()).to.equal(addrs[32].toLowerCase());
@@ -1645,7 +1575,7 @@ describe("ClusterSelector", function () {
     expect(epoch7GetCostInit).greaterThan(epoch6GetCostInit);
 
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[10] = await clusterSelector.getClusters(10);
     expect(selectedClusters[10].length).to.equal(5);
     expect(selectedClusters[10].every((cluster) => addresses.includes(cluster))).to.be.true;
@@ -1675,18 +1605,18 @@ describe("ClusterSelector", function () {
 
     await skipToTimestamp(epochLength*11 + startTime + epochLength*1/2);
     expect(await clusterSelector.getCurrentEpoch()).equals(12);
-    await clusterSelector.connect(signers[1]).flushTokens(Pond.address, addrs[7]);
-    await Pond.transfer(clusterSelector.address, rewardForSelection.div(2));
+    await clusterSelector.connect(signers[1]).flushReward(addrs[7]);
+    await increaseBalance(ethers, clusterSelector.address, rewardForSelection.div(2));
     
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [0, 0]);
-    expect(await Pond.balanceOf(clusterSelector.address)).to.equal(rewardForSelection.div(2));
+      .to.changeEtherBalances([clusterSelector, signers[0]], [0, 0]);
+    expect(await ethers.provider.getBalance(clusterSelector.address)).to.equal(rewardForSelection.div(2));
 
     await skipToTimestamp(epochLength*12 + startTime + epochLength*1/2);
     expect(await clusterSelector.getCurrentEpoch()).equals(13);
-    await Pond.transfer(clusterSelector.address, rewardForSelection.mul(10000000));
+    await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
     await clusterSelector.connect(signers[1]).updateRewardForSelection(0);
     await expect(() => clusterSelector.selectClusters())
-      .to.changeTokenBalances(Pond, [clusterSelector, signers[0]], [0, 0]);
+      .to.changeEtherBalances([clusterSelector, signers[0]], [0, 0]);
   });
 });

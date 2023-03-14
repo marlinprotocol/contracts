@@ -194,7 +194,6 @@ describe("Integration", function () {
         [
           await clusterSelectorAdmin.getAddress(),
           rewardDelegators.address,
-          pond.address,
           BN.from(10).pow(20).toString(),
         ],
         {

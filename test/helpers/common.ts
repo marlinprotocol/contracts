@@ -23,6 +23,11 @@ export async function setBalance(ethers: typeof ethersForType, account: string, 
   await ethers.provider.send("hardhat_setBalance", [account, balance.toHexString().replace("0x0", "0x")]);
 }
 
+export async function increaseBalance(ethers: typeof ethersForType, account: string, amount: BN) {
+  const balance = await ethers.provider.getBalance(account);
+  await ethers.provider.send("hardhat_setBalance", [account, balance.add(amount).toHexString().replace("0x0", "0x")]);
+}
+
 export const random = (min: BN | string, max: BN | string): string => {
   const randomizer = ethersForType.BigNumber.from(ethersForType.utils.randomBytes(32));
   return randomizer.mod(BN.from(max).sub(min)).add(min).toString();

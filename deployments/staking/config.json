@@ -28,7 +28,6 @@
         "epochLength": 900,
         "noOfClustersToSelect": 5,
         "selectionReward": {
-            "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
             "amount": "1000000000000000000"
         },
         "staking": {

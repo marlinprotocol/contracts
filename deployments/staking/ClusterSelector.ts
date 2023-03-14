@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string, admin?: string, startTime?: number, epochLength?: number, selectionReward?: { token:string, amount: string}, noLog?: boolean): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, admin?: string, startTime?: number, epochLength?: number, selectionReward?: string, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
@@ -31,10 +31,7 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
   }
 
   if(selectionReward === undefined) {
-    selectionReward = {
-      token: chainConfig.selectionReward.token,
-      amount: chainConfig.selectionReward.amount
-    };
+    selectionReward = chainConfig.selectionReward.amount;
   }
 
   if(admin == undefined) {
@@ -47,8 +44,7 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
   const epochSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
     rewardDelegators,
-    selectionReward.token,
-    selectionReward.amount
+    selectionReward
   ], {
     kind: "uups",
     constructorArgs: [startTime, epochLength]
