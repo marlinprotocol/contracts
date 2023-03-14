@@ -1,13 +1,20 @@
 {
     "42161": {
-        "startTime": 1678147200,
+        "startTime": 1677888000,
         "epochLength": 900,
         "staking": {
             "receiver": {
                 "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD"
+            },
+            "rewardWeights": {
+                "ETH": "0"
             }
         },
-        "admin": "0x3F5f1Dc1af8897eA74Bf93bfA17F450D88af9FB0"
+        "admin": "0x3F5f1Dc1af8897eA74Bf93bfA17F450D88af9FB0",
+        "selectionReward": {
+            "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD",
+            "amount": "0"
+        }
     },
     "421613": {
         "cluster": {
