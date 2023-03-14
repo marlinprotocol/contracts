@@ -1474,6 +1474,14 @@ describe("ClusterSelector", function () {
     await expect(clusterSelector.connect(signers[11]).flushReward(addrs[7])).to.be.reverted;
     await expect(() => clusterSelector.connect(signers[3]).flushReward(addrs[7]))
       .to.changeEtherBalances([clusterSelector, signers[7]], [-745, 745]);
+
+    await increaseBalance(ethers, clusterSelector.address, BN.from(845));
+    await expect(() => clusterSelector.connect(signers[3]).flushReward(clusterSelector.address))
+      .to.changeEtherBalances([clusterSelector, signers[7]], [0, 0]);
+    // deployed pond which doesn't have receive as mock for receive ether is not yet implemented
+    const Pond = await ethers.getContractFactory("Pond");
+    const pond = await upgrades.deployProxy(Pond, ["POND", "Marlin POND"], { kind: "uups" });
+    await expect(clusterSelector.connect(signers[3]).flushReward(pond.address)).to.be.revertedWith("CS:FR-Flushing reward failed");
   });
 
   it("select clusters", async () => {
@@ -1483,6 +1491,8 @@ describe("ClusterSelector", function () {
     let selectedClusters: string[][] = [];
     let epochLength = (await clusterSelector.EPOCH_LENGTH()).toNumber();
     let clusters: string[] = [];
+
+    // TODO: test case where contract invokes and reward transfer succeeds and fails
 
     await expect(clusterSelector.selectClusters()).to.be.reverted;
     await skipToTimestamp(startTime - 2);

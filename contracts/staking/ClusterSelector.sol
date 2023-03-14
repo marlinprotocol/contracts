@@ -139,10 +139,10 @@ contract ClusterSelector is
     /// @notice If contract has sufficient balance, transfer it to given address
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
-        if (rewardForSelectingClusters != 0) {
-            if (address(this).balance >= rewardForSelectingClusters) {
-                payable(_to).transfer(rewardForSelectingClusters);
-            }
+        uint256 _reward = rewardForSelectingClusters;
+        if (_reward != 0 && address(this).balance >= _reward) {
+            // Cluster selection goes through even if reward reverts
+            payable(_to).send(_reward);
         }
     }
 
