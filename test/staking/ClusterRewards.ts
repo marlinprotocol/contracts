@@ -26,23 +26,36 @@ async function skipToTimestamp(t: number) {
   await ethers.provider.send("evm_mine", [t]);
 }
 
+const e9 = BN.from(10).pow(9);
+const e16 = BN.from(10).pow(16);
+const e18 = BN.from(10).pow(18);
+const e20 = BN.from(10).pow(20);
+const e22 = BN.from(10).pow(22);
 
 const ETHHASH = ethers.utils.id("ETH");
 const DOTHASH = ethers.utils.id("DOT");
 const NEARHASH = ethers.utils.id("NEAR");
 const NETWORK_IDS = [ETHHASH, DOTHASH, NEARHASH];
 const ETHWEIGHT = 100;
-const DOTWEIGHT = 200;
-const NEARWEIGHT = 300;
+const DOTWEIGHT = 150;
+const NEARWEIGHT = 250;
 const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 const TOTALWEIGHT = ETHWEIGHT + DOTWEIGHT + NEARWEIGHT;
+const MAX_TICKETS = BN.from(2).pow(16);
+const MAX_REWARD = BN.from("242352345636745756867986");
+const MAX_TICKETS_1_pc = MAX_TICKETS.div(100);
+const MAX_REWARD_1_pc = MAX_REWARD.div(100);
+const ETH_REWARD = MAX_REWARD.mul(ETHWEIGHT).div(TOTALWEIGHT);
 
-const e16 = BN.from(10).pow(16);
-const e18 = BN.from(10).pow(18);
-const e20 = BN.from(10).pow(20);
-const e22 = BN.from(10).pow(22);
+const tickets = [
+  MAX_TICKETS.mul(10).div(100), 
+  MAX_TICKETS.mul(20).div(100), 
+  MAX_TICKETS.mul(30).div(100), 
+  MAX_TICKETS.mul(15).div(100), 
+  MAX_TICKETS.sub(MAX_TICKETS.mul(10).div(100).add(MAX_TICKETS.mul(20).div(100)).add(MAX_TICKETS.mul(30).div(100)).add(MAX_TICKETS.mul(15).div(100)))
+];
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards deploy and init", function () {
   let signers: Signer[];
   let addrs: string[];
 
@@ -65,7 +78,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       )
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
@@ -82,7 +95,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         [ETHWEIGHT, DOTWEIGHT],
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     )).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa");
@@ -96,7 +109,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     )).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding clusterSelector and vice versa");
@@ -110,7 +123,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], ethers.constants.AddressZero],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     )).to.be.revertedWith("CRW:CN-ClusterSelector must exist");
@@ -124,7 +137,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -135,7 +148,7 @@ describe("ClusterRewards", function () {
     expect(await clusterRewards.rewardWeight(DOTHASH)).to.equal(DOTWEIGHT);
     expect(await clusterRewards.rewardWeight(NEARHASH)).to.equal(NEARWEIGHT);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
-    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(60000);
+    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(MAX_REWARD);
     expect(await clusterRewards.clusterSelectors(ETHHASH)).to.equal(addrs[11]);
     expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(addrs[12]);
     expect(await clusterRewards.clusterSelectors(NEARHASH)).to.equal(addrs[13]);
@@ -153,7 +166,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -165,7 +178,7 @@ describe("ClusterRewards", function () {
     expect(await clusterRewards.rewardWeight(DOTHASH)).to.equal(DOTWEIGHT);
     expect(await clusterRewards.rewardWeight(NEARHASH)).to.equal(NEARWEIGHT);
     expect(await clusterRewards.totalRewardWeight()).to.equal(TOTALWEIGHT);
-    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(60000);
+    expect(await clusterRewards.totalRewardsPerEpoch()).to.equal(MAX_REWARD);
     expect(await clusterRewards.clusterSelectors(ETHHASH)).to.equal(addrs[11]);
     expect(await clusterRewards.clusterSelectors(DOTHASH)).to.equal(addrs[12]);
     expect(await clusterRewards.clusterSelectors(NEARHASH)).to.equal(addrs[13]);
@@ -183,7 +196,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -192,7 +205,7 @@ describe("ClusterRewards", function () {
 });
 
 testERC165(
-  "ClusterRegistry",
+  "ClusterRegistry erc165",
   async function (signers: Signer[], addrs: string[]) {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
     let clusterRewardsContract = await upgrades.deployProxy(
@@ -204,7 +217,7 @@ testERC165(
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -223,7 +236,7 @@ testERC165(
   }
 );
 
-testAdminRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
+testAdminRole("ClusterRewards admin role", async function (signers: Signer[], addrs: string[]) {
   const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
   let clusterRewardsContract = await upgrades.deployProxy(
     ClusterRewards,
@@ -234,7 +247,7 @@ testAdminRole("ClusterRegistry", async function (signers: Signer[], addrs: strin
       NETWORK_IDS,
       WEIGHTS,
       [addrs[11], addrs[12], addrs[13]],
-      60000,
+      MAX_REWARD,
     ],
     { kind: "uups" }
   );
@@ -242,7 +255,7 @@ testAdminRole("ClusterRegistry", async function (signers: Signer[], addrs: strin
   return clusterRewards;
 });
 
-testRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) {
+testRole("ClusterRegistry claimer role", async function (signers: Signer[], addrs: string[]) {
   const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
   let clusterRewardsContract = await upgrades.deployProxy(
     ClusterRewards,
@@ -253,7 +266,7 @@ testRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) 
       NETWORK_IDS,
       WEIGHTS,
       [addrs[11], addrs[12], addrs[13]],
-      60000,
+      MAX_REWARD,
     ],
     { kind: "uups" }
   );
@@ -263,7 +276,7 @@ testRole("ClusterRegistry", async function (signers: Signer[], addrs: string[]) 
 
 let startTime = Math.floor(Date.now()/1000) + 100000;
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards add network", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -288,7 +301,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -364,7 +377,7 @@ describe("ClusterRewards", function () {
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards cluster selector", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -389,7 +402,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -481,7 +494,7 @@ describe("ClusterRewards", function () {
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards remove network", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -506,7 +519,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -531,7 +544,7 @@ describe("ClusterRewards", function () {
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards update global vars", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -556,7 +569,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -593,11 +606,13 @@ describe("ClusterRewards", function () {
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards feed rewards", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
+  const FEED_REWARD = BN.from("200000").mul(e18);
+  const FEEDER_REWARD_1_pc = FEED_REWARD.mul(ETHWEIGHT).div(TOTALWEIGHT).div(100).mul(24*60*60).div(900);
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -618,7 +633,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [addrs[11], addrs[12], addrs[13]],
-        60000,
+        FEED_REWARD,
       ],
       { kind: "uups" }
     );
@@ -633,9 +648,9 @@ describe("ClusterRewards", function () {
   it("feeder can feed rewards before start time", async function () {
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
   });
 
   it("feeder can feed rewards after start time", async function () {
@@ -643,9 +658,9 @@ describe("ClusterRewards", function () {
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
   });
 
   it("feeder can feed rewards till 1 day after switching time", async function () {
@@ -653,9 +668,9 @@ describe("ClusterRewards", function () {
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
   });
 
   it("feeder cannot feed rewards after 1 day after switching time", async function () {
@@ -665,35 +680,35 @@ describe("ClusterRewards", function () {
   });
 
   it("feeder cannot feed rewards exceeding total", async function () {
-    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22], addrs[23]], [e16.mul(10), e16.mul(50), e16.mul(41)], 1)).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
+    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22], addrs[23]], [e16.mul(10), e16.mul(50), (e16.mul(40)).add(e16.div(100))], 1)).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
   });
 
   it("feeder can feed rewards in multiple parts", async function () {
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
     expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(96000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(10));
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
   });
 
   it("feeder cannot feed rewards in multiple parts exceeding total", async function () {
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
     expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(96000);
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(10));
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[23]], [e16.mul(41)], 1)).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
   });
@@ -701,9 +716,9 @@ describe("ClusterRewards", function () {
   it("feeder cannot feed rewards again before wait time", async function () {
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
     await skipTime(40000);
@@ -713,9 +728,9 @@ describe("ClusterRewards", function () {
   it("feeder can feed rewards again after wait time", async function () {
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(96000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(480000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
     await skipTime(40000);
@@ -723,10 +738,10 @@ describe("ClusterRewards", function () {
     await skipTime(5000);
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2);
 
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(192000);
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(576000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(576000);
-    expect(await clusterRewards.rewardDistributedPerEpoch(2)).to.equal(192000);
+    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(20));
+    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(60));
+    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
+    expect(await clusterRewards.rewardDistributedPerEpoch(2)).to.equal(FEEDER_REWARD_1_pc.mul(20));
   });
 
   it("non feeder cannot feed rewards", async function () {
@@ -734,7 +749,7 @@ describe("ClusterRewards", function () {
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards submit tickets", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -763,7 +778,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [ethSelector.address, addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -782,7 +797,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
@@ -799,34 +814,36 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
     await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+    let receiverRewards2 = tickets.map((e) => ETH_REWARD.mul(25).mul(e).div(125).div(MAX_TICKETS));
 
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 4, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 4, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 4)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 4)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(600);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(500);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(900);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(550);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(450);
+    expect((await clusterRewards.clusterRewards(addrs[31]))).to.closeTo((receiverRewards1[0]).add(receiverRewards2[4]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[32]))).to.closeTo((receiverRewards1[1]).add(receiverRewards2[3]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[33]))).to.closeTo((receiverRewards1[2]).add(receiverRewards2[2]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[34]))).to.closeTo((receiverRewards1[3]).add(receiverRewards2[1]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[35]))).to.closeTo((receiverRewards1[4]).add(receiverRewards2[0]), 2);
   });
 
   it("staker cannot submit tickets multiple times for the same epoch", async function () {
@@ -835,18 +852,19 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
@@ -854,7 +872,7 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
     await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)])).to.be.revertedWith("CRW:IPRT-Tickets already issued");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Tickets already issued");
   });
 
   it("staker cannot submit tickets for future epochs", async function () {
@@ -866,7 +884,7 @@ describe("ClusterRewards", function () {
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 5, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)])).to.be.revertedWith("CRW:IT-Epoch not completed");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 5, tickets)).to.be.revertedWith("CRW:IT-Epoch not completed");
   });
 
   it("staker cannot submit partial tickets", async function () {
@@ -878,7 +896,7 @@ describe("ClusterRewards", function () {
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 
   it("staker cannot submit excess tickets", async function () {
@@ -890,8 +908,8 @@ describe("ClusterRewards", function () {
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [2], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256[],uint256[][])"](ETHHASH, [], [[e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]])).to.be.revertedWith("CRW:MIT-invalid inputs");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24[],uint16[][])"](ETHHASH, [2], [[MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(26)]])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24[],uint16[][])"](ETHHASH, [], [[MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(26)]])).to.be.revertedWith("CRW:MIT-invalid inputs");
   });
 
   it("staker cannot submit tickets over maximum", async function () {
@@ -903,11 +921,12 @@ describe("ClusterRewards", function () {
 
     await skipToTimestamp(startTime + 34*86400);
 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)])).to.be.revertedWith("CRW:IPRT-Invalid ticket count");
+    // reverted because of overflow in args
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS.add(1)])).to.be.revertedWith("");
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards submit signed tickets", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -936,7 +955,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [ethSelector.address, addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -956,18 +975,18 @@ describe("ClusterRewards", function () {
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
     const signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, tickets],
     ))));
-    const tickets = [
+    const ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
@@ -984,58 +1003,60 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, tickets],
     ))));
-    let tickets = [
+    let ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(4).returns(125, 5);
     await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
+    let receiverRewards2 = tickets.map((e) => ETH_REWARD.mul(25).mul(e).div(125).div(MAX_TICKETS));
 
     signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 4, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 4, tickets],
     ))));
-    tickets = [
+    ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 4, tickets);
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 4, ticketsSigned);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 4)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 4)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(600);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(500);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(900);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(550);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(450);
+    expect((await clusterRewards.clusterRewards(addrs[31]))).to.closeTo((receiverRewards1[0]).add(receiverRewards2[4]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[32]))).to.closeTo((receiverRewards1[1]).add(receiverRewards2[3]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[33]))).to.closeTo((receiverRewards1[2]).add(receiverRewards2[2]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[34]))).to.closeTo((receiverRewards1[3]).add(receiverRewards2[1]), 2);
+    expect((await clusterRewards.clusterRewards(addrs[35]))).to.closeTo((receiverRewards1[4]).add(receiverRewards2[0]), 2);
   });
 
   it("staker cannot submit signed tickets multiple times for the same epoch", async function () {
@@ -1044,30 +1065,31 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, tickets],
     ))));
-    let tickets = [
+    let ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets);
+    await clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 4).returns(25, addrs[4]);
@@ -1076,18 +1098,18 @@ describe("ClusterRewards", function () {
     await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
 
     signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, tickets],
     ))));
-    tickets = [
+    ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Tickets already issued");
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned)).to.be.revertedWith("CRW:IPRT-Tickets already issued");
   });
 
   it("staker cannot submit signed tickets for future epochs", async function () {
@@ -1100,18 +1122,18 @@ describe("ClusterRewards", function () {
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 5, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 5, tickets],
     ))));
-    let tickets = [
+    let ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 5, tickets)).to.be.revertedWith("CRW:SIT-Epoch not completed");
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 5, ticketsSigned)).to.be.revertedWith("CRW:SIT-Epoch not completed");
   });
 
   it("staker cannot submit partial tickets", async function () {
@@ -1124,18 +1146,18 @@ describe("ClusterRewards", function () {
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(24)]],
     ))));
     let tickets = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(24)],
+        tickets: [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(24)],
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 
   it("staker cannot submit excess tickets", async function () {
@@ -1148,18 +1170,18 @@ describe("ClusterRewards", function () {
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(26)]],
     ))));
     let tickets = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(26)],
+        tickets: [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(26)],
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 
   it("staker cannot submit signed tickets over maximum", async function () {
@@ -1172,18 +1194,19 @@ describe("ClusterRewards", function () {
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)]],
+      ["bytes32", "uint256", "uint24[]"],
+      [ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS.add(1)]],
     ))));
     let tickets = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(101)],
+        tickets: [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS.add(1)],
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("CRW:IPRT-Invalid ticket count");
+    // reverted because of overflow in args
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.revertedWith("");
   });
 
   it("staker cannot submit missigned tickets", async function () {
@@ -1196,36 +1219,36 @@ describe("ClusterRewards", function () {
     await skipToTimestamp(startTime + 34*86400);
 
     let signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 3, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 3, tickets],
     ))));
-    let tickets = [
+    let ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16),
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.reverted;
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned)).to.be.reverted;
 
     signature = await signers[5].signMessage(ethers.utils.arrayify(ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
-      ["bytes32", "uint256", "uint256[]"],
-      [ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]],
+      ["bytes32", "uint256", "uint16[]"],
+      [ETHHASH, 2, tickets],
     ))));
-    tickets = [
+    ticketsSigned = [
       {
-        tickets: [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)],
+        tickets: tickets,
         v: parseInt(signature.slice(130, 132), 16) - 5,
         r: signature.slice(0, 66),
         s: "0x" + signature.slice(66, 130),
       },
     ];
-    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint256,(uint256[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, tickets)).to.be.reverted;
+    await expect(clusterRewards.connect(signers[15])["issueTickets(bytes32,uint24,(uint16[],uint8,bytes32,bytes32)[])"](ETHHASH, 2, ticketsSigned)).to.be.reverted;
   });
 });
 
-describe("ClusterRewards", function () {
+describe("ClusterRewards claim rewards", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -1254,7 +1277,7 @@ describe("ClusterRewards", function () {
         NETWORK_IDS,
         WEIGHTS,
         [ethSelector.address, addrs[12], addrs[13]],
-        60000,
+        MAX_REWARD,
       ],
       { kind: "uups" }
     );
@@ -1272,34 +1295,35 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[33]), 299);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[33])).to.closeTo(receiverRewards1[2].sub(1), 1);
     await clusterRewards.connect(signers[1]).claimReward(addrs[33]);
     expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(1);
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[31]), 99);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[31])).to.closeTo(receiverRewards1[0].sub(1), 1);
     await clusterRewards.connect(signers[1]).claimReward(addrs[31]);
     expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(1);
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[35]), 249);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[35])).to.closeTo(receiverRewards1[4].sub(1), 1);
     await clusterRewards.connect(signers[1]).claimReward(addrs[35]);
     expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(1);
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[34]), 149);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[34])).to.closeTo(receiverRewards1[3].sub(1), 1);
     await clusterRewards.connect(signers[1]).claimReward(addrs[34]);
     expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(1);
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[32]), 199);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[32])).to.closeTo(receiverRewards1[1].sub(1), 1);
     await clusterRewards.connect(signers[1]).claimReward(addrs[32]);
     expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(1);
-    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[36]), 0);
+    expect(await clusterRewards.connect(signers[1]).callStatic.claimReward(addrs[36])).to.equal(0);
     await clusterRewards.connect(signers[1]).claimReward(addrs[36]);
     expect(await clusterRewards.clusterRewards(addrs[36])).to.equal(0);
   });
@@ -1310,17 +1334,18 @@ describe("ClusterRewards", function () {
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
     await skipToTimestamp(startTime + 34*86400);
-    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint256,uint256[])"](ETHHASH, 2, [e16.mul(10), e16.mul(20), e16.mul(30), e16.mul(15), e16.mul(25)]);
+    await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets);
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[5], 2)).to.be.false;
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.equal(100);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.equal(200);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.equal(300);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(150);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(250);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.closeTo(receiverRewards1[0], 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.closeTo(receiverRewards1[1], 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.closeTo(receiverRewards1[2], 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.closeTo(receiverRewards1[3], 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.closeTo(receiverRewards1[4], 1);
 
     await expect(clusterRewards.claimReward(addrs[33])).to.be.revertedWith(`AccessControl: account ${addrs[0].toLowerCase()} is missing role ${await clusterRewards.CLAIMER_ROLE()}`);
   });

@@ -264,8 +264,6 @@ contract ClusterRewards is
         unchecked {
             uint256 _totalTickets;
             for(uint256 i=0; i < _tickets.length; ++i) {
-                require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
-
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
