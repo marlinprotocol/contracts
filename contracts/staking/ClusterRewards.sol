@@ -114,7 +114,7 @@ contract ClusterRewards is
 
     bytes32 public constant CLAIMER_ROLE = keccak256("CLAIMER_ROLE");
     bytes32 public constant FEEDER_ROLE = keccak256("FEEDER_ROLE");
-    uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 1e18;
+    uint256 public constant RECEIVER_TICKETS_PER_EPOCH = 2**16;
     uint256 constant SWITCHING_PERIOD = 33 days;
 
     mapping(address => uint256) public clusterRewards;
@@ -219,7 +219,7 @@ contract ClusterRewards is
 //-------------------------------- User functions start --------------------------------//
 
     struct SignedTicket {
-        uint256[] tickets;
+        uint16[] tickets;
         uint8 v;
         bytes32 r;
         bytes32 s;
@@ -256,7 +256,7 @@ contract ClusterRewards is
         emit ClusterRewarded(_networkId);
     }
 
-    function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
+    function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
@@ -266,12 +266,12 @@ contract ClusterRewards is
             for(uint256 i=0; i < _tickets.length; ++i) {
                 require(_tickets[i] <= RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Invalid ticket count");
 
-                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*1e18*1e28 < uint256
-                // value that can be added  per iteration is < 1e28*1e18*1e28/1e18, so clusterRewards for cluster cant overflow
-                clusterRewards[_selectedClusters[i]] += _rewardShare * _tickets[i] / RECEIVER_TICKETS_PER_EPOCH;
+                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
+                // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
+                clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
 
-                // cant overflow as tickets[i] <= 1e18
-                _totalTickets += _tickets[i];
+                // cant overflow as tickets[i] <= 2^16
+                _totalTickets += uint256(_tickets[i]);
             }
             require(_totalTickets == RECEIVER_TICKETS_PER_EPOCH, "CRW:IPRT-Total ticket count invalid");
         }
@@ -308,17 +308,31 @@ contract ClusterRewards is
         require(_signer != address(0), "CRW:IVST-Invalid signature");
     }
 
-    function issueTickets(bytes32 _networkId, uint256[] memory _epoch, uint256[][] memory _tickets) external {
-        uint256 numberOfEpochs = _epoch.length;
+    function issueTickets(bytes32 _networkId, uint24[] memory _epochs, uint16[][] memory _tickets) external {
+        uint256 numberOfEpochs = _epochs.length;
         require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
         unchecked {
             for(uint256 i=0; i < numberOfEpochs; ++i) {
-                issueTickets(_networkId, _epoch[i], _tickets[i]);
+                issueTickets(_networkId, _epochs[i], _tickets[i]);
             }
         }
     }
 
-    function issueTickets(bytes32 _networkId, uint256 _epoch, SignedTicket[] memory _signedTickets) external {
+    function issueTickets(bytes32 _networkId, uint24 _fromEpoch, uint24 _toEpoch, uint16[][] memory _tickets) external {
+        require(_fromEpoch <= _toEpoch, "CRW:MOIT-invalid inputs");
+        unchecked {
+            // underflow is checked above and overflow can only happen if _toEpoch is max(uint24) and _fromEpoch is 0
+            // in that case numberOfEpochs will be 0, which won't issue any tickets, so no side effects because of unchecked
+            uint24 numberOfEpochs = _toEpoch - _fromEpoch + 1;
+            require(numberOfEpochs == _tickets.length, "CRW:MOIT-invalid inputs");
+            for(uint24 i=0; i < numberOfEpochs; ++i) {
+                // won't overflow as max value of `_fromEpoch + i` is _toEpoch
+                issueTickets(_networkId, _fromEpoch + i, _tickets[i]);
+            }
+        }
+    }
+
+    function issueTickets(bytes32 _networkId, uint24 _epoch, SignedTicket[] memory _signedTickets) external {
         (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
 
         require(_epoch < _currentEpoch, "CRW:SIT-Epoch not completed");
@@ -340,7 +354,7 @@ contract ClusterRewards is
         }
     }
 
-    function issueTickets(bytes32 _networkId, uint256 _epoch, uint256[] memory _tickets) public {
+    function issueTickets(bytes32 _networkId, uint24 _epoch, uint16[] memory _tickets) public {
         (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
 
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
