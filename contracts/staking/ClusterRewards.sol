@@ -379,8 +379,8 @@ contract ClusterRewards is
     }
 
     function _parseTicketInfo(bytes memory ticketInfo) internal view returns(
-        bytes32 networkId, 
-        uint256 fromEpoch, 
+        bytes32 networkId,
+        uint256 fromEpoch,
         uint256 noOfEpochs,
         uint256[][] memory tickets
     ) {
@@ -424,7 +424,7 @@ contract ClusterRewards is
     ) internal pure returns(uint256, uint256, uint256) {
         unchecked {
             for(uint256 i = startIndex; i < 16; ++i) {
-                uint256 ticket = _extractTicket(word, i);
+                uint256 ticket = uint16(uint256(word >> (256 - (i + 1)*16)));
                 totalTicketsInEpoch += ticket;
                 tickets[currentEpochIndex][currentTicketIndex] = ticket;
                 currentTicketIndex++;
@@ -441,13 +441,6 @@ contract ClusterRewards is
             }
         }
         return (currentEpochIndex, currentTicketIndex, totalTicketsInEpoch);
-    }
-
-    function _extractTicket(bytes32 word, uint256 index) internal pure returns(uint256) {
-        assert(index < 16);
-        unchecked {
-            return uint16(uint256(word >> (256 - (index + 1)*16)));   
-        }
     }
 
     function issueTickets(bytes32 _networkId, uint24 _epoch, SignedTicket[] memory _signedTickets) external {
