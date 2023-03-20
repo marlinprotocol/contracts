@@ -11,6 +11,7 @@ import { FuzzedNumber } from "../../utils/fuzzer";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
 import { getClusterRewards, getClusterSelector, getPond, getReceiverStaking } from "../../utils/typechainConvertor";
 import { getRandomElementsFromArray } from "../helpers/common";
+import { getRandomNumber } from "../../benchmarks/helpers/util";
 
 
 async function skipBlocks(n: number) {
@@ -789,6 +790,33 @@ describe("ClusterRewards submit tickets", function () {
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+  it.skip("delete me", async () => {
+    await ethSelector.mock.NUMBER_OF_CLUSTERS_TO_SELECT.returns(5);
+    let networkId = ethers.utils.id("ETH");
+    let epochNumber = getRandomNumber(BN.from(20000)).toNumber();
+    let noOfEpochs = 96;
+    let tickets: number[][] = [];
+    let rawTicketInfo = networkId + epochNumber.toString(16).padStart(8, '0');
+    for(let i=0; i<noOfEpochs*4; i++) {
+      let j: number = parseInt((i/4)+"");
+      let k: number = i%4;
+      if(!tickets[j]) tickets[j] = [];
+      tickets[j][k] = parseInt((Math.random()*13000)+"");
+      rawTicketInfo = rawTicketInfo+tickets[j][k].toString(16).padStart(4, '0');
+    }
+    console.log(rawTicketInfo)
+    const data = await clusterRewards._parseTicketInfo(rawTicketInfo);
+    console.log(tickets);
+    expect(data.networkId).to.equal(networkId);
+    expect(data.fromEpoch).to.equal(epochNumber);
+    expect(data.noOfEpochs).to.equal(noOfEpochs);
+    tickets.map((e, i) => {
+      e.map((ele, j) => {
+        expect(tickets[i][j]).to.equal(data.tickets[i][j], `epoch ${i} ticket ${j} not equal`);
+      });
+    });
+  });
 
   it("staker can submit tickets before switch with zero rewards", async function () {
     await receiverStaking.mock.balanceOfSignerAt.reverts();
