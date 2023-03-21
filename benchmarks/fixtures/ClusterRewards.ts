@@ -4,7 +4,7 @@ import { deploy as deployClusterRewards } from "../../deployments/staking/Cluste
 import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
 
-const EPOCH_LENGTH  = 2*60*60;
+const EPOCH_LENGTH = 15*60;
 
 export async function deployFixture() {
     const signers = await ethers.getSigners();
@@ -20,10 +20,7 @@ export async function deployFixture() {
 
     const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
 
-    const clusterSelector = await deployClusterSelector("ETH", addrs[1], addrs[0], blockData.timestamp, EPOCH_LENGTH, {
-        token: pond.address,
-        amount: ethers.utils.parseEther('1').toString()
-    }, true);
+    const clusterSelector = await deployClusterSelector("ETH", addrs[1], addrs[0], blockData.timestamp, EPOCH_LENGTH, ethers.utils.parseEther('1').toString(), true);
 
     const clusterRewards = await deployClusterRewards(addrs[1], receiverStaking.address, {
         "ETH": clusterSelector.address
@@ -91,7 +88,7 @@ export async function initDataFixture() {
         });
         await pond.transfer(receiver.address, depositAmount);
         await pond.connect(receiver).approve(receiverStaking.address, depositAmount);
-        await receiverStaking.connect(receiver)["deposit(uint256,address)"](depositAmount, receiverSigner.address);
+        await receiverStaking.connect(receiver)["depositFor(uint256,address)"](depositAmount, receiverSigner.address);
     }
 
     return {

@@ -38,6 +38,9 @@ interface IClusterSelector {
     /// @notice length of epoch
     function EPOCH_LENGTH() external view returns(uint256);
 
+    /// @notice no of cluster selected in an epoch
+    function NUMBER_OF_CLUSTERS_TO_SELECT() external view returns(uint256);
+
     /// @notice Current Epoch
     function getCurrentEpoch() external view returns (uint256);
 
