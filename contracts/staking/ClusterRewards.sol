@@ -267,7 +267,7 @@ contract ClusterRewards is
                 _totalTickets += uint256(_tickets[i]);
             }
             require(RECEIVER_TICKETS_PER_EPOCH >= _totalTickets, "CRW:IPRT-Total ticket count invalid");
-            clusterRewards[_selectedClusters[i]] = _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
+            clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
         }
 
         _markAsIssued(_receiver, _epoch);
