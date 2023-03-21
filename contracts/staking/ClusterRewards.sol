@@ -218,13 +218,6 @@ contract ClusterRewards is
 
 //-------------------------------- User functions start --------------------------------//
 
-    struct SignedTicket {
-        uint16[] tickets;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
-
     function feed(
         bytes32 _networkId,
         address[] calldata _clusters,
@@ -266,7 +259,7 @@ contract ClusterRewards is
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _totalTickets;
             uint256 i;
-            for(; i < _tickets.length - 1; ++i) {
+            for(; i < _tickets.length; ++i) {
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
@@ -290,7 +283,7 @@ contract ClusterRewards is
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _totalTickets;
             uint256  i;
-            for(; i < _tickets.length - 1; ++i) {
+            for(; i < _tickets.length; ++i) {
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
                 // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _rewardShare * _tickets[i] / RECEIVER_TICKETS_PER_EPOCH;
