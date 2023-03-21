@@ -249,32 +249,7 @@ contract ClusterRewards is
         emit ClusterRewarded(_networkId);
     }
 
-    // TODO: uint16 is necessary ?
     function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
-        (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
-        require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
-
-        unchecked {
-            require(_selectedClusters.length == _tickets.length + 1, "CRW:IPRT16-Tickets length not matching selected clusters");
-            uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
-            uint256 _totalTickets;
-            uint256 i;
-            for(; i < _tickets.length; ++i) {
-                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
-                // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
-                clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
-
-                // cant overflow as tickets[i] <= 2^16
-                _totalTickets += uint256(_tickets[i]);
-            }
-            require(RECEIVER_TICKETS_PER_EPOCH >= _totalTickets, "CRW:IPRT-Total ticket count invalid");
-            clusterRewards[_selectedClusters[i]] = _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
-        }
-
-        _markAsIssued(_receiver, _epoch);
-    }
-
-    function _processReceiverTickets(address _signer, uint256 _epoch, address[] memory _selectedClusters, uint256[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake) internal {
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(_signer, _epoch);
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
@@ -282,17 +257,17 @@ contract ClusterRewards is
             require(_selectedClusters.length == _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _totalTickets;
-            uint256  i;
+            uint256 i;
             for(; i < _tickets.length; ++i) {
-                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16*1e28 < uint256
-                // value that can be added  per iteration is < 1e28*2^16*1e28/1e18, so clusterRewards for cluster cant overflow
-                clusterRewards[_selectedClusters[i]] += _rewardShare * _tickets[i] / RECEIVER_TICKETS_PER_EPOCH;
+                // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16 < uint256
+                // value that can be added  per iteration is < 1e28*2^16/2^16, so clusterRewards for cluster cant overflow
+                clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
 
                 // cant overflow as tickets[i] <= 2^16
-                _totalTickets += _tickets[i];
+                _totalTickets += uint256(_tickets[i]);
             }
             require(RECEIVER_TICKETS_PER_EPOCH >= _totalTickets, "CRW:IPRT-Total ticket count invalid");
-            clusterRewards[_selectedClusters[i]] = _rewardShare * (RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
+            clusterRewards[_selectedClusters[i]] = _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
         }
 
         _markAsIssued(_receiver, _epoch);
@@ -320,7 +295,7 @@ contract ClusterRewards is
         }
     }
 
-    function issueTickets(bytes32 _networkId, uint24[] memory _epochs, uint16[][] memory _tickets) external {
+    function issueTickets(bytes32 _networkId, uint24[] calldata _epochs, uint16[][] calldata _tickets) external {
         uint256 numberOfEpochs = _epochs.length;
         require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
@@ -335,12 +310,12 @@ contract ClusterRewards is
         }
     }
 
-    function issueTickets(bytes memory _ticketInfo) external {
+    function issueTickets(bytes calldata _ticketInfo) external {
         (
             bytes32 _networkId, 
             uint256 _fromEpoch, 
             uint256 _noOfEpochs,
-            uint256[][] memory _tickets
+            uint16[][] memory _tickets
         ) = _parseTicketInfo(_ticketInfo);
         uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
 
@@ -348,13 +323,9 @@ contract ClusterRewards is
             for(uint256 i=0; i < _noOfEpochs; ++i) {
                 uint256 _epoch = _fromEpoch + i;
                 (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
-
-                require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
-
+                require(_epoch < _currentEpoch, "CRW:ITO-Epoch not completed");
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
-
                 _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake);
-
                 emit TicketsIssued(_networkId, _epoch, msg.sender);
             }
         }
@@ -364,7 +335,7 @@ contract ClusterRewards is
         bytes32 networkId,
         uint256 fromEpoch,
         uint256 noOfEpochs,
-        uint256[][] memory tickets
+        uint16[][] memory tickets
     ) {
         // Ticket Structure
         // |--NetworkId(256 bits)--|--FromEpoch(32 bits)--|--N*Ticket(16 bits)--|
@@ -379,13 +350,13 @@ contract ClusterRewards is
         fromEpoch = uint256(currentWord >> 224);
         unchecked {
             require(length >= 36 && (length - 36)%8 == 0, "CR:IPTI-invalid ticket info encoding");
+            noOfEpochs = (length - 36)/8; // 32 (networkId) + 4 (fromEpoch) / 2(tickets) / 4(tickets per epoch)
             // +1 because of slight overflow on last word
             uint256 noOfWords = length/32;
-            noOfEpochs = (length - 36)/8; // 32 (networkId) + 4 (fromEpoch) / 2(tickets) / 4(tickets per epoch)
-            tickets = new uint256[][](noOfEpochs);
+            tickets = new uint16[][](noOfEpochs);
             uint256 clustersToSelect = clusterSelectors[networkId].NUMBER_OF_CLUSTERS_TO_SELECT();
             // revert due to memory expansion overflow in case of underflow
-            tickets[0] = new uint256[](clustersToSelect - 1);
+            tickets[0] = new uint16[](clustersToSelect - 1);
             (uint256 _currentEpochIndex, uint256 _currentTicketIndex) = _extractTickets(currentWord, 2, 0, 0, tickets);
             
             for(uint256 i=1; i < noOfWords; ++i) {
@@ -402,18 +373,17 @@ contract ClusterRewards is
         uint256 startIndex, 
         uint256 currentEpochIndex, 
         uint256 currentTicketIndex,
-        uint256[][] memory tickets
+        uint16[][] memory tickets
     ) internal pure returns(uint256, uint256) {
         unchecked {
             for(uint256 i = startIndex; i < 16; ++i) {
-                uint256 ticket = uint16(uint256(word >> (256 - (i + 1)*16)));
-                tickets[currentEpochIndex][currentTicketIndex] = ticket;
+                tickets[currentEpochIndex][currentTicketIndex] = uint16(uint256(word >> (256 - (i + 1)*16)));
                 currentTicketIndex++;
 
                 if(currentTicketIndex > tickets[currentEpochIndex].length - 1) {
                     if(currentEpochIndex == tickets.length - 1) return (currentEpochIndex, currentTicketIndex);
                     currentEpochIndex++;
-                    tickets[currentEpochIndex] = new uint256[](tickets[currentEpochIndex-1].length);
+                    tickets[currentEpochIndex] = new uint16[](tickets[currentEpochIndex-1].length);
                     currentTicketIndex = 0;
                 }
             }
