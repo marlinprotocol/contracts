@@ -35,6 +35,7 @@ describe("Cluster Rewards", async () => {
         let nodesInserted: number;
         let receivers: Signer[];
         let receiverSigners: Signer[];
+        let l1GasDetails: any;
 
         const MAX_TICKETS = BigNumber.from(2).pow(16);
         const DAY = 60*60*24;
@@ -60,6 +61,8 @@ describe("Cluster Rewards", async () => {
                 receivers,
                 receiverSigners
             } = await waffle.loadFixture(initDataFixture));
+
+            l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();
         });
 
         it("to single epoch, tickets to 1 - 5 clusters, input clusters ordered", async () => {
@@ -118,6 +121,7 @@ describe("Cluster Rewards", async () => {
 
             for(let i=0; i < selectedReceiverSigners.length; i++) {
                 const tickets = randomlyDivideInXPieces(MAX_TICKETS, 5).map(val => val.toString());
+                tickets.pop();
 
                 const messageHash = utils.keccak256(utils.defaultAbiCoder.encode(
                     ["bytes32", "uint256", "uint16[]"], 
@@ -143,7 +147,7 @@ describe("Cluster Rewards", async () => {
             console.log(receipt.gasUsed.mul(1600).mul(6).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
 
-        it("all epochs in a day, tickets to all selected clusters", async function() {
+        it.only("all epochs in a day, tickets to all selected clusters", async function() {
             this.timeout(1000000)
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
             const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
@@ -166,6 +170,7 @@ describe("Cluster Rewards", async () => {
                 let clusters: string[] = await clusterSelector.getClusters(epoch);
                 selectedClusters.push(clusters);
                 const tickets: BigNumber[] = randomlyDivideInXPieces(MAX_TICKETS, clusters.length);
+                tickets.pop();
 
                 issuedTickets.push(tickets);
                 epochs.push(epoch);
@@ -173,17 +178,24 @@ describe("Cluster Rewards", async () => {
                 await skipTime(EPOCH_LENGTH);
             }
 
-            console.log(JSON.stringify(epochs.map(e => e.toNumber())), JSON.stringify(issuedTickets.map(e => e.map(e => e.toNumber()))))
-
             const gasEstimate = await clusterRewards.connect(selectedReceiverSigner).estimateGas["issueTickets(bytes32,uint24[],uint16[][])"](
                 ethers.utils.id("ETH"), epochs, issuedTickets
             );
+
+            const tx = await clusterRewards.connect(selectedReceiverSigner).populateTransaction["issueTickets(bytes32,uint24[],uint16[][])"](
+                ethers.utils.id("ETH"), epochs, issuedTickets
+            );
+            if(!tx.data) return;
             
             console.log(`gas used for ${DAY/EPOCH_LENGTH} epochs : ${gasEstimate.toNumber()}`);
-            console.log(gasEstimate.mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+            console.log("L1 gas cost Per L2 Tx", l1GasDetails.gasPerL2Tx.toNumber(), "L1 Gas cost Per calldata byte", l1GasDetails.gasPerL1CallDataByte.toNumber());
+            const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((tx.data.length - 2)/2));
+            console.log(`L1 gas used for ${DAY/EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
+
+            console.log(gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
         });
 
-        it.only("all epochs in a day, tickets to all selected clusters", async function() {
+        it.only("all epochs in a day, tickets to all selected clusters optimized", async function() {
             this.timeout(1000000)
             const selectedReceiverIndex: number = Math.floor(Math.random()*receivers.length);
             const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
@@ -220,8 +232,6 @@ describe("Cluster Rewards", async () => {
             const gasEstimate = await clusterRewards.connect(selectedReceiverSigner).estimateGas["issueTickets(bytes)"](rawTicketInfo);
             
             console.log(`gas used for ${DAY/EPOCH_LENGTH} epochs : ${gasEstimate.toNumber()}`);
-
-            const l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();
 
             console.log("L1 gas cost Per L2 Tx", l1GasDetails.gasPerL2Tx.toNumber(), "L1 Gas cost Per calldata byte", l1GasDetails.gasPerL1CallDataByte.toNumber());
             const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((rawTicketInfo.length - 2)/2));
