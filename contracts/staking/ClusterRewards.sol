@@ -254,7 +254,7 @@ contract ClusterRewards is
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
         unchecked {
-            require(_selectedClusters.length == _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
+            require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _totalTickets;
             uint256 i;
