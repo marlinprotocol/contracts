@@ -254,11 +254,11 @@ contract ClusterRewards is
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
 
         unchecked {
-            require(_selectedClusters.length == _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
+            require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _totalTickets;
             uint256 i;
-            for(; i < _tickets.length; ++i) {
+            for(; i < _selectedClusters.length - 1; ++i) {
                 // cant overflow as max supply of POND is 1e28, so max value of multiplication is 1e28*2^16 < uint256
                 // value that can be added  per iteration is < 1e28*2^16/2^16, so clusterRewards for cluster cant overflow
                 clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(_tickets[i]) / RECEIVER_TICKETS_PER_EPOCH;
@@ -267,7 +267,7 @@ contract ClusterRewards is
                 _totalTickets += uint256(_tickets[i]);
             }
             require(RECEIVER_TICKETS_PER_EPOCH >= _totalTickets, "CRW:IPRT-Total ticket count invalid");
-            clusterRewards[_selectedClusters[i]] = _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
+            clusterRewards[_selectedClusters[i]] += _rewardShare * uint256(RECEIVER_TICKETS_PER_EPOCH - _totalTickets)/RECEIVER_TICKETS_PER_EPOCH;
         }
 
         _markAsIssued(_receiver, _epoch);
@@ -298,9 +298,9 @@ contract ClusterRewards is
     function issueTickets(bytes32 _networkId, uint24[] calldata _epochs, uint16[][] calldata _tickets) external {
         uint256 numberOfEpochs = _epochs.length;
         require(numberOfEpochs == _tickets.length, "CRW:MIT-invalid inputs");
-        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
         unchecked {
             for(uint256 i=0; i < numberOfEpochs; ++i) {
+                uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epochs[i], _networkId);
                 (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epochs[i]);
                 require(_epochs[i] < _currentEpoch, "CRW:IT-Epoch not completed");
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epochs[i]);
@@ -317,13 +317,13 @@ contract ClusterRewards is
             uint256 _noOfEpochs,
             uint16[][] memory _tickets
         ) = _parseTicketInfo(_ticketInfo);
-        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
 
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
                 uint256 _epoch = _fromEpoch + i;
+                uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epoch, _networkId);
                 (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
-                require(_epoch < _currentEpoch, "CRW:ITO-Epoch not completed");
+                require(_epoch < _currentEpoch, "CRW:ITC-Epoch not completed");
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
                 _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake);
                 emit TicketsIssued(_networkId, _epoch, msg.sender);
@@ -398,7 +398,7 @@ contract ClusterRewards is
 
         address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
 
-        uint256 _totalNetworkRewardsPerEpoch = getRewardPerEpoch(_networkId);
+        uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epoch, _networkId);
 
         _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets, _totalNetworkRewardsPerEpoch, _epochTotalStake);
 
@@ -415,8 +415,8 @@ contract ClusterRewards is
         return 0;
     }
 
-    function getRewardPerEpoch(bytes32 _networkId) public view returns(uint256) {
-        if(block.timestamp < receiverStaking.START_TIME() + SWITCHING_PERIOD) return 0;
+    function getRewardForEpoch(uint256 _epoch, bytes32 _networkId) public view returns(uint256) {
+        if(_epoch < SWITCHING_PERIOD/receiverStaking.EPOCH_LENGTH()) return 0;
         return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
