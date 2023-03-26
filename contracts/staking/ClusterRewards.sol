@@ -320,13 +320,13 @@ contract ClusterRewards is
 
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
-                uint256 _epoch = _fromEpoch + i;
-                uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epoch, _networkId);
-                (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epoch);
-                require(_epoch < _currentEpoch, "CRW:ITC-Epoch not completed");
-                address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
-                _processReceiverTickets(msg.sender, _epoch, _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake);
-                emit TicketsIssued(_networkId, _epoch, msg.sender);
+                uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_fromEpoch, _networkId);
+                (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_fromEpoch);
+                require(_fromEpoch < _currentEpoch, "CRW:ITC-Epoch not completed");
+                address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_fromEpoch);
+                _processReceiverTickets(msg.sender, _fromEpoch, _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake);
+                emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
+                ++_fromEpoch;
             }
         }
     }
