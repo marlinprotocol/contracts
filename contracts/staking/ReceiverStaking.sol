@@ -148,6 +148,10 @@ contract ReceiverStaking is
         currentEpoch = _getCurrentSnapshotId();
     }
 
+    function getCurrentEpoch() public view returns (uint256) {
+        return _getCurrentSnapshotId();
+    }
+
     function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256 balance, address account) {
         account = signerToStaker[signer];
         balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);

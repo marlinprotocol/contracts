@@ -318,11 +318,14 @@ contract ClusterRewards is
             uint16[][] memory _tickets
         ) = _parseTicketInfo(_ticketInfo);
 
+        ReceiverStaking _receiverStaking = receiverStaking;
+        uint256 _currentEpoch = _receiverStaking.getCurrentEpoch();
+        require(_fromEpoch + _noOfEpochs <= _currentEpoch, "CRW:ITC-Epochs not completed");
+
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
                 uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_fromEpoch, _networkId);
-                (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_fromEpoch);
-                require(_fromEpoch < _currentEpoch, "CRW:ITC-Epoch not completed");
+                uint256 _epochTotalStake = _receiverStaking.totalSupplyAt(_fromEpoch);
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_fromEpoch);
                 _processReceiverTickets(msg.sender, _fromEpoch, _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake);
                 emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
