@@ -50,6 +50,13 @@ interface IClusterSelector {
     /// @param epoch Epoch Number
     function getClusters(uint256 epoch) external view returns (address[] memory clusters);
 
+    /// @notice Clusters are selected only for next epoch in this epoch using selectClusters method.
+    /// If the method is not called within the previous epoch, then the last selected clusters
+    /// are considered as selected for this epoch
+    /// @param from Epoch Number
+    /// @param to Epoch Number
+    function getClustersRanged(uint256 from, uint256 to) external view returns (address[][] memory clusters);
+
     /// @notice Returns the list of selected clusters for the next
     /// @return nodes List of the clusters selected
     function selectClusters() external returns (address[] memory nodes);
