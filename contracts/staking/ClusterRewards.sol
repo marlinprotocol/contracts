@@ -319,8 +319,7 @@ contract ClusterRewards is
         ) = _parseTicketInfo(_ticketInfo);
 
         ReceiverStaking _receiverStaking = receiverStaking;
-        uint256 _currentEpoch = _receiverStaking.getCurrentEpoch();
-        require(_fromEpoch + _noOfEpochs <= _currentEpoch, "CRW:ITC-Epochs not completed");
+        require(_fromEpoch + _noOfEpochs <= _receiverStaking.getCurrentEpoch(), "CRW:ITC-Epochs not completed");
 
         uint256[] memory _stakes = _receiverStaking.totalSupplyAtRanged(_fromEpoch, _noOfEpochs);
         (uint256[] memory _balances, address _receiver) = _receiverStaking.balanceOfSignerAtRanged(msg.sender, _fromEpoch, _noOfEpochs);
