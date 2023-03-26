@@ -162,6 +162,18 @@ contract ReceiverStaking is
         return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
     }
 
+    function totalSupplyAtRanged(uint256 _from, uint256 _count) public view returns (uint256[] memory stakes) {
+        stakes = new uint256[](_count);
+        uint256 i = 0;
+        while (i < _count) {
+            stakes[i] = totalSupplyAt(_from);
+            unchecked {
+                ++_from;
+                ++i;
+            }
+        }
+    }
+
     function _beforeTokenTransfer(
         address _from,
         address _to,
