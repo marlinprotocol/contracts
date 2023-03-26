@@ -157,6 +157,19 @@ contract ReceiverStaking is
         balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
+    function balanceOfSignerAtRanged(address signer, uint256 _from, uint256 _count) public view returns (uint256[] memory balances, address account) {
+        account = signerToStaker[signer];
+        balances = new uint256[](_count);
+        uint256 i = 0;
+        while (i < _count) {
+            balances[i] = balanceOfAt(account, _from);
+            unchecked {
+                ++_from;
+                ++i;
+            }
+        }
+    }
+
     function _getCurrentSnapshotId() internal view override returns (uint256) {
         if(block.timestamp < START_TIME) return 0;
         return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;

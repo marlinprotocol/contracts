@@ -323,13 +323,13 @@ contract ClusterRewards is
         require(_fromEpoch + _noOfEpochs <= _currentEpoch, "CRW:ITC-Epochs not completed");
 
         uint256[] memory _stakes = _receiverStaking.totalSupplyAtRanged(_fromEpoch, _noOfEpochs);
+        (uint256[] memory _balances, address _receiver) = _receiverStaking.balanceOfSignerAtRanged(msg.sender, _fromEpoch, _noOfEpochs);
         address[][] memory _selectedClusters = clusterSelectors[_networkId].getClustersRanged(_fromEpoch, _noOfEpochs);
 
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
                 uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_fromEpoch, _networkId);
-                (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(msg.sender, _fromEpoch);
-                _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _totalNetworkRewardsPerEpoch, _stakes[i], _epochReceiverStake);
+                _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]);
                 emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
                 ++_fromEpoch;
             }
