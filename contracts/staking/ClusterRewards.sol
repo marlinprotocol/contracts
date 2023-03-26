@@ -324,10 +324,12 @@ contract ClusterRewards is
         uint256[] memory _stakes = _receiverStaking.totalSupplyAtRanged(_fromEpoch, _noOfEpochs);
         (uint256[] memory _balances, address _receiver) = _receiverStaking.balanceOfSignerAtRanged(msg.sender, _fromEpoch, _noOfEpochs);
         address[][] memory _selectedClusters = clusterSelectors[_networkId].getClustersRanged(_fromEpoch, _noOfEpochs);
+        uint256 _epochLength = _receiverStaking.EPOCH_LENGTH();
+        uint256 _totalNetworkRewardsPerEpoch;
 
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
-                uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_fromEpoch, _networkId);
+                _totalNetworkRewardsPerEpoch = _getRewardForEpoch(_fromEpoch, _networkId, _epochLength);
                 _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]);
                 emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
                 ++_fromEpoch;
@@ -362,7 +364,7 @@ contract ClusterRewards is
             // revert due to memory expansion overflow in case of underflow
             tickets[0] = new uint16[](clustersToSelect - 1);
             (uint256 _currentEpochIndex, uint256 _currentTicketIndex) = _extractTickets(currentWord, 2, 0, 0, tickets);
-            
+
             for(uint256 i=1; i < noOfWords; ++i) {
                 assembly {
                     currentWord := mload(add(ticketInfo, add(0x40, mul(0x20, i))))
@@ -418,6 +420,11 @@ contract ClusterRewards is
             return rewardsToTransfer;
         }
         return 0;
+    }
+
+    function _getRewardForEpoch(uint256 _epoch, bytes32 _networkId, uint256 _epochLength) internal view returns(uint256) {
+        if(_epoch < SWITCHING_PERIOD/_epochLength) return 0;
+        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
     }
 
     function getRewardForEpoch(uint256 _epoch, bytes32 _networkId) public view returns(uint256) {
