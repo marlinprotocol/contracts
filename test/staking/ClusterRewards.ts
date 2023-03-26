@@ -1018,11 +1018,12 @@ describe("ClusterRewards submit compressed tickets", function () {
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("staker can submit compressed tickets for 1 epoch before switch with zero rewards", async function () {
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    await receiverStaking.mock.getCurrentEpoch.returns(5);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(2, 1).returns([500]);
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], 2, 1).returns([50], addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns([[addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]]);
 
     const tickets: number[][] = [];
     let rawTicketInfo = ETHHASH + (2).toString(16).padStart(8, '0');
@@ -1047,11 +1048,12 @@ describe("ClusterRewards submit compressed tickets", function () {
   });
 
   it("staker can submit compressed tickets for 1 epoch before switch with zero rewards, tx submitted after rewards open", async function () {
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    await receiverStaking.mock.getCurrentEpoch.returns(5);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(2, 1).returns([500]);
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], 2, 1).returns([50], addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns([[addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]]);
 
     const tickets: number[][] = [];
     let rawTicketInfo = ETHHASH + (2).toString(16).padStart(8, '0');
@@ -1080,9 +1082,6 @@ describe("ClusterRewards submit compressed tickets", function () {
   it("staker can submit compressed tickets after switch with non zero rewards", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1: BN[] = [];
 
     await skipToTimestamp(startTime + 34*86400);
@@ -1094,8 +1093,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1108,6 +1105,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
     for(let i=0;  i < numberOfEpochs; i++) {
@@ -1120,10 +1124,6 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4], 1);
     }
 
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
-
     startEpoch += numberOfEpochs;
 
     rawTicketInfo = ETHHASH + startEpoch.toString(16).padStart(8, '0');
@@ -1131,8 +1131,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     let receiverRewards2: BN[] = [];
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1145,6 +1143,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(125));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(25), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
     for(let i=0;  i < numberOfEpochs; i++) {
@@ -1161,9 +1166,6 @@ describe("ClusterRewards submit compressed tickets", function () {
   it("staker can submit compressed tickets if number of clusters are less than clusters to select", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34]]);
     let receiverRewards1: BN[] = [];
 
     await skipToTimestamp(startTime + 34*86400);
@@ -1175,8 +1177,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1191,6 +1191,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
     for(let i=0;  i < numberOfEpochs; i++) {
@@ -1203,10 +1210,6 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(0);
     }
 
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33]]);
-
     startEpoch += numberOfEpochs;
 
     rawTicketInfo = ETHHASH + startEpoch.toString(16).padStart(8, '0');
@@ -1214,8 +1217,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     let receiverRewards2: BN[] = [];
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1230,6 +1231,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(125));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(25), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
     for(let i=0;  i < numberOfEpochs; i++) {
@@ -1246,9 +1254,6 @@ describe("ClusterRewards submit compressed tickets", function () {
   it("staker cannot submit compressed tickets multiple times for the same epoch", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1: BN[] = [];
 
     await skipToTimestamp(startTime + 34*86400);
@@ -1260,8 +1265,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1274,6 +1277,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
     for(let i=0;  i < numberOfEpochs; i++) {
@@ -1286,17 +1296,11 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4], 1);
     }
 
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]);
-
     rawTicketInfo = ETHHASH + startEpoch.toString(16).padStart(8, '0');
     totalTickets = 0;
     let receiverRewards2: BN[] = [];
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1309,15 +1313,19 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(125));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(25), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.be.revertedWith("CRW:IPRT-Tickets already issued");
   });
 
   it("staker cannot submit signed tickets for future epochs", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1: BN[] = [];
 
     await skipToTimestamp(startTime + 34*86400);
@@ -1329,8 +1337,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i*2);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
@@ -1343,15 +1349,19 @@ describe("ClusterRewards submit compressed tickets", function () {
       totalTickets = 0;
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.be.revertedWith("CRW:ITC-Epoch not completed");
   });
 
   it("staker cannot submit partial tickets", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
     await skipToTimestamp(startTime + 34*86400);
 
@@ -1361,8 +1371,6 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
         ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
         if(FuzzedNumber.randomInRange(0, 100).toNumber() > 20) { // drop in 20% of cases
@@ -1374,15 +1382,19 @@ describe("ClusterRewards submit compressed tickets", function () {
       }
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.be.revertedWith("CR:IPTI-invalid ticket info encoding");
   });
 
   it("staker cannot submit excess tickets", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
     await skipToTimestamp(startTime + 34*86400);
 
@@ -1392,23 +1404,25 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       ticketsByEpoch[i] = randomlyDivideInXPieces(MAX_TICKETS.add(1), ticketsLength).map((e) => e.toNumber());
       for(let j=0; j < ticketsLength; j++) {
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
       }
     }
 
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 
   it("staker cannot submit signed tickets over maximum", async function () {
     const epochWithRewards = 33*86400/900 + 2;
     const numberOfEpochs = 10;
-    await receiverStaking.mock.balanceOfSignerAt.revertsWithReason("unexpected query for signer balance");
-    await receiverStaking.mock.getEpochInfo.revertsWithReason("unexpected query for epoch info");
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
     await skipToTimestamp(startTime + 34*86400);
 
@@ -1418,14 +1432,20 @@ describe("ClusterRewards submit compressed tickets", function () {
     
     for(let i=0; i < numberOfEpochs; i++) {
       ticketsByEpoch[i] = [];
-      await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
-      await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       ticketsByEpoch[i] = randomlyDivideInXPieces(MAX_TICKETS, ticketsLength + 1).map((e) => e.toNumber());
       ticketsByEpoch[i][ticketsLength - 1] = MAX_TICKETS.add(1).toNumber();
       for(let j=0; j < ticketsLength; j++) {
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
       }
     }
+
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged.withArgs(addrs[5], startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+    
     // revert expected because of overflow in args and thus decoder cant recognize format
     await expect(clusterRewards.connect(signers[15])["issueTickets(bytes)"](rawTicketInfo)).to.be.revertedWith("CR:IPTI-invalid ticket info encoding");
   });
