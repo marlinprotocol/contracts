@@ -75,12 +75,13 @@ contract ClusterSelector is
     uint256 public constant NUMBER_OF_CLUSTERS_TO_SELECT = 5;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IArbGasInfo constant ARB_GAS_INFO = IArbGasInfo(0x000000000000000000000000000000000000006C);
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable EPOCH_LENGTH;
-
-    IArbGasInfo immutable ARB_GAS_INFO =  IArbGasInfo(0x000000000000000000000000000000000000006C);
 
     //-------------------------------- Constants end --------------------------------//
 
@@ -242,7 +243,7 @@ contract ClusterSelector is
     /// @notice Updates the worst case gas for selecting clusters
     /// @param _gas Max amount of gas for selecting clusters
     function updateMaxGasToSelectNodes(uint256 _gas) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_gas != maxGasForClusterSelection, "Update reward");
+        require(_gas != maxGasForClusterSelection, "Update gas");
         maxGasForClusterSelection = _gas;
         emit UpdateMaxGasToSelectNodes(_gas);
     }
