@@ -37,9 +37,10 @@ contract ClusterSelector is
     /// @dev startTime and epochLength should match the values in receiverStaking.
     ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 _startTime, uint256 _epochLength) initializer {
+    constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
+        ARB_GAS_INFO =  IArbGasInfo(_arbGasInfo);
     }
 
     //-------------------------------- Overrides start --------------------------------//
@@ -75,7 +76,7 @@ contract ClusterSelector is
     uint256 public constant NUMBER_OF_CLUSTERS_TO_SELECT = 5;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    IArbGasInfo constant ARB_GAS_INFO = IArbGasInfo(0x000000000000000000000000000000000000006C);
+    IArbGasInfo public immutable ARB_GAS_INFO;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
