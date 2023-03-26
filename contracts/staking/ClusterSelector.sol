@@ -12,6 +12,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./tree/TreeUpgradeable.sol";
 
+interface IArbGasInfo {
+    function getPricesInArbGas() external view returns (uint, uint, uint);
+}
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract ClusterSelector is
@@ -77,6 +80,8 @@ contract ClusterSelector is
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable EPOCH_LENGTH;
 
+    IArbGasInfo immutable ARB_GAS_INFO =  IArbGasInfo(0x000000000000000000000000000000000000006C);
+
     //-------------------------------- Constants end --------------------------------//
 
     //-------------------------------- Variables start --------------------------------//
@@ -140,6 +145,10 @@ contract ClusterSelector is
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
         uint256 _reward = rewardForSelectingClusters;
+        (uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
+        unchecked {
+            _reward += (gasPerL2Tx + gasPerL1CallDataByte*4)*tx.gasprice;
+        }
         if (_reward != 0 && address(this).balance >= _reward) {
             // Cluster selection goes through even if reward reverts
             payable(_to).send(_reward);
