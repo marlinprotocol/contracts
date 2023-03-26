@@ -42,7 +42,7 @@ const DOTWEIGHT = 150;
 const NEARWEIGHT = 250;
 const WEIGHTS = [ETHWEIGHT, DOTWEIGHT, NEARWEIGHT];
 const TOTALWEIGHT = ETHWEIGHT + DOTWEIGHT + NEARWEIGHT;
-const MAX_TICKETS = BN.from(2).pow(16);
+const MAX_TICKETS = BN.from(2).pow(16).sub(1);
 const MAX_REWARD = BN.from("242352345636745756867986");
 const MAX_TICKETS_1_pc = MAX_TICKETS.div(100);
 const MAX_REWARD_1_pc = MAX_REWARD.div(100);
@@ -1097,11 +1097,11 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards1[j]) receiverRewards1[j] = BN.from(0);
-        receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).mul(ticketsByEpoch[i][j]).div(500).div(MAX_TICKETS));
+        receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).div(500).mul(ticketsByEpoch[i][j]).div(MAX_TICKETS));
       }
       if(!receiverRewards1[ticketsLength]) receiverRewards1[ticketsLength] = BN.from(0);
       receiverRewards1[ticketsLength] = receiverRewards1[ticketsLength].add(ETH_REWARD.mul(50).div(500).mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS));
@@ -1134,7 +1134,7 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards2[j]) receiverRewards2[j] = BN.from(0);
@@ -1178,11 +1178,11 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards1[j]) receiverRewards1[j] = BN.from(0);
-        receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).mul(ticketsByEpoch[i][j]).div(500).div(MAX_TICKETS));
+        receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).div(500).mul(ticketsByEpoch[i][j]).div(MAX_TICKETS));
         if(j == ticketsLength - 1) {
           receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).div(500).mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS));
         }
@@ -1217,11 +1217,11 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards2[j]) receiverRewards2[j] = BN.from(0);
-        receiverRewards2[j]= receiverRewards2[j].add(ETH_REWARD.mul(25).mul(ticketsByEpoch[i][j]).div(125).div(MAX_TICKETS));
+        receiverRewards2[j]= receiverRewards2[j].add(ETH_REWARD.mul(25).div(125).mul(ticketsByEpoch[i][j]).div(MAX_TICKETS));
         if(j == ticketsLength - 2) {
           receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(25).div(125).mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS));
         }
@@ -1263,7 +1263,7 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards1[j]) receiverRewards1[j] = BN.from(0);
@@ -1298,7 +1298,7 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(25, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(125, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards2[j]) receiverRewards2[j] = BN.from(0);
@@ -1332,7 +1332,7 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i*2);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         totalTickets += ticketsByEpoch[i][j];
         rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         if(!receiverRewards1[j]) receiverRewards1[j] = BN.from(0);
@@ -1364,13 +1364,13 @@ describe("ClusterRewards submit compressed tickets", function () {
       await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], startEpoch + i).returns(50, addrs[4]);
       await receiverStaking.mock.getEpochInfo.withArgs(startEpoch + i).returns(500, startEpoch + i + 1);
       for(let j=0; j < ticketsLength; j++) {
-        ticketsByEpoch[i][j] = parseInt((Math.random()*2^16/(ticketsLength+1))+"");
+        ticketsByEpoch[i][j] = parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"");
         if(FuzzedNumber.randomInRange(0, 100).toNumber() > 20) { // drop in 20% of cases
           rawTicketInfo = rawTicketInfo+ticketsByEpoch[i][j].toString(16).padStart(4, '0');
         }
       }
       if((rawTicketInfo.length - 2 - 8 - 64)%16 == 0) {
-        rawTicketInfo = rawTicketInfo+parseInt((Math.random()*2^16/(ticketsLength+1))+"").toString(16).padStart(4, '0');
+        rawTicketInfo = rawTicketInfo+parseInt((Math.random()*MAX_TICKETS.toNumber()/(ticketsLength+1))+"").toString(16).padStart(4, '0');
       }
     }
 
