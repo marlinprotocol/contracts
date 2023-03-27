@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string, arbGasInfo: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, noLog?: boolean): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
@@ -40,6 +40,7 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
+  if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
 
   const epochSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
@@ -61,15 +62,16 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   return epochSelector;
 }
 
-export async function upgrade(network: string, startTime?: string, epochLength?: number) {
+export async function upgrade(network: string, startTime?: string, epochLength?: number, arbGasInfo?: string) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   const chainConfig = config[chainId];
 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
+  if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
 
   await upgradeUtil("ClusterSelector", `ClusterSelector_${network}`, [
-    chainConfig.startTime, chainConfig.epochLength
+    startTime, epochLength, arbGasInfo
   ]);
 }
 

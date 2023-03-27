@@ -89,7 +89,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.maxGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -113,7 +113,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.maxGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -247,7 +247,7 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.maxGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
     expect(await clusterSelector.nodesInTree()).to.equal(0);
@@ -1412,33 +1412,33 @@ describe("ClusterSelector", function () {
   });
 
   it("reward controller can update max gas to select clusters", async () => {
-    await expect(clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(6))
-      .to.emit(clusterSelector, "UpdateMaxGasToSelectNodes")
+    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(6))
+      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
       .withArgs(6);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(6);
-    await expect(clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(0))
-      .to.emit(clusterSelector, "UpdateMaxGasToSelectNodes")
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(6);
+    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(0))
+      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
       .withArgs(0);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(0);
-    await expect(clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(5))
-      .to.emit(clusterSelector, "UpdateMaxGasToSelectNodes")
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(0);
+    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(5))
+      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
       .withArgs(5);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(5);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(5);
 
-    await expect(clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(5)).to.be.revertedWith("Update gas");
-    await expect(clusterSelector.connect(signers[0]).updateMaxGasToSelectNodes(10)).to.be.reverted;
-    await expect(clusterSelector.connect(signers[11]).updateMaxGasToSelectNodes(10)).to.be.reverted;
+    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(5)).to.be.revertedWith("Update gas");
+    await expect(clusterSelector.connect(signers[0]).updateRefundGasToSelectNodes(10)).to.be.reverted;
+    await expect(clusterSelector.connect(signers[11]).updateRefundGasToSelectNodes(10)).to.be.reverted;
 
     await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
-    await clusterSelector.connect(signers[3]).updateMaxGasToSelectNodes(15);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(15);
-    await clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(16);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(16);
+    await clusterSelector.connect(signers[3]).updateRefundGasToSelectNodes(15);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(15);
+    await clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(16);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(16);
 
     await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
-    await clusterSelector.connect(signers[3]).updateMaxGasToSelectNodes(15);
-    expect(await clusterSelector.maxGasForClusterSelection()).to.be.equal(15);
-    await expect(clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(16)).to.be.reverted;
+    await clusterSelector.connect(signers[3]).updateRefundGasToSelectNodes(15);
+    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(15);
+    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(16)).to.be.reverted;
   });
 
   it("reward controller can flush any erc20 token", async () => {
@@ -1489,7 +1489,7 @@ describe("ClusterSelector", function () {
   it("select clusters", async () => {
     const BASE_L1_GAS = 223148;
     const GAS_PER_BYTE = 1593;
-    const gasForSelection = await clusterSelector.maxGasForClusterSelection();
+    const gasForSelection = await clusterSelector.refundGasForClusterSelection();
     const gasPrice = BN.from(1e10);
     const rewardForSelection = (gasForSelection.add(BASE_L1_GAS + GAS_PER_BYTE*4)).mul(gasPrice);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
@@ -1631,7 +1631,7 @@ describe("ClusterSelector", function () {
     await skipToTimestamp(epochLength*12 + startTime + epochLength*1/2);
     expect(await clusterSelector.getCurrentEpoch()).equals(13);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
-    await clusterSelector.connect(signers[1]).updateMaxGasToSelectNodes(0);
+    await clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(0);
     const baseReward = (gasForSelection.add(BASE_L1_GAS + GAS_PER_BYTE*4).sub(gasForSelection)).mul(gasPrice);
     await expect(() => clusterSelector.selectClusters({gasPrice}))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-baseReward, baseReward]);

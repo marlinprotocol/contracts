@@ -92,7 +92,7 @@ contract ClusterSelector is
     mapping(uint256 => address[]) private clustersSelected;
 
     /// @notice Gas consumed in worst case for cluster selection
-    uint256 public maxGasForClusterSelection;
+    uint256 public refundGasForClusterSelection;
 
     address __unused;
 
@@ -109,7 +109,7 @@ contract ClusterSelector is
 
     /// @notice Event emited when the reward is updated
     /// @param newReward New Reward For selecting the tokens
-    event UpdateMaxGasToSelectNodes(uint256 newReward);
+    event UpdateRefundGasToSelectNodes(uint256 newReward);
 
     //-------------------------------- Events end --------------------------------//
 
@@ -118,7 +118,7 @@ contract ClusterSelector is
     function initialize(
         address _admin,
         address _updater,
-        uint256 _maxGasForClusterSelection
+        uint256 _refundGasForClusterSelection
     ) external initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -132,7 +132,7 @@ contract ClusterSelector is
         _setupRole(REWARD_CONTROLLER_ROLE, _admin);
         _setupRole(UPDATER_ROLE, _updater);
 
-        maxGasForClusterSelection = _maxGasForClusterSelection;
+        refundGasForClusterSelection = _refundGasForClusterSelection;
     }
 
     //-------------------------------- Init ends --------------------------------//
@@ -149,7 +149,7 @@ contract ClusterSelector is
         uint256 _reward;
         (uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
         unchecked {
-            _reward = (maxGasForClusterSelection + gasPerL2Tx + gasPerL1CallDataByte*4) * tx.gasprice;
+            _reward = (refundGasForClusterSelection + gasPerL2Tx + gasPerL1CallDataByte*4) * tx.gasprice;
         }
         if (_reward != 0 && address(this).balance >= _reward) {
             // Cluster selection goes through even if reward reverts
@@ -241,12 +241,12 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions starts --------------------------------//
 
-    /// @notice Updates the worst case gas for selecting clusters
-    /// @param _gas Max amount of gas for selecting clusters
-    function updateMaxGasToSelectNodes(uint256 _gas) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_gas != maxGasForClusterSelection, "Update gas");
-        maxGasForClusterSelection = _gas;
-        emit UpdateMaxGasToSelectNodes(_gas);
+    /// @notice Updates the gas equivalent to which refund is given for selecting clusters
+    /// @param _gas amount of gas to refund for selecting clusters
+    function updateRefundGasToSelectNodes(uint256 _gas) external onlyRole(REWARD_CONTROLLER_ROLE) {
+        require(_gas != refundGasForClusterSelection, "Update gas");
+        refundGasForClusterSelection = _gas;
+        emit UpdateRefundGasToSelectNodes(_gas);
     }
 
     /// @notice Flush reward to address. Can be only called by REWARD_CONTROLLER
