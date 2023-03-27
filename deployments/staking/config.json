@@ -29,8 +29,7 @@
         "noOfClustersToSelect": 5,
         "clusterSelection": {
             "gasRefund": "300000",
-            "maxGasPrice": "1000000000",
-            "maxBaseL1Gas": "500000"
+            "maxReward": "285000000000000"
         },
         "staking": {
             "tokens": {

@@ -37,12 +37,11 @@ contract ClusterSelector is
     /// @dev startTime and epochLength should match the values in receiverStaking.
     ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo, uint256 _maxGasPriceForReward, uint256  _maxBaseL1GasPerTx) initializer {
+    constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo, uint256 _maxReward) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
         ARB_GAS_INFO =  IArbGasInfo(_arbGasInfo);
-        MAX_GASPRICE_FOR_REWARD = _maxGasPriceForReward;
-        MAX_BASE_L1_GAS_PER_TX = _maxBaseL1GasPerTx;
+        MAX_REWARD_FOR_CLUSTER_SELECTION = _maxReward;
     }
 
     //-------------------------------- Overrides start --------------------------------//
@@ -81,10 +80,7 @@ contract ClusterSelector is
     IArbGasInfo public immutable ARB_GAS_INFO;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable MAX_GASPRICE_FOR_REWARD;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    uint256 public immutable MAX_BASE_L1_GAS_PER_TX;
+    uint256 public immutable MAX_REWARD_FOR_CLUSTER_SELECTION;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
@@ -154,13 +150,12 @@ contract ClusterSelector is
     /// @notice If contract has sufficient balance, transfer it to given address
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
-        if(tx.gasprice > MAX_GASPRICE_FOR_REWARD) return;
         uint256 _reward;
         (uint256 gasPerL2Tx, uint256 gasPerL1CalldataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
-        if(gasPerL1CalldataByte > MAX_BASE_L1_GAS_PER_TX) return;
         unchecked {
             _reward = (refundGasForClusterSelection + gasPerL2Tx + gasPerL1CalldataByte*4) * tx.gasprice;
         }
+        if (_reward > MAX_REWARD_FOR_CLUSTER_SELECTION) _reward = MAX_REWARD_FOR_CLUSTER_SELECTION;
         if (_reward != 0 && address(this).balance >= _reward) {
             // Cluster selection goes through even if reward reverts
             payable(_to).send(_reward);
