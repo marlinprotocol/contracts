@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, noLog?: boolean): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, maxGasPrice?: number, maxBaseL1Gas?: number, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
@@ -31,7 +31,7 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   }
 
   if(gasRefund === undefined) {
-    gasRefund = chainConfig.gasRefund;
+    gasRefund = chainConfig.clusterSelection.gasRefund;
   }
 
   if(admin == undefined) {
@@ -41,6 +41,8 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
   if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
+  if(maxGasPrice == undefined) maxGasPrice = chainConfig.clusterSelection.maxGasPrice;
+  if(maxBaseL1Gas == undefined) maxBaseL1Gas = chainConfig.clusterSelection.maxBaseL1Gas;
 
   const clusterSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
@@ -48,7 +50,7 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
     gasRefund
   ], {
     kind: "uups",
-    constructorArgs: [startTime, epochLength, arbGasInfo]
+    constructorArgs: [startTime, epochLength, arbGasInfo, maxGasPrice, maxBaseL1Gas]
   });
 
   if(!noLog) {
@@ -62,16 +64,18 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   return clusterSelector;
 }
 
-export async function upgrade(network: string, startTime?: string, epochLength?: number, arbGasInfo?: string) {
+export async function upgrade(network: string, startTime?: string, epochLength?: number, arbGasInfo?: string, maxGasPrice?: number, maxBaseL1Gas?: number) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   const chainConfig = config[chainId];
 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
   if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
+  if(maxGasPrice == undefined) maxGasPrice = chainConfig.clusterSelection.maxGasPrice;
+  if(maxBaseL1Gas == undefined) maxBaseL1Gas = chainConfig.clusterSelection.maxBaseL1Gas;
 
   await upgradeUtil("ClusterSelector", `ClusterSelector_${network}`, [
-    startTime, epochLength, arbGasInfo
+    startTime, epochLength, arbGasInfo, maxGasPrice, maxBaseL1Gas
   ]);
 }
 
@@ -94,7 +98,7 @@ export async function verify(network: string) {
 
   await run("verify:verify", {
     address: implAddress,
-    constructorArguments: [chainConfig.startTime, chainConfig.epochLength, chainConfig.arbGasInfo]
+    constructorArguments: [chainConfig.startTime, chainConfig.epochLength, chainConfig.arbGasInfo, chainConfig.clusterSelection.maxGasPrice, chainConfig.clusterSelection.maxBaseL1Gas]
   });
 
   console.log("Cluster Selector verified");
