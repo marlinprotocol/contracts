@@ -75,9 +75,7 @@
             ]
         },
         "noOfClustersToSelect": 5,
-        "selectionReward": {
-            "amount": "1000000000000000000"
-        },
+        "gasRefund": "0",
         "staking": {
             "tokens": {
                 "POND": {
