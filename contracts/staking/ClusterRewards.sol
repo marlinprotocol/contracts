@@ -428,8 +428,7 @@ contract ClusterRewards is
     }
 
     function getRewardForEpoch(uint256 _epoch, bytes32 _networkId) public view returns(uint256) {
-        if(_epoch < SWITCHING_PERIOD/receiverStaking.EPOCH_LENGTH()) return 0;
-        return (totalRewardsPerEpoch * rewardWeight[_networkId]) / totalRewardWeight;
+        return _getRewardForEpoch(_epoch, _networkId, receiverStaking.EPOCH_LENGTH());
     }
 
 //-------------------------------- User functions end --------------------------------//
