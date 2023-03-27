@@ -60,7 +60,7 @@ describe("ClusterSelector", function () {
 
   it("deploys with initialization disabled", async function () {
     const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelector = await ClusterSelector.deploy(startTime, 900, addrs[2]);
+    let clusterSelector = await ClusterSelector.deploy(startTime, 900, addrs[2], 1000);
 
     await expect(
       clusterSelector.initialize(
@@ -82,7 +82,7 @@ describe("ClusterSelector", function () {
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2]],
+        constructorArgs: [startTime, 900, addrs[2], 1000],
       },
     );
 
@@ -105,10 +105,10 @@ describe("ClusterSelector", function () {
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2]],
+        constructorArgs: [startTime, 900, addrs[2], 1000],
       },
     );
-    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector, { kind: "uups", constructorArgs: [startTime, 900, addrs[2]] });
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector, { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000] });
 
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
@@ -129,11 +129,11 @@ describe("ClusterSelector", function () {
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2]],
+        constructorArgs: [startTime, 900, addrs[2], 1000],
       },
     );
 
-    await expect(upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900] })).to.be.reverted;
+    await expect(upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000] })).to.be.reverted;
   });
 });
 
@@ -148,7 +148,7 @@ testERC165("ClusterSelector", async function (signers: Signer[], addrs: string[]
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2]],
+      constructorArgs: [startTime, 900, addrs[2], 1000],
     },
   );
   return clusterSelector;
@@ -177,7 +177,7 @@ testAdminRole("ClusterSelector", async function (signers: Signer[], addrs: strin
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2]],
+      constructorArgs: [startTime, 900, addrs[2], 1000],
     },
   );
   return clusterSelector;
@@ -194,7 +194,7 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2]],
+      constructorArgs: [startTime, 900, addrs[2], 1000],
     },
   );
   return clusterSelector;
@@ -211,7 +211,7 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2]],
+      constructorArgs: [startTime, 900, addrs[2], 1000],
     },
   );
   return clusterSelector;
@@ -240,7 +240,7 @@ describe("ClusterSelector", function () {
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, arbGasInfoMock.address],
+        constructorArgs: [startTime, 900, arbGasInfoMock.address, ethers.utils.parseEther("1")],
       },
     );
 

@@ -22,7 +22,8 @@ export async function deployFixture() {
         addrs[2], // admin
         blockData.timestamp, // startTime
         EPOCH_LENGTH, // epochLength
-        "0", // gas refund
+        "0", // gas refund,
+        ethers.utils.parseEther("0.0001").toString(), // max reward
         true
     );
 

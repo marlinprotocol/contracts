@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, maxReward?: number, noLog?: boolean): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, maxReward?: string, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
