@@ -42,7 +42,7 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
   if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
 
-  const epochSelector = await upgrades.deployProxy(ClusterSelector, [
+  const clusterSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
     rewardDelegators,
     gasRefund
@@ -52,14 +52,14 @@ export async function deploy(network: string, rewardDelegators: string, arbGasIn
   });
 
   if(!noLog) {
-    console.log("Deployed addr:", epochSelector.address);
+    console.log("Deployed addr:", clusterSelector.address);
 
-    addresses[chainId]["ClusterSelector_"+network] = epochSelector.address;
+    addresses[chainId]["ClusterSelector_"+network] = clusterSelector.address;
 
     fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
   }
 
-  return epochSelector;
+  return clusterSelector;
 }
 
 export async function upgrade(network: string, startTime?: string, epochLength?: number, arbGasInfo?: string) {
@@ -87,15 +87,15 @@ export async function verify(network: string) {
   }
 
   if(addresses[chainId] === undefined || addresses[chainId]["ClusterSelector_"+network] === undefined) {
-    throw new Error("Epoch Selector not deployed");
+    throw new Error("Cluster Selector not deployed");
   }
 
   const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["ClusterSelector_"+network]);
 
   await run("verify:verify", {
     address: implAddress,
-    constructorArguments: [chainConfig.startTime, chainConfig.epochLength]
+    constructorArguments: [chainConfig.startTime, chainConfig.epochLength, chainConfig.arbGasInfo]
   });
 
-  console.log("Epoch Selector verified");
+  console.log("Cluster Selector verified");
 }
