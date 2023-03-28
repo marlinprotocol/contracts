@@ -1,5 +1,5 @@
 import { ethers, upgrades, network } from "hardhat";
-import { deployMockContract } from "@ethereum-waffle/mock-contract";
+import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract, utils, constants, BigNumber } from "ethers";
 
@@ -60,13 +60,12 @@ describe("ClusterSelector", function () {
 
   it("deploys with initialization disabled", async function () {
     const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelector = await ClusterSelector.deploy(startTime, 900, addrs[2], 1000);
+    let clusterSelector = await ClusterSelector.deploy(startTime, 900, addrs[2], 1000, 100);
 
     await expect(
       clusterSelector.initialize(
         addrs[0],
         addrs[11],
-        100,
       )
     ).to.be.reverted;
   });
@@ -78,18 +77,17 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        100,
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2], 1000],
+        constructorArgs: [startTime, 900, addrs[2], 1000, 100],
       },
     );
 
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -101,19 +99,18 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        100,
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2], 1000],
+        constructorArgs: [startTime, 900, addrs[2], 1000, 100],
       },
     );
-    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector, { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000] });
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector, { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000, 100] });
 
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[0])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
   });
@@ -125,15 +122,14 @@ describe("ClusterSelector", function () {
       [
         addrs[0],
         addrs[11],
-        100,
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, addrs[2], 1000],
+        constructorArgs: [startTime, 900, addrs[2], 1000, 100],
       },
     );
 
-    await expect(upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000] })).to.be.reverted;
+    await expect(upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000, 100] })).to.be.reverted;
   });
 });
 
@@ -144,11 +140,10 @@ testERC165("ClusterSelector", async function (signers: Signer[], addrs: string[]
     [
         addrs[0],
         addrs[11],
-        100,
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2], 1000],
+      constructorArgs: [startTime, 900, addrs[2], 1000, 100],
     },
   );
   return clusterSelector;
@@ -173,11 +168,10 @@ testAdminRole("ClusterSelector", async function (signers: Signer[], addrs: strin
     [
         addrs[0],
         addrs[11],
-        100,
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2], 1000],
+      constructorArgs: [startTime, 900, addrs[2], 1000, 100],
     },
   );
   return clusterSelector;
@@ -190,11 +184,10 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     [
         addrs[0],
         addrs[11],
-        100,
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2], 1000],
+      constructorArgs: [startTime, 900, addrs[2], 1000, 100],
     },
   );
   return clusterSelector;
@@ -207,11 +200,10 @@ testRole("ClusterSelector", async function (signers: Signer[], addrs: string[]) 
     [
         addrs[0],
         addrs[11],
-        100,
     ],
     {
       kind: "uups",
-      constructorArgs: [startTime, 900, addrs[2], 1000],
+      constructorArgs: [startTime, 900, addrs[2], 1000, 100],
     },
   );
   return clusterSelector;
@@ -221,6 +213,7 @@ describe("ClusterSelector", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterSelector: Contract;
+  let arbGasInfoMock: MockContract;
 
   let snapshot: any;
 
@@ -229,25 +222,24 @@ describe("ClusterSelector", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    const arbGasInfoMock = await deployMockContract(signers[0], ["function getPricesInArbGas() view returns (uint, uint, uint)"]);
+    arbGasInfoMock = await deployMockContract(signers[0], ["function getPricesInArbGas() view returns (uint, uint, uint)"]);
     await arbGasInfoMock.mock.getPricesInArbGas.returns(223148, 1593, 21000);
     clusterSelector = await upgrades.deployProxy(
       ClusterSelector,
       [
           addrs[1],
           addrs[11],
-          100,
       ],
       {
         kind: "uups",
-        constructorArgs: [startTime, 900, arbGasInfoMock.address, ethers.utils.parseEther("1")],
+        constructorArgs: [startTime, 900, arbGasInfoMock.address, ethers.utils.parseEther("1"), 100],
       },
     );
 
     expect(await clusterSelector.hasRole(await clusterSelector.DEFAULT_ADMIN_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1])).to.be.true;
     expect(await clusterSelector.hasRole(await clusterSelector.UPDATER_ROLE(), addrs[11])).to.be.true;
-    expect(await clusterSelector.refundGasForClusterSelection()).to.equal(100);
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.equal(100);
     expect(await clusterSelector.START_TIME()).to.equal(startTime);
     expect(await clusterSelector.EPOCH_LENGTH()).to.equal(900);
     expect(await clusterSelector.nodesInTree()).to.equal(0);
@@ -1411,34 +1403,14 @@ describe("ClusterSelector", function () {
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
   });
 
-  it("reward controller can update max gas to select clusters", async () => {
-    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(6))
-      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
-      .withArgs(6);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(6);
-    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(0))
-      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
-      .withArgs(0);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(0);
-    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(5))
-      .to.emit(clusterSelector, "UpdateRefundGasToSelectNodes")
-      .withArgs(5);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(5);
-
-    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(5)).to.be.revertedWith("Update gas");
-    await expect(clusterSelector.connect(signers[0]).updateRefundGasToSelectNodes(10)).to.be.reverted;
-    await expect(clusterSelector.connect(signers[11]).updateRefundGasToSelectNodes(10)).to.be.reverted;
-
-    await clusterSelector.connect(signers[1]).grantRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[3]);
-    await clusterSelector.connect(signers[3]).updateRefundGasToSelectNodes(15);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(15);
-    await clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(16);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(16);
-
-    await clusterSelector.connect(signers[1]).renounceRole(await clusterSelector.REWARD_CONTROLLER_ROLE(), addrs[1]);
-    await clusterSelector.connect(signers[3]).updateRefundGasToSelectNodes(15);
-    expect(await clusterSelector.refundGasForClusterSelection()).to.be.equal(15);
-    await expect(clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(16)).to.be.reverted;
+  it("Proxy admin can update refund gas to select clusters by upgrading", async () => {
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000, 6] });
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.be.equal(6);
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000, 0] });
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.be.equal(0);
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, addrs[2], 1000, 5] });
+    expect(await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION()).to.be.equal(5);
   });
 
   it("reward controller can flush any erc20 token", async () => {
@@ -1489,7 +1461,7 @@ describe("ClusterSelector", function () {
   it("select clusters", async () => {
     const BASE_L1_GAS = 223148;
     const GAS_PER_BYTE = 1593;
-    const gasForSelection = await clusterSelector.refundGasForClusterSelection();
+    const gasForSelection = await clusterSelector.REFUND_GAS_FOR_CLUSTER_SELECTION();
     const gasPrice = BN.from(1e10);
     const rewardForSelection = (gasForSelection.add(BASE_L1_GAS + GAS_PER_BYTE*4)).mul(gasPrice);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
@@ -1631,7 +1603,8 @@ describe("ClusterSelector", function () {
     await skipToTimestamp(epochLength*12 + startTime + epochLength*1/2);
     expect(await clusterSelector.getCurrentEpoch()).equals(13);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
-    await clusterSelector.connect(signers[1]).updateRefundGasToSelectNodes(0);
+    const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, arbGasInfoMock.address, ethers.utils.parseEther("1"), 0] });
     const baseReward = (gasForSelection.add(BASE_L1_GAS + GAS_PER_BYTE*4).sub(gasForSelection)).mul(gasPrice);
     await expect(() => clusterSelector.selectClusters({gasPrice}))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-baseReward, baseReward]);
