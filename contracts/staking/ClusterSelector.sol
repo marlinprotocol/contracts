@@ -95,7 +95,7 @@ contract ClusterSelector is
     /// @notice clusters selected during each epoch
     mapping(uint256 => address[]) private clustersSelected;
 
-    /// @notice Gas consumed in worst case for cluster selection
+    /// @notice Gas for which L2 tx costs are refunded on cluster selection
     uint256 public refundGasForClusterSelection;
 
     address __unused;
