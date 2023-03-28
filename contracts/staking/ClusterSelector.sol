@@ -247,20 +247,37 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions ends --------------------------------//
 
-    function getClusters(uint256 epochNumber) public view returns (address[] memory) {
-        uint256 _nextEpoch = getCurrentEpoch() + 1;
-        // To ensure invalid data is not provided for epochs where clusters are not selected
-        require(epochNumber <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
-        if (epochNumber <= 1) {
-            return new address[](0);
-        }
-        address[] memory clusters = clustersSelected[epochNumber];
+    function _getClusters(uint256 _epoch, uint256 _nextEpoch) internal view returns (address[] memory) {
+        address[] memory clusters = clustersSelected[_epoch];
 
         if (clusters.length == 0) {
-            require(epochNumber != _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
-            return getClusters(epochNumber - 1);
+            require(_epoch != _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
+            return _getClusters(_epoch - 1, _nextEpoch);
         } else {
             return clusters;
+        }
+    }
+
+    function getClusters(uint256 _epoch) public view returns (address[] memory) {
+        uint256 _nextEpoch = getCurrentEpoch() + 1;
+        // To ensure invalid data is not provided for epochs where clusters are not selected
+        require(_epoch <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
+
+        return _getClusters(_epoch, _nextEpoch);
+    }
+
+    function getClustersRanged(uint256 _from, uint256 _count) public view returns (address[][] memory clusters) {
+        uint256 _nextEpoch = getCurrentEpoch() + 1;
+        // To ensure invalid data is not provided for epochs where clusters are not selected
+        require(_from + _count < _nextEpoch + 2, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
+        clusters = new address[][](_count);
+        uint256 i = 0;
+        while (i < _count) {
+            clusters[i] = _getClusters(_from, _nextEpoch);
+            unchecked {
+                ++_from;
+                ++i;
+            }
         }
     }
 

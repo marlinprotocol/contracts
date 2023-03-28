@@ -148,14 +148,43 @@ contract ReceiverStaking is
         currentEpoch = _getCurrentSnapshotId();
     }
 
+    function getCurrentEpoch() public view returns (uint256) {
+        return _getCurrentSnapshotId();
+    }
+
     function balanceOfSignerAt(address signer, uint256 snapshotId) public view returns (uint256 balance, address account) {
         account = signerToStaker[signer];
         balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
+    function balanceOfSignerAtRanged(address signer, uint256 _from, uint256 _count) public view returns (uint256[] memory balances, address account) {
+        account = signerToStaker[signer];
+        balances = new uint256[](_count);
+        uint256 i = 0;
+        while (i < _count) {
+            balances[i] = balanceOfAt(account, _from);
+            unchecked {
+                ++_from;
+                ++i;
+            }
+        }
+    }
+
     function _getCurrentSnapshotId() internal view override returns (uint256) {
         if(block.timestamp < START_TIME) return 0;
         return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
+    }
+
+    function totalSupplyAtRanged(uint256 _from, uint256 _count) public view returns (uint256[] memory stakes) {
+        stakes = new uint256[](_count);
+        uint256 i = 0;
+        while (i < _count) {
+            stakes[i] = totalSupplyAt(_from);
+            unchecked {
+                ++_from;
+                ++i;
+            }
+        }
     }
 
     function _beforeTokenTransfer(
