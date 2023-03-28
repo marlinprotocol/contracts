@@ -12,6 +12,9 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./tree/TreeUpgradeable.sol";
 
+interface IArbGasInfo {
+    function getPricesInArbGas() external view returns (uint, uint, uint);
+}
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract ClusterSelector is
@@ -34,9 +37,12 @@ contract ClusterSelector is
     /// @dev startTime and epochLength should match the values in receiverStaking.
     ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(uint256 _startTime, uint256 _epochLength) initializer {
+    constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo, uint256 _maxReward, uint256 _gasRefund) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
+        ARB_GAS_INFO =  IArbGasInfo(_arbGasInfo);
+        MAX_REWARD_FOR_CLUSTER_SELECTION = _maxReward;
+        REFUND_GAS_FOR_CLUSTER_SELECTION = _gasRefund;
     }
 
     //-------------------------------- Overrides start --------------------------------//
@@ -72,6 +78,15 @@ contract ClusterSelector is
     uint256 public constant NUMBER_OF_CLUSTERS_TO_SELECT = 5;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    IArbGasInfo public immutable ARB_GAS_INFO;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable REFUND_GAS_FOR_CLUSTER_SELECTION;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
+    uint256 public immutable MAX_REWARD_FOR_CLUSTER_SELECTION;
+
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -84,9 +99,7 @@ contract ClusterSelector is
     /// @notice clusters selected during each epoch
     mapping(uint256 => address[]) private clustersSelected;
 
-    /// @notice Reward that the msg.sender recevies when cluster are selected for the epoch;
-    uint256 public rewardForSelectingClusters;
-
+    uint256 __unused1;
     address __unused;
 
     uint256[46] private __gap_1;
@@ -100,18 +113,13 @@ contract ClusterSelector is
     /// @param cluster Address of cluster
     event ClusterSelected(uint256 indexed epoch, address indexed cluster);
 
-    /// @notice Event emited when the reward is updated
-    /// @param newReward New Reward For selecting the tokens
-    event UpdateRewardForSelectingTheNodes(uint256 newReward);
-
     //-------------------------------- Events end --------------------------------//
 
     //-------------------------------- Init starts --------------------------------/
 
     function initialize(
         address _admin,
-        address _updater,
-        uint256 _rewardForSelectingClusters
+        address _updater
     ) external initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -124,8 +132,6 @@ contract ClusterSelector is
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(REWARD_CONTROLLER_ROLE, _admin);
         _setupRole(UPDATER_ROLE, _updater);
-
-        rewardForSelectingClusters = _rewardForSelectingClusters;
     }
 
     //-------------------------------- Init ends --------------------------------//
@@ -139,7 +145,12 @@ contract ClusterSelector is
     /// @notice If contract has sufficient balance, transfer it to given address
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
-        uint256 _reward = rewardForSelectingClusters;
+        uint256 _reward;
+        (uint256 gasPerL2Tx, uint256 gasPerL1CalldataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
+        unchecked {
+            _reward = (REFUND_GAS_FOR_CLUSTER_SELECTION + gasPerL2Tx + gasPerL1CalldataByte*4) * tx.gasprice;
+        }
+        if (_reward > MAX_REWARD_FOR_CLUSTER_SELECTION) _reward = MAX_REWARD_FOR_CLUSTER_SELECTION;
         if (_reward != 0 && address(this).balance >= _reward) {
             // Cluster selection goes through even if reward reverts
             payable(_to).send(_reward);
@@ -229,14 +240,6 @@ contract ClusterSelector is
     //-------------------------------- Tree interactions ends --------------------------------//
 
     //-------------------------------- Admin functions starts --------------------------------//
-
-    /// @notice Updates the reward amount for selecting clusters
-    /// @param _reward Amount of reward for selecting clusters
-    function updateRewardForSelection(uint256 _reward) external onlyRole(REWARD_CONTROLLER_ROLE) {
-        require(_reward != rewardForSelectingClusters, "Update reward");
-        rewardForSelectingClusters = _reward;
-        emit UpdateRewardForSelectingTheNodes(_reward);
-    }
 
     /// @notice Flush reward to address. Can be only called by REWARD_CONTROLLER
     /// @param to Address to transfer to

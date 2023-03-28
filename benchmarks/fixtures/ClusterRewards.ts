@@ -20,7 +20,7 @@ export async function deployFixture() {
 
     const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
 
-    const clusterSelector = await deployClusterSelector("ETH", addrs[1], addrs[0], blockData.timestamp, EPOCH_LENGTH, ethers.utils.parseEther('1').toString(), true);
+    const clusterSelector = await deployClusterSelector("ETH", addrs[1], "0x000000000000000000000000000000000000006C", addrs[0], blockData.timestamp, EPOCH_LENGTH, ethers.utils.parseEther('1').toString(), true);
 
     const clusterRewards = await deployClusterRewards(addrs[1], receiverStaking.address, {
         "ETH": clusterSelector.address

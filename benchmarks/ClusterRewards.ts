@@ -10,7 +10,6 @@ const estimator = new ethers.Contract("0x000000000000000000000000000000000000006
 const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
 describe("Cluster Rewards", async () => {
-
     benchmarkDeployment('ClusterRewards', [], [
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",

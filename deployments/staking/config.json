@@ -27,8 +27,9 @@
         "startTime": 1673222400,
         "epochLength": 900,
         "noOfClustersToSelect": 5,
-        "selectionReward": {
-            "amount": "1000000000000000000"
+        "clusterSelection": {
+            "gasRefund": "300000",
+            "maxReward": "285000000000000"
         },
         "staking": {
             "tokens": {
@@ -63,6 +64,7 @@
                 "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C"
             }
         },
+        "arbGasInfo": "0x000000000000000000000000000000000000006C",
         "totalRewardsPerEpoch": "4692550000000000000000",
         "admin": "0xa2024540267e3366B1D3381285dd11A1B45928df"
     },
@@ -75,8 +77,10 @@
             ]
         },
         "noOfClustersToSelect": 5,
-        "selectionReward": {
-            "amount": "1000000000000000000"
+        "clusterSelection": {
+            "gasRefund": "300000",
+            "maxGasPrice": "1000000000",
+            "maxBaseL1Gas": "500000"
         },
         "staking": {
             "tokens": {

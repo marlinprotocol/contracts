@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from './Upgrade';
 const config = require('./config');
 
-export async function deploy(network: string, rewardDelegators: string, admin?: string, startTime?: number, epochLength?: number, selectionReward?: string, noLog?: boolean): Promise<Contract> {
+export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, maxReward?: string, noLog?: boolean): Promise<Contract> {
 
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
@@ -30,46 +30,47 @@ export async function deploy(network: string, rewardDelegators: string, admin?: 
     }
   }
 
-  if(selectionReward === undefined) {
-    selectionReward = chainConfig.selectionReward.amount;
-  }
-
   if(admin == undefined) {
     admin = chainConfig.admin;
   }
 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
+  if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
+  if(maxReward == undefined) maxReward = chainConfig.clusterSelection.maxReward;
+  if(gasRefund === undefined) gasRefund = chainConfig.clusterSelection.gasRefund;
 
-  const epochSelector = await upgrades.deployProxy(ClusterSelector, [
+  const clusterSelector = await upgrades.deployProxy(ClusterSelector, [
     admin,
     rewardDelegators,
-    selectionReward
   ], {
     kind: "uups",
-    constructorArgs: [startTime, epochLength]
+    constructorArgs: [startTime, epochLength, arbGasInfo, maxReward, gasRefund]
   });
 
   if(!noLog) {
-    console.log("Deployed addr:", epochSelector.address);
+    console.log("Deployed addr:", clusterSelector.address);
 
-    addresses[chainId]["ClusterSelector_"+network] = epochSelector.address;
+    addresses[chainId]["ClusterSelector_"+network] = clusterSelector.address;
 
     fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
   }
 
-  return epochSelector;
+  return clusterSelector;
 }
 
-export async function upgrade(network: string, startTime?: string, epochLength?: number) {
+export async function upgrade(network: string, startTime?: string, epochLength?: number, arbGasInfo?: string, maxReward?: string, gasRefund?: number) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   const chainConfig = config[chainId];
 
   if(startTime == undefined) startTime = chainConfig.startTime;
   if(epochLength == undefined) epochLength = chainConfig.epochLength;
+  if(arbGasInfo == undefined) arbGasInfo = chainConfig.arbGasInfo;
+  if(maxReward == undefined) maxReward = chainConfig.clusterSelection.maxReward;
+  if(gasRefund === undefined) gasRefund = chainConfig.clusterSelection.gasRefund;
 
   await upgradeUtil("ClusterSelector", `ClusterSelector_${network}`, [
-    chainConfig.startTime, chainConfig.epochLength
+    startTime, epochLength, arbGasInfo, maxReward, gasRefund
   ]);
 }
 
@@ -85,15 +86,21 @@ export async function verify(network: string) {
   }
 
   if(addresses[chainId] === undefined || addresses[chainId]["ClusterSelector_"+network] === undefined) {
-    throw new Error("Epoch Selector not deployed");
+    throw new Error("Cluster Selector not deployed");
   }
 
   const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["ClusterSelector_"+network]);
 
   await run("verify:verify", {
     address: implAddress,
-    constructorArguments: [chainConfig.startTime, chainConfig.epochLength]
+    constructorArguments: [
+      chainConfig.startTime, 
+      chainConfig.epochLength, 
+      chainConfig.arbGasInfo, 
+      chainConfig.clusterSelection.maxReward, 
+      chainConfig.clusterSelection.gasRefund
+    ]
   });
 
-  console.log("Epoch Selector verified");
+  console.log("Cluster Selector verified");
 }
