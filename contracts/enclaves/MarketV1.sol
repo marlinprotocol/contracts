@@ -24,7 +24,7 @@ contract MarketV1 is
     LockUpgradeable  // time locks
 {
     // in case we add more contracts in the inheritance chain
-    uint256[500] private __gap0;
+    uint256[500] private __gap_0;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
@@ -59,7 +59,7 @@ contract MarketV1 is
 
 //-------------------------------- Initializer start --------------------------------//
 
-    uint256[50] private __gap1;
+    uint256[50] private __gap_1;
 
     function initialize(
         IERC20 _token,
@@ -96,7 +96,7 @@ contract MarketV1 is
 
     mapping(address => Provider) providers;
 
-    uint256[49] private __gap2;
+    uint256[49] private __gap_2;
 
     event ProviderAdded(address indexed provider, string cp);
     event ProviderRemoved(address indexed provider);
@@ -152,7 +152,7 @@ contract MarketV1 is
 
     IERC20 token;
 
-    uint256[47] private __gap3;
+    uint256[47] private __gap_3;
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
@@ -161,7 +161,9 @@ contract MarketV1 is
     event JobClosed(bytes32 indexed job);
     event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
     event JobWithdrew(bytes32 indexed job, address indexed to, uint256 amount);
-    event JobRevisedRate(bytes32 indexed job, uint256 newRate);
+    event JobReviseRateInitiated(bytes32 indexed job, uint256 newRate);
+    event JobReviseRateCancelled(bytes32 indexed job);
+    event JobReviseRateFinalized(bytes32 indexed job, uint256 newRate);
 
     modifier onlyJobOwner(bytes32 _job) {
         require(jobs[_job].owner == _msgSender(), "only job owner");
@@ -249,7 +251,7 @@ contract MarketV1 is
 
         jobs[_job].rate = _newRate;
 
-        emit JobRevisedRate(_job, _newRate);
+        emit JobReviseRateFinalized(_job, _newRate);
     }
 
     function jobOpen(string calldata _metadata, address _provider, uint256 _rate, uint256 _balance) external {
@@ -284,11 +286,13 @@ contract MarketV1 is
 
     function jobReviseRateInitiate(bytes32 _job, uint256 _newRate) external onlyJobOwner(_job) {
         _lock(RATE_LOCK_SELECTOR, _job, _newRate);
+        emit JobReviseRateInitiated(_job, _newRate);
     }
 
     function jobReviseRateCancel(bytes32 _job) external onlyJobOwner(_job) {
         require(_lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None);
         _revertLock(RATE_LOCK_SELECTOR, _job);
+        emit JobReviseRateCancelled(_job);
     }
 
     function jobReviseRateFinalize(bytes32 _job) external onlyJobOwner(_job) {
