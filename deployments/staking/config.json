@@ -14,7 +14,12 @@
         "selectionReward": {
             "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD",
             "amount": "0"
-        }
+        },
+        "clusterSelection": {
+            "gasRefund": "300000",
+            "maxReward": "285000000000000"
+        },
+        "arbGasInfo": "0x000000000000000000000000000000000000006C"
     },
     "421613": {
         "cluster": {
