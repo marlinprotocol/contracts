@@ -156,9 +156,9 @@ contract MarketV1 is
     }
 
     mapping(bytes32 => Job) public jobs;
-    uint256 jobIndex;
+    uint256 public jobIndex;
 
-    IERC20 token;
+    IERC20 public token;
 
     uint256[47] private __gap_3;
 
