@@ -239,6 +239,8 @@ contract MarketV1 is
     }
 
     function _jobDeposit(bytes32 _job, address _from, uint256 _amount) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _deposit(_from, _amount);
         jobs[_job].balance += _amount;
 
@@ -246,6 +248,8 @@ contract MarketV1 is
     }
 
     function _jobWithdraw(bytes32 _job, address _to, uint256 _amount) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _jobSettle(_job);
 
         jobs[_job].balance -= _amount;
@@ -255,6 +259,8 @@ contract MarketV1 is
     }
 
     function _jobReviseRate(bytes32 _job, uint256 _newRate) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _jobSettle(_job);
 
         jobs[_job].rate = _newRate;
