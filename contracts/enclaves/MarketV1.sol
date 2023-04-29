@@ -112,7 +112,7 @@ contract MarketV1 is
     }
 
     function _providerRemove(address _provider) internal {
-        require(bytes(providers[_provider].cp).length != 0, "already exists");
+        require(bytes(providers[_provider].cp).length != 0, "not found");
 
         delete providers[_provider];
 
@@ -120,7 +120,7 @@ contract MarketV1 is
     }
 
     function _providerUpdateWithCp(address _provider, string memory _cp) internal {
-        require(bytes(providers[_msgSender()].cp).length != 0, "not found");
+        require(bytes(providers[_provider].cp).length != 0, "not found");
         require(bytes(_cp).length != 0, "invalid");
 
         providers[_provider].cp = _cp;
