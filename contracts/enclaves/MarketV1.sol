@@ -103,18 +103,26 @@ contract MarketV1 is
     event ProviderUpdatedWithCp(address indexed provider, string newCp);
 
     function _providerAdd(address _provider, string memory _cp) internal {
+        require(bytes(providers[_provider].cp).length == 0, "already exists");
+        require(bytes(_cp).length != 0, "invalid");
+
         providers[_provider] = Provider(_cp);
 
         emit ProviderAdded(_provider, _cp);
     }
 
     function _providerRemove(address _provider) internal {
+        require(bytes(providers[_provider].cp).length != 0, "not found");
+
         delete providers[_provider];
 
         emit ProviderRemoved(_provider);
     }
 
     function _providerUpdateWithCp(address _provider, string memory _cp) internal {
+        require(bytes(providers[_provider].cp).length != 0, "not found");
+        require(bytes(_cp).length != 0, "invalid");
+
         providers[_provider].cp = _cp;
 
         emit ProviderUpdatedWithCp(_provider, _cp);
@@ -148,9 +156,9 @@ contract MarketV1 is
     }
 
     mapping(bytes32 => Job) public jobs;
-    uint256 jobIndex;
+    uint256 public jobIndex;
 
-    IERC20 token;
+    IERC20 public token;
 
     uint256[47] private __gap_3;
 
@@ -231,6 +239,8 @@ contract MarketV1 is
     }
 
     function _jobDeposit(bytes32 _job, address _from, uint256 _amount) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _deposit(_from, _amount);
         jobs[_job].balance += _amount;
 
@@ -238,6 +248,8 @@ contract MarketV1 is
     }
 
     function _jobWithdraw(bytes32 _job, address _to, uint256 _amount) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _jobSettle(_job);
 
         jobs[_job].balance -= _amount;
@@ -247,6 +259,8 @@ contract MarketV1 is
     }
 
     function _jobReviseRate(bytes32 _job, uint256 _newRate) internal {
+        require(jobs[_job].owner != address(0), "not found");
+
         _jobSettle(_job);
 
         jobs[_job].rate = _newRate;
