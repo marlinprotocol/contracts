@@ -242,6 +242,7 @@ contract MarketV1 is
 
         // leftover adjustment
         uint256 _leftover = jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR];
+        require(jobs[_job].balance >= _leftover, "not enough balance");
         uint256 _maxAmount = jobs[_job].balance - _leftover;
         require(_amount <= _maxAmount, "not enough balance");
 
