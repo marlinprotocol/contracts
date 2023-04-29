@@ -252,6 +252,12 @@ contract MarketV1 is
 
         _jobSettle(_job);
 
+        // leftover adjustment
+        uint256 _leftover = jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR];
+        require(jobs[_job].balance >= _leftover, "not enough balance");
+        uint256 _maxAmount = jobs[_job].balance - _leftover;
+        require(_amount <= _maxAmount, "not enough balance");
+
         jobs[_job].balance -= _amount;
         _withdraw(_to, _amount);
 
@@ -304,7 +310,7 @@ contract MarketV1 is
     }
 
     function jobReviseRateCancel(bytes32 _job) external onlyJobOwner(_job) {
-        require(_lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None);
+        require(_lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None, "no request");
         _revertLock(RATE_LOCK_SELECTOR, _job);
         emit JobReviseRateCancelled(_job);
     }
