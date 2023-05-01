@@ -234,6 +234,7 @@ contract MarketV1 is
         }
 
         delete jobs[_job];
+        _revertLock(RATE_LOCK_SELECTOR, _job);
 
         emit JobClosed(_job);
     }
