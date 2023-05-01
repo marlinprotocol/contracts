@@ -22,6 +22,8 @@ import {
   ClusterRewards__factory,
   ClusterSelector,
   ClusterSelector__factory,
+  MarketV1,
+  MarketV1__factory,
 } from "../typechain-types";
 
 export function getMpond(contractAddress: string, signer: Signer): MPond {
@@ -66,4 +68,8 @@ export function getClusterSelector(contractAddress: string, signer: Signer): Clu
 
 export function getClusterRewards(contractAddress: string, signer: Signer): ClusterRewards {
   return new ClusterRewards__factory(signer).attach(contractAddress);
+}
+
+export function getMarketV1(contractAddress: string, signer: Signer): MarketV1 {
+  return new MarketV1__factory(signer).attach(contractAddress);
 }
