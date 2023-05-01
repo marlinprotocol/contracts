@@ -32,7 +32,7 @@ contract MarketV1 is
     constructor() initializer {}
 
     modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
         _;
     }
 
@@ -291,7 +291,7 @@ contract MarketV1 is
         // non-0 rate jobs can be closed after proper notice
         uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, _job);
         // 0 rate implies closing to the control plane
-        require(_newRate == 0);
+        require(_newRate == 0, "rate should be zero");
 
         return _jobClose(_job);
     }
