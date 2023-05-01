@@ -32,7 +32,7 @@ contract MarketV1 is
     constructor() initializer {}
 
     modifier onlyAdmin() {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()));
+        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
         _;
     }
 
@@ -94,7 +94,7 @@ contract MarketV1 is
         string cp;  // url of control plane
     }
 
-    mapping(address => Provider) providers;
+    mapping(address => Provider) public providers;
 
     uint256[49] private __gap_2;
 
@@ -234,6 +234,7 @@ contract MarketV1 is
         }
 
         delete jobs[_job];
+        _revertLock(RATE_LOCK_SELECTOR, _job);
 
         emit JobClosed(_job);
     }
@@ -291,7 +292,7 @@ contract MarketV1 is
         // non-0 rate jobs can be closed after proper notice
         uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, _job);
         // 0 rate implies closing to the control plane
-        require(_newRate == 0);
+        require(_newRate == 0, "rate should be zero");
 
         return _jobClose(_job);
     }
