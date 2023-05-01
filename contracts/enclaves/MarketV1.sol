@@ -94,7 +94,7 @@ contract MarketV1 is
         string cp;  // url of control plane
     }
 
-    mapping(address => Provider) providers;
+    mapping(address => Provider) public providers;
 
     uint256[49] private __gap_2;
 
