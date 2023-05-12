@@ -29,7 +29,8 @@ contract ClusterRewards is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor() initializer {}
+    constructor() initializer {
+    }
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
@@ -255,6 +256,13 @@ contract ClusterRewards is
         unchecked {
             require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
+            uint256 _receiverRewardPerEpoch = receiverRewardPerEpoch[_receiver];
+            
+            if(receiverBalance[_receiver] > _receiverRewardPerEpoch){
+                _rewardShare += _receiverRewardPerEpoch;
+                receiverBalance[_receiver] -= _receiverRewardPerEpoch;
+            }
+
             uint256 _totalTickets;
             uint256 i;
             for(; i < _selectedClusters.length - 1; ++i) {
@@ -432,4 +440,40 @@ contract ClusterRewards is
     }
 
 //-------------------------------- User functions end --------------------------------//
+    mapping(address => uint256) public receiverBalance;
+    mapping(address => uint256) public receiverRewardPerEpoch;
+
+    event AddReceiverBalance(address indexed receiver, uint256 amount);
+    event RemoveReceiverBalance(address indexed receiver, uint256 amount);
+    event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
+
+    // @notice Anyone can add balance to receiver/staker address
+    function addReceiverBalance(address receiver, uint256 amount) public {
+        require(receiver != address(0), "CRW: address 0");
+        IERC20Upgradeable PONDToken = receiverStaking.STAKING_TOKEN(); // Todo: shift this to constructor
+        receiverBalance[receiver]+=amount;
+        PONDToken.transferFrom(msg.sender, address(this), amount); // Todo: transfer this directly to reward delegators, find a way when removeReceiveBalance is called
+        emit AddReceiverBalance(receiver, amount);
+    }
+
+    // @notice Receiver/Staker can remove the unused balance using his signer address
+    // @dev This may be a attach vector, and hence could be removed
+    function removeReceiverBalance(address to, uint256 amount) public {
+        address staker = receiverStaking.signerToStaker(msg.sender);
+        require(staker != address(0), "CRW: address 0");
+        IERC20Upgradeable PONDToken = receiverStaking.STAKING_TOKEN(); // Todo: shift this to constructor
+        receiverBalance[staker] -= amount;
+        PONDToken.transfer(to, amount);
+
+        emit RemoveReceiverBalance(staker, amount);
+    }
+
+    // @notice Set Receiver Epoch, set to 0, to disable extra rewards
+    function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
+        address staker = receiverStaking.signerToStaker(msg.sender);
+        require(staker != address(0), "CRW: address 0");
+
+        receiverRewardPerEpoch[staker] = rewardPerEpoch;
+        emit UpdateReceiverRewardPerEpoch(staker, rewardPerEpoch);
+    }
 }

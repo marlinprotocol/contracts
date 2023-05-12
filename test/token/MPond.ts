@@ -2,8 +2,8 @@ import { ethers, upgrades, network } from "hardhat";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 
-import { testERC165 } from "../helpers/erc165.ts";
-import { testAdminRole, testRole } from "../helpers/rbac.ts";
+import { testERC165 } from "../helpers/erc165";
+import { testAdminRole, testRole } from "../helpers/rbac";
 
 declare module "ethers" {
   interface BigNumber {
