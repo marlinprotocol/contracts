@@ -104,6 +104,8 @@ describe("Integration", function () {
     await skipTime(ethers, epochDuration);
     await skipTime(ethers, 1); // extra 1 second for safety
   };
+  
+  const startTime = Math.floor(Date.now()/1000) + 100000;
 
   before(async function() {
     this.timeout(400000);
@@ -195,12 +197,11 @@ describe("Integration", function () {
         ClusterSelector,
         [
           await clusterSelectorAdmin.getAddress(),
-          rewardDelegators.address,
-          BN.from(10).pow(20).toString(),
+          rewardDelegators.address
         ],
         {
           kind: "uups",
-          constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
+          constructorArgs: [startTime, 900, await signers[56].getAddress(), BN.from(10).pow(20), BN.from(10).pow(18)],
         }
       );
       let clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
@@ -227,7 +228,9 @@ describe("Integration", function () {
         [pondTokenId, mpondTokenId],
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [],
+        []
       );
 
     await clusterRegistry.initialize([lockWaitTimes[0], lockWaitTimes[1], lockWaitTimes[2]], rewardDelegators.address);
@@ -616,7 +619,7 @@ describe("Integration", function () {
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toNumber();
 
       await expect(
-        clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](supportedNetworkIds[0], currentEpoch, [fraction])
+        clusterRewards.connect(receiver)["issueTickets(bytes32,uint24,uint16[])"](supportedNetworkIds[0], currentEpoch, [fraction])
       ).to.be.revertedWith("CRW:IPRT-Not eligible to issue tickets");
     });
 
@@ -635,7 +638,7 @@ describe("Integration", function () {
       const firstClusterTickets = totalTickets.mul(2).div(3);
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint24,uint16[])"](
           supportedNetworkIds[0], 
           currentPlusOne, 
           [firstClusterTickets, totalTickets.sub(firstClusterTickets).add(1)]
@@ -643,7 +646,7 @@ describe("Integration", function () {
       ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint24,uint16[])"](
           supportedNetworkIds[0], 
           currentPlusOne, 
           [firstClusterTickets, totalTickets.sub(firstClusterTickets).sub(1)]
@@ -1094,7 +1097,7 @@ const issueTicketsForClusters = async (
 
   for (let index = 0; index < networkIds.length; index++) {
     const networkId = networkIds[index];
-    await clusterRewardsInstance.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](networkId, currentPlusOne, new_weights);
+    await clusterRewardsInstance.connect(receiver)["issueTickets(bytes32,uint24,uint16[])"](networkId, currentPlusOne, new_weights);
   }
 
   const pondRewardsPerShare: BN[] = [];

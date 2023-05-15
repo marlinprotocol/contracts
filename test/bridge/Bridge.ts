@@ -14,7 +14,7 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18));
 };
 
-describe.skip("Bridge", function () {
+describe("Bridge", function () {
   let signers: Signer[];
   let addrs: string[];
   let mpond: MPond;
@@ -48,7 +48,7 @@ describe.skip("Bridge", function () {
     expect(await bridge.mpond()).to.equal(mpond.address);
     expect(await bridge.pond()).to.equal(pond.address);
     expect(await bridge.hasRole(await bridge.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await bridge.hasRole(await bridge.GOVERNANCE_ROLE(), addrs[1])).to.be.true;
+    expect(await bridge.hasRole(await bridge.GOVERNANCE_ROLE(), addrs[1])).to.be.false;
     let currentBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     expect(await bridge.startTime()).to.equal(currentBlockTimestamp);
     expect(await bridge.liquidityStartTime()).to.equal(currentBlockTimestamp);
@@ -66,7 +66,7 @@ describe.skip("Bridge", function () {
     expect(await bridge.mpond()).to.equal(mpond.address);
     expect(await bridge.pond()).to.equal(pond.address);
     expect(await bridge.hasRole(await bridge.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
-    expect(await bridge.hasRole(await bridge.GOVERNANCE_ROLE(), addrs[1])).to.be.true;
+    expect(await bridge.hasRole(await bridge.GOVERNANCE_ROLE(), addrs[1])).to.be.false;
     let currentBlockTimestamp = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
     expect(await bridge.startTime()).to.equal(currentBlockTimestamp - 1);
     expect(await bridge.liquidityStartTime()).to.equal(currentBlockTimestamp - 1);

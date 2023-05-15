@@ -3,13 +3,9 @@ import { expect } from "chai";
 import { BigNumber as BN, Contract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
 
-import {
-  ClusterRegistry,
-} from "../../typechain-types";
+import { ClusterRegistry } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
-import {
-  getClusterRegistry,
-} from "../../utils/typechainConvertor";
+import { getClusterRegistry } from "../../utils/typechainConvertor";
 import { skipTime } from "../helpers/common";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
@@ -78,7 +74,9 @@ describe("ClusterRegistry", function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
 
-    await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.revertedWith("only admin");
+    await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.revertedWith(
+      "only admin"
+    );
   });
 });
 
@@ -257,7 +255,7 @@ describe("ClusterRegistry", function () {
 
     await clusterRegistry.requestUnregister();
 
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1); // plus to ensure that it doesn't revert
     await clusterRegistry.unregister();
 
     await rewardDelegators.mock.updateClusterDelegation.reverts();
@@ -302,11 +300,11 @@ describe("ClusterRegistry", function () {
     expect(clusterData.isValidCluster).to.be.true;
     await rewardDelegators.mock.updateClusterDelegation.reverts();
 
-  {  
-    let clusterData = await clusterRegistry.getRewardInfo(addrs[0]);
-    expect(clusterData[0]).to.equal(7);
-    expect(clusterData[1]).to.equal(addrs[11]);
-  }
+    {
+      let clusterData = await clusterRegistry.getRewardInfo(addrs[0]);
+      expect(clusterData[0]).to.equal(7);
+      expect(clusterData[1]).to.equal(addrs[11]);
+    }
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
@@ -320,7 +318,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1); // +1 to ensure that is doesn't revert
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -354,7 +352,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -388,7 +386,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1); // +1 to ensure that is doesn;t revert
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -422,7 +420,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1); // +1 to ensure that it doesn;t revert
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -456,7 +454,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1); // +1 to ensure that it doesn't revert
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -490,7 +488,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -524,7 +522,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -558,7 +556,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -592,7 +590,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -626,7 +624,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -660,7 +658,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -694,7 +692,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await clusterRegistry.updateCommission();
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -728,7 +726,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -762,7 +760,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -796,7 +794,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[22]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -822,7 +820,12 @@ describe("ClusterRegistry", function () {
   });
 
   it("can update nothing", async () => {
-    await clusterRegistry.updateCluster(ethers.constants.MaxUint256, ethers.constants.HashZero, ethers.constants.AddressZero, ethers.constants.AddressZero);
+    await clusterRegistry.updateCluster(
+      ethers.constants.MaxUint256,
+      ethers.constants.HashZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero
+    );
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
@@ -830,7 +833,7 @@ describe("ClusterRegistry", function () {
     expect(clusterData.clientKey).to.equal(addrs[12]);
     expect(clusterData.isValidCluster).to.be.true;
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
     await expect(clusterRegistry.updateCommission()).to.be.revertedWith("CR:UCM-No commission update request");
 
     clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -910,7 +913,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -954,7 +957,7 @@ describe("ClusterRegistry", function () {
   it("can update commission after wait time", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
 
     await clusterRegistry.updateCommission();
 
@@ -969,7 +972,7 @@ describe("ClusterRegistry", function () {
   it("cannot update commission again after update", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
 
     await clusterRegistry.updateCommission();
 
@@ -1000,12 +1003,12 @@ describe("ClusterRegistry", function () {
   it("cannot update commission if unregistered after request", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
 
-    await skipTime(ethers, WAIT_TIMES[0]);
+    await skipTime(ethers, WAIT_TIMES[0] + 1);
 
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1064,7 +1067,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1109,7 +1112,7 @@ describe("ClusterRegistry", function () {
   it("can switch network after wait time", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(ethers, WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1] + 1);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1128,7 +1131,7 @@ describe("ClusterRegistry", function () {
   it("cannot switch network again after update", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(ethers, WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1] + 1);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1159,7 +1162,7 @@ describe("ClusterRegistry", function () {
   });
 
   it("cannot switch network without request", async () => {
-    await skipTime(ethers, WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1] + 1);
 
     await rewardDelegators.mock.removeClusterDelegation.reverts();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
@@ -1171,12 +1174,12 @@ describe("ClusterRegistry", function () {
   it("cannot switch network if unregistered after request", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
 
-    await skipTime(ethers, WAIT_TIMES[1]);
+    await skipTime(ethers, WAIT_TIMES[1] + 1);
 
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1258,7 +1261,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1318,7 +1321,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1375,7 +1378,7 @@ describe("ClusterRegistry", function () {
   it("cannot request unregister if unregistered", async () => {
     await clusterRegistry.requestUnregister();
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.reverts();
 
@@ -1420,7 +1423,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
     await rewardDelegators.mock.removeClusterDelegation.withArgs(addrs[0], DOTHASH).reverts();
 
@@ -1432,7 +1435,7 @@ describe("ClusterRegistry", function () {
     await clusterRegistry.requestUnregister();
 
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
     await clusterRegistry.unregister();
 
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
@@ -1452,9 +1455,8 @@ describe("ClusterRegistry", function () {
 
   it("cannot unregister without request", async () => {
     await rewardDelegators.mock.removeClusterDelegation.returns();
-    await skipTime(ethers, WAIT_TIMES[2]);
+    await skipTime(ethers, WAIT_TIMES[2] + 1);
 
     await expect(clusterRegistry.unregister()).to.be.revertedWith("CR:UR-No unregistration request");
   });
 });
-
