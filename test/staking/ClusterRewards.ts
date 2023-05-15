@@ -1623,15 +1623,6 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
       .withArgs(await staker.getAddress(), 100000);
   });
 
-  // TODO: add remove balance test if this feature is enabled
-  // it.skip("Remove remaining tokens (unskip it if remove balance is added as a feature)", async () => {
-  //   await mockToken.connect(signer).approve(clusterRewards.address, 100000);
-  //   await clusterRewards.connect(signer).addReceiverBalance(await staker.getAddress(), 100000);
-  //   await expect(clusterRewards.connect(signer).removeReceiverBalance(await signer.getAddress(), 100000))
-  //     .emit(clusterRewards, "RemoveReceiverBalance")
-  //     .withArgs(await staker.getAddress(), 100000);
-  // });
-
   it("Set Receiver Reward per Epoch", async () => {
     await expect(clusterRewards.connect(signer).setReceiverRewardPerEpoch(50))
       .to.emit(clusterRewards, "UpdateReceiverRewardPerEpoch")

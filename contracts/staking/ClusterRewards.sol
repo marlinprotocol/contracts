@@ -467,18 +467,6 @@ contract ClusterRewards is
         emit AddReceiverBalance(receiver, amount);
     }
 
-    // @notice Receiver/Staker can remove the unused balance using his signer address
-    // @dev This may be a attach vector, and hence could be removed
-    // TODO Check if this removing the balance should be added as feature
-    // function removeReceiverBalance(address to, uint256 amount) public {
-    //     address staker = receiverStaking.signerToStaker(msg.sender);
-    //     require(staker != address(0), "CRW: address 0");
-    //     receiverBalance[staker] -= amount;
-    //     PONDToken.transfer(to, amount);
-
-    //     emit RemoveReceiverBalance(staker, amount);
-    // }
-
     // @notice Set Receiver Epoch, set to 0, to disable extra rewards
     function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
         address staker = receiverStaking.signerToStaker(msg.sender);
