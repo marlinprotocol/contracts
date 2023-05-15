@@ -36,6 +36,8 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18));
 };
 
+const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
+
 describe("RewardDelegators", function () {
   let signers: Signer[];
   let addrs: string[];
@@ -60,7 +62,7 @@ describe("RewardDelegators", function () {
     mpondInstance = getMpond(mpondInstanceContract.address, signers[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
@@ -194,7 +196,7 @@ describe("RewardDelegators", function () {
     mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
@@ -263,7 +265,7 @@ describe("RewardDelegators", function () {
 
   it("non owner cannot update ClusterRewards", async () => {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     await expect(rewardDelegators.connect(signers[1]).updateClusterRewards(clusterRewardsInstance2.address)).to.be.reverted;
   });
 
@@ -273,7 +275,7 @@ describe("RewardDelegators", function () {
 
   it("owner can update ClusterRewards", async () => {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     await expect(await rewardDelegators.updateClusterRewards(clusterRewardsInstance2.address)).to.emit(
       rewardDelegators,
       "ClusterRewardsAddressUpdated"
@@ -325,7 +327,7 @@ describe("RewardDelegators", function () {
     mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
@@ -490,7 +492,7 @@ describe("RewardDelegators", function () {
     mpondTokenId = ethers.utils.keccak256(mpondInstance.address);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
@@ -799,7 +801,7 @@ describe("RewardDelegators Deployment", function () {
     rewardDelegatorsInstance = getRewardDelegators(rewardDelegatorsInstanceContract.address, signers[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     await expect(
@@ -1194,7 +1196,7 @@ describe("RewardDelegators Deployment", function () {
     clusterRegistryInstance = getClusterRegistry(clusterRegistryInstanceContract.address, signers[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
     const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
@@ -1404,7 +1406,7 @@ describe("RewardDelegators Deployment", function () {
 
   it("update clusterReward address", async () => {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    const tempCLusterRewardInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false });
+    const tempCLusterRewardInstance = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress, deadAddress] });
 
     await expect(rewardDelegatorsInstance.connect(signers[1]).updateClusterRewards(tempCLusterRewardInstance.address)).to.be.reverted;
     await expect(

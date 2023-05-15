@@ -57,6 +57,8 @@ const tickets = [
   ),
 ];
 
+const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
+
 describe("ClusterRewards deploy and init", function () {
   let signers: Signer[];
   let addrs: string[];
@@ -70,7 +72,7 @@ describe("ClusterRewards deploy and init", function () {
 
   it("deploys with initialization disabled", async function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewards = await ClusterRewards.deploy();
+    let clusterRewards = await ClusterRewards.deploy(deadAddress, deadAddress);
 
     await expect(
       clusterRewards.initialize(addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD)
@@ -84,13 +86,14 @@ describe("ClusterRewards deploy and init", function () {
       upgrades.deployProxy(
         ClusterRewards,
         [addrs[0], addrs[1], addrs[10], NETWORK_IDS, [ETHWEIGHT, DOTWEIGHT], [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-        { kind: "uups" }
+        { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
       )
     ).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding RewardPerEpoch and vice versa");
 
     await expect(
       upgrades.deployProxy(ClusterRewards, [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12]], MAX_REWARD], {
         kind: "uups",
+        constructorArgs: [deadAddress, deadAddress],
       })
     ).to.be.revertedWith("CRW:I-Each NetworkId need a corresponding clusterSelector and vice versa");
 
@@ -98,14 +101,14 @@ describe("ClusterRewards deploy and init", function () {
       upgrades.deployProxy(
         ClusterRewards,
         [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], ethers.constants.AddressZero], MAX_REWARD],
-        { kind: "uups" }
+        { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
       )
     ).to.be.revertedWith("CRW:CN-ClusterSelector must exist");
 
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
 
     expect(await clusterRewards.hasRole(await clusterRewards.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
@@ -123,12 +126,14 @@ describe("ClusterRewards deploy and init", function () {
 
   it("upgrades", async function () {
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+
+    // TODO: constructorArgs shouldn't be used here, as we need to refer to previous version
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
-    await upgrades.upgradeProxy(clusterRewards.address, ClusterRewards, { kind: "uups" });
+    await upgrades.upgradeProxy(clusterRewards.address, ClusterRewards, { kind: "uups", constructorArgs: [deadAddress, deadAddress] });
 
     expect(await clusterRewards.hasRole(await clusterRewards.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect(await clusterRewards.hasRole(await clusterRewards.CLAIMER_ROLE(), addrs[1])).to.be.true;
@@ -148,11 +153,14 @@ describe("ClusterRewards deploy and init", function () {
     const clusterRewards = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
-    await expect(upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), { kind: "uups" })).to.be.revertedWith(
-      "only admin"
-    );
+    await expect(
+      upgrades.upgradeProxy(clusterRewards.address, ClusterRewards.connect(signers[1]), {
+        kind: "uups",
+        constructorArgs: [deadAddress, deadAddress],
+      })
+    ).to.be.revertedWith("only admin");
   });
 });
 
@@ -163,7 +171,7 @@ testERC165(
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
     return clusterRewards;
@@ -185,7 +193,7 @@ testAdminRole("ClusterRewards admin role", async function (signers: Signer[], ad
   let clusterRewardsContract = await upgrades.deployProxy(
     ClusterRewards,
     [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-    { kind: "uups" }
+    { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
   );
   let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
   return clusterRewards;
@@ -198,7 +206,7 @@ testRole(
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], addrs[10], NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     let clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
     return clusterRewards;
@@ -227,7 +235,7 @@ describe("ClusterRewards add network", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
   });
@@ -330,7 +338,7 @@ describe("ClusterRewards cluster selector", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
   });
@@ -451,7 +459,7 @@ describe("ClusterRewards remove network", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
   });
@@ -493,7 +501,7 @@ describe("ClusterRewards update global vars", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
   });
@@ -553,7 +561,7 @@ describe("ClusterRewards feed rewards", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], FEED_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
@@ -706,7 +714,7 @@ describe("ClusterRewards submit tickets", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [ethSelector.address, addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
@@ -971,7 +979,7 @@ describe("ClusterRewards submit compressed tickets", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [ethSelector.address, addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
@@ -1483,7 +1491,7 @@ describe("ClusterRewards claim rewards", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [ethSelector.address, addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [deadAddress, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
@@ -1592,7 +1600,7 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     let clusterRewardsContract = await upgrades.deployProxy(
       ClusterRewards,
       [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [ethSelector.address, addrs[12], addrs[13]], MAX_REWARD],
-      { kind: "uups" }
+      { kind: "uups", constructorArgs: [mockToken.address, deadAddress] }
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
@@ -1615,7 +1623,7 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
       .withArgs(await staker.getAddress(), 100000);
   });
 
-  it("Remove remaining tokens", async () => {
+  it.skip("Remove remaining tokens (unskip it if remove balance is added as a feature)", async () => {
     await mockToken.connect(signer).approve(clusterRewards.address, 100000);
     await clusterRewards.connect(signer).addReceiverBalance(await staker.getAddress(), 100000);
     await expect(clusterRewards.connect(signer).removeReceiverBalance(await signer.getAddress(), 100000))
