@@ -11,10 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./tree/TreeUpgradeable.sol";
-
-interface IArbGasInfo {
-    function getPricesInArbGas() external view returns (uint, uint, uint);
-}
+import "./interfaces/IArbGasInfo.sol";
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract ClusterSelector is
