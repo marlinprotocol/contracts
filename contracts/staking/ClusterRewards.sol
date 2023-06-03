@@ -253,7 +253,6 @@ contract ClusterRewards is
 
     function _processReceiverTickets(address _receiver, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake, uint256 _epochReceiverStake) internal {
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
-
         unchecked {
             require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
@@ -269,6 +268,7 @@ contract ClusterRewards is
             _temp = _temp > _receiverRewardPerEpoch ? _receiverRewardPerEpoch: _temp;
             if(_temp != 0){
                 receiverBalance[_receiver] -= _temp;
+                _rewardShare += _temp;
             }
 
             uint256 _totalTickets;
