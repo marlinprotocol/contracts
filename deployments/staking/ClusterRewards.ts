@@ -51,7 +51,7 @@ export async function deploy(
   let clusterRewards = await upgrades.deployProxy(
     ClusterRewards,
     [admin, rewardDelegators, receiverStaking, networkIds, rewardWeights, clusterSelectors, chainConfig.totalRewardsPerEpoch],
-    { kind: "uups", constructorArgs: [pondToken, rewardDelegators] }
+    { kind: "uups", constructorArgs: [] }
   );
 
   if (!noLog) {

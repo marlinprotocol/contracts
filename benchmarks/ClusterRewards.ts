@@ -9,12 +9,10 @@ const estimator = new ethers.Contract("0x000000000000000000000000000000000000006
 ]);
 const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
-const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
-
 describe("Cluster Rewards", async () => {
     benchmarkDeployment(
       "ClusterRewards",
-      [deadAddress, deadAddress],
+      [],
       [
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",
@@ -251,22 +249,5 @@ describe("Cluster Rewards", async () => {
 
       console.log(gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
     });
-
-    it("Receiver Adds balance to be distributed to the relayers", async() => {
-      const selectedReceiverIndex: number = Math.floor(Math.random() * receivers.length);
-      const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
-
-      const stakerAddress = await receiverStaking.signerToStaker(await selectedReceiverSigner.getAddress());
-      console.log({stakerAddress})
-
-      const amountToDistribute = 100000
-      const rewardPerEpoch = 1000
-
-      await pond.transfer(await selectedReceiverSigner.getAddress(), amountToDistribute)
-      await pond.connect(selectedReceiverSigner).approve(clusterRewards.address, amountToDistribute);
-
-      await clusterRewards.connect(selectedReceiverSigner).setReceiverRewardPerEpoch(rewardPerEpoch);
-      await clusterRewards.connect(selectedReceiverSigner).addReceiverBalance(stakerAddress, amountToDistribute);
-    })
   });
 });
