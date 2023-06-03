@@ -31,10 +31,7 @@ contract ClusterRewards is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor(IERC20Upgradeable _pondToken, IRewardDelegators _rewardDelegators) initializer {
-        PONDToken = _pondToken;
-        rewardDelegators = _rewardDelegators;
-    }
+    constructor() initializer {}
 
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "only admin");
@@ -262,9 +259,16 @@ contract ClusterRewards is
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
             uint256 _receiverRewardPerEpoch = receiverRewardPerEpoch[_receiver];
             
-            if(receiverBalance[_receiver] > _receiverRewardPerEpoch){
-                _rewardShare += _receiverRewardPerEpoch;
-                receiverBalance[_receiver] -= _receiverRewardPerEpoch;
+            // if(receiverBalance[_receiver] > _receiverRewardPerEpoch){
+            //     _rewardShare += _receiverRewardPerEpoch;
+            //     receiverBalance[_receiver] -= _receiverRewardPerEpoch;
+            // }
+
+            // using least number of variables to avoid stack overflow
+            uint256 _temp = receiverBalance[_receiver];
+            _temp = _temp > _receiverRewardPerEpoch ? _receiverRewardPerEpoch: _temp;
+            if(_temp != 0){
+                receiverBalance[_receiver] -= _temp;
             }
 
             uint256 _totalTickets;
@@ -445,34 +449,18 @@ contract ClusterRewards is
 
 //-------------------------------- User functions end --------------------------------//
 
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    IERC20Upgradeable public immutable PONDToken;
-
-    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    IRewardDelegators public immutable rewardDelegators;
-
+    bytes32 public constant RECEIVER_PAYMENTS_MANAGER = keccak256("RECEIVER_PAYMENTS_MANAGER");
     
     mapping(address => uint256) public receiverBalance;
     mapping(address => uint256) public receiverRewardPerEpoch;
 
-    event AddReceiverBalance(address indexed receiver, uint256 amount);
-    event RemoveReceiverBalance(address indexed receiver, uint256 amount);
-    event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
-
-    // @notice Anyone can add balance to receiver/staker address
-    function addReceiverBalance(address receiver, uint256 amount) public {
-        require(receiver != address(0), "CRW: address 0");
+    function _increaseReceiverBalance(address receiver, uint256 amount) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
         receiverBalance[receiver]+=amount;
-        PONDToken.transferFrom(msg.sender, address(rewardDelegators), amount); // Todo: check reward delegators internal book keeping
-        emit AddReceiverBalance(receiver, amount);
     }
 
-    // @notice Set Receiver Epoch, set to 0, to disable extra rewards
-    function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
+    function _setReceiverRewardPerEpoch(address signer, uint256 rewardPerEpoch) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
         address staker = receiverStaking.signerToStaker(msg.sender);
         require(staker != address(0), "CRW: address 0");
-
         receiverRewardPerEpoch[staker] = rewardPerEpoch;
-        emit UpdateReceiverRewardPerEpoch(staker, rewardPerEpoch);
     }
 }

@@ -524,4 +524,21 @@ contract RewardDelegators is
             return 0;
         }
     }
+    
+    // ------- receiver payments ------------------ //
+
+    event AddReceiverBalance(address indexed receiver, uint256 amount);
+    event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
+
+    function addReceiverBalance(address receiver, uint256 amount) public {
+        require(receiver != address(0), "CRW: address 0");
+        clusterRewards._increaseReceiverBalance(receiver, amount);
+        emit AddReceiverBalance(receiver, amount);
+    }
+
+    function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
+        require(rewardPerEpoch != 0, "CRW: reward 0");
+        clusterRewards._setReceiverRewardPerEpoch(msg.sender, rewardPerEpoch);
+        emit UpdateReceiverRewardPerEpoch(msg.sender, rewardPerEpoch);
+    }
 }

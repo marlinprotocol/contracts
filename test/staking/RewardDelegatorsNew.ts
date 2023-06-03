@@ -39,8 +39,6 @@ const e20 = ethers.utils.parseEther("100");
 const e22 = ethers.utils.parseEther("10000");
 const e30 = ethers.utils.parseEther("1000000000000");
 
-const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
-
 describe("RewardDelegators init and upgrades", function () {
   let signers: Signer[];
   let addrs: string[];
@@ -400,7 +398,7 @@ describe("RewardDelegators global var updates", function () {
     let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     await expect(rewardDelegators.connect(signers[1]).updateClusterRewards(clusterRewardsInstance2.address)).to.be.reverted;
   });
@@ -414,7 +412,7 @@ describe("RewardDelegators global var updates", function () {
     let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     await expect(await rewardDelegators.updateClusterRewards(clusterRewardsInstance2.address)).to.emit(
       rewardDelegators,

@@ -15,4 +15,6 @@ interface IClusterRewards {
     function getRewardForEpoch(uint256 epoch, bytes32 networkId) external view returns(uint256);
     function claimReward(address cluster) external returns(uint256);
     function changeRewardPerEpoch(uint256 updatedRewardPerEpoch) external;
+    function _increaseReceiverBalance(address receiver, uint256 amount) external;
+    function _setReceiverRewardPerEpoch(address signer, uint256 rewardPerEpoch) external;
 }

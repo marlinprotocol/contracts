@@ -36,8 +36,6 @@ BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18));
 };
 
-const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
-
 describe("RewardDelegators", function () {
   let signers: Signer[];
   let addrs: string[];
@@ -65,7 +63,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -211,7 +209,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -286,7 +284,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     await expect(rewardDelegators.connect(signers[1]).updateClusterRewards(clusterRewardsInstance2.address)).to.be.reverted;
   });
@@ -300,7 +298,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstance2 = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     await expect(await rewardDelegators.updateClusterRewards(clusterRewardsInstance2.address)).to.emit(
       rewardDelegators,
@@ -356,7 +354,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -469,6 +467,8 @@ describe("RewardDelegators", function () {
 
   let delegator: Signer;
 
+  let receiverSignerAndStaker: Signer;
+
   let registeredClusterRewardAddress: string;
   let registeredClusterRewardAddress1: string;
   let registeredClusterRewardAddress2: string;
@@ -512,6 +512,8 @@ describe("RewardDelegators", function () {
     registeredClusterRewardAddress3 = addrs[22];
     registeredClusterRewardAddress4 = addrs[23];
 
+    receiverSignerAndStaker = signers[50];
+
     const Pond = await ethers.getContractFactory("Pond");
     let pondInstanceContract = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
     pondInstance = getPond(pondInstanceContract.address, signers[0]);
@@ -527,7 +529,7 @@ describe("RewardDelegators", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -568,14 +570,10 @@ describe("RewardDelegators", function () {
     const blockData = await ethers.provider.getBlock("latest");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(
-      ClusterSelector,
-      [addrs[0], rewardDelegators.address],
-      {
-        kind: "uups",
-        constructorArgs: [blockData.timestamp, 4 * 3600, await signers[56].getAddress(), 1000, 100],
-      }
-    );
+    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [addrs[0], rewardDelegators.address], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp, 4 * 3600, await signers[56].getAddress(), 1000, 100],
+    });
     clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
     await clusterRewardsInstance.initialize(
@@ -593,6 +591,7 @@ describe("RewardDelegators", function () {
     );
 
     await clusterRewardsInstance.grantRole(await clusterRewardsInstance.DEFAULT_ADMIN_ROLE(), await signers[0].getAddress());
+    await clusterRewardsInstance.grantRole(await clusterRewardsInstance.RECEIVER_PAYMENTS_MANAGER(), rewardDelegators.address);
 
     await stakeManagerInstance.initialize(
       ["" + pondTokenId, "" + mpondTokenId],
@@ -734,9 +733,21 @@ describe("RewardDelegators", function () {
       throw new Error("event expected");
     }
   });
+
+  it.only("Add Receiver Balance", async () => {
+    const amountToTransfer = 10000;
+    await pondInstance.transfer(receiverSignerAndStaker.getAddress(), amountToTransfer);
+
+    await pondInstance.connect(receiverSignerAndStaker).approve(rewardDelegators.address, amountToTransfer);
+    await expect(
+      rewardDelegators.connect(receiverSignerAndStaker).addReceiverBalance(receiverSignerAndStaker.getAddress(), amountToTransfer)
+    )
+      .to.emit(rewardDelegators, "AddReceiverBalance")
+      .withArgs(await receiverSignerAndStaker.getAddress(), amountToTransfer);
+  });
 });
 
-describe("RewardDelegators Deployment", function () {
+describe("RewardDelegators - 5", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: ClusterRegistry;
@@ -848,7 +859,7 @@ describe("RewardDelegators Deployment", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -880,7 +891,9 @@ describe("RewardDelegators Deployment", function () {
         [pondTokenId, mpondTokenId],
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],[] ,[]
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [],
+        [],
       ],
       { kind: "uups" }
     );
@@ -909,14 +922,16 @@ describe("RewardDelegators Deployment", function () {
     await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(
-      ClusterSelector,
-      [addrs[0], rewardDelegatorsInstance.address],
-      {
-        kind: "uups",
-        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH(), addrs[56], BigNumber.from(10).pow(20), 1000],
-      }
-    );
+    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [addrs[0], rewardDelegatorsInstance.address], {
+      kind: "uups",
+      constructorArgs: [
+        await receiverStaking.START_TIME(),
+        await receiverStaking.EPOCH_LENGTH(),
+        addrs[56],
+        BigNumber.from(10).pow(20),
+        1000,
+      ],
+    });
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
@@ -1249,7 +1264,7 @@ describe("RewardDelegators Deployment", function () {
     let clusterRewardsInstanceContract = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
     clusterRewardsInstance = getClusterRewards(clusterRewardsInstanceContract.address, signers[0]);
 
@@ -1265,7 +1280,9 @@ describe("RewardDelegators Deployment", function () {
         [testTokenId],
         [100],
         [1],
-        [1], [] ,[]
+        [1],
+        [],
+        [],
       ],
       { kind: "uups" }
     );
@@ -1275,14 +1292,10 @@ describe("RewardDelegators Deployment", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(
-      ClusterSelector,
-      [addrs[0], rewardDelegatorsInstance.address],
-      {
-        kind: "uups",
-        constructorArgs: [blockData.timestamp, 4 * 60 * 60, addrs[56], BigNumber.from(10).pow(20), 100],
-      }
-    );
+    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [addrs[0], rewardDelegatorsInstance.address], {
+      kind: "uups",
+      constructorArgs: [blockData.timestamp, 4 * 60 * 60, addrs[56], BigNumber.from(10).pow(20), 100],
+    });
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateClusterRewards(clusterRewardsInstance.address);
@@ -1463,7 +1476,7 @@ describe("RewardDelegators Deployment", function () {
     const tempCLusterRewardInstance = await upgrades.deployProxy(ClusterRewards, {
       kind: "uups",
       initializer: false,
-      constructorArgs: [deadAddress, deadAddress],
+      constructorArgs: [],
     });
 
     await expect(rewardDelegatorsInstance.connect(signers[1]).updateClusterRewards(tempCLusterRewardInstance.address)).to.be.reverted;
