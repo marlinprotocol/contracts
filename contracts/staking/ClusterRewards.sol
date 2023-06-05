@@ -264,13 +264,15 @@ contract ClusterRewards is
             return _extraRewards;
     }
 
-    function _processReceiverTickets(address _receiver, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake, uint256 _epochReceiverStake) internal {
+    function _getRewardShare(address _receiver, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake, uint256 _epochReceiverStake) internal returns (uint256 _rewardShare) {
+        _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
+        _rewardShare += _extraReceiverRewards(_receiver);
+    }
+    function _processReceiverTickets(address _receiver, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _rewardShare) internal {
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
         unchecked {
             require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
-            uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
-            _rewardShare += _extraReceiverRewards(_receiver);
-
+            
             uint256 _totalTickets;
             uint256 i;
             for(; i < _selectedClusters.length - 1; ++i) {
@@ -320,7 +322,9 @@ contract ClusterRewards is
                 require(_epochs[i] < _currentEpoch, "CRW:IT-Epoch not completed");
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epochs[i]);
                 (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(msg.sender, _epochs[i]);
-                _processReceiverTickets(_receiver, _epochs[i], _selectedClusters, _tickets[i], _totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake);
+                
+                uint256 _rewardShare = _getRewardShare(_receiver, _totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake);
+                _processReceiverTickets(_receiver, _epochs[i], _selectedClusters, _tickets[i], _rewardShare);
                 emit TicketsIssued(_networkId, _epochs[i], msg.sender);
             }
         }
@@ -346,7 +350,8 @@ contract ClusterRewards is
         unchecked {
             for(uint256 i=0; i < _noOfEpochs; ++i) {
                 _totalNetworkRewardsPerEpoch = _getRewardForEpoch(_fromEpoch, _networkId, _epochLength);
-                _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]);
+                uint256 _rewardShare = _getRewardShare(_receiver, _totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]);
+                _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _rewardShare);
                 emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
                 ++_fromEpoch;
             }
@@ -423,7 +428,9 @@ contract ClusterRewards is
         uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epoch, _networkId);
 
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(msg.sender, _epoch);
-        _processReceiverTickets(_receiver, _epoch, _selectedClusters, _tickets, _totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake);
+        
+        uint256 _rewardShare = _getRewardShare(_receiver, _totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake);
+        _processReceiverTickets(_receiver, _epoch, _selectedClusters, _tickets, _rewardShare);
 
         emit TicketsIssued(_networkId, _epoch, msg.sender);
     }
