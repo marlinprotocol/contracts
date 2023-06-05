@@ -31,8 +31,6 @@ const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
 const REWARD_PER_EPOCH = BN.from(10).pow(21).mul(35);
 
-const deadAddress = "0xdeaddeadabcdabcd000000001111111122222222";
-
 describe("Integration", function () {
   let signers: Signer[];
 
@@ -174,7 +172,7 @@ describe("Integration", function () {
     rewardDelegators = getRewardDelegators(rewardDelegatorsContract.address, signers[0]);
 
     const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    const clusterRewardsContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [deadAddress ,deadAddress] });
+    const clusterRewardsContract = await upgrades.deployProxy(ClusterRewards, { kind: "uups", initializer: false, constructorArgs: [] });
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");

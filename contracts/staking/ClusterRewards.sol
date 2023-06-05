@@ -251,25 +251,25 @@ contract ClusterRewards is
         emit ClusterRewarded(_networkId);
     }
 
+    function _extraReceiverRewards(address _receiver) internal returns (uint256) {
+            uint256 _receiverRewardPerEpoch = receiverRewardPerEpoch[_receiver];
+
+            // using least number of variables to avoid stack overflow
+            uint256 _receiverBalance = receiverBalance[_receiver];
+            uint256 _extraRewards = _receiverBalance > _receiverRewardPerEpoch ? _receiverRewardPerEpoch: _receiverBalance;
+            if(_extraRewards != 0){
+                receiverBalance[_receiver] -= _extraRewards;
+            }
+
+            return _extraRewards;
+    }
+
     function _processReceiverTickets(address _receiver, uint256 _epoch, address[] memory _selectedClusters, uint16[] memory _tickets, uint256 _totalNetworkRewardsPerEpoch, uint256 _epochTotalStake, uint256 _epochReceiverStake) internal {
         require(!_isTicketsIssued(_receiver, _epoch), "CRW:IPRT-Tickets already issued");
         unchecked {
             require(_selectedClusters.length <= _tickets.length + 1, "CRW:IPRT-Tickets length not matching selected clusters");
             uint256 _rewardShare = _totalNetworkRewardsPerEpoch * _epochReceiverStake / _epochTotalStake;
-            uint256 _receiverRewardPerEpoch = receiverRewardPerEpoch[_receiver];
-            
-            // if(receiverBalance[_receiver] > _receiverRewardPerEpoch){
-            //     _rewardShare += _receiverRewardPerEpoch;
-            //     receiverBalance[_receiver] -= _receiverRewardPerEpoch;
-            // }
-
-            // using least number of variables to avoid stack overflow
-            uint256 _temp = receiverBalance[_receiver];
-            _temp = _temp > _receiverRewardPerEpoch ? _receiverRewardPerEpoch: _temp;
-            if(_temp != 0){
-                receiverBalance[_receiver] -= _temp;
-                _rewardShare += _temp;
-            }
+            _rewardShare += _extraReceiverRewards(_receiver);
 
             uint256 _totalTickets;
             uint256 i;
@@ -454,12 +454,11 @@ contract ClusterRewards is
     mapping(address => uint256) public receiverBalance;
     mapping(address => uint256) public receiverRewardPerEpoch;
 
-    function _increaseReceiverBalance(address receiver, uint256 amount) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
-        receiverBalance[receiver]+=amount;
+    function _increaseReceiverBalance(address staker, uint256 amount) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
+        receiverBalance[staker]+=amount;
     }
 
-    function _setReceiverRewardPerEpoch(address signer, uint256 rewardPerEpoch) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
-        address staker = receiverStaking.signerToStaker(msg.sender);
+    function _setReceiverRewardPerEpoch(address staker, uint256 rewardPerEpoch) onlyRole(RECEIVER_PAYMENTS_MANAGER) external override {
         require(staker != address(0), "CRW: address 0");
         receiverRewardPerEpoch[staker] = rewardPerEpoch;
     }

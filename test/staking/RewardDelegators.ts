@@ -734,16 +734,30 @@ describe("RewardDelegators", function () {
     }
   });
 
-  it.only("Add Receiver Balance", async () => {
+  it("Add Receiver Balance", async () => {
     const amountToTransfer = 10000;
     await pondInstance.transfer(receiverSignerAndStaker.getAddress(), amountToTransfer);
 
+    const receiverBalanceBefore = await clusterRewardsInstance.receiverBalance(await receiverSignerAndStaker.getAddress());
+    const tokenBalanceBefore = await pondInstance.balanceOf(rewardDelegators.address);
     await pondInstance.connect(receiverSignerAndStaker).approve(rewardDelegators.address, amountToTransfer);
     await expect(
       rewardDelegators.connect(receiverSignerAndStaker).addReceiverBalance(receiverSignerAndStaker.getAddress(), amountToTransfer)
     )
       .to.emit(rewardDelegators, "AddReceiverBalance")
       .withArgs(await receiverSignerAndStaker.getAddress(), amountToTransfer);
+
+    const tokenBalanceAfter = await pondInstance.balanceOf(rewardDelegators.address);
+    const receiverBalanceAfter = await clusterRewardsInstance.receiverBalance(await receiverSignerAndStaker.getAddress());
+    expect(tokenBalanceAfter).eq(tokenBalanceBefore.add(amountToTransfer));
+    expect(receiverBalanceAfter).eq(receiverBalanceBefore.add(amountToTransfer));
+  });
+
+  it("Set Receiver Reward Per Epoch", async () => {
+    const rewardPerEpoch = 12345;
+    await expect(rewardDelegators.connect(receiverSignerAndStaker).setReceiverRewardPerEpoch(rewardPerEpoch))
+      .to.emit(rewardDelegators, "UpdateReceiverRewardPerEpoch")
+      .withArgs(await receiverSignerAndStaker.getAddress(), rewardPerEpoch);
   });
 });
 

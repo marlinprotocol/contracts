@@ -1005,7 +1005,8 @@ describe("ClusterRewards submit compressed tickets", function () {
       rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
     }
 
-    await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
+    // check the events arguments emitted 
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.emit(clusterRewards, 'TicketsIssued');
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[4], 3)).to.be.false;
@@ -1655,18 +1656,19 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     const receiverExtraRewardPerEpoch = 109;
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), signer.getAddress());
 
-    await clusterRewards.connect(signer)._setReceiverRewardPerEpoch(signer.getAddress(), receiverExtraRewardPerEpoch);
+    await clusterRewards.connect(signer)._setReceiverRewardPerEpoch(staker.getAddress(), receiverExtraRewardPerEpoch);
     expect(await clusterRewards.receiverRewardPerEpoch(staker.getAddress())).eq(receiverExtraRewardPerEpoch);
   });
 
   it("Reward Checking after receiver adds extra tokens", async () => {
+    const mockRewardDelegators = signers[39]; // any random address can be used
     const receiverRewardPerEpoch = BN.from(500);
-    await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), signer.getAddress());
+    await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
     // balance can be added by any address, hence we are using staker address directly
-    await clusterRewards.connect(signer)._increaseReceiverBalance(staker.getAddress(), 100000);
+    await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(staker.getAddress(), 100000);
 
     // reward will set only by signer, hence we are using signer address here
-    await clusterRewards.connect(signer)._setReceiverRewardPerEpoch(signer.getAddress(), receiverRewardPerEpoch);
+    await clusterRewards.connect(mockRewardDelegators)._setReceiverRewardPerEpoch(staker.getAddress(), receiverRewardPerEpoch);
 
     const epochWithRewards = (33 * 86400) / 900 + 2;
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);

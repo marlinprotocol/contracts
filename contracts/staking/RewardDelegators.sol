@@ -531,14 +531,18 @@ contract RewardDelegators is
     event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
 
     function addReceiverBalance(address receiver, uint256 amount) public {
-        require(receiver != address(0), "CRW: address 0");
+        require(receiver != address(0), "RD: address 0");
+        require(amount != 0, "RD: amount 0");
+        PONDToken.transferFrom(msg.sender, address(this), amount);
         clusterRewards._increaseReceiverBalance(receiver, amount);
         emit AddReceiverBalance(receiver, amount);
     }
 
+    // msg.sender is staker here
     function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
-        require(rewardPerEpoch != 0, "CRW: reward 0");
-        clusterRewards._setReceiverRewardPerEpoch(msg.sender, rewardPerEpoch);
-        emit UpdateReceiverRewardPerEpoch(msg.sender, rewardPerEpoch);
+        require(rewardPerEpoch != 0, "RD: reward 0");
+        address _sender = _msgSender();
+        clusterRewards._setReceiverRewardPerEpoch(_sender, rewardPerEpoch);
+        emit UpdateReceiverRewardPerEpoch(_sender, rewardPerEpoch);
     }
 }
