@@ -870,6 +870,7 @@ describe("ClusterRewards submit tickets", function () {
   it.skip("staker cannot submit partial tickets", async function () {
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
+    await receiverStaking.mock.signerToStaker.withArgs(addrs[5]).returns(addrs[4]);
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
@@ -892,7 +893,10 @@ describe("ClusterRewards submit tickets", function () {
   it("staker cannot submit excess tickets", async function () {
     const epochWithRewards = (33 * 86400) / 900 + 2;
     await receiverStaking.mock.balanceOfSignerAt.reverts();
-    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], epochWithRewards).returns(50, addrs[4]);
+    
+    await receiverStaking.mock.signerToStaker.withArgs(addrs[5]).returns(addrs[4]);
+    await receiverStaking.mock.balanceOfAt.withArgs(addrs[4], epochWithRewards).returns(50);
+
     await receiverStaking.mock.getEpochInfo.reverts();
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 3);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
@@ -1661,17 +1665,20 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
   });
 
   it("Reward Checking after receiver adds extra tokens", async () => {
-    const mockRewardDelegators = signers[39]; // any random address can be used
-    const receiverRewardPerEpoch = BN.from(500);
+    const mockRewardDelegators = signers[49]; // any random address can be used
+    const receiverRewardPerEpoch = BN.from(3000);
+    const receiverBalance = BN.from(100000)
+
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
     // balance can be added by any address, hence we are using staker address directly
-    await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(staker.getAddress(), 100000);
+    await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(staker.getAddress(), receiverBalance);
 
     // reward will set only by signer, hence we are using signer address here
     await clusterRewards.connect(mockRewardDelegators)._setReceiverRewardPerEpoch(staker.getAddress(), receiverRewardPerEpoch);
 
     const epochWithRewards = (33 * 86400) / 900 + 2;
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    // is this 500 inflation rewards
     let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
     let extraRewards1 = tickets.map((e) => receiverRewardPerEpoch.mul(e).div(MAX_TICKETS));
 
@@ -1679,6 +1686,8 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     await receiverStaking.mock.balanceOfSignerAt
       .withArgs(await signer.getAddress(), epochWithRewards)
       .returns(50, await staker.getAddress());
+      
+    // is this 500 inflation rewards
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 3);
 
     await skipToTimestamp(startTime + 34 * 86400);
@@ -1691,4 +1700,3 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 1);
   });
 });
-
