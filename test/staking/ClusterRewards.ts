@@ -852,6 +852,41 @@ describe("ClusterRewards submit tickets", function () {
     ).to.be.revertedWith("CRW:IPRT-Tickets already issued");
   });
 
+  it("staker can submit tickets with extra rewards enabled", async function () {
+    const epochWithRewards = (33 * 86400) / 900 + 2;
+    await receiverStaking.mock.balanceOfSignerAt.reverts();
+
+    await receiverStaking.mock.balanceOfAt.withArgs(addrs[4], epochWithRewards).returns(50);
+    await receiverStaking.mock.signerToStaker.withArgs(addrs[5]).returns(addrs[4]);
+
+    const mockRewardDelegators = signers[49]; // any random address can be used
+    const receiverRewardPerEpoch = BN.from(3456);
+    const receiverBalance = BN.from(100000);
+    await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
+    await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(signers[4].getAddress(), receiverBalance);
+    await clusterRewards.connect(mockRewardDelegators)._setReceiverRewardPerEpoch(signers[4].getAddress(), receiverRewardPerEpoch);
+
+    await receiverStaking.mock.getEpochInfo.reverts();
+    await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 2);
+    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
+    let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
+    let extraRewards1 = tickets.map((e) => receiverRewardPerEpoch.mul(e).div(MAX_TICKETS));
+
+    await skipToTimestamp(startTime + 34 * 86400);
+
+    await clusterRewards
+      .connect(signers[5])
+      ["issueTickets(bytes32,uint24[],uint16[][])"](ETHHASH, [epochWithRewards], [tickets.slice(0, -1)]);
+
+    expect(await clusterRewards.isTicketsIssued(addrs[4], epochWithRewards)).to.be.true;
+    expect(await clusterRewards.isTicketsIssued(addrs[5], epochWithRewards)).to.be.false;
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(receiverRewards1[0].add(extraRewards1[0]), 1);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 1);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 1);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 1);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 1);
+  });
+
   it("staker cannot submit tickets for future epochs", async function () {
     const epochWithRewards = (33 * 86400) / 900 + 5;
     await receiverStaking.mock.balanceOfSignerAt.reverts();
@@ -893,7 +928,7 @@ describe("ClusterRewards submit tickets", function () {
   it("staker cannot submit excess tickets", async function () {
     const epochWithRewards = (33 * 86400) / 900 + 2;
     await receiverStaking.mock.balanceOfSignerAt.reverts();
-    
+
     await receiverStaking.mock.signerToStaker.withArgs(addrs[5]).returns(addrs[4]);
     await receiverStaking.mock.balanceOfAt.withArgs(addrs[4], epochWithRewards).returns(50);
 
@@ -1009,8 +1044,8 @@ describe("ClusterRewards submit compressed tickets", function () {
       rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
     }
 
-    // check the events arguments emitted 
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.emit(clusterRewards, 'TicketsIssued');
+    // check the events arguments emitted
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.emit(clusterRewards, "TicketsIssued");
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], 2)).to.be.true;
     expect(await clusterRewards.isTicketsIssued(addrs[4], 3)).to.be.false;
@@ -1143,6 +1178,136 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(receiverRewards2[2]), 2);
       expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(receiverRewards2[1]), 2);
       expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(receiverRewards2[0]), 2);
+    }
+  });
+
+  it("staker can submit compressed tickets after switch with non zero rewards and extra rewards enabled", async function () {
+    const epochWithRewards = (33 * 86400) / 900 + 2;
+    const numberOfEpochs = 10;
+    let receiverRewards1: BN[] = [];
+    let extraRewards1: BN[] = [];
+
+    await skipToTimestamp(startTime + 34 * 86400);
+
+    const ticketsByEpoch: number[][] = [];
+    let startEpoch = epochWithRewards;
+    let rawTicketInfo = ETHHASH + startEpoch.toString(16).padStart(8, "0");
+    let totalTickets = 0;
+
+    const mockRewardDelegators = signers[49]; // any random address can be used
+    const receiverRewardPerEpoch = BN.from("29872398329842389");
+    const receiverBalance = receiverRewardPerEpoch.mul(numberOfEpochs); // use large receiver balance due as there are large number of epochs present
+    await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
+    await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(signers[4].getAddress(), receiverBalance);
+    await clusterRewards.connect(mockRewardDelegators)._setReceiverRewardPerEpoch(signers[4].getAddress(), receiverRewardPerEpoch);
+
+    for (let i = 0; i < numberOfEpochs; i++) {
+      ticketsByEpoch[i] = [];
+      for (let j = 0; j < ticketsLength; j++) {
+        ticketsByEpoch[i][j] = parseInt(((Math.random() * 2) ^ (16 / (ticketsLength + 1))) + "");
+        totalTickets += ticketsByEpoch[i][j];
+        rawTicketInfo = rawTicketInfo + ticketsByEpoch[i][j].toString(16).padStart(4, "0");
+        if (!receiverRewards1[j]) receiverRewards1[j] = BN.from(0);
+        receiverRewards1[j] = receiverRewards1[j].add(ETH_REWARD.mul(50).mul(ticketsByEpoch[i][j]).div(500).div(MAX_TICKETS));
+
+        if (!extraRewards1[j]) extraRewards1[j] = BN.from(0);
+        extraRewards1[j] = extraRewards1[j].add(receiverRewardPerEpoch.mul(ticketsByEpoch[i][j]).div(MAX_TICKETS));
+      }
+      if (!receiverRewards1[ticketsLength]) receiverRewards1[ticketsLength] = BN.from(0);
+      if (!extraRewards1[ticketsLength]) extraRewards1[ticketsLength] = BN.from(0);
+      receiverRewards1[ticketsLength] = receiverRewards1[ticketsLength].add(
+        ETH_REWARD.mul(50).div(500).mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS)
+      );
+      extraRewards1[ticketsLength] = extraRewards1[ticketsLength].add(
+        receiverRewardPerEpoch.mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS)
+      );
+      totalTickets = 0;
+    }
+
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(500));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged
+      .withArgs(addrs[5], startEpoch, numberOfEpochs)
+      .returns(Array(numberOfEpochs).fill(50), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]));
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
+
+    for (let i = 0; i < numberOfEpochs; i++) {
+      expect(await clusterRewards.isTicketsIssued(addrs[4], startEpoch + i)).to.be.true;
+      expect(await clusterRewards.isTicketsIssued(addrs[5], startEpoch + i)).to.be.false;
+      expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(receiverRewards1[0].add(extraRewards1[0]), 5);
+      expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 5);
+      expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 5);
+      expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 5);
+      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 5);
+    }
+
+    startEpoch += numberOfEpochs;
+
+    rawTicketInfo = ETHHASH + startEpoch.toString(16).padStart(8, "0");
+    totalTickets = 0;
+    let receiverRewards2: BN[] = [];
+    let extraRewards2: BN[] = [];
+    for (let i = 0; i < numberOfEpochs; i++) {
+      ticketsByEpoch[i] = [];
+      for (let j = 0; j < ticketsLength; j++) {
+        ticketsByEpoch[i][j] = parseInt(((Math.random() * 2) ^ (16 / (ticketsLength + 1))) + "");
+        totalTickets += ticketsByEpoch[i][j];
+        rawTicketInfo = rawTicketInfo + ticketsByEpoch[i][j].toString(16).padStart(4, "0");
+        if (!receiverRewards2[j]) receiverRewards2[j] = BN.from(0);
+        receiverRewards2[j] = receiverRewards2[j].add(ETH_REWARD.mul(25).mul(ticketsByEpoch[i][j]).div(125).div(MAX_TICKETS));
+
+        if (!extraRewards2[j]) extraRewards2[j] = BN.from(0);
+        extraRewards2[j] = extraRewards2[j].add(receiverRewardPerEpoch.mul(ticketsByEpoch[i][j]).div(MAX_TICKETS));
+      }
+      if (!receiverRewards2[ticketsLength]) receiverRewards2[ticketsLength] = BN.from(0);
+      if (!extraRewards2[ticketsLength]) extraRewards2[ticketsLength] = BN.from(0);
+      receiverRewards2[ticketsLength] = receiverRewards2[ticketsLength].add(
+        ETH_REWARD.mul(25).div(125).mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS)
+      );
+      extraRewards2[ticketsLength] = extraRewards2[ticketsLength].add(
+        receiverRewardPerEpoch.mul(MAX_TICKETS.sub(totalTickets)).div(MAX_TICKETS)
+      );
+      totalTickets = 0;
+    }
+
+    await receiverStaking.mock.getCurrentEpoch.returns(startEpoch + numberOfEpochs);
+    await receiverStaking.mock.totalSupplyAtRanged.revertsWithReason("unexpected query for total balance");
+    await receiverStaking.mock.totalSupplyAtRanged.withArgs(startEpoch, numberOfEpochs).returns(Array(numberOfEpochs).fill(125));
+    await receiverStaking.mock.balanceOfSignerAtRanged.revertsWithReason("unexpected query for signer balance");
+    await receiverStaking.mock.balanceOfSignerAtRanged
+      .withArgs(addrs[5], startEpoch, numberOfEpochs)
+      .returns(Array(numberOfEpochs).fill(25), addrs[4]);
+    await ethSelector.mock.getClustersRanged.returns(Array(numberOfEpochs).fill([addrs[35], addrs[34], addrs[33], addrs[32], addrs[31]]));
+
+    await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
+
+    for (let i = 0; i < numberOfEpochs; i++) {
+      expect(await clusterRewards.isTicketsIssued(addrs[4], startEpoch + i)).to.be.true;
+      expect(await clusterRewards.isTicketsIssued(addrs[5], startEpoch + i)).to.be.false;
+      expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(
+        receiverRewards1[0].add(receiverRewards2[4]).add(extraRewards1[0]).add(extraRewards2[4]),
+        11
+      );
+      expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(
+        receiverRewards1[1].add(receiverRewards2[3]).add(extraRewards1[1]).add(extraRewards2[3]),
+        11
+      );
+      expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(
+        receiverRewards1[2].add(receiverRewards2[2]).add(extraRewards1[2]).add(extraRewards2[2]),
+        11
+      );
+      expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(
+        receiverRewards1[3].add(receiverRewards2[1]).add(extraRewards1[3]).add(extraRewards2[1]),
+        11
+      );
+      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(
+        receiverRewards1[4].add(receiverRewards2[0]).add(extraRewards1[4]).add(extraRewards2[0]),
+        11
+      );
     }
   });
 
@@ -1667,7 +1832,7 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
   it("Reward Checking after receiver adds extra tokens", async () => {
     const mockRewardDelegators = signers[49]; // any random address can be used
     const receiverRewardPerEpoch = BN.from(3000);
-    const receiverBalance = BN.from(100000)
+    const receiverBalance = BN.from(100000);
 
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
     // balance can be added by any address, hence we are using staker address directly
@@ -1686,7 +1851,7 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     await receiverStaking.mock.balanceOfSignerAt
       .withArgs(await signer.getAddress(), epochWithRewards)
       .returns(50, await staker.getAddress());
-      
+
     // is this 500 inflation rewards
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 3);
 
