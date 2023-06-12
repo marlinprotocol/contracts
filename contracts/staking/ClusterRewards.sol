@@ -363,9 +363,7 @@ contract ClusterRewards is
     }
 
     function _setReceiverBalance(address _receiver, uint128 _receiverExtraRewardsRemaining) internal {
-        if (_receiverExtraRewardsRemaining != 0) {
             receiverRewardPayment[_receiver].rewardRemaining = _receiverExtraRewardsRemaining;
-        }
     }
 
     function _emitTicketsIssued(bytes32 _networkId, uint256 _epoch, address signer) internal {
