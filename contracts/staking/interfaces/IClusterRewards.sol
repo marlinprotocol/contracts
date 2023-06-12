@@ -5,6 +5,10 @@ pragma solidity ^0.8.0;
 import "./IClusterSelector.sol";
 
 interface IClusterRewards {
+    struct ReceiverPayment {
+        uint128 rewardRemaining;
+        uint128 rewardPerEpoch;
+    }
     function clusterSelectors(bytes32 networkId) external returns (IClusterSelector);
     function clusterRewards(address cluster) external returns(uint256);
     function rewardWeight(bytes32 networkId) external returns(uint256);
@@ -15,6 +19,6 @@ interface IClusterRewards {
     function getRewardForEpoch(uint256 epoch, bytes32 networkId) external view returns(uint256);
     function claimReward(address cluster) external returns(uint256);
     function changeRewardPerEpoch(uint256 updatedRewardPerEpoch) external;
-    function _increaseReceiverBalance(address receiver, uint256 amount) external;
-    function _setReceiverRewardPerEpoch(address signer, uint256 rewardPerEpoch) external;
+    function _increaseReceiverBalance(address receiver, uint128 amount) external;
+    function _setReceiverRewardPerEpoch(address signer, uint128 rewardPerEpoch) external;
 }

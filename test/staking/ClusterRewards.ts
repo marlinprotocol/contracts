@@ -1814,9 +1814,9 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     const increaseByAmount = 100;
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), signer.getAddress());
 
-    const balanceBefore = await clusterRewards.receiverBalance(signer.getAddress());
+    const balanceBefore = (await clusterRewards.receiverRewardPayment(signer.getAddress()))[0];
     await clusterRewards.connect(signer)._increaseReceiverBalance(signer.getAddress(), increaseByAmount);
-    const balanceAfter = await clusterRewards.receiverBalance(signer.getAddress());
+    const balanceAfter = (await clusterRewards.receiverRewardPayment(signer.getAddress()))[0];
 
     expect(balanceAfter).eq(balanceBefore.add(increaseByAmount));
   });
@@ -1826,7 +1826,7 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), signer.getAddress());
 
     await clusterRewards.connect(signer)._setReceiverRewardPerEpoch(staker.getAddress(), receiverExtraRewardPerEpoch);
-    expect(await clusterRewards.receiverRewardPerEpoch(staker.getAddress())).eq(receiverExtraRewardPerEpoch);
+    expect((await clusterRewards.receiverRewardPayment(staker.getAddress()))[1]).eq(receiverExtraRewardPerEpoch);
   });
 
   it("Reward Checking after receiver adds extra tokens", async () => {

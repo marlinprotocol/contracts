@@ -8,6 +8,8 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./interfaces/IClusterSelector.sol";
 import "./ReceiverStaking.sol";
@@ -24,7 +26,8 @@ contract ClusterRewards is
     ERC1967UpgradeUpgradeable, // delegate slots, proxy admin, private upgrade
     UUPSUpgradeable, // public upgrade
     IClusterRewards // interface
-{
+{   
+    using SafeCastUpgradeable for uint256;
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -308,8 +311,7 @@ contract ClusterRewards is
 
         address _receiver = receiverStaking.signerToStaker(msg.sender);
 
-        uint256 _receiverExtraRewardsRemaining = receiverBalance[_receiver];
-        uint256 _receiverExtraRewardsPerEpoch = receiverRewardPerEpoch[_receiver];
+        ReceiverPayment memory receiverPayment = receiverRewardPayment[_receiver];
 
         unchecked {
             for (uint256 i = 0; i < _epochs.length; ++i) {
@@ -321,17 +323,14 @@ contract ClusterRewards is
                 uint256 _epochReceiverStake = receiverStaking.balanceOfAt(_receiver, _epochs[i]);
 
                 uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) +
-                    _extraReceiverRewardThisEpoch(_receiverExtraRewardsRemaining, _receiverExtraRewardsPerEpoch);
+                    MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
 
                 _processReceiverTickets(_receiver, _epochs[i], _selectedClusters, _tickets[i], _rewardShare);
-                _receiverExtraRewardsRemaining -= _extraReceiverRewardThisEpoch(
-                    _receiverExtraRewardsRemaining,
-                    _receiverExtraRewardsPerEpoch
-                );
+                receiverPayment.rewardRemaining -= MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch).toUint128();
                 _emitTicketsIssued(_networkId, _epochs[i], msg.sender);
             }
         }
-        _setReceiverBalance(_receiver, _receiverExtraRewardsRemaining);
+        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
     }
 
     function issueTickets(bytes calldata _ticketInfo) external {
@@ -344,42 +343,29 @@ contract ClusterRewards is
         (uint256[] memory _balances, address _receiver) = _receiverStaking.balanceOfSignerAtRanged(msg.sender, _fromEpoch, _noOfEpochs);
         address[][] memory _selectedClusters = clusterSelectors[_networkId].getClustersRanged(_fromEpoch, _noOfEpochs);
 
-        uint256 _receiverExtraRewardsRemaining = receiverBalance[_receiver];
-        uint256 _receiverExtraRewardsPerEpoch = receiverRewardPerEpoch[_receiver];
+        ReceiverPayment memory receiverPayment = receiverRewardPayment[_receiver];
         uint256 _totalNetworkRewardsPerEpoch;
 
         unchecked {
             for (uint256 i = 0; i < _noOfEpochs; ++i) {
                 // _totalNetworkRewardsPerEpoch = inflation rewards + receiver rewards
                 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_fromEpoch, _networkId);
-                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]) +
-                    _extraReceiverRewardThisEpoch(_receiverExtraRewardsRemaining, _receiverExtraRewardsPerEpoch);
+                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]) + MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
 
                 _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _rewardShare);
                 _emitTicketsIssued(_networkId, _fromEpoch, msg.sender);
-                _receiverExtraRewardsRemaining -= _extraReceiverRewardThisEpoch(
-                    _receiverExtraRewardsRemaining,
-                    _receiverExtraRewardsPerEpoch
-                );
+                receiverPayment.rewardRemaining -= MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch).toUint128();
                 ++_fromEpoch;
             }
         }
 
-        _setReceiverBalance(_receiver, _receiverExtraRewardsRemaining);
+        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
     }
 
-    function _setReceiverBalance(address _receiver, uint256 _receiverExtraRewardsRemaining) internal {
+    function _setReceiverBalance(address _receiver, uint128 _receiverExtraRewardsRemaining) internal {
         if (_receiverExtraRewardsRemaining != 0) {
-            receiverBalance[_receiver] = _receiverExtraRewardsRemaining;
+            receiverRewardPayment[_receiver].rewardRemaining = _receiverExtraRewardsRemaining;
         }
-    }
-
-    function _extraReceiverRewardThisEpoch(
-        uint256 _receiverExtraRewardsRemaining,
-        uint256 _receiverExtraRewardsPerEpoch
-    ) internal pure returns (uint256) {
-        return
-            _receiverExtraRewardsRemaining > _receiverExtraRewardsPerEpoch ? _receiverExtraRewardsPerEpoch : _receiverExtraRewardsRemaining;
     }
 
     function _emitTicketsIssued(bytes32 _networkId, uint256 _epoch, address signer) internal {
@@ -455,19 +441,17 @@ contract ClusterRewards is
         require(_epoch < _currentEpoch, "CRW:IT-Epoch not completed");
 
         (uint256 _epochReceiverStake, address _receiver) = receiverStaking.balanceOfSignerAt(msg.sender, _epoch);
-        uint256 _receiverExtraRewardsRemaining = receiverBalance[_receiver];
-        uint256 _receiverExtraRewardsPerEpoch = receiverRewardPerEpoch[_receiver];
+        ReceiverPayment memory receiverPayment = receiverRewardPayment[_receiver];
 
         address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
         uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_epoch, _networkId);
 
-        uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) +
-            _extraReceiverRewardThisEpoch(_receiverExtraRewardsRemaining, _receiverExtraRewardsPerEpoch);
+        uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) + MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
         _processReceiverTickets(_receiver, _epoch, _selectedClusters, _tickets, _rewardShare);
         _emitTicketsIssued(_networkId, _epoch, msg.sender);
 
-        _receiverExtraRewardsRemaining -= _extraReceiverRewardThisEpoch(_receiverExtraRewardsRemaining, _receiverExtraRewardsPerEpoch);
-        _setReceiverBalance(_receiver, _receiverExtraRewardsRemaining);
+        receiverPayment.rewardRemaining -= MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch).toUint128();
+        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
     }
 
     function claimReward(address _cluster) external onlyRole(CLAIMER_ROLE) returns (uint256) {
@@ -493,15 +477,14 @@ contract ClusterRewards is
 
     bytes32 public constant RECEIVER_PAYMENTS_MANAGER = keccak256("RECEIVER_PAYMENTS_MANAGER");
 
-    mapping(address => uint256) public receiverBalance;
-    mapping(address => uint256) public receiverRewardPerEpoch;
+    mapping(address => ReceiverPayment) public receiverRewardPayment;
 
-    function _increaseReceiverBalance(address staker, uint256 amount) external override onlyRole(RECEIVER_PAYMENTS_MANAGER) {
-        receiverBalance[staker] += amount;
+    function _increaseReceiverBalance(address staker, uint128 amount) external override onlyRole(RECEIVER_PAYMENTS_MANAGER) {
+        receiverRewardPayment[staker].rewardRemaining += amount;
     }
 
-    function _setReceiverRewardPerEpoch(address staker, uint256 rewardPerEpoch) external override onlyRole(RECEIVER_PAYMENTS_MANAGER) {
+    function _setReceiverRewardPerEpoch(address staker, uint128 rewardPerEpoch) external override onlyRole(RECEIVER_PAYMENTS_MANAGER) {
         require(staker != address(0), "CRW: address 0");
-        receiverRewardPerEpoch[staker] = rewardPerEpoch;
+        receiverRewardPayment[staker].rewardPerEpoch = rewardPerEpoch;
     }
 }

@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
+
 import "./interfaces/IClusterRewards.sol";
 import "./interfaces/IClusterRegistry.sol";
 import "./interfaces/IRewardDelegators.sol";
@@ -530,7 +531,7 @@ contract RewardDelegators is
     event AddReceiverBalance(address indexed receiver, uint256 amount);
     event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
 
-    function addReceiverBalance(address receiver, uint256 amount) public {
+    function addReceiverBalance(address receiver, uint128 amount) public {
         require(receiver != address(0), "RD: address 0");
         require(amount != 0, "RD: amount 0");
         PONDToken.transferFrom(msg.sender, address(this), amount);
@@ -539,7 +540,7 @@ contract RewardDelegators is
     }
 
     // msg.sender is staker here
-    function setReceiverRewardPerEpoch(uint256 rewardPerEpoch) public {
+    function setReceiverRewardPerEpoch(uint128 rewardPerEpoch) public {
         require(rewardPerEpoch != 0, "RD: reward 0");
         address _sender = _msgSender();
         clusterRewards._setReceiverRewardPerEpoch(_sender, rewardPerEpoch);
