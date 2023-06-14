@@ -332,7 +332,7 @@ contract ClusterRewards is
                 _emitTicketsIssued(_networkId, _epochs[i], msg.sender);
             }
         }
-        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
+        receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
     function issueTickets(bytes calldata _ticketInfo) external {
@@ -364,11 +364,7 @@ contract ClusterRewards is
             }
         }
 
-        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
-    }
-
-    function _setReceiverBalance(address _receiver, uint128 _receiverExtraRewardsRemaining) internal {
-        receiverRewardPayment[_receiver].rewardRemaining = _receiverExtraRewardsRemaining;
+        receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
     function _emitTicketsIssued(bytes32 _networkId, uint256 _epoch, address signer) internal {
@@ -455,7 +451,7 @@ contract ClusterRewards is
         _emitTicketsIssued(_networkId, _epoch, msg.sender);
 
         receiverPayment.rewardRemaining -= MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch).toUint128();
-        _setReceiverBalance(_receiver, receiverPayment.rewardRemaining);
+        receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
     function claimReward(address _cluster) external onlyRole(CLAIMER_ROLE) returns (uint256) {

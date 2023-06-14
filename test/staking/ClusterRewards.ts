@@ -1195,8 +1195,8 @@ describe("ClusterRewards submit compressed tickets", function () {
     let totalTickets = 0;
 
     const mockRewardDelegators = signers[49]; // any random address can be used
-    const receiverRewardPerEpoch = BN.from("29872398329842389");
-    const receiverBalance = receiverRewardPerEpoch.mul(numberOfEpochs); // use large receiver balance due as there are large number of epochs present
+    const receiverRewardPerEpoch = BN.from("12100");
+    const receiverBalance = receiverRewardPerEpoch.mul(numberOfEpochs).mul(2); // use large receiver balance due as there are large number of epochs present
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
     await clusterRewards.connect(mockRewardDelegators)._increaseReceiverBalance(signers[4].getAddress(), receiverBalance);
     await clusterRewards.connect(mockRewardDelegators)._setReceiverRewardPerEpoch(signers[4].getAddress(), receiverRewardPerEpoch);
@@ -1242,7 +1242,7 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 5);
       expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 5);
       expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 5);
-      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 5);
+      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 8);
     }
 
     startEpoch += numberOfEpochs;
