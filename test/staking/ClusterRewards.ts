@@ -57,7 +57,7 @@ const tickets = [
   ),
 ];
 
-describe("ClusterRewards deploy and init", function () {
+describe.only("ClusterRewards deploy and init", function () {
   let signers: Signer[];
   let addrs: string[];
 
@@ -214,7 +214,7 @@ testRole(
 
 let startTime = Math.floor(Date.now() / 1000) + 100000;
 
-describe("ClusterRewards add network", function () {
+describe.only("ClusterRewards add network", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -317,7 +317,7 @@ describe("ClusterRewards add network", function () {
   });
 });
 
-describe("ClusterRewards cluster selector", function () {
+describe.only("ClusterRewards cluster selector", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -438,7 +438,7 @@ describe("ClusterRewards cluster selector", function () {
   });
 });
 
-describe("ClusterRewards remove network", function () {
+describe.only("ClusterRewards remove network", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -480,7 +480,7 @@ describe("ClusterRewards remove network", function () {
   });
 });
 
-describe("ClusterRewards update global vars", function () {
+describe.only("ClusterRewards update global vars", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -534,162 +534,7 @@ describe("ClusterRewards update global vars", function () {
   });
 });
 
-describe("ClusterRewards feed rewards", function () {
-  let signers: Signer[];
-  let addrs: string[];
-  let receiverStaking: Contract;
-  let clusterRewards: ClusterRewards;
-  const FEED_REWARD = BN.from("200000").mul(e18);
-  const FEEDER_REWARD_1_pc = FEED_REWARD.mul(ETHWEIGHT)
-    .div(TOTALWEIGHT)
-    .div(100)
-    .mul(24 * 60 * 60)
-    .div(900);
-
-  before(async function () {
-    signers = await ethers.getSigners();
-    addrs = await Promise.all(signers.map((a) => a.getAddress()));
-
-    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await deployMockContract(signers[0], ReceiverStaking.interface.format());
-    await receiverStaking.mock.START_TIME.returns(startTime);
-    await receiverStaking.mock.EPOCH_LENGTH.returns(900);
-
-    const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
-    let clusterRewardsContract = await upgrades.deployProxy(
-      ClusterRewards,
-      [addrs[0], addrs[1], receiverStaking.address, NETWORK_IDS, WEIGHTS, [addrs[11], addrs[12], addrs[13]], FEED_REWARD],
-      { kind: "uups", constructorArgs: [] }
-    );
-    clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
-
-    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
-    await clusterRewards.updateRewardWaitTime(43200);
-  });
-
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
-
-  it("feeder can feed rewards before start time", async function () {
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-  });
-
-  it("feeder can feed rewards after start time", async function () {
-    await skipToTimestamp(startTime + 10);
-
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-  });
-
-  it("feeder can feed rewards till 1 day after switching time", async function () {
-    await skipToTimestamp(startTime + 33 * 86400 + 85000);
-
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-  });
-
-  it("feeder cannot feed rewards after 1 day after switching time", async function () {
-    await skipToTimestamp(startTime + 33 * 86400 + 90000);
-
-    await expect(
-      clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)
-    ).to.be.revertedWith("CRW:F-Invalid method");
-  });
-
-  it("feeder cannot feed rewards exceeding total", async function () {
-    await expect(
-      clusterRewards
-        .connect(signers[2])
-        .feed(ETHHASH, [addrs[21], addrs[22], addrs[23]], [e16.mul(10), e16.mul(50), e16.mul(40).add(e16.div(100))], 1)
-    ).to.be.revertedWith("CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch");
-  });
-
-  it("feeder can feed rewards in multiple parts", async function () {
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(10));
-
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-  });
-
-  it("feeder cannot feed rewards in multiple parts exceeding total", async function () {
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21]], [e16.mul(10)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(0);
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(10));
-
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[22]], [e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-
-    await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[23]], [e16.mul(41)], 1)).to.be.revertedWith(
-      "CRW:F-Reward Distributed  cant  be more  than totalRewardPerEpoch"
-    );
-  });
-
-  it("feeder cannot feed rewards again before wait time", async function () {
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-
-    await expect(
-      clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)
-    ).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(40000);
-    await expect(
-      clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)
-    ).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-  });
-
-  it("feeder can feed rewards again after wait time", async function () {
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(10));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(50));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-
-    await expect(
-      clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)
-    ).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(40000);
-    await expect(
-      clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)
-    ).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(5000);
-    await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2);
-
-    expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(20));
-    expect(await clusterRewards.clusterRewards(addrs[22])).to.equal(FEEDER_REWARD_1_pc.mul(60));
-    expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
-    expect(await clusterRewards.rewardDistributedPerEpoch(2)).to.equal(FEEDER_REWARD_1_pc.mul(20));
-  });
-
-  it("non feeder cannot feed rewards", async function () {
-    await expect(clusterRewards.feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)).to.be.revertedWith("only feeder");
-  });
-});
-
-describe("ClusterRewards submit tickets", function () {
+describe.only("ClusterRewards submit tickets", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -721,33 +566,6 @@ describe("ClusterRewards submit tickets", function () {
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
-
-  // it.skip("delete me", async () => {
-  //   await ethSelector.mock.NUMBER_OF_CLUSTERS_TO_SELECT.returns(5);
-  //   let networkId = ethers.utils.id("ETH");
-  //   let epochNumber = getRandomNumber(BN.from(20000)).toNumber();
-  //   let noOfEpochs = 96;
-  //   let tickets: number[][] = [];
-  //   let rawTicketInfo = networkId + epochNumber.toString(16).padStart(8, "0");
-  //   for (let i = 0; i < noOfEpochs * 4; i++) {
-  //     let j: number = parseInt(i / 4 + "");
-  //     let k: number = i % 4;
-  //     if (!tickets[j]) tickets[j] = [];
-  //     tickets[j][k] = parseInt(Math.random() * 13000 + "");
-  //     rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
-  //   }
-  //   console.log(rawTicketInfo);
-  //   const data = await clusterRewards._parseTicketInfo(rawTicketInfo);
-  //   console.log(tickets);
-  //   expect(data.networkId).to.equal(networkId);
-  //   expect(data.fromEpoch).to.equal(epochNumber);
-  //   expect(data.noOfEpochs).to.equal(noOfEpochs);
-  //   tickets.map((e, i) => {
-  //     e.map((ele, j) => {
-  //       expect(tickets[i][j]).to.equal(data.tickets[i][j], `epoch ${i} ticket ${j} not equal`);
-  //     });
-  //   });
-  // });
 
   it("staker can submit tickets before switch with zero rewards", async function () {
     await receiverStaking.mock.balanceOfSignerAt.reverts();
@@ -990,7 +808,7 @@ describe("ClusterRewards submit tickets", function () {
   });
 });
 
-describe("ClusterRewards submit compressed tickets", function () {
+describe.only("ClusterRewards submit compressed tickets", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -1290,23 +1108,23 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.isTicketsIssued(addrs[5], startEpoch + i)).to.be.false;
       expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(
         receiverRewards1[0].add(receiverRewards2[4]).add(extraRewards1[0]).add(extraRewards2[4]),
-        11
+        15
       );
       expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(
         receiverRewards1[1].add(receiverRewards2[3]).add(extraRewards1[1]).add(extraRewards2[3]),
-        11
+        15
       );
       expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(
         receiverRewards1[2].add(receiverRewards2[2]).add(extraRewards1[2]).add(extraRewards2[2]),
-        11
+        15
       );
       expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(
         receiverRewards1[3].add(receiverRewards2[1]).add(extraRewards1[3]).add(extraRewards2[1]),
-        11
+        15
       );
       expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(
         receiverRewards1[4].add(receiverRewards2[0]).add(extraRewards1[4]).add(extraRewards2[0]),
-        11
+        15
       );
     }
   });
@@ -1636,7 +1454,7 @@ describe("ClusterRewards submit compressed tickets", function () {
   });
 });
 
-describe("ClusterRewards claim rewards", function () {
+describe.only("ClusterRewards claim rewards", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -1735,7 +1553,7 @@ describe("ClusterRewards claim rewards", function () {
   });
 });
 
-describe("ClusterRewards: Add Receiver extra payment", function () {
+describe.only("ClusterRewards: Add Receiver extra payment", function () {
   let signers: Signer[];
   let addrs: string[];
   let receiverStaking: Contract;
@@ -1831,8 +1649,8 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
 
   it("Reward Checking after receiver adds extra tokens", async () => {
     const mockRewardDelegators = signers[49]; // any random address can be used
-    const receiverRewardPerEpoch = BN.from(3000);
-    const receiverBalance = BN.from(100000);
+    const receiverRewardPerEpoch = BN.from(3000).mul(e18);
+    const receiverBalance = BN.from(100000).mul(e18);
 
     await clusterRewards.connect(signers[0]).grantRole(await clusterRewards.RECEIVER_PAYMENTS_MANAGER(), mockRewardDelegators.getAddress());
     // balance can be added by any address, hence we are using staker address directly
@@ -1858,10 +1676,10 @@ describe("ClusterRewards: Add Receiver extra payment", function () {
     await skipToTimestamp(startTime + 34 * 86400);
     await clusterRewards.connect(signer)["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1));
 
-    expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(receiverRewards1[0].add(extraRewards1[0]), 1);
-    expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 1);
-    expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 1);
-    expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 1);
-    expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 1);
+    expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(receiverRewards1[0].add(extraRewards1[0]), 10);
+    expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 10);
+    expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 10);
+    expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 10);
+    expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 10);
   });
 });

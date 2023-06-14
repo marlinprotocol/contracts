@@ -738,7 +738,7 @@ describe("RewardDelegators", function () {
     const amountToTransfer = 10000;
     await pondInstance.transfer(receiverSignerAndStaker.getAddress(), amountToTransfer);
 
-    const receiverBalanceBefore = await clusterRewardsInstance.receiverBalance(await receiverSignerAndStaker.getAddress());
+    const receiverBalanceBefore = (await clusterRewardsInstance.receiverRewardPayment(await receiverSignerAndStaker.getAddress())).rewardRemaining;
     const tokenBalanceBefore = await pondInstance.balanceOf(rewardDelegators.address);
     await pondInstance.connect(receiverSignerAndStaker).approve(rewardDelegators.address, amountToTransfer);
     await expect(
@@ -748,7 +748,7 @@ describe("RewardDelegators", function () {
       .withArgs(await receiverSignerAndStaker.getAddress(), amountToTransfer);
 
     const tokenBalanceAfter = await pondInstance.balanceOf(rewardDelegators.address);
-    const receiverBalanceAfter = await clusterRewardsInstance.receiverBalance(await receiverSignerAndStaker.getAddress());
+    const receiverBalanceAfter = (await clusterRewardsInstance.receiverRewardPayment(await receiverSignerAndStaker.getAddress())).rewardRemaining;
     expect(tokenBalanceAfter).eq(tokenBalanceBefore.add(amountToTransfer));
     expect(receiverBalanceAfter).eq(receiverBalanceBefore.add(amountToTransfer));
   });
