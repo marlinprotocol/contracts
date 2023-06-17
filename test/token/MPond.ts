@@ -883,7 +883,7 @@ describe("MPond", function () {
         {
           delegatee: addrs[1],
           nonce: 0,
-          expiry: ts,
+          expiry: ts - 1,
           amount: 1234,
         }
       )
@@ -1105,7 +1105,7 @@ describe("MPond", function () {
         {
           delegatee: addrs[1],
           nonce: 0,
-          expiry: ts,
+          expiry: ts - 1,
           amount: 1234,
         }
       )
