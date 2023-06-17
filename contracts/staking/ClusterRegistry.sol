@@ -211,7 +211,7 @@ contract ClusterRegistry is
         uint256 unlockTime = locks[lockId].unlockTime;
         require(unlockTime != 0, "CR:UCM-No commission update request");
         require(
-            unlockTime < block.timestamp,
+            unlockTime <= block.timestamp,
             "CR:UCM-Commission update in progress"
         );
         uint256 currentCommission = locks[lockId].iValue;
@@ -238,7 +238,7 @@ contract ClusterRegistry is
         uint256 unlockTime = locks[lockId].unlockTime;
         require(unlockTime != 0, "CR:SN-No switch network request");
         require(
-            unlockTime < block.timestamp,
+            unlockTime <= block.timestamp,
             "CR:SN-Network switch in progress"
         );
         bytes32 currentNetwork = bytes32(locks[lockId].iValue);
@@ -293,7 +293,7 @@ contract ClusterRegistry is
         uint256 unlockTime = locks[lockId].unlockTime;
         require(unlockTime != 0, "CR:UR-No unregistration request");
         require(
-            unlockTime < block.timestamp,
+            unlockTime <= block.timestamp,
             "CR:UR-Unregistration already in progress"
         );
         clusters[_msgSender()].status = Status.NOT_REGISTERED;
