@@ -2,6 +2,7 @@ import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Contract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { MarketV1 } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
@@ -28,10 +29,6 @@ async function skipBlocks(n: number) {
 async function skipTime(t: number) {
 	await ethers.provider.send("evm_increaseTime", [t]);
 	await skipBlocks(1);
-}
-
-async function skipToTimestamp(t: number) {
-	await ethers.provider.send("evm_mine", [t]);
 }
 
 const RATE_LOCK = ethers.utils.id("RATE_LOCK");
@@ -338,7 +335,7 @@ describe("MarketV1", function() {
 
 	it("can open job", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
@@ -401,7 +398,7 @@ describe("MarketV1", function() {
 
 	it("can settle job with enough balance", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
@@ -421,7 +418,7 @@ describe("MarketV1", function() {
 
 		ts = jobInfo.lastSettled.toNumber();
 
-		await skipToTimestamp(ts + 5);
+		await time.increaseTo(ts + 5);
 		await marketv1.jobSettle(ethers.constants.HashZero);
 
 		jobInfo = await marketv1.jobs(ethers.constants.HashZero);
@@ -440,7 +437,7 @@ describe("MarketV1", function() {
 
 	it("can settle job without enough balance", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
@@ -460,7 +457,7 @@ describe("MarketV1", function() {
 
 		ts = jobInfo.lastSettled.toNumber();
 
-		await skipToTimestamp(ts + 11);
+		await time.increaseTo(ts + 11);
 		await marketv1.jobSettle(ethers.constants.HashZero);
 
 		jobInfo = await marketv1.jobs(ethers.constants.HashZero);
@@ -506,7 +503,7 @@ describe("MarketV1", function() {
 
 	it("can deposit to job", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 75);
 		await marketv1
@@ -542,7 +539,7 @@ describe("MarketV1", function() {
 
 	it("cannot deposit to job without enough approved", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 74);
 		await marketv1
@@ -567,7 +564,7 @@ describe("MarketV1", function() {
 
 	it("cannot deposit to job without enough balance", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 5000);
 		await marketv1
@@ -598,7 +595,7 @@ describe("MarketV1", function() {
 
 	it("cannot deposit to closed job", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 5000);
 		await marketv1
@@ -655,7 +652,7 @@ describe("MarketV1", function() {
 
 	it("can withdraw from job immediately", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -695,7 +692,7 @@ describe("MarketV1", function() {
 
 	it("can withdraw from job with settlement", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -715,7 +712,7 @@ describe("MarketV1", function() {
 
 		ts = jobInfo.lastSettled.toNumber();
 
-		await skipToTimestamp(ts + 20);
+		await time.increaseTo(ts + 20);
 		await marketv1
 			.connect(signers[1])
 			.jobWithdraw(ethers.constants.HashZero, 100);
@@ -736,7 +733,7 @@ describe("MarketV1", function() {
 
 	it("can withdraw from job after a short period with settlement", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -756,7 +753,7 @@ describe("MarketV1", function() {
 
 		ts = jobInfo.lastSettled.toNumber();
 
-		await skipToTimestamp(ts + 20);
+		await time.increaseTo(ts + 20);
 		await marketv1
 			.connect(signers[1])
 			.jobWithdraw(ethers.constants.HashZero, 100);
@@ -785,7 +782,7 @@ describe("MarketV1", function() {
 
 	it("cannot withdraw from third party job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -810,7 +807,7 @@ describe("MarketV1", function() {
 
 	it("cannot withdraw if balance is below leftover threshold", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -828,7 +825,7 @@ describe("MarketV1", function() {
 		expect(await pond.balanceOf(addrs[1])).to.equal(200);
 		expect(await pond.balanceOf(marketv1.address)).to.equal(800);
 
-		await skipToTimestamp(ts + 300);
+		await time.increaseTo(ts + 300);
 		await expect(marketv1
 			.connect(signers[1])
 			.jobWithdraw(ethers.constants.HashZero, 100)).to.be.revertedWith("not enough balance");
@@ -836,7 +833,7 @@ describe("MarketV1", function() {
 
 	it("cannot withdraw if it puts balance below leftover threshold", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -854,7 +851,7 @@ describe("MarketV1", function() {
 		expect(await pond.balanceOf(addrs[1])).to.equal(200);
 		expect(await pond.balanceOf(marketv1.address)).to.equal(800);
 
-		await skipToTimestamp(ts + 20);
+		await time.increaseTo(ts + 20);
 		await expect(marketv1
 			.connect(signers[1])
 			.jobWithdraw(ethers.constants.HashZero, 300)).to.be.revertedWith("not enough balance");
@@ -890,7 +887,7 @@ describe("MarketV1", function() {
 
 	it("can initiate rate revision", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -915,7 +912,7 @@ describe("MarketV1", function() {
 
 	it("cannot initiate rate revision if already initiated", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -943,7 +940,7 @@ describe("MarketV1", function() {
 
 	it("cannot initiate rate revision for non existent job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -967,7 +964,7 @@ describe("MarketV1", function() {
 
 	it("cannot initiate rate revision for third party job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1019,7 +1016,7 @@ describe("MarketV1", function() {
 
 	it("can cancel rate revision", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1059,7 +1056,7 @@ describe("MarketV1", function() {
 
 	it("cannot cancel rate revision if never requested", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1084,7 +1081,7 @@ describe("MarketV1", function() {
 
 	it("cannot cancel rate revision for non existent job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1113,7 +1110,7 @@ describe("MarketV1", function() {
 
 	it("cannot cancel rate revision for third party job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1169,7 +1166,7 @@ describe("MarketV1", function() {
 
 	it("can finalize rate revision", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1193,7 +1190,7 @@ describe("MarketV1", function() {
 			.connect(signers[1])
 			.jobReviseRateInitiate(ethers.constants.HashZero, 2);
 
-		await skipToTimestamp(ts + 650);
+		await time.increaseTo(ts + 650);
 
 		await marketv1
 			.connect(signers[1])
@@ -1215,7 +1212,7 @@ describe("MarketV1", function() {
 
 	it("cannot finalize rate revision if never requested", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1240,7 +1237,7 @@ describe("MarketV1", function() {
 
 	it("cannot finalize rate revision for non existent job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1269,7 +1266,7 @@ describe("MarketV1", function() {
 
 	it("cannot finalize rate revision for third party job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1325,7 +1322,7 @@ describe("MarketV1", function() {
 
 	it("can close", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1349,7 +1346,7 @@ describe("MarketV1", function() {
 			.connect(signers[1])
 			.jobReviseRateInitiate(ethers.constants.HashZero, 0);
 
-		await skipToTimestamp(ts + 650);
+		await time.increaseTo(ts + 650);
 
 		await marketv1
 			.connect(signers[1])
@@ -1370,7 +1367,7 @@ describe("MarketV1", function() {
 
 	it("can close immediately if rate is zero", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1394,7 +1391,7 @@ describe("MarketV1", function() {
 			.connect(signers[1])
 			.jobReviseRateInitiate(ethers.constants.HashZero, 0);
 
-		await skipToTimestamp(ts + 650);
+		await time.increaseTo(ts + 650);
 
 		await marketv1
 			.connect(signers[1])
@@ -1418,7 +1415,7 @@ describe("MarketV1", function() {
 
 	it("cannot close if new rate is not zero", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1442,7 +1439,7 @@ describe("MarketV1", function() {
 			.connect(signers[1])
 			.jobReviseRateInitiate(ethers.constants.HashZero, 2);
 
-		await skipToTimestamp(ts + 650);
+		await time.increaseTo(ts + 650);
 
 		await expect(marketv1
 			.connect(signers[1])
@@ -1451,7 +1448,7 @@ describe("MarketV1", function() {
 
 	it("cannot close if never requested", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1476,7 +1473,7 @@ describe("MarketV1", function() {
 
 	it("cannot close non existent job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
@@ -1505,7 +1502,7 @@ describe("MarketV1", function() {
 
 	it("cannot close third party job", async () => {
 		let ts = Math.floor(Date.now() / 1000) + 86400;
-		await skipToTimestamp(ts);
+		await time.increaseTo(ts);
 
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
