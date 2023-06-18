@@ -1476,7 +1476,7 @@ describe("ClusterSelector", function() {
 
     await clusterSelector.connect(signers[11]).upsert(addrs[31], 1);
     expect(await clusterSelector.nodesInTree()).to.equal(1);
-    await clusters.push(addrs[31]);
+    clusters.push(addrs[31]);
     await expect(() => clusterSelector.selectClusters({ gasPrice }))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[2] = await clusterSelector.getClusters(epochPlusOne);
@@ -1490,7 +1490,7 @@ describe("ClusterSelector", function() {
 
     await clusterSelector.connect(signers[11]).upsert(addrs[32], 2);
     expect(await clusterSelector.nodesInTree()).to.equal(2);
-    await clusters.push(addrs[32]);
+    clusters.push(addrs[32]);
     await expect(() => clusterSelector.selectClusters({ gasPrice }))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
     selectedClusters[3] = await clusterSelector.getClusters(3);
