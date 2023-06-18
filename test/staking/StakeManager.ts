@@ -2,11 +2,11 @@ import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Contract as MockContract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { MPond, Pond, StakeManager } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
 import { getMpond, getPond, getStakeManager } from "../../utils/typechainConvertor";
-import { skipTime } from "../helpers/common";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
 
@@ -760,7 +760,7 @@ describe("StakeManager", function() {
 
     await rewardDelegators.mock.undelegate.returns();
     await stakeManager.undelegateStash(stashId);
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     stashInfo = await stakeManager.stashes(stashId);
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -1687,7 +1687,7 @@ describe("StakeManager", function() {
   it("cannot request redelegation if undelegated", async () => {
     await rewardDelegators.mock.undelegate.returns();
     await stakeManager.undelegateStash("" + stashId);
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
     await rewardDelegators.mock.undelegate.reverts();
 
     await expect(stakeManager.requestStashRedelegation("" + stashId, addrs[21])).to.be.reverted;
@@ -1808,7 +1808,7 @@ describe("StakeManager", function() {
   it("cannot request multiple redelegations if undelegated", async () => {
     await rewardDelegators.mock.undelegate.returns();
     await stakeManager.undelegateStash("" + stashId);
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
     await rewardDelegators.mock.undelegate.reverts();
 
     await expect(stakeManager.requestStashRedelegations(["" + stashId, "" + otherStashId], [addrs[21], addrs[22]])).to.be.reverted;
@@ -1905,7 +1905,7 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await stakeManager.redelegateStash("" + stashId);
 
@@ -1930,7 +1930,7 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME - 5);
+    await time.increase(REDELEGATION_WAIT_TIME - 5);
 
     await expect(stakeManager.redelegateStash("" + stashId)).to.be.reverted;
   });
@@ -1941,7 +1941,7 @@ describe("StakeManager", function() {
     await rewardDelegators.mock.delegate.reverts();
     await rewardDelegators.mock.delegate.withArgs(addrs[0], addrs[21], [pondTokenId, mpondTokenId], [100, 200]).returns();
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.redelegateStash("" + stashId)).to.be.reverted;
   });
@@ -1955,7 +1955,7 @@ describe("StakeManager", function() {
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.redelegateStash("" + stashId)).to.be.reverted;
   });
@@ -1969,7 +1969,7 @@ describe("StakeManager", function() {
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
     await stakeManager.cancelRedelegation("" + stashId);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.redelegateStash("" + stashId)).to.be.reverted;
   });
@@ -1982,7 +1982,7 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.connect(signers[1]).redelegateStashes(["" + stashId])).to.be.reverted;
   });
@@ -2065,7 +2065,7 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await stakeManager.cancelRedelegation("" + stashId);
 
@@ -2078,11 +2078,11 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME - 10);
+    await time.increase(REDELEGATION_WAIT_TIME - 10);
 
     await stakeManager.cancelRedelegation("" + stashId);
 
-    await skipTime(ethers, 10);
+    await time.increase(10);
 
     await expect(stakeManager.redelegateStash("" + stashId)).to.be.reverted;
   });
@@ -2091,7 +2091,7 @@ describe("StakeManager", function() {
     await rewardDelegators.mock.undelegate.returns();
     await rewardDelegators.mock.delegate.returns();
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.cancelRedelegation("" + stashId)).to.be.reverted;
   });
@@ -2102,7 +2102,7 @@ describe("StakeManager", function() {
 
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
 
-    await skipTime(ethers, REDELEGATION_WAIT_TIME);
+    await time.increase(REDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.connect(signers[1]).cancelRedelegation("" + stashId)).to.be.reverted;
   });
@@ -2479,7 +2479,7 @@ describe("StakeManager", function() {
   it("cannot request undelegation if undelegated", async () => {
     await rewardDelegators.mock.undelegate.returns();
     await stakeManager.undelegateStash("" + stashId);
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.undelegateStash("" + stashId)).to.be.reverted;
   });
@@ -2566,11 +2566,11 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME - 10);
+    await time.increase(UNDELEGATION_WAIT_TIME - 10);
 
     await stakeManager.cancelUndelegation("" + stashId);
 
-    await skipTime(ethers, 10);
+    await time.increase(10);
 
     await expect(stakeManager["withdrawStash(bytes32)"]("" + stashId)).to.be.reverted;
   });
@@ -2581,7 +2581,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.cancelUndelegation("" + stashId)).to.be.reverted;
   });
@@ -2679,7 +2679,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await stakeManager["withdrawStash(bytes32)"]("" + stashId);
 
@@ -2701,7 +2701,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId, "" + mpondTokenId], [0, 0]);
 
@@ -2723,7 +2723,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId], [50]);
 
@@ -2745,7 +2745,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + mpondTokenId], [150]);
 
@@ -2767,7 +2767,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + mpondTokenId], [100, 150])).to.be.reverted;
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId, "" + mpondTokenId], [150])).to
@@ -2779,7 +2779,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME - 10);
+    await time.increase(UNDELEGATION_WAIT_TIME - 10);
 
     await expect(stakeManager["withdrawStash(bytes32)"]("" + stashId)).to.be.reverted;
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId], [50])).to.be.reverted;
@@ -2789,7 +2789,7 @@ describe("StakeManager", function() {
   it("cannot withdraw without request", async () => {
     await rewardDelegators.mock.undelegate.returns();
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager["withdrawStash(bytes32)"]("" + stashId)).to.be.reverted;
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId], [50])).to.be.reverted;
@@ -2803,7 +2803,7 @@ describe("StakeManager", function() {
     await stakeManager.undelegateStash("" + stashId);
     await stakeManager.cancelUndelegation("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager["withdrawStash(bytes32)"]("" + stashId)).to.be.reverted;
     await expect(stakeManager["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId], [50])).to.be.reverted;
@@ -2815,7 +2815,7 @@ describe("StakeManager", function() {
 
     await stakeManager.undelegateStash("" + stashId);
 
-    await skipTime(ethers, UNDELEGATION_WAIT_TIME);
+    await time.increase(UNDELEGATION_WAIT_TIME);
 
     await expect(stakeManager.connect(signers[1])["withdrawStash(bytes32)"]("" + stashId)).to.be.reverted;
     await expect(stakeManager.connect(signers[1])["withdrawStash(bytes32,bytes32[],uint256[])"]("" + stashId, ["" + pondTokenId], [50])).to
