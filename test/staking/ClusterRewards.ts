@@ -15,11 +15,6 @@ import { getRandomElementsFromArray } from "../helpers/common";
 import { getRandomNumber, randomlyDivideInXPieces } from "../../benchmarks/helpers/util";
 
 
-async function skipBlocks(n: number) {
-  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
-}
-
-
 const e9 = BN.from(10).pow(9);
 const e16 = BN.from(10).pow(16);
 const e18 = BN.from(10).pow(18);
