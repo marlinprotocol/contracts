@@ -1,4 +1,4 @@
-import { ethers, upgrades, network } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
@@ -7,12 +7,11 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
 
-import { ClusterRewards, ClusterSelector, Pond, ReceiverStaking } from "../../typechain-types";
+import { ClusterRewards } from "../../typechain-types";
 import { FuzzedNumber } from "../../utils/fuzzer";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
-import { getClusterRewards, getClusterSelector, getPond, getReceiverStaking } from "../../utils/typechainConvertor";
-import { getRandomElementsFromArray } from "../helpers/common";
-import { getRandomNumber, randomlyDivideInXPieces } from "../../benchmarks/helpers/util";
+import { getClusterRewards } from "../../utils/typechainConvertor";
+import { randomlyDivideInXPieces } from "../../benchmarks/helpers/util";
 
 
 const e9 = BN.from(10).pow(9);
