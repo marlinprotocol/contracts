@@ -1173,7 +1173,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes("" + stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
