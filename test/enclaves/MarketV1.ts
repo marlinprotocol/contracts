@@ -930,7 +930,7 @@ describe("MarketV1", function() {
 			.jobReviseRateInitiate(ethers.constants.HashZero, 2);
 		await expect(marketv1
 			.connect(signers[1])
-			.jobReviseRateInitiate(ethers.constants.HashZero, 2)).to.be.revertedWith("");
+			.jobReviseRateInitiate(ethers.constants.HashZero, 2)).to.be.reverted;
 	});
 
 	it("cannot initiate rate revision for non existent job", async () => {
@@ -1227,7 +1227,7 @@ describe("MarketV1", function() {
 
 		await expect(marketv1
 			.connect(signers[1])
-			.jobReviseRateFinalize(ethers.constants.HashZero)).to.be.revertedWith("");
+			.jobReviseRateFinalize(ethers.constants.HashZero)).to.be.reverted;
 	});
 
 	it("cannot finalize rate revision for non existent job", async () => {
@@ -1463,7 +1463,7 @@ describe("MarketV1", function() {
 
 		await expect(marketv1
 			.connect(signers[1])
-			.jobClose(ethers.constants.HashZero)).to.be.revertedWith("");
+			.jobClose(ethers.constants.HashZero)).to.be.reverted;
 	});
 
 	it("cannot close non existent job", async () => {
