@@ -26,11 +26,6 @@ async function skipBlocks(n: number) {
 	);
 }
 
-async function skipTime(t: number) {
-	await ethers.provider.send("evm_increaseTime", [t]);
-	await skipBlocks(1);
-}
-
 const RATE_LOCK = ethers.utils.id("RATE_LOCK");
 const SELECTORS = [RATE_LOCK];
 const WAIT_TIMES: number[] = [600];
@@ -614,7 +609,7 @@ describe("MarketV1", function() {
 		expect(await pond.balanceOf(marketv1.address)).to.equal(50);
 
 		await marketv1.connect(signers[1]).jobReviseRateInitiate(ethers.constants.HashZero, 0);
-		await skipTime(600);
+		await time.increase(600);
 		await marketv1.connect(signers[1]).jobClose(ethers.constants.HashZero);
 
 		await expect(marketv1
