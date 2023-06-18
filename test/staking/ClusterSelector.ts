@@ -125,7 +125,7 @@ describe("ClusterSelector", function() {
   });
 });
 
-testERC165("ClusterSelector", async function(signers: Signer[], addrs: string[]) {
+testERC165("ClusterSelector", async function(_: Signer[], addrs: string[]) {
   const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
   let clusterSelector = await upgrades.deployProxy(
     ClusterSelector,
@@ -153,7 +153,7 @@ testERC165("ClusterSelector", async function(signers: Signer[], addrs: string[])
   ],
 });
 
-testAdminRole("ClusterSelector", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("ClusterSelector", async function(_: Signer[], addrs: string[]) {
   const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
   let clusterSelector = await upgrades.deployProxy(
     ClusterSelector,
@@ -169,7 +169,7 @@ testAdminRole("ClusterSelector", async function(signers: Signer[], addrs: string
   return clusterSelector;
 });
 
-testRole("ClusterSelector", async function(signers: Signer[], addrs: string[]) {
+testRole("ClusterSelector", async function(_: Signer[], addrs: string[]) {
   const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
   let clusterSelector = await upgrades.deployProxy(
     ClusterSelector,
@@ -185,7 +185,7 @@ testRole("ClusterSelector", async function(signers: Signer[], addrs: string[]) {
   return clusterSelector;
 }, "UPDATER_ROLE");
 
-testRole("ClusterSelector", async function(signers: Signer[], addrs: string[]) {
+testRole("ClusterSelector", async function(_: Signer[], addrs: string[]) {
   const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
   let clusterSelector = await upgrades.deployProxy(
     ClusterSelector,
