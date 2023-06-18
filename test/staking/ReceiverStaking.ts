@@ -1,11 +1,10 @@
 import { ethers, upgrades, network } from "hardhat";
-import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { testERC165 } from "../helpers/erc165";
-import { testAdminRole, testRole } from "../helpers/rbac";
+import { testAdminRole } from "../helpers/rbac";
 
 
 declare module "ethers" {
