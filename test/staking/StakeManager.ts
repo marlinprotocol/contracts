@@ -1750,7 +1750,7 @@ describe("StakeManager", function () {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 200], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     let stashInfo = await stakeManager.stashes("" + stashId);
 
@@ -1765,7 +1765,7 @@ describe("StakeManager", function () {
     expect(await mpond.getDelegates(stakeManager.address, addrs[0])).to.equal(200);
 
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 200], addrs[12]);
-    otherStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex.add(1)]));
+    otherStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex.add(1)]));
 
     await rewardDelegators.mock.delegate.reverts();
   });
@@ -1792,7 +1792,7 @@ describe("StakeManager", function () {
   it("cannot request multiple redelegations if never delegated", async () => {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await expect(stakeManager.requestStashRedelegations(["" + stashId, newStashId], [addrs[21], addrs[22]])).to.be.reverted;
   });
@@ -1877,7 +1877,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
@@ -2039,7 +2039,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
@@ -2160,7 +2160,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
@@ -2187,7 +2187,7 @@ describe("StakeManager", function () {
 
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     let stashInfo = await stakeManager.stashes("" + stashId);
 
@@ -2285,7 +2285,7 @@ describe("StakeManager", function () {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 200], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     let stashInfo = await stakeManager.stashes("" + stashId);
 
@@ -2300,7 +2300,7 @@ describe("StakeManager", function () {
     expect(await mpond.getDelegates(stakeManager.address, addrs[0])).to.equal(200);
 
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [75, 150], addrs[11]);
-    otherStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex.add(1)]));
+    otherStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex.add(1)]));
 
     await rewardDelegators.mock.delegate.reverts();
   });
@@ -2343,7 +2343,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.returns();
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 200], addrs[12]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await expect(stakeManager.mergeStash("" + stashId, newStashId)).to.be.reverted;
     await expect(stakeManager.mergeStash(newStashId, "" + stashId)).to.be.reverted;
@@ -2352,7 +2352,7 @@ describe("StakeManager", function () {
   it("cannot merge if one is never delegated", async () => {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await expect(stakeManager.mergeStash("" + stashId, newStashId)).to.be.reverted;
     await expect(stakeManager.mergeStash(newStashId, "" + stashId)).to.be.reverted;
@@ -2377,7 +2377,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.returns();
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.connect(signers[1]).createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [0, 0], addrs[11]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await expect(stakeManager.mergeStash("" + stashId, "" + newStashId)).to.be.reverted;
     await expect(stakeManager.mergeStash("" + newStashId, "" + stashId)).to.be.reverted;
@@ -2435,7 +2435,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
@@ -2470,7 +2470,7 @@ describe("StakeManager", function () {
   it("cannot request undelegation if never delegated", async () => {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await rewardDelegators.mock.undelegate.returns();
     await expect(stakeManager.undelegateStash(newStashId)).to.be.reverted;
@@ -2540,7 +2540,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
@@ -2654,7 +2654,7 @@ describe("StakeManager", function () {
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     await stakeManager.delegateStash("" + stashId, addrs[11]);
 
     let stashInfo = await stakeManager.stashes("" + stashId);
