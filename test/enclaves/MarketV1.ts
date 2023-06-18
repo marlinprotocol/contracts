@@ -20,11 +20,6 @@ BN.prototype.e18 = function() {
 	return this.mul(BN.from(10).pow(18));
 };
 
-async function skipBlocks(n: number) {
-	await Promise.all(
-		[...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])),
-	);
-}
 
 const RATE_LOCK = ethers.utils.id("RATE_LOCK");
 const SELECTORS = [RATE_LOCK];
