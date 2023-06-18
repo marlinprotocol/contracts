@@ -116,7 +116,7 @@ describe("ReceiverStaking", function() {
   });
 });
 
-testERC165("ReceiverStaking", async function(signers: Signer[], addrs: string[]) {
+testERC165("ReceiverStaking", async function(_signers: Signer[], addrs: string[]) {
   const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
   let receiverStaking = await upgrades.deployProxy(
     ReceiverStaking,
@@ -141,7 +141,7 @@ testERC165("ReceiverStaking", async function(signers: Signer[], addrs: string[])
   ],
 });
 
-testAdminRole("ReceiverStaking", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("ReceiverStaking", async function(_signers: Signer[], addrs: string[]) {
   const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
   let receiverStaking = await upgrades.deployProxy(
     ReceiverStaking,
