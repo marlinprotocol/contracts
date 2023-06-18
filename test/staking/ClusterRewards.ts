@@ -640,7 +640,7 @@ describe("ClusterRewards feed rewards", function() {
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
-    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.grantRole(await clusterRewards.FEEDER_ROLE(), addrs[2]);
     await clusterRewards.updateRewardWaitTime(43200);
   });
 
@@ -785,7 +785,7 @@ describe("ClusterRewards submit tickets", function() {
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
-    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.grantRole(await clusterRewards.FEEDER_ROLE(), addrs[2]);
     await clusterRewards.updateRewardWaitTime(43200);
   });
 
@@ -1011,7 +1011,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
-    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.grantRole(await clusterRewards.FEEDER_ROLE(), addrs[2]);
     await clusterRewards.updateRewardWaitTime(43200);
   });
 
@@ -1482,7 +1482,7 @@ describe("ClusterRewards claim rewards", function() {
     );
     clusterRewards = getClusterRewards(clusterRewardsContract.address, signers[0]);
 
-    await clusterRewards.grantRole(clusterRewards.FEEDER_ROLE(), addrs[2]);
+    await clusterRewards.grantRole(await clusterRewards.FEEDER_ROLE(), addrs[2]);
     await clusterRewards.updateRewardWaitTime(43200);
   });
 
