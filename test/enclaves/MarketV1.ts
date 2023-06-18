@@ -111,7 +111,7 @@ describe("MarketV1", function() {
 
 testERC165(
 	"MarketV1",
-	async function(signers: Signer[], addrs: string[]) {
+	async function(_signers: Signer[], addrs: string[]) {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1 = await upgrades.deployProxy(
 			MarketV1,
@@ -135,7 +135,7 @@ testERC165(
 	},
 );
 
-testAdminRole("MarketV1", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("MarketV1", async function(_signers: Signer[], addrs: string[]) {
 	const MarketV1 = await ethers.getContractFactory("MarketV1");
 	const marketv1 = await upgrades.deployProxy(
 		MarketV1,
