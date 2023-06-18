@@ -779,33 +779,6 @@ describe("ClusterRewards submit tickets", function() {
 
   takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
-  // it.skip("delete me", async () => {
-  //   await ethSelector.mock.NUMBER_OF_CLUSTERS_TO_SELECT.returns(5);
-  //   let networkId = ethers.utils.id("ETH");
-  //   let epochNumber = getRandomNumber(BN.from(20000)).toNumber();
-  //   let noOfEpochs = 96;
-  //   let tickets: number[][] = [];
-  //   let rawTicketInfo = networkId + epochNumber.toString(16).padStart(8, '0');
-  //   for (let i = 0; i < noOfEpochs * 4; i++) {
-  //     let j: number = parseInt((i / 4) + "");
-  //     let k: number = i % 4;
-  //     if (!tickets[j]) tickets[j] = [];
-  //     tickets[j][k] = parseInt((Math.random() * 13000) + "");
-  //     rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, '0');
-  //   }
-  //   console.log(rawTicketInfo)
-  //   const data = await clusterRewards._parseTicketInfo(rawTicketInfo);
-  //   console.log(tickets);
-  //   expect(data.networkId).to.equal(networkId);
-  //   expect(data.fromEpoch).to.equal(epochNumber);
-  //   expect(data.noOfEpochs).to.equal(noOfEpochs);
-  //   tickets.map((e, i) => {
-  //     e.map((ele, j) => {
-  //       expect(tickets[i][j]).to.equal(data.tickets[i][j], `epoch ${i} ticket ${j} not equal`);
-  //     });
-  //   });
-  // });
-
   it("staker can submit tickets before switch with zero rewards", async function() {
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
@@ -918,18 +891,6 @@ describe("ClusterRewards submit tickets", function() {
     await time.increaseTo(startTime + 34 * 86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1))).to.be.revertedWith("CRW:IT-Epoch not completed");
-  });
-
-  it.skip("staker cannot submit partial tickets", async function() {
-    await receiverStaking.mock.balanceOfSignerAt.reverts();
-    await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], 2).returns(50, addrs[4]);
-    await receiverStaking.mock.getEpochInfo.reverts();
-    await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
-    await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
-
-    await time.increaseTo(startTime + 34 * 86400);
-
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 
   it("staker cannot submit excess tickets", async function() {
