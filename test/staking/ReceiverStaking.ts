@@ -21,11 +21,6 @@ async function skipBlocks(n: number) {
   await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
 }
 
-async function skipTime(t: number) {
-  await ethers.provider.send("evm_increaseTime", [t]);
-  await skipBlocks(1);
-}
-
 let startTime = Math.floor(Date.now() / 1000) + 100000;
 
 describe("ReceiverStaking", function() {
@@ -583,7 +578,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(1000);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 2);
     epochInfo = await receiverStaking.getEpochInfo(2);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 2);
@@ -623,7 +618,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 3);
     epochInfo = await receiverStaking.getEpochInfo(3);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 3);
@@ -747,7 +742,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(2500);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -888,7 +883,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(2200);
     expect(stakeInfo._currentEpoch).to.equal(2);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -1092,7 +1087,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(3);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -1177,7 +1172,7 @@ describe("ReceiverStaking", function() {
     expect(stakeInfo._totalStake).to.equal(1900);
     expect(stakeInfo._currentEpoch).to.equal(4);
 
-    await skipTime(3600);
+    await time.increase(3600);
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
     balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
