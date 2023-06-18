@@ -861,8 +861,6 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  let snapshot: any;
-
   before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -922,8 +920,6 @@ describe("ClusterRegistry", function() {
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
-
-  let snapshot: any;
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1019,8 +1015,6 @@ describe("ClusterRegistry", function() {
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
 
-  let snapshot: any;
-
   before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -1077,8 +1071,6 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
-
-  let snapshot: any;
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1193,8 +1185,6 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  let snapshot: any;
-
   before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -1271,8 +1261,6 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  let snapshot: any;
-
   before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -1331,8 +1319,6 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  let snapshot: any;
-
   before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -1387,8 +1373,6 @@ describe("ClusterRegistry", function() {
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
-
-  let snapshot: any;
 
   before(async function() {
     signers = await ethers.getSigners();
