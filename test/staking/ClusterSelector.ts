@@ -2,6 +2,7 @@ import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract, utils, constants, BigNumber } from "ethers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
@@ -25,11 +26,6 @@ async function skipTime(t: number) {
   await ethers.provider.send("evm_increaseTime", [t]);
   await skipBlocks(1);
 }
-
-async function skipToTimestamp(t: number) {
-  await ethers.provider.send("evm_mine", [t]);
-}
-
 
 let startTime = Math.floor(Date.now() / 1000) + 100000;
 
@@ -1387,7 +1383,7 @@ describe("ClusterSelector", function() {
   it("current epoch", async () => {
     const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
     await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWithPanic(0x11);
-    await skipToTimestamp(startTime);
+    await time.increaseTo(startTime);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
     await skipTime(epochLength - 1);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
@@ -1473,9 +1469,9 @@ describe("ClusterSelector", function() {
     // TODO: test case where contract invokes and reward transfer succeeds and fails
 
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.reverted;
-    await skipToTimestamp(startTime - 2);
+    await time.increaseTo(startTime - 2);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.reverted;
-    await skipToTimestamp(startTime);
+    await time.increaseTo(startTime);
     const epochPlusOne = (await clusterSelector.getCurrentEpoch()).add(1);
     expect(epochPlusOne).equals(2);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.revertedWith("CS:SC-No cluster selected");
@@ -1494,9 +1490,9 @@ describe("ClusterSelector", function() {
     selectedClusters[2] = await clusterSelector.getClusters(epochPlusOne);
     expect(selectedClusters[2][0]).equals(addrs[31]);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.revertedWith("CS:SC-Already selected");
-    await skipToTimestamp(epochLength + startTime - 2);
+    await time.increaseTo(epochLength + startTime - 2);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.revertedWith("CS:SC-Already selected");
-    await skipToTimestamp(epochLength + startTime);
+    await time.increaseTo(epochLength + startTime);
 
     expect(await clusterSelector.getCurrentEpoch()).equals(2);
 
@@ -1511,7 +1507,7 @@ describe("ClusterSelector", function() {
 
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.reverted;
 
-    await skipToTimestamp(epochLength * 2 + startTime);
+    await time.increaseTo(epochLength * 2 + startTime);
     expect(await clusterSelector.getCurrentEpoch()).equals(3);
     await expect(() => clusterSelector.selectClusters({ gasPrice }))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
@@ -1523,7 +1519,7 @@ describe("ClusterSelector", function() {
     expect(await clusterSelector.nodesInTree()).to.equal(1);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.revertedWith("CS:SC-Already selected");
 
-    await skipToTimestamp(epochLength * 3 + startTime + epochLength * 2 / 3);
+    await time.increaseTo(epochLength * 3 + startTime + epochLength * 2 / 3);
     expect(await clusterSelector.getCurrentEpoch()).equals(4);
     await expect(() => clusterSelector.selectClusters({ gasPrice }))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-rewardForSelection, rewardForSelection]);
@@ -1533,7 +1529,7 @@ describe("ClusterSelector", function() {
 
     await clusterSelector.connect(signers[11]).delete_unchecked(addrs[32]);
     expect(await clusterSelector.nodesInTree()).to.equal(0);
-    await skipToTimestamp(epochLength * 4 + startTime + epochLength * 2 / 3);
+    await time.increaseTo(epochLength * 4 + startTime + epochLength * 2 / 3);
     expect(await clusterSelector.getCurrentEpoch()).equals(5);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.revertedWith("CS:SC-No cluster selected");
     await expect(clusterSelector.getClusters(6)).to.be.revertedWith("6");
@@ -1546,7 +1542,7 @@ describe("ClusterSelector", function() {
     await clusterSelector.connect(signers[11]).upsertMultiple(addresses, balances);
     expect(await clusterSelector.nodesInTree()).to.equal(50);
 
-    await skipToTimestamp(epochLength * 8 + startTime + epochLength * 1 / 3);
+    await time.increaseTo(epochLength * 8 + startTime + epochLength * 1 / 3);
     expect(await clusterSelector.getCurrentEpoch()).equals(9);
 
     selectedClusters[8] = await clusterSelector.getClusters(8);
@@ -1578,12 +1574,12 @@ describe("ClusterSelector", function() {
 
     await expect(clusterSelector.updateMissingClusters(10)).to.be.revertedWith("cannot update future epochs");
 
-    await skipToTimestamp(epochLength * 9 + startTime + epochLength * 1 / 3);
+    await time.increaseTo(epochLength * 9 + startTime + epochLength * 1 / 3);
     expect(await clusterSelector.getCurrentEpoch()).equals(10);
     await clusterSelector.updateMissingClusters(10);
     await expect(clusterSelector.updateMissingClusters(11)).to.be.revertedWith("cannot update future epochs");
 
-    await skipToTimestamp(epochLength * 10 + startTime + epochLength * 1 / 3);
+    await time.increaseTo(epochLength * 10 + startTime + epochLength * 1 / 3);
     expect(await clusterSelector.getCurrentEpoch()).equals(11);
     const epoch11GetCostInit = (await clusterSelector.estimateGas.getClusters(11)).toNumber();
     await clusterSelector.updateMissingClusters(11);
@@ -1591,7 +1587,7 @@ describe("ClusterSelector", function() {
     expect(epoch11GetCost).lessThan(epoch11GetCostInit);
     expect(await clusterSelector.getClusters(11)).to.eql(selectedClusters[10]);
 
-    await skipToTimestamp(epochLength * 11 + startTime + epochLength * 1 / 2);
+    await time.increaseTo(epochLength * 11 + startTime + epochLength * 1 / 2);
     expect(await clusterSelector.getCurrentEpoch()).equals(12);
     await clusterSelector.connect(signers[1]).flushReward(addrs[7]);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.div(2));
@@ -1600,7 +1596,7 @@ describe("ClusterSelector", function() {
       .to.changeEtherBalances([clusterSelector, signers[0]], [0, 0]);
     expect(await ethers.provider.getBalance(clusterSelector.address)).to.equal(rewardForSelection.div(2));
 
-    await skipToTimestamp(epochLength * 12 + startTime + epochLength * 1 / 2);
+    await time.increaseTo(epochLength * 12 + startTime + epochLength * 1 / 2);
     expect(await clusterSelector.getCurrentEpoch()).equals(13);
     await increaseBalance(ethers, clusterSelector.address, rewardForSelection.mul(10000000));
     const ClusterSelector = await ethers.getContractFactory("ClusterSelector");
