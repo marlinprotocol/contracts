@@ -2,6 +2,7 @@ import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
@@ -24,11 +25,6 @@ async function skipTime(t: number) {
   await ethers.provider.send("evm_increaseTime", [t]);
   await skipBlocks(1);
 }
-
-async function skipToTimestamp(t: number) {
-  await ethers.provider.send("evm_mine", [t]);
-}
-
 
 let startTime = Math.floor(Date.now() / 1000) + 100000;
 
@@ -505,7 +501,7 @@ describe("ReceiverStaking", function() {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2500);
     expect(await pond.balanceOf(addrs[1])).to.equal(500);
 
-    await skipToTimestamp(startTime + 10);
+    await time.increaseTo(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     let epochInfo = await receiverStaking.getEpochInfo(1);
     let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -557,7 +553,7 @@ describe("ReceiverStaking", function() {
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 2000);
 
-    await skipToTimestamp(startTime + 10);
+    await time.increaseTo(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     let epochInfo = await receiverStaking.getEpochInfo(1);
     let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -688,7 +684,7 @@ describe("ReceiverStaking", function() {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2200);
     expect(await pond.balanceOf(addrs[1])).to.equal(700);
 
-    await skipToTimestamp(startTime + 10);
+    await time.increaseTo(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     let epochInfo = await receiverStaking.getEpochInfo(1);
     let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
@@ -729,7 +725,7 @@ describe("ReceiverStaking", function() {
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2500);
     expect(await pond.balanceOf(addrs[1])).to.equal(500);
 
-    await skipToTimestamp(startTime + 10);
+    await time.increaseTo(startTime + 10);
     let stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     let epochInfo = await receiverStaking.getEpochInfo(1);
     let balanceOfSigner = await receiverStaking.balanceOfSignerAt(addrs[6], 1);
