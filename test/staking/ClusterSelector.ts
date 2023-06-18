@@ -22,10 +22,6 @@ async function skipBlocks(n: number) {
   await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
 }
 
-async function skipTime(t: number) {
-  await ethers.provider.send("evm_increaseTime", [t]);
-  await skipBlocks(1);
-}
 
 let startTime = Math.floor(Date.now() / 1000) + 100000;
 
@@ -1385,17 +1381,17 @@ describe("ClusterSelector", function() {
     await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWithPanic(0x11);
     await time.increaseTo(startTime);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
-    await skipTime(epochLength - 1);
+    await time.increase(epochLength - 1);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
-    await skipTime(1);
+    await time.increase(1);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(2);
-    await skipTime(1);
+    await time.increase(1);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(2);
-    await skipTime(epochLength - 1 + epochLength * 5);
+    await time.increase(epochLength - 1 + epochLength * 5);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(8);
-    await skipTime(epochLength * 6 + epochLength / 2);
+    await time.increase(epochLength * 6 + epochLength / 2);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
-    await skipTime(epochLength - epochLength / 2 - 2);
+    await time.increase(epochLength - epochLength / 2 - 2);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(14);
   });
 
