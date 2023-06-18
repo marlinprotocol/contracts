@@ -1,22 +1,17 @@
 import { network } from "hardhat";
+import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 
 export function takeSnapshotBeforeAndAfterEveryTest(pre_req: () => Promise<any>) {
   let localsnapshot: any;
 
   beforeEach(async function () {
-    localsnapshot = await network.provider.request({
-      method: "evm_snapshot",
-      params: [],
-    });
+    localsnapshot = await helpers.takeSnapshot();
 
     await pre_req();
   });
 
   afterEach(async function () {
-    await network.provider.request({
-      method: "evm_revert",
-      params: [localsnapshot],
-    });
+    await localsnapshot.restore()
   });
 }
 
