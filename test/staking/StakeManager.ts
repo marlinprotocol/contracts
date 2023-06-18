@@ -886,7 +886,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId], [100], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -908,7 +908,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId], [0], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -930,7 +930,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + mpondTokenId], [200], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -952,7 +952,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + mpondTokenId], [0], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -974,7 +974,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 200], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -996,7 +996,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [100, 0], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -1018,7 +1018,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [0, 200], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
@@ -1040,7 +1040,7 @@ describe("StakeManager", function () {
     await stakeManager.createStashAndDelegate(["" + pondTokenId, "" + mpondTokenId], [0, 0], addrs[11]);
     expect(await stakeManager.stashIndex()).to.equal(BN.from(stashIndex).add(1));
 
-    let stashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let stashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
     let stashInfo = await stakeManager.stashes(stashId);
 
     expect(stashInfo.staker).to.equal(addrs[0]);
