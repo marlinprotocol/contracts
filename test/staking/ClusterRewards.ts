@@ -267,7 +267,6 @@ let startTime = Math.floor(Date.now() / 1000) + 100000;
 describe("ClusterRewards add network", function() {
   let signers: Signer[];
   let addrs: string[];
-  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
 
   before(async function() {
@@ -368,7 +367,6 @@ describe("ClusterRewards add network", function() {
 describe("ClusterRewards cluster selector", function() {
   let signers: Signer[];
   let addrs: string[];
-  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
 
   before(async function() {
@@ -485,7 +483,6 @@ describe("ClusterRewards cluster selector", function() {
 describe("ClusterRewards remove network", function() {
   let signers: Signer[];
   let addrs: string[];
-  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
 
   before(async function() {
@@ -535,7 +532,6 @@ describe("ClusterRewards remove network", function() {
 describe("ClusterRewards update global vars", function() {
   let signers: Signer[];
   let addrs: string[];
-  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
 
   before(async function() {
@@ -597,7 +593,6 @@ describe("ClusterRewards update global vars", function() {
 describe("ClusterRewards feed rewards", function() {
   let signers: Signer[];
   let addrs: string[];
-  let receiverStaking: Contract;
   let clusterRewards: ClusterRewards;
   const FEED_REWARD = BN.from("200000").mul(e18);
   const FEEDER_REWARD_1_pc = FEED_REWARD.mul(ETHWEIGHT).div(TOTALWEIGHT).div(100).mul(24 * 60 * 60).div(900);
