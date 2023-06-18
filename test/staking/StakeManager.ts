@@ -1671,7 +1671,7 @@ describe("StakeManager", function () {
   it("cannot request redelegation if never delegated", async () => {
     const stashIndex = await stakeManager.stashIndex();
     await stakeManager.createStash(["" + pondTokenId, "" + mpondTokenId], [100, 200]);
-    let newStashId = await ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
+    let newStashId = ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [stashIndex]));
 
     await expect(stakeManager.requestStashRedelegation(newStashId, addrs[21])).to.be.reverted;
   });
