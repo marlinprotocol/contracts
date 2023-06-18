@@ -76,7 +76,7 @@ testERC165(
   }
 );
 
-testAdminRole("MPond", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("MPond", async function(_signers: Signer[], _addrs: string[]) {
   const MPond = await ethers.getContractFactory("MPond");
   let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
   return mpond;
@@ -84,7 +84,7 @@ testAdminRole("MPond", async function(signers: Signer[], addrs: string[]) {
 
 testRole(
   "MPond",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_signers: Signer[], _addrs: string[]) {
     const MPond = await ethers.getContractFactory("MPond");
     let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
     return mpond;
@@ -1273,7 +1273,7 @@ describe("MPond", function() {
 
 testRole(
   "MPond",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_signers: Signer[], _addrs: string[]) {
     const MPond = await ethers.getContractFactory("MPond");
     let mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
     return mpond;
