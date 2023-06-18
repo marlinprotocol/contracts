@@ -21,6 +21,8 @@ BN.prototype.e18 = function() {
 
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
+const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
+const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
 describe("StakeManager", function() {
   let signers: Signer[];
@@ -203,8 +205,6 @@ describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -326,8 +326,6 @@ describe("StakeManager", function() {
   let mpond: MPond;
   let pondTokenId: String;
   let mpondTokenId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -539,8 +537,6 @@ describe("StakeManager", function() {
   let mpond: MPond;
   let pondTokenId: String;
   let mpondTokenId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -837,8 +833,6 @@ describe("StakeManager", function() {
   let mpond: MPond;
   let pondTokenId: String;
   let mpondTokenId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1135,8 +1129,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1345,8 +1337,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1593,8 +1583,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1709,8 +1697,6 @@ describe("StakeManager", function() {
   let mpondTokenId: String;
   let stashId: String;
   let otherStashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1835,8 +1821,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -1998,8 +1982,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -2118,8 +2100,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -2244,8 +2224,6 @@ describe("StakeManager", function() {
   let mpondTokenId: String;
   let stashId: String;
   let otherStashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -2394,8 +2372,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -2499,8 +2475,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
@@ -2613,8 +2587,6 @@ describe("StakeManager", function() {
   let pondTokenId: String;
   let mpondTokenId: String;
   let stashId: String;
-  const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
-  const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
   before(async function() {
     signers = await ethers.getSigners();
