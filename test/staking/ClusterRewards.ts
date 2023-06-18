@@ -2,6 +2,7 @@ import { ethers, upgrades, network } from "hardhat";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { expect } from "chai";
 import { BigNumber as BN, Signer, Contract } from "ethers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
@@ -23,9 +24,6 @@ async function skipTime(t: number) {
   await skipBlocks(1);
 }
 
-async function skipToTimestamp(t: number) {
-  await ethers.provider.send("evm_mine", [t]);
-}
 
 const e9 = BN.from(10).pow(9);
 const e16 = BN.from(10).pow(16);
@@ -655,7 +653,7 @@ describe("ClusterRewards feed rewards", function() {
   });
 
   it("feeder can feed rewards after start time", async function() {
-    await skipToTimestamp(startTime + 10);
+    await time.increaseTo(startTime + 10);
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
@@ -665,7 +663,7 @@ describe("ClusterRewards feed rewards", function() {
   });
 
   it("feeder can feed rewards till 1 day after switching time", async function() {
-    await skipToTimestamp(startTime + 33 * 86400 + 85000);
+    await time.increaseTo(startTime + 33 * 86400 + 85000);
 
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1);
 
@@ -675,7 +673,7 @@ describe("ClusterRewards feed rewards", function() {
   });
 
   it("feeder cannot feed rewards after 1 day after switching time", async function() {
-    await skipToTimestamp(startTime + 33 * 86400 + 90000);
+    await time.increaseTo(startTime + 33 * 86400 + 90000);
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(50)], 1)).to.be.revertedWith("CRW:F-Invalid method");
   });
@@ -835,7 +833,7 @@ describe("ClusterRewards submit tickets", function() {
     expect(await clusterRewards.clusterRewards(addrs[34])).to.equal(0);
     expect(await clusterRewards.clusterRewards(addrs[35])).to.equal(0);
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[6], 2).returns(50, addrs[7]);
 
@@ -859,7 +857,7 @@ describe("ClusterRewards submit tickets", function() {
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1));
 
@@ -898,7 +896,7 @@ describe("ClusterRewards submit tickets", function() {
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1));
 
@@ -927,7 +925,7 @@ describe("ClusterRewards submit tickets", function() {
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1))).to.be.revertedWith("CRW:IT-Epoch not completed");
   });
@@ -939,7 +937,7 @@ describe("ClusterRewards submit tickets", function() {
     await receiverStaking.mock.getEpochInfo.withArgs(2).returns(500, 5);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(24)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
@@ -952,7 +950,7 @@ describe("ClusterRewards submit tickets", function() {
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 3);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24[],uint16[][])"](ETHHASH, [epochWithRewards], [[MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(41)]])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24[],uint16[][])"](ETHHASH, [], [[MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(15), MAX_TICKETS_1_pc.mul(26)]])).to.be.revertedWith("CRW:MIT-invalid inputs");
@@ -966,7 +964,7 @@ describe("ClusterRewards submit tickets", function() {
     await receiverStaking.mock.getEpochInfo.withArgs(epochWithRewards).returns(500, epochWithRewards + 3);
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     // reverted because of overflow in args
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS.add(1)])).to.be.revertedWith("");
@@ -1065,7 +1063,7 @@ describe("ClusterRewards submit compressed tickets", function() {
       rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, '0');
     }
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
@@ -1084,7 +1082,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const numberOfEpochs = 10;
     let receiverRewards1: BN[] = [];
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1168,7 +1166,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const numberOfEpochs = 10;
     let receiverRewards1: BN[] = [];
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1252,7 +1250,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const numberOfEpochs = 10;
     let receiverRewards1: BN[] = [];
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1324,7 +1322,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const numberOfEpochs = 10;
     let receiverRewards1: BN[] = [];
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1359,7 +1357,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const epochWithRewards = 33 * 86400 / 900 + 2;
     const numberOfEpochs = 10;
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1392,7 +1390,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const epochWithRewards = 33 * 86400 / 900 + 2;
     const numberOfEpochs = 10;
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1420,7 +1418,7 @@ describe("ClusterRewards submit compressed tickets", function() {
     const epochWithRewards = 33 * 86400 / 900 + 2;
     const numberOfEpochs = 10;
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
 
     const ticketsByEpoch: number[][] = [];
     let startEpoch = epochWithRewards;
@@ -1497,7 +1495,7 @@ describe("ClusterRewards claim rewards", function() {
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1));
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], epochWithRewards)).to.be.true;
@@ -1537,7 +1535,7 @@ describe("ClusterRewards claim rewards", function() {
     await ethSelector.mock.getClusters.returns([addrs[31], addrs[32], addrs[33], addrs[34], addrs[35]]);
     let receiverRewards1 = tickets.map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
 
-    await skipToTimestamp(startTime + 34 * 86400);
+    await time.increaseTo(startTime + 34 * 86400);
     await clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, tickets.slice(0, -1));
 
     expect(await clusterRewards.isTicketsIssued(addrs[4], epochWithRewards)).to.be.true;
