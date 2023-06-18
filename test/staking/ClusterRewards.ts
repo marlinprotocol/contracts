@@ -19,11 +19,6 @@ async function skipBlocks(n: number) {
   await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
 }
 
-async function skipTime(t: number) {
-  await ethers.provider.send("evm_increaseTime", [t]);
-  await skipBlocks(1);
-}
-
 
 const e9 = BN.from(10).pow(9);
 const e16 = BN.from(10).pow(16);
@@ -720,7 +715,7 @@ describe("ClusterRewards feed rewards", function() {
     expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(40000);
+    await time.increase(40000);
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
   });
 
@@ -732,9 +727,9 @@ describe("ClusterRewards feed rewards", function() {
     expect(await clusterRewards.rewardDistributedPerEpoch(1)).to.equal(FEEDER_REWARD_1_pc.mul(60));
 
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(40000);
+    await time.increase(40000);
     await expect(clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2)).to.be.revertedWith("CRW:F-Cant distribute reward for new epoch within such short interval");
-    await skipTime(5000);
+    await time.increase(5000);
     await clusterRewards.connect(signers[2]).feed(ETHHASH, [addrs[21], addrs[22]], [e16.mul(10), e16.mul(10)], 2);
 
     expect(await clusterRewards.clusterRewards(addrs[21])).to.equal(FEEDER_REWARD_1_pc.mul(20));
