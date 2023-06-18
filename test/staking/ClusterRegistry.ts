@@ -302,9 +302,9 @@ describe("ClusterRegistry", function () {
     expect(clusterData.isValidCluster).to.be.true;
     await rewardDelegators.mock.updateClusterDelegation.reverts();
 
-    clusterData = await clusterRegistry.getRewardInfo(addrs[0]);
-    expect(clusterData[0]).to.equal(7);
-    expect(clusterData[1]).to.equal(addrs[11]);
+    let clusterRewardData = await clusterRegistry.getRewardInfo(addrs[0]);
+    expect(clusterRewardData[0]).to.equal(7);
+    expect(clusterRewardData[1]).to.equal(addrs[11]);
   });
 
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
