@@ -133,7 +133,7 @@ describe("StakeManager", function() {
 
 testERC165(
   "StakeManager",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_: Signer[], addrs: string[]) {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -161,7 +161,7 @@ testERC165(
   }
 );
 
-testAdminRole("StakeManager", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("StakeManager", async function(_: Signer[], addrs: string[]) {
   const StakeManager = await ethers.getContractFactory("StakeManager");
   let stakeManager = await upgrades.deployProxy(
     StakeManager,
@@ -180,7 +180,7 @@ testAdminRole("StakeManager", async function(signers: Signer[], addrs: string[])
 
 testRole(
   "StakeManager",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_: Signer[], addrs: string[]) {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
