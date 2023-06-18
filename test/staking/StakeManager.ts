@@ -15,25 +15,25 @@ declare module "ethers" {
     e18(this: BigNumber): BigNumber;
   }
 }
-BN.prototype.e18 = function () {
+BN.prototype.e18 = function() {
   return this.mul(BN.from(10).pow(18));
 };
 
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
-  it("deploys with initialization disabled", async function () {
+  it("deploys with initialization disabled", async function() {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await StakeManager.deploy();
 
@@ -49,7 +49,7 @@ describe("StakeManager", function () {
     ).to.be.reverted;
   });
 
-  it("deploys as proxy and initializes", async function () {
+  it("deploys as proxy and initializes", async function() {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -80,7 +80,7 @@ describe("StakeManager", function () {
     expect(await stakeManager.lockWaitTime(ethers.utils.id("UNDELEGATION_LOCK"))).to.equal(UNDELEGATION_WAIT_TIME);
   });
 
-  it("upgrades", async function () {
+  it("upgrades", async function() {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -133,7 +133,7 @@ describe("StakeManager", function () {
 
 testERC165(
   "StakeManager",
-  async function (signers: Signer[], addrs: string[]) {
+  async function(signers: Signer[], addrs: string[]) {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -161,7 +161,7 @@ testERC165(
   }
 );
 
-testAdminRole("StakeManager", async function (signers: Signer[], addrs: string[]) {
+testAdminRole("StakeManager", async function(signers: Signer[], addrs: string[]) {
   const StakeManager = await ethers.getContractFactory("StakeManager");
   let stakeManager = await upgrades.deployProxy(
     StakeManager,
@@ -180,7 +180,7 @@ testAdminRole("StakeManager", async function (signers: Signer[], addrs: string[]
 
 testRole(
   "StakeManager",
-  async function (signers: Signer[], addrs: string[]) {
+  async function(signers: Signer[], addrs: string[]) {
     const StakeManager = await ethers.getContractFactory("StakeManager");
     let stakeManager = await upgrades.deployProxy(
       StakeManager,
@@ -199,7 +199,7 @@ testRole(
   "DELEGATABLE_TOKEN_ROLE"
 );
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -226,7 +226,7 @@ describe("StakeManager", function () {
     stakeManager = getStakeManager(stakeManagerContract.address, signers[0]);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("non admin cannot update lockWaitTime", async () => {
     await expect(stakeManager.connect(signers[1]).updateLockWaitTime(REDELEGATION_LOCK, 10)).to.be.reverted;
@@ -318,7 +318,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -329,7 +329,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -362,7 +362,7 @@ describe("StakeManager", function () {
     await pond.approve(stakeManager.address, 10000);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can create stash with pond", async () => {
     const stashIndex = await stakeManager.stashIndex();
@@ -530,7 +530,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -542,7 +542,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -579,7 +579,7 @@ describe("StakeManager", function () {
     await pond.approve(stakeManager.address, 10000);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can delegate stash with pond", async () => {
     const stashIndex = await stakeManager.stashIndex();
@@ -828,7 +828,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -840,7 +840,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -876,7 +876,7 @@ describe("StakeManager", function () {
     await pond.approve(stakeManager.address, 10000);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can create and delegate stash with pond", async () => {
     await rewardDelegators.mock.delegate.reverts();
@@ -1126,7 +1126,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -1138,7 +1138,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1187,7 +1187,7 @@ describe("StakeManager", function () {
     expect(await mpond.getDelegates(stakeManager.address, addrs[0])).to.equal(200);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can add to undelegated stash with pond", async () => {
     await stakeManager.addToStash("" + stashId, ["" + pondTokenId], [50]);
@@ -1335,7 +1335,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -1348,7 +1348,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1403,7 +1403,7 @@ describe("StakeManager", function () {
     expect(await mpond.getDelegates(stakeManager.address, addrs[0])).to.equal(200);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can add to delegated stash with pond", async () => {
     await rewardDelegators.mock.delegate.reverts();
@@ -1583,7 +1583,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -1596,7 +1596,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1653,7 +1653,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can request stash redelegation", async () => {
     await stakeManager.requestStashRedelegation("" + stashId, addrs[21]);
@@ -1698,7 +1698,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -1712,7 +1712,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1770,7 +1770,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can request multiple redelegations", async () => {
     await stakeManager.requestStashRedelegations(["" + stashId, "" + otherStashId], [addrs[21], addrs[22]]);
@@ -1825,7 +1825,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -1838,7 +1838,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1895,7 +1895,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can redelegate after redelegation time", async () => {
     await rewardDelegators.mock.undelegate.reverts();
@@ -1988,7 +1988,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2001,7 +2001,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2057,7 +2057,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can cancel redelegation after redelegation time", async () => {
     await rewardDelegators.mock.undelegate.returns();
@@ -2108,7 +2108,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2121,7 +2121,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2178,7 +2178,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can split stash", async () => {
     const stashIndex = await stakeManager.stashIndex();
@@ -2233,7 +2233,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2247,7 +2247,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2305,7 +2305,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can merge", async () => {
     await stakeManager.mergeStash("" + stashId, "" + otherStashId);
@@ -2384,7 +2384,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2397,7 +2397,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2453,7 +2453,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can request undelegation", async () => {
     await rewardDelegators.mock.undelegate.reverts();
@@ -2489,7 +2489,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2502,7 +2502,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2558,7 +2558,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can cancel undelegation before undelegation time", async () => {
     await rewardDelegators.mock.undelegate.returns();
@@ -2603,7 +2603,7 @@ describe("StakeManager", function () {
   });
 });
 
-describe("StakeManager", function () {
+describe("StakeManager", function() {
   let signers: Signer[];
   let addrs: string[];
   let stakeManager: StakeManager;
@@ -2616,7 +2616,7 @@ describe("StakeManager", function () {
   const REDELEGATION_LOCK = ethers.utils.id("REDELEGATION_LOCK");
   const UNDELEGATION_LOCK = ethers.utils.id("UNDELEGATION_LOCK");
 
-  before(async function () {
+  before(async function() {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -2672,7 +2672,7 @@ describe("StakeManager", function () {
     await rewardDelegators.mock.delegate.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => {});
+  takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
   it("can withdraw all after undelegation time", async () => {
     await rewardDelegators.mock.undelegate.returns();
