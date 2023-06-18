@@ -14,11 +14,11 @@ import { getClusterRewards } from "../../utils/typechainConvertor";
 import { randomlyDivideInXPieces } from "../../benchmarks/helpers/util";
 
 
-const e9 = BN.from(10).pow(9);
+// const e9 = BN.from(10).pow(9);
 const e16 = BN.from(10).pow(16);
 const e18 = BN.from(10).pow(18);
-const e20 = BN.from(10).pow(20);
-const e22 = BN.from(10).pow(22);
+// const e20 = BN.from(10).pow(20);
+// const e22 = BN.from(10).pow(22);
 
 const ETHHASH = ethers.utils.id("ETH");
 const DOTHASH = ethers.utils.id("DOT");
@@ -32,7 +32,7 @@ const TOTALWEIGHT = ETHWEIGHT + DOTWEIGHT + NEARWEIGHT;
 const MAX_TICKETS = BN.from(2).pow(16);
 const MAX_REWARD = BN.from("242352345636745756867986");
 const MAX_TICKETS_1_pc = MAX_TICKETS.div(100);
-const MAX_REWARD_1_pc = MAX_REWARD.div(100);
+// const MAX_REWARD_1_pc = MAX_REWARD.div(100);
 const ETH_REWARD = MAX_REWARD.mul(ETHWEIGHT).div(TOTALWEIGHT);
 
 const tickets = [
