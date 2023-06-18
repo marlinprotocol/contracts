@@ -12,7 +12,7 @@ import {
   getClusterRegistry,
 } from "../../utils/typechainConvertor";
 import { testERC165 } from "../helpers/erc165";
-import { testAdminRole, testRole } from "../helpers/rbac";
+import { testAdminRole } from "../helpers/rbac";
 
 declare module "ethers" {
   interface BigNumber {
