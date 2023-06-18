@@ -84,7 +84,7 @@ describe("ClusterRegistry", function() {
 
 testERC165(
   "ClusterRegistry",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_: Signer[], addrs: string[]) {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
     return clusterRegistry;
@@ -101,7 +101,7 @@ testERC165(
   }
 );
 
-testAdminRole("ClusterRegistry", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("ClusterRegistry", async function(_: Signer[], addrs: string[]) {
   const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
   let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
   return clusterRegistry;
