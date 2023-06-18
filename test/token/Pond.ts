@@ -77,7 +77,7 @@ testERC165(
   }
 );
 
-testAdminRole("Pond", async function(signers: Signer[], addrs: string[]) {
+testAdminRole("Pond", async function(_signers: Signer[], _addrs: string[]) {
   const Pond = await ethers.getContractFactory("Pond");
   let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
   return pond;
@@ -170,7 +170,7 @@ describe("Pond", function() {
 
 testRole(
   "Pond",
-  async function(signers: Signer[], addrs: string[]) {
+  async function(_signers: Signer[], _addrs: string[]) {
     const Pond = await ethers.getContractFactory("Pond");
     let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
     return pond;
