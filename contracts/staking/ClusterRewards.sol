@@ -204,7 +204,10 @@ contract ClusterRewards is
         uint256 _epochTotalStake,
         uint256 _epochReceiverStake
     ) internal pure returns (uint256 _rewardShare) {
-        _rewardShare = (_totalNetworkRewardsPerEpoch * _epochReceiverStake) / _epochTotalStake;
+        unchecked {
+            // Note: multiplication can't overflow as max token  supply is 10^38, hence max value of multiplication is 10^38*10^38 < 2^256
+            _rewardShare = (_totalNetworkRewardsPerEpoch * _epochReceiverStake) / _epochTotalStake;
+        }
     }
 
     function _processReceiverTickets(
