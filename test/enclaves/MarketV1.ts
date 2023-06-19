@@ -11,11 +11,11 @@ import { testAdminRole } from "../helpers/rbac";
 
 declare module "ethers" {
 	interface BigNumber {
-		e18(this: BigNumber): BigNumber;
+		e12(this: BigNumber): BigNumber;
 	}
 }
-BN.prototype.e18 = function() {
-	return this.mul(BN.from(10).pow(18));
+BN.prototype.e12 = function() {
+	return this.mul(BN.from(10).pow(12));
 };
 
 
@@ -328,13 +328,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		const jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -345,14 +345,14 @@ describe("MarketV1", function() {
 	it("cannot open job without enough approved", async () => {
 		await pond.connect(signers[1]).approve(marketv1.address, 49);
 		await expect(
-			marketv1.connect(signers[1]).jobOpen("some metadata", addrs[2], 5, 50),
+			marketv1.connect(signers[1]).jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50),
 		).to.be.revertedWith("ERC20: insufficient allowance");
 	});
 
 	it("cannot open job without enough balance", async () => {
 		await pond.connect(signers[1]).approve(marketv1.address, 5000);
 		await expect(
-			marketv1.connect(signers[1]).jobOpen("some metadata", addrs[2], 5, 5000),
+			marketv1.connect(signers[1]).jobOpen("some metadata", addrs[2], BN.from(5).e12(), 5000),
 		).to.be.revertedWith("ERC20: transfer amount exceeds balance");
 	});
 });
@@ -391,13 +391,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -414,7 +414,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.be.equal(50 - amount);
 		expect(jobInfo.lastSettled).to.be.within(ts + 5, ts + 6);
 
@@ -430,13 +430,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 50);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -452,7 +452,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(0);
 		expect(jobInfo.lastSettled).to.be.within(ts + 11, ts + 12);
 
@@ -496,13 +496,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 75);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -517,7 +517,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(75);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -532,13 +532,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 74);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -557,13 +557,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 5000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -588,13 +588,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 5000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 5, 50);
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(5);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -645,13 +645,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -669,7 +669,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(700 - amount);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -685,13 +685,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -710,7 +710,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(700 - amount);
 		expect(jobInfo.lastSettled).to.be.within(ts + 20, ts + 21);
 
@@ -726,13 +726,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -751,7 +751,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(700 - amount);
 		expect(jobInfo.lastSettled).to.be.within(ts + 20, ts + 21);
 
@@ -775,13 +775,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -800,13 +800,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -826,13 +826,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -880,13 +880,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -905,13 +905,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -933,13 +933,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -957,13 +957,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1009,13 +1009,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1034,7 +1034,7 @@ describe("MarketV1", function() {
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1049,13 +1049,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1074,13 +1074,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1103,13 +1103,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1159,13 +1159,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1205,13 +1205,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1230,13 +1230,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1259,13 +1259,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1315,13 +1315,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1360,13 +1360,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1408,13 +1408,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1441,13 +1441,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1466,13 +1466,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
@@ -1495,13 +1495,13 @@ describe("MarketV1", function() {
 		await pond.connect(signers[1]).approve(marketv1.address, 1000);
 		await marketv1
 			.connect(signers[1])
-			.jobOpen("some metadata", addrs[2], 1, 800);
+			.jobOpen("some metadata", addrs[2], BN.from(1).e12(), 800);
 
 		let jobInfo = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo.metadata).to.equal("some metadata");
 		expect(jobInfo.owner).to.equal(addrs[1]);
 		expect(jobInfo.provider).to.equal(addrs[2]);
-		expect(jobInfo.rate).to.equal(1);
+		expect(jobInfo.rate).to.equal(BN.from(1).e12());
 		expect(jobInfo.balance).to.equal(800);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
 
