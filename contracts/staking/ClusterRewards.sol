@@ -14,8 +14,6 @@ import "./interfaces/IClusterSelector.sol";
 import "./ReceiverStaking.sol";
 import "./interfaces/IClusterRewards.sol";
 
-import "./interfaces/IRewardDelegators.sol";
-
 contract ClusterRewards is
     Initializable, // initializer
     ContextUpgradeable, // _msgSender, _msgData
