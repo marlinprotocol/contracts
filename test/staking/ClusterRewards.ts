@@ -531,7 +531,7 @@ describe("ClusterRewards submit tickets", function () {
   let receiverStaking: Contract;
   let ethSelector: Contract;
   let clusterRewards: ClusterRewards;
-  const receiverEpochLength: number = 900
+  const receiverEpochLength: number = 900;
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -557,9 +557,9 @@ describe("ClusterRewards submit tickets", function () {
   takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("staker can submit tickets", async function () {
-    const totalEpochStake = 500
-    const epochToUse = 2
-    const receiverStakeAmount = 50
+    const totalEpochStake = 500;
+    const epochToUse = 2;
+    const receiverStakeAmount = 50;
     await receiverStaking.mock.balanceOfSignerAt.reverts();
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[5], epochToUse).returns(receiverStakeAmount, addrs[4]);
     await receiverStaking.mock.getEpochInfo.reverts();
@@ -580,7 +580,7 @@ describe("ClusterRewards submit tickets", function () {
 
     await skipToTimestamp(startTime + 34 * 86400);
 
-    const anotherReceiverStake = 78
+    const anotherReceiverStake = 78;
     await receiverStaking.mock.balanceOfSignerAt.withArgs(addrs[6], 2).returns(anotherReceiverStake, addrs[7]);
     await clusterRewards.connect(signers[6])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, 2, tickets.slice(0, -1));
 
@@ -854,9 +854,9 @@ describe("ClusterRewards submit compressed tickets", function () {
       tickets[j][k] = parseInt(Math.random() * 13000 + "");
       rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
     }
-    let lastTicket = MAX_TICKETS.sub(tickets[0].reduce((prev, curr) => prev.add(curr), BN.from(0)))
+    let lastTicket = MAX_TICKETS.sub(tickets[0].reduce((prev, curr) => prev.add(curr), BN.from(0)));
     let receiverRewards1 = tickets[0].map((e) => ETH_REWARD.mul(50).mul(e).div(500).div(MAX_TICKETS));
-    let lastReward = ETH_REWARD.mul(50).mul(lastTicket).div(500).div(MAX_TICKETS)
+    let lastReward = ETH_REWARD.mul(50).mul(lastTicket).div(500).div(MAX_TICKETS);
 
     // check the events arguments emitted
     await expect(clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo)).to.emit(clusterRewards, "TicketsIssued");
@@ -1017,14 +1017,30 @@ describe("ClusterRewards submit compressed tickets", function () {
 
     await clusterRewards.connect(signers[5])["issueTickets(bytes)"](rawTicketInfo);
 
+    const percentageDelta = BN.from(10).pow(2);
     for (let i = 0; i < numberOfEpochs; i++) {
       expect(await clusterRewards.isTicketsIssued(addrs[4], startEpoch + i)).to.be.true;
       expect(await clusterRewards.isTicketsIssued(addrs[5], startEpoch + i)).to.be.false;
-      expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(receiverRewards1[0].add(extraRewards1[0]), 10);
-      expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(receiverRewards1[1].add(extraRewards1[1]), 10);
-      expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(receiverRewards1[2].add(extraRewards1[2]), 10);
-      expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(receiverRewards1[3].add(extraRewards1[3]), 10);
-      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(receiverRewards1[4].add(extraRewards1[4]), 10);
+      expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(
+        receiverRewards1[0].add(extraRewards1[0]),
+        receiverRewards1[0].add(extraRewards1[0]).mul(percentageDelta).div(e18)
+      );
+      expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(
+        receiverRewards1[1].add(extraRewards1[1]),
+        receiverRewards1[1].add(extraRewards1[1]).mul(percentageDelta).div(e18)
+      );
+      expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(
+        receiverRewards1[2].add(extraRewards1[2]),
+        receiverRewards1[2].add(extraRewards1[2]).mul(percentageDelta).div(e18)
+      );
+      expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(
+        receiverRewards1[3].add(extraRewards1[3]),
+        receiverRewards1[3].add(extraRewards1[3]).mul(percentageDelta).div(e18)
+      );
+      expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(
+        receiverRewards1[4].add(extraRewards1[4]),
+        receiverRewards1[4].add(extraRewards1[4]).mul(percentageDelta).div(e18)
+      );
     }
 
     startEpoch += numberOfEpochs;
@@ -1072,23 +1088,23 @@ describe("ClusterRewards submit compressed tickets", function () {
       expect(await clusterRewards.isTicketsIssued(addrs[5], startEpoch + i)).to.be.false;
       expect(await clusterRewards.clusterRewards(addrs[31])).to.be.closeTo(
         receiverRewards1[0].add(receiverRewards2[4]).add(extraRewards1[0]).add(extraRewards2[4]),
-        20
+        receiverRewards1[0].add(receiverRewards2[4]).add(extraRewards1[0]).add(extraRewards2[4]).mul(percentageDelta).div(e18)
       );
       expect(await clusterRewards.clusterRewards(addrs[32])).to.be.closeTo(
         receiverRewards1[1].add(receiverRewards2[3]).add(extraRewards1[1]).add(extraRewards2[3]),
-        20
+        receiverRewards1[1].add(receiverRewards2[3]).add(extraRewards1[1]).add(extraRewards2[3]).mul(percentageDelta).div(e18)
       );
       expect(await clusterRewards.clusterRewards(addrs[33])).to.be.closeTo(
         receiverRewards1[2].add(receiverRewards2[2]).add(extraRewards1[2]).add(extraRewards2[2]),
-        20
+        receiverRewards1[2].add(receiverRewards2[2]).add(extraRewards1[2]).add(extraRewards2[2]).mul(percentageDelta).div(e18)
       );
       expect(await clusterRewards.clusterRewards(addrs[34])).to.be.closeTo(
         receiverRewards1[3].add(receiverRewards2[1]).add(extraRewards1[3]).add(extraRewards2[1]),
-        20
+        receiverRewards1[3].add(receiverRewards2[1]).add(extraRewards1[3]).add(extraRewards2[1]).mul(percentageDelta).div(e18)
       );
       expect(await clusterRewards.clusterRewards(addrs[35])).to.be.closeTo(
         receiverRewards1[4].add(receiverRewards2[0]).add(extraRewards1[4]).add(extraRewards2[0]),
-        20
+        receiverRewards1[4].add(receiverRewards2[0]).add(extraRewards1[4]).add(extraRewards2[0]).mul(percentageDelta).div(e18)
       );
     }
   });
