@@ -16,7 +16,7 @@ interface IClusterRewards {
     function addNetwork(bytes32 networkId, uint256 rewardWeight, address clusterSelector) external;
     function removeNetwork(bytes32 networkId) external;
     function updateNetwork(bytes32 networkId, uint256 updatedRewardWeight, address updatedClusterSelector) external;
-    function getRewardForEpoch(uint256 epoch, bytes32 networkId) external view returns(uint256);
+    function getRewardForEpoch(bytes32 networkId) external view returns(uint256);
     function claimReward(address cluster) external returns(uint256);
     function changeRewardPerEpoch(uint256 updatedRewardPerEpoch) external;
     function _increaseReceiverBalance(address receiver, uint128 amount) external;
