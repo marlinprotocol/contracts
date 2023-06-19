@@ -119,11 +119,11 @@ contract ClusterRewards is
     mapping(bytes32 => uint256) public override rewardWeight;
     uint256 public totalRewardWeight;
     uint256 public override totalRewardsPerEpoch;
-    uint256 public unused_payoutDenomination;
+    uint256 public __unused_payoutDenomination;
 
-    mapping(uint256 => uint256) public unused_rewardDistributedPerEpoch;
-    uint256 public unused_latestNewEpochRewardAt;
-    uint256 public unused_rewardDistributionWaitTime;
+    mapping(uint256 => uint256) public __unused_rewardDistributedPerEpoch;
+    uint256 public __unused_latestNewEpochRewardAt;
+    uint256 public __unused_rewardDistributionWaitTime;
 
     mapping(address => mapping(uint256 => uint256)) public ticketsIssued;
     mapping(bytes32 => IClusterSelector) public override clusterSelectors; // networkId -> clusterSelector
