@@ -269,24 +269,27 @@ contract ClusterRewards is
 
         ReceiverPayment memory receiverPayment = receiverRewardPayment[_receiver];
         uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_networkId);
-
+        uint256 _rewardToGive;
 
         unchecked {
             for (uint256 i = 0; i < _epochs.length; ++i) {
-                (uint256 _epochTotalStake, uint256 _currentEpoch) = receiverStaking.getEpochInfo(_epochs[i]);
+                _rewardToGive = MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
+                uint256 _epochTotalStake;
+                {
+                    uint256 _currentEpoch;
+                    (_epochTotalStake, _currentEpoch) = receiverStaking.getEpochInfo(_epochs[i]);
 
-                require(_epochs[i] < _currentEpoch, "CRW:IT-Epoch not completed");
+                    require(_epochs[i] < _currentEpoch, "CRW:IT-Epoch not completed");
+                }
                 address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epochs[i]);
                 uint256 _epochReceiverStake = receiverStaking.balanceOfAt(_receiver, _epochs[i]);
 
-                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) +
-                    MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
+                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) + _rewardToGive;
 
                 _processReceiverTickets(_receiver, _epochs[i], _selectedClusters, _tickets[i], _rewardShare);
                 // Note: no checks before casting as inputs are uint128
-                receiverPayment.rewardRemaining -= uint128(MathUpgradeable
-                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
-                _emitTicketsIssued(_networkId, _epochs[i], msg.sender);
+                receiverPayment.rewardRemaining -= uint128(_rewardToGive);
+                emit TicketsIssued(_networkId, _epochs[i], msg.sender);
             }
         }
         receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
@@ -304,26 +307,22 @@ contract ClusterRewards is
 
         ReceiverPayment memory receiverPayment = receiverRewardPayment[_receiver];
         uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_networkId);
+        uint256 _rewardToGive;
 
         unchecked {
             for (uint256 i = 0; i < _noOfEpochs; ++i) {
-                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]) +
-                    MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
+                _rewardToGive = MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
+                uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _stakes[i], _balances[i]) + _rewardToGive;
 
                 _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _rewardShare);
-                _emitTicketsIssued(_networkId, _fromEpoch, msg.sender);
+                emit TicketsIssued(_networkId, _fromEpoch, msg.sender);
                 // Note: no checks before casting as inputs are uint128
-                receiverPayment.rewardRemaining -= uint128(MathUpgradeable
-                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
+                receiverPayment.rewardRemaining -= uint128(_rewardToGive);
                 ++_fromEpoch;
             }
         }
 
         receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
-    }
-
-    function _emitTicketsIssued(bytes32 _networkId, uint256 _epoch, address signer) internal {
-        emit TicketsIssued(_networkId, _epoch, signer);
     }
 
     function _parseTicketInfo(
@@ -399,15 +398,15 @@ contract ClusterRewards is
 
         address[] memory _selectedClusters = clusterSelectors[_networkId].getClusters(_epoch);
         uint256 _totalNetworkRewardsPerEpoch = getRewardForEpoch(_networkId);
+        uint256 _rewardToGive = MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
 
-        uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) +
-            MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
+        uint256 _rewardShare = _getRewardShare(_totalNetworkRewardsPerEpoch, _epochTotalStake, _epochReceiverStake) + _rewardToGive;
 
         _processReceiverTickets(_receiver, _epoch, _selectedClusters, _tickets, _rewardShare);
-        _emitTicketsIssued(_networkId, _epoch, msg.sender);
+        emit TicketsIssued(_networkId, _epoch, msg.sender);
 
         // Note: no checks before casting as inputs are uint128
-        receiverPayment.rewardRemaining -= uint128(MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
+        receiverPayment.rewardRemaining -= uint128(_rewardToGive);
         receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
