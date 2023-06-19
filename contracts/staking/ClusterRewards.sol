@@ -9,7 +9,6 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 
 import "./interfaces/IClusterSelector.sol";
 import "./ReceiverStaking.sol";
@@ -27,7 +26,6 @@ contract ClusterRewards is
     UUPSUpgradeable, // public upgrade
     IClusterRewards // interface
 {
-    using SafeCastUpgradeable for uint256;
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
 
@@ -284,9 +282,9 @@ contract ClusterRewards is
                     MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch);
 
                 _processReceiverTickets(_receiver, _epochs[i], _selectedClusters, _tickets[i], _rewardShare);
-                receiverPayment.rewardRemaining -= MathUpgradeable
-                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch)
-                    .toUint128();
+                // Note: no checks before casting as inputs are uint128
+                receiverPayment.rewardRemaining -= uint128(MathUpgradeable
+                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
                 _emitTicketsIssued(_networkId, _epochs[i], msg.sender);
             }
         }
@@ -313,9 +311,9 @@ contract ClusterRewards is
 
                 _processReceiverTickets(_receiver, _fromEpoch, _selectedClusters[i], _tickets[i], _rewardShare);
                 _emitTicketsIssued(_networkId, _fromEpoch, msg.sender);
-                receiverPayment.rewardRemaining -= MathUpgradeable
-                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch)
-                    .toUint128();
+                // Note: no checks before casting as inputs are uint128
+                receiverPayment.rewardRemaining -= uint128(MathUpgradeable
+                    .min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
                 ++_fromEpoch;
             }
         }
