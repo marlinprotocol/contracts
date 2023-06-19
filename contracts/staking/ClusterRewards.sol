@@ -406,7 +406,8 @@ contract ClusterRewards is
         _processReceiverTickets(_receiver, _epoch, _selectedClusters, _tickets, _rewardShare);
         _emitTicketsIssued(_networkId, _epoch, msg.sender);
 
-        receiverPayment.rewardRemaining -= MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch).toUint128();
+        // Note: no checks before casting as inputs are uint128
+        receiverPayment.rewardRemaining -= uint128(MathUpgradeable.min(receiverPayment.rewardRemaining, receiverPayment.rewardPerEpoch));
         receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
