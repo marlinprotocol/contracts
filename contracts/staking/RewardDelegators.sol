@@ -539,9 +539,7 @@ contract RewardDelegators is
         emit AddReceiverBalance(receiver, amount);
     }
 
-    // msg.sender is staker here
     function setReceiverRewardPerEpoch(uint128 rewardPerEpoch) public {
-        require(rewardPerEpoch != 0, "RD: reward 0");
         address _sender = _msgSender();
         clusterRewards._setReceiverRewardPerEpoch(_sender, rewardPerEpoch);
         emit UpdateReceiverRewardPerEpoch(_sender, rewardPerEpoch);
