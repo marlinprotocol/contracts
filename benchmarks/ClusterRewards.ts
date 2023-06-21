@@ -3,6 +3,7 @@ import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterRewards";
 import { BigNumber, BigNumberish, constants, Contract, PopulatedTransaction, Signer, utils } from "ethers";
 import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
+import { ClusterRewards__factory } from "../typechain-types";
 
 const estimator = new ethers.Contract("0x000000000000000000000000000000000000006c", [
   "function getPricesInArbGas() view returns(uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, uint256)",
@@ -10,23 +11,23 @@ const estimator = new ethers.Contract("0x000000000000000000000000000000000000006
 const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
 describe("Cluster Rewards", async () => {
-    benchmarkDeployment(
-      "ClusterRewards",
-      [],
+  benchmarkDeployment(
+    "ClusterRewards",
+    [],
+    [
+      "0x000000000000000000000000000000000000dEaD",
+      "0x000000000000000000000000000000000000dEaD",
+      "0x000000000000000000000000000000000000dEaD",
+      [ethers.utils.id("ETH"), ethers.utils.id("DOT"), ethers.utils.id("NEAR")],
+      [100, 200, 300],
       [
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",
-        [ethers.utils.id("ETH"), ethers.utils.id("DOT"), ethers.utils.id("NEAR")],
-        [100, 200, 300],
-        [
-          "0x000000000000000000000000000000000000dEaD",
-          "0x000000000000000000000000000000000000dEaD",
-          "0x000000000000000000000000000000000000dEaD",
-        ],
-        60000,
-      ]
-    );
+      ],
+      60000,
+    ]
+  );
 
   describe("issue tickets", async () => {
     let pond: Contract;
@@ -248,6 +249,110 @@ describe("Cluster Rewards", async () => {
       console.log(`L1 gas used for ${DAY / EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
 
       console.log(gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+    });
+
+    it("all epochs in a day, tickets to all selected clusters optimized, two times (not gas estimate)", async function () {
+      {
+        this.timeout(1000000);
+        const selectedReceiverIndex: number = Math.floor(Math.random() * receivers.length);
+        const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
+
+        let noOfEpochs = DAY / EPOCH_LENGTH;
+
+        // skip first epoch
+        await skipTime(EPOCH_LENGTH * 3);
+
+        // select clusters for next epoch
+        await clusterSelector.selectClusters();
+        let epoch = (await clusterSelector.getCurrentEpoch()).toNumber() + 1;
+
+        for (let i = 1; i <= noOfEpochs; i++) {
+          // skip to next epoch
+          await skipTime(EPOCH_LENGTH);
+
+          await clusterSelector.selectClusters();
+        }
+        // skip to next epoch so that tickets can be distributed for previous epoch
+        await skipTime(EPOCH_LENGTH);
+
+        let networkId = ethers.utils.id("ETH");
+        let tickets: number[][] = [];
+        let rawTicketInfo = networkId + epoch.toString(16).padStart(8, "0");
+        for (let i = 0; i < noOfEpochs * 4; i++) {
+          let j: number = parseInt(i / 4 + "");
+          let k: number = i % 4;
+          if (!tickets[j]) tickets[j] = [];
+          tickets[j][k] = parseInt(Math.random() * 13000 + "");
+          rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
+        }
+
+        const clusterRewardInstance = ClusterRewards__factory.connect(clusterRewards.address, selectedReceiverSigner);
+        const transaction = await clusterRewardInstance.connect(selectedReceiverSigner)["issueTickets(bytes)"](rawTicketInfo);
+        const receipt = await transaction.wait();
+        console.log(`gas used for ${DAY / EPOCH_LENGTH} epochs : ${receipt.gasUsed.toNumber()}`);
+
+        console.log(
+          "L1 gas cost Per L2 Tx",
+          l1GasDetails.gasPerL2Tx.toNumber(),
+          "L1 Gas cost Per calldata byte",
+          l1GasDetails.gasPerL1CallDataByte.toNumber()
+        );
+        const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((rawTicketInfo.length - 2) / 2));
+        console.log(`L1 gas used for ${DAY / EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
+
+        console.log(receipt.gasUsed.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+      }
+
+      {
+        this.timeout(1000000);
+        const selectedReceiverIndex: number = Math.floor(Math.random() * receivers.length);
+        const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
+
+        let noOfEpochs = DAY / EPOCH_LENGTH;
+
+        // skip first epoch
+        await skipTime(EPOCH_LENGTH * 3);
+
+        // select clusters for next epoch
+        await clusterSelector.selectClusters();
+        let epoch = (await clusterSelector.getCurrentEpoch()).toNumber() + 1;
+
+        for (let i = 1; i <= noOfEpochs; i++) {
+          // skip to next epoch
+          await skipTime(EPOCH_LENGTH);
+
+          await clusterSelector.selectClusters();
+        }
+        // skip to next epoch so that tickets can be distributed for previous epoch
+        await skipTime(EPOCH_LENGTH);
+
+        let networkId = ethers.utils.id("ETH");
+        let tickets: number[][] = [];
+        let rawTicketInfo = networkId + epoch.toString(16).padStart(8, "0");
+        for (let i = 0; i < noOfEpochs * 4; i++) {
+          let j: number = parseInt(i / 4 + "");
+          let k: number = i % 4;
+          if (!tickets[j]) tickets[j] = [];
+          tickets[j][k] = parseInt(Math.random() * 13000 + "");
+          rawTicketInfo = rawTicketInfo + tickets[j][k].toString(16).padStart(4, "0");
+        }
+
+        const clusterRewardInstance = ClusterRewards__factory.connect(clusterRewards.address, selectedReceiverSigner);
+        const transaction = await clusterRewardInstance.connect(selectedReceiverSigner)["issueTickets(bytes)"](rawTicketInfo);
+        const receipt = await transaction.wait();
+        console.log(`gas used for ${DAY / EPOCH_LENGTH} epochs : ${receipt.gasUsed.toNumber()}`);
+
+        console.log(
+          "L1 gas cost Per L2 Tx",
+          l1GasDetails.gasPerL2Tx.toNumber(),
+          "L1 Gas cost Per calldata byte",
+          l1GasDetails.gasPerL1CallDataByte.toNumber()
+        );
+        const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((rawTicketInfo.length - 2) / 2));
+        console.log(`L1 gas used for ${DAY / EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
+
+        console.log(receipt.gasUsed.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+      }
     });
   });
 });
