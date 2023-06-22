@@ -50,7 +50,15 @@ export async function deploy(
 
   let clusterRewards = await upgrades.deployProxy(
     ClusterRewards,
-    [admin, rewardDelegators, receiverStaking, networkIds, rewardWeights, clusterSelectors, chainConfig.totalRewardsPerEpoch],
+    [
+      admin,
+      rewardDelegators,
+      receiverStaking,
+      networkIds,
+      rewardWeights,
+      clusterSelectors,
+      chainConfig.totalRewardsPerEpoch,
+    ],
     { kind: "uups", constructorArgs: [] }
   );
 
@@ -59,7 +67,11 @@ export async function deploy(
 
     addresses[chainId]["ClusterRewards"] = clusterRewards.address;
 
-    fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
+    fs.writeFileSync(
+      "address.json",
+      JSON.stringify(addresses, null, 2),
+      "utf8"
+    );
   }
 
   return clusterRewards;
@@ -78,11 +90,16 @@ export async function verify() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId]["ClusterRewards"] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId]["ClusterRewards"] === undefined
+  ) {
     throw new Error("Cluster Rewards not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["ClusterRewards"]);
+  const implAddress = await upgrades.erc1967.getImplementationAddress(
+    addresses[chainId]["ClusterRewards"]
+  );
 
   await run("verify:verify", {
     address: implAddress,

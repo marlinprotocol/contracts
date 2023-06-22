@@ -31,29 +31,41 @@ describe("Pond", function () {
 
   it("deploys as proxy and initializes", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
 
     expect(await pond.name()).to.equal("Marlin POND");
     expect(await pond.symbol()).to.equal("POND");
     expect(await pond.cap()).to.equal(BN.from(10000000000).e18());
-    expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be
+      .true;
   });
 
   it("upgrades", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     await upgrades.upgradeProxy(pond.address, Pond);
 
     expect(await pond.name()).to.equal("Marlin POND");
     expect(await pond.symbol()).to.equal("POND");
     expect(await pond.cap()).to.equal(BN.from(10000000000).e18());
-    expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(await pond.hasRole(await pond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be
+      .true;
   });
 
   it("does not upgrade without admin", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
-    await expect(upgrades.upgradeProxy(pond.address, Pond.connect(signers[1]), { kind: "uups" })).to.be.reverted;
+    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
+    await expect(
+      upgrades.upgradeProxy(pond.address, Pond.connect(signers[1]), {
+        kind: "uups",
+      })
+    ).to.be.reverted;
   });
 });
 
@@ -61,7 +73,9 @@ testERC165(
   "Pond",
   async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     return pond;
   },
   {
@@ -72,14 +86,23 @@ testERC165(
       "revokeRole(bytes32,address)",
       "renounceRole(bytes32,address)",
     ],
-    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
-    IArbToken: ["bridgeMint(address,uint256)", "bridgeBurn(address,uint256)", "l1Address()"],
+    IAccessControlEnumerable: [
+      "getRoleMember(bytes32,uint256)",
+      "getRoleMemberCount(bytes32)",
+    ],
+    IArbToken: [
+      "bridgeMint(address,uint256)",
+      "bridgeBurn(address,uint256)",
+      "l1Address()",
+    ],
   }
 );
 
 testAdminRole("Pond", async function (signers: Signer[], addrs: string[]) {
   const Pond = await ethers.getContractFactory("Pond");
-  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    kind: "uups",
+  });
   return pond;
 });
 
@@ -92,7 +115,9 @@ describe("Pond", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
   });
 
   it("name is Marlin POND", async function () {
@@ -121,7 +146,9 @@ describe("Pond", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
   });
 
   it("approve", async function () {
@@ -149,7 +176,9 @@ describe("Pond", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
   });
 
   it("transfer", async function () {
@@ -158,7 +187,8 @@ describe("Pond", function () {
   });
 
   it("transferFrom (no allowance)", async function () {
-    await expect(pond.connect(signers[1]).transferFrom(addrs[0], addrs[2], 100)).to.be.reverted;
+    await expect(pond.connect(signers[1]).transferFrom(addrs[0], addrs[2], 100))
+      .to.be.reverted;
   });
 
   it("transferFrom (with allowance)", async function () {
@@ -172,7 +202,9 @@ testRole(
   "Pond",
   async function (signers: Signer[], addrs: string[]) {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     return pond;
   },
   "BRIDGE_ROLE"
@@ -187,7 +219,9 @@ describe("Pond", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
   });
 
   it("admin can set l1 address", async function () {
@@ -196,7 +230,8 @@ describe("Pond", function () {
   });
 
   it("non admin cannot set l1 address", async function () {
-    await expect(pond.connect(signers[1]).setL1Address(addrs[1])).to.be.reverted;
+    await expect(pond.connect(signers[1]).setL1Address(addrs[1])).to.be
+      .reverted;
   });
 
   it("admin can withdraw", async function () {
@@ -225,13 +260,16 @@ describe("Pond", function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     await pond.grantRole(await pond.BRIDGE_ROLE(), addrs[1]);
     await pond.transfer(pond.address, 1000);
   });
 
   it("non bridge cannot mint", async function () {
-    await expect(pond.connect(signers[2]).bridgeMint(addrs[2], 100)).to.be.reverted;
+    await expect(pond.connect(signers[2]).bridgeMint(addrs[2], 100)).to.be
+      .reverted;
   });
 
   it("bridge can mint up to its balance", async function () {
@@ -253,17 +291,20 @@ describe("Pond", function () {
   });
 
   it("bridge cannot mint beyond its balance", async function () {
-    await expect(pond.connect(signers[1]).bridgeMint(addrs[2], 1001)).to.be.reverted;
+    await expect(pond.connect(signers[1]).bridgeMint(addrs[2], 1001)).to.be
+      .reverted;
 
     await pond.connect(signers[1]).bridgeMint(addrs[2], 100);
 
-    await expect(pond.connect(signers[1]).bridgeMint(addrs[2], 901)).to.be.reverted;
+    await expect(pond.connect(signers[1]).bridgeMint(addrs[2], 901)).to.be
+      .reverted;
   });
 
   it("non bridge cannot burn", async function () {
     await pond.transfer(addrs[2], 1000);
     await pond.transfer(addrs[3], 1000);
-    await expect(pond.connect(signers[2]).bridgeBurn(addrs[2], 100)).to.be.reverted;
+    await expect(pond.connect(signers[2]).bridgeBurn(addrs[2], 100)).to.be
+      .reverted;
   });
 
   it("bridge can burn up to users balance", async function () {
@@ -290,10 +331,12 @@ describe("Pond", function () {
 
   it("bridge cannot burn beyond users balance", async function () {
     await pond.transfer(addrs[2], 1000);
-    await expect(pond.connect(signers[1]).bridgeBurn(addrs[2], 1001)).to.be.reverted;
+    await expect(pond.connect(signers[1]).bridgeBurn(addrs[2], 1001)).to.be
+      .reverted;
 
     await pond.connect(signers[1]).bridgeBurn(addrs[2], 100);
 
-    await expect(pond.connect(signers[1]).bridgeBurn(addrs[2], 901)).to.be.reverted;
+    await expect(pond.connect(signers[1]).bridgeBurn(addrs[2], 901)).to.be
+      .reverted;
   });
 });

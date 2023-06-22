@@ -40,28 +40,51 @@ contract Bridge is
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(
+            ERC165Upgradeable,
+            AccessControlUpgradeable,
+            AccessControlEnumerableUpgradeable
+        )
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 
     function _grantRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._grantRole(role, account);
     }
 
     function _revokeRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+        require(
+            getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0,
+            "Cannot be adminless"
+        );
     }
 
-    function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
+    function _authorizeUpgrade(
+        address /*account*/
+    ) internal view override onlyAdmin {}
 
     //-------------------------------- Overrides ends --------------------------------//
 
@@ -69,7 +92,11 @@ contract Bridge is
 
     uint256[50] private __gap1;
 
-    function initialize(address _mpond, address _pond, address _stakingContract) public initializer {
+    function initialize(
+        address _mpond,
+        address _pond,
+        address _stakingContract
+    ) public initializer {
         mpond = MPond(_mpond);
         pond = Pond(_pond);
         stakingContract = _stakingContract;
@@ -104,8 +131,16 @@ contract Bridge is
         uint256 releaseEpoch;
     }
 
-    event PlacedRequest(address indexed sender, uint256 requestCreateEpoch, uint256 unlockRequestEpoch);
-    event MPondToPond(address indexed sender, uint256 indexed requestCreateEpoch, uint256 PondReceived);
+    event PlacedRequest(
+        address indexed sender,
+        uint256 requestCreateEpoch,
+        uint256 unlockRequestEpoch
+    );
+    event MPondToPond(
+        address indexed sender,
+        uint256 indexed requestCreateEpoch,
+        uint256 PondReceived
+    );
     event PondToMPond(address indexed sender, uint256 MpondReceived);
 
     mapping(address => mapping(uint256 => Requests)) public requests; //address->epoch->Request(amount, lockTime)
@@ -123,12 +158,16 @@ contract Bridge is
     }
 
     // input should be number of days
-    function changeLockTimeEpochs(uint256 _newLockTimeEpochs) external onlyGovernance {
+    function changeLockTimeEpochs(
+        uint256 _newLockTimeEpochs
+    ) external onlyGovernance {
         lockTimeEpochs = _newLockTimeEpochs;
     }
 
     // input should be number of days
-    function changeLiquidityEpochLength(uint256 _newLiquidityEpochLength) external onlyGovernance {
+    function changeLiquidityEpochLength(
+        uint256 _newLiquidityEpochLength
+    ) external onlyGovernance {
         liquidityEpochLength = _newLiquidityEpochLength * 1 days;
     }
 
@@ -136,14 +175,21 @@ contract Bridge is
         return (block.timestamp - startTime) / (epochLength);
     }
 
-    function getLiquidityEpoch(uint256 _startTime) public view returns (uint256) {
+    function getLiquidityEpoch(
+        uint256 _startTime
+    ) public view returns (uint256) {
         if (block.timestamp < _startTime) {
             return 0;
         }
-        return (block.timestamp - _startTime) / (liquidityEpochLength) + liquidityStartEpoch;
+        return
+            (block.timestamp - _startTime) /
+            (liquidityEpochLength) +
+            liquidityStartEpoch;
     }
 
-    function effectiveLiquidity(uint256 _startTime) public view returns (uint256) {
+    function effectiveLiquidity(
+        uint256 _startTime
+    ) public view returns (uint256) {
         uint256 effective = getLiquidityEpoch(_startTime) * liquidityBp;
         if (effective > 10000) {
             return 10000;
@@ -151,14 +197,23 @@ contract Bridge is
         return effective;
     }
 
-    function getConvertableAmount(address _address, uint256 _epoch) public view returns (uint256) {
+    function getConvertableAmount(
+        address _address,
+        uint256 _epoch
+    ) public view returns (uint256) {
         uint256 _reqAmount = requests[_address][_epoch].amount;
-        uint256 _reqReleaseTime = (requests[_address][_epoch].releaseEpoch * epochLength) + liquidityStartTime;
+        uint256 _reqReleaseTime = (requests[_address][_epoch].releaseEpoch *
+            epochLength) + liquidityStartTime;
         uint256 _claimedAmount = claimedAmounts[_address][_epoch];
-        if (_claimedAmount >= (_reqAmount * effectiveLiquidity(_reqReleaseTime)) / (10000)) {
+        if (
+            _claimedAmount >=
+            (_reqAmount * effectiveLiquidity(_reqReleaseTime)) / (10000)
+        ) {
             return 0;
         }
-        return ((_reqAmount * effectiveLiquidity(_reqReleaseTime)) / (10000)) - _claimedAmount;
+        return
+            ((_reqAmount * effectiveLiquidity(_reqReleaseTime)) / (10000)) -
+            _claimedAmount;
     }
 
     function convert(uint256 _epoch, uint256 _amount) public returns (uint256) {
@@ -166,21 +221,34 @@ contract Bridge is
         uint256 _claimedAmount = claimedAmounts[_msgSender()][_epoch];
         uint256 totalUnlockableAmount = _claimedAmount + _amount;
         Requests memory _req = requests[_msgSender()][_epoch];
-        uint256 _reqReleaseTime = (_req.releaseEpoch * epochLength) + liquidityStartTime;
+        uint256 _reqReleaseTime = (_req.releaseEpoch * epochLength) +
+            liquidityStartTime;
 
         // replace div with actual divide
         require(
-            totalUnlockableAmount <= (_req.amount * effectiveLiquidity(_reqReleaseTime)) / (10000),
+            totalUnlockableAmount <=
+                (_req.amount * effectiveLiquidity(_reqReleaseTime)) / (10000),
             "total unlock amount should be less than or equal to requests_amount*effective_liquidity."
         );
-        require(getCurrentEpoch() >= _req.releaseEpoch, "Funds can only be released after requests exceed locktime");
+        require(
+            getCurrentEpoch() >= _req.releaseEpoch,
+            "Funds can only be released after requests exceed locktime"
+        );
         claimedAmounts[_msgSender()][_epoch] = totalUnlockableAmount;
 
         mpond.transferFrom(_msgSender(), address(this), _amount);
         // pond.tranfer(_msgSender(), _amount.mul(pondPerMpond));
-        SafeERC20Upgradeable.safeTransfer(pond, _msgSender(), _amount * pondPerMpond);
-        uint256 amountLockedInRequests = totalAmountPlacedInRequests[_msgSender()];
-        totalAmountPlacedInRequests[_msgSender()] = amountLockedInRequests - _amount;
+        SafeERC20Upgradeable.safeTransfer(
+            pond,
+            _msgSender(),
+            _amount * pondPerMpond
+        );
+        uint256 amountLockedInRequests = totalAmountPlacedInRequests[
+            _msgSender()
+        ];
+        totalAmountPlacedInRequests[_msgSender()] =
+            amountLockedInRequests -
+            _amount;
         emit MPondToPond(_msgSender(), _epoch, _amount * pondPerMpond);
         return _amount * pondPerMpond;
     }
@@ -210,14 +278,26 @@ contract Bridge is
     //     return (epoch, _req.releaseEpoch);
     // }
 
-    function addLiquidity(uint256 _mpond, uint256 _pond) external onlyAdmin returns (bool) {
+    function addLiquidity(
+        uint256 _mpond,
+        uint256 _pond
+    ) external onlyAdmin returns (bool) {
         mpond.transferFrom(_msgSender(), address(this), _mpond);
         // pond.transferFrom(_msgSender(), address(this), _pond);
-        SafeERC20Upgradeable.safeTransferFrom(pond, _msgSender(), address(this), _pond);
+        SafeERC20Upgradeable.safeTransferFrom(
+            pond,
+            _msgSender(),
+            address(this),
+            _pond
+        );
         return true;
     }
 
-    function removeLiquidity(uint256 _mpond, uint256 _pond, address _withdrawAddress) external onlyAdmin returns (bool) {
+    function removeLiquidity(
+        uint256 _mpond,
+        uint256 _pond,
+        address _withdrawAddress
+    ) external onlyAdmin returns (bool) {
         mpond.transfer(_withdrawAddress, _mpond);
         // pond.transfer(_withdrawAddress, _pond);
         SafeERC20Upgradeable.safeTransfer(pond, _withdrawAddress, _pond);
@@ -231,7 +311,12 @@ contract Bridge is
     function getMpond(uint256 _mpond) public returns (uint256) {
         uint256 pondToDeduct = _mpond * pondPerMpond;
         // pond.transferFrom(_msgSender(), address(this), pondToDeduct);
-        SafeERC20Upgradeable.safeTransferFrom(pond, _msgSender(), address(this), pondToDeduct);
+        SafeERC20Upgradeable.safeTransferFrom(
+            pond,
+            _msgSender(),
+            address(this),
+            pondToDeduct
+        );
         mpond.transfer(_msgSender(), _mpond);
         emit PondToMPond(_msgSender(), _mpond);
         return pondToDeduct;

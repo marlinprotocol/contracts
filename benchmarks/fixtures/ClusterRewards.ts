@@ -20,10 +20,18 @@ export async function deployFixture() {
     kind: "uups",
   });
 
-  const mockArbGas = await new ArbGasInfo__factory().connect(signers[0]).deploy();
+  const mockArbGas = await new ArbGasInfo__factory()
+    .connect(signers[0])
+    .deploy();
   mockArbGas.setPrices(10000, 10000, 10000);
 
-  const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
+  const receiverStaking = await deployReceiverStaking(
+    addrs[0],
+    blockData.timestamp,
+    EPOCH_LENGTH,
+    pond.address,
+    true
+  );
 
   const clusterSelector = await deployClusterSelector(
     "ETH",
@@ -65,7 +73,14 @@ export async function initDataFixture() {
   const signers = await ethers.getSigners();
   const preAllocEthSigner = signers[8];
 
-  const { pond, receiverStaking, clusterSelector, clusterRewards, admin, rewardDelegatorsMock } = await deployFixture();
+  const {
+    pond,
+    receiverStaking,
+    clusterSelector,
+    clusterRewards,
+    admin,
+    rewardDelegatorsMock,
+  } = await deployFixture();
 
   const tokenSupply: BigNumber = await pond.totalSupply();
 
@@ -78,12 +93,18 @@ export async function initDataFixture() {
   for (let i = 0; i < nodesToInsert; i++) {
     const address = Wallet.createRandom().address;
     clusters.push(address);
-    balances.push(BigNumber.from(ethers.utils.randomBytes(32)).mod(tokenSupply.div(utils.parseEther(nodesToInsert + ""))));
+    balances.push(
+      BigNumber.from(ethers.utils.randomBytes(32)).mod(
+        tokenSupply.div(utils.parseEther(nodesToInsert + ""))
+      )
+    );
   }
 
   // insert clusterData into selector
   for (let i = 0; i < clusters.length; i += 50) {
-    await clusterSelector.connect(rewardDelegatorsMock).upsertMultiple(clusters.slice(i, i + 50), balances.slice(i, i + 50));
+    await clusterSelector
+      .connect(rewardDelegatorsMock)
+      .upsertMultiple(clusters.slice(i, i + 50), balances.slice(i, i + 50));
   }
 
   for (let i = 0; i < receiverCount; i++) {
@@ -92,7 +113,9 @@ export async function initDataFixture() {
     const receiverSigner = Wallet.createRandom().connect(ethers.provider);
     receivers.push(receiver);
     receiverSigners.push(receiverSigner);
-    const depositAmount = BigNumber.from(ethers.utils.randomBytes(32)).mod(tokenSupply.div(receiverCount));
+    const depositAmount = BigNumber.from(ethers.utils.randomBytes(32)).mod(
+      tokenSupply.div(receiverCount)
+    );
     await preAllocEthSigner.sendTransaction({
       to: receiver.address,
       value: utils.parseEther("0.5").toString(),
@@ -102,8 +125,12 @@ export async function initDataFixture() {
       value: utils.parseEther("0.5").toString(),
     });
     await pond.transfer(receiver.address, depositAmount);
-    await pond.connect(receiver).approve(receiverStaking.address, depositAmount);
-    await receiverStaking.connect(receiver)["depositFor(uint256,address)"](depositAmount, receiver.address);
+    await pond
+      .connect(receiver)
+      .approve(receiverStaking.address, depositAmount);
+    await receiverStaking
+      .connect(receiver)
+      ["depositFor(uint256,address)"](depositAmount, receiver.address);
     await receiverStaking.connect(receiver).setSigner(receiverSigner.address);
   }
 

@@ -50,28 +50,48 @@ contract RewardDelegators is
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(
+            ERC165Upgradeable,
+            AccessControlUpgradeable,
+            AccessControlEnumerableUpgradeable
+        )
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 
     function _grantRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._grantRole(role, account);
     }
 
     function _revokeRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
     }
 
-    function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
+    function _authorizeUpgrade(
+        address /*account*/
+    ) internal view override onlyAdmin {}
 
     //-------------------------------- Overrides end --------------------------------//
 
@@ -91,7 +111,10 @@ contract RewardDelegators is
         bytes32[] memory _networkIds,
         uint256[] memory _thresholdsForSection
     ) public initializer {
-        require(_tokenIds.length == _rewardFactors.length, "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa");
+        require(
+            _tokenIds.length == _rewardFactors.length,
+            "RD:I-Each TokenId should have a corresponding Reward Factor and vice versa"
+        );
         require(
             _networkIds.length == _thresholdsForSection.length,
             "RD:I-Each NetworkId should have a corresponding threshold for selection and vice versa"
@@ -120,14 +143,21 @@ contract RewardDelegators is
 
         for (uint256 i = 0; i < _tokenIds.length; i++) {
             rewardFactor[_tokenIds[i]] = _rewardFactors[i];
-            _updateTokenWeights(_tokenIds[i], _weightsForThreshold[i], _weightsForDelegation[i]);
+            _updateTokenWeights(
+                _tokenIds[i],
+                _weightsForThreshold[i],
+                _weightsForDelegation[i]
+            );
             tokenIndex[_tokenIds[i]] = tokenList.length;
             tokenList.push(_tokenIds[i]);
             emit AddReward(_tokenIds[i], _rewardFactors[i]);
         }
 
         for (uint256 i = 0; i < _networkIds.length; i++) {
-            _updateThresholdForSelection(_networkIds[i], _thresholdsForSection[i]);
+            _updateThresholdForSelection(
+                _networkIds[i],
+                _thresholdsForSection[i]
+            );
         }
     }
 
@@ -162,18 +192,29 @@ contract RewardDelegators is
     event RemoveReward(bytes32 tokenId);
     event RewardsUpdated(bytes32 tokenId, uint256 rewardFactor);
     event ClusterRewardDistributed(address cluster);
-    event RewardsWithdrawn(address cluster, address delegator, bytes32[] tokenIds, uint256 rewards);
+    event RewardsWithdrawn(
+        address cluster,
+        address delegator,
+        bytes32[] tokenIds,
+        uint256 rewards
+    );
     event StakeAddressUpdated(address _updatedStakeAddress);
     event ClusterRewardsAddressUpdated(address _updatedClusterRewards);
     event ClusterRegistryUpdated(address _updatedClusterRegistry);
     event PONDAddressUpdated(address _updatedPOND);
 
     modifier onlyStake() {
-        require(_msgSender() == stakeAddress, "RD:OS-only stake contract can invoke");
+        require(
+            _msgSender() == stakeAddress,
+            "RD:OS-only stake contract can invoke"
+        );
         _;
     }
 
-    function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external onlyAdmin {
+    function addRewardFactor(
+        bytes32 _tokenId,
+        uint256 _rewardFactor
+    ) external onlyAdmin {
         require(rewardFactor[_tokenId] == 0, "RD:AR-Reward already exists");
         require(_rewardFactor != 0, "RD:AR-Reward cant be 0");
         rewardFactor[_tokenId] = _rewardFactor;
@@ -194,8 +235,14 @@ contract RewardDelegators is
         emit RemoveReward(_tokenId);
     }
 
-    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external onlyAdmin {
-        require(rewardFactor[_tokenId] != 0, "RD:UR-Cant update reward that doesnt exist");
+    function updateRewardFactor(
+        bytes32 _tokenId,
+        uint256 _updatedRewardFactor
+    ) external onlyAdmin {
+        require(
+            rewardFactor[_tokenId] != 0,
+            "RD:UR-Cant update reward that doesnt exist"
+        );
         require(_updatedRewardFactor != 0, "RD:UR-Reward cant be 0");
         rewardFactor[_tokenId] = _updatedRewardFactor;
         emit RewardsUpdated(_tokenId, _updatedRewardFactor);
@@ -207,7 +254,8 @@ contract RewardDelegators is
             return;
         }
 
-        (uint256 _commission, address _rewardAddress) = clusterRegistry.getRewardInfo(_cluster);
+        (uint256 _commission, address _rewardAddress) = clusterRegistry
+            .getRewardInfo(_cluster);
 
         uint256 commissionReward = (reward * _commission) / 100;
         uint256 delegatorReward = reward - commissionReward;
@@ -230,7 +278,8 @@ contract RewardDelegators is
             if (delegations[i] != 0) {
                 clusters[_cluster].accRewardPerShare[tokens[i]] =
                     clusters[_cluster].accRewardPerShare[tokens[i]] +
-                    (((delegatorReward * (10 ** 30)) / delegatedTokens) / delegations[i]);
+                    (((delegatorReward * (10 ** 30)) / delegatedTokens) /
+                        delegations[i]);
             }
         }
         if (commissionReward != 0) {
@@ -239,7 +288,12 @@ contract RewardDelegators is
         emit ClusterRewardDistributed(_cluster);
     }
 
-    function delegate(address _delegator, address _cluster, bytes32[] memory _tokens, uint256[] memory _amounts) public onlyStake {
+    function delegate(
+        address _delegator,
+        address _cluster,
+        bytes32[] memory _tokens,
+        uint256[] memory _amounts
+    ) public onlyStake {
         _updateTokens(_delegator, _cluster, _tokens, _amounts, true);
     }
 
@@ -256,20 +310,39 @@ contract RewardDelegators is
             bytes32 _tokenId = _tokens[i];
             uint256 _amount = _amounts[i];
 
-            (uint256 _oldBalance, uint256 _newBalance) = _updateBalances(_cluster, _delegator, _tokenId, _amount, _isDelegation);
+            (uint256 _oldBalance, uint256 _newBalance) = _updateBalances(
+                _cluster,
+                _delegator,
+                _tokenId,
+                _amount,
+                _isDelegation
+            );
 
-            uint256 _reward = _updateDelegatorRewards(_cluster, _delegator, _tokenId, _oldBalance, _newBalance);
+            uint256 _reward = _updateDelegatorRewards(
+                _cluster,
+                _delegator,
+                _tokenId,
+                _oldBalance,
+                _newBalance
+            );
 
             _aggregateReward = _aggregateReward + _reward;
         }
 
         bytes32 _networkId = clusterRegistry.getNetwork(_cluster);
-        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(
+            _networkId
+        );
         _updateClusterSelector(_networkId, _cluster, _clusterSelector);
 
         if (_aggregateReward != 0) {
             transferRewards(_delegator, _aggregateReward);
-            emit RewardsWithdrawn(_cluster, _delegator, _tokens, _aggregateReward);
+            emit RewardsWithdrawn(
+                _cluster,
+                _delegator,
+                _tokens,
+                _aggregateReward
+            );
         }
     }
 
@@ -291,10 +364,14 @@ contract RewardDelegators is
         // update balances
         if (_isDelegation) {
             _newBalance = _oldBalance + _amount;
-            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId] + _amount;
+            clusters[_cluster].totalDelegations[_tokenId] =
+                clusters[_cluster].totalDelegations[_tokenId] +
+                _amount;
         } else {
             _newBalance = _oldBalance - _amount;
-            clusters[_cluster].totalDelegations[_tokenId] = clusters[_cluster].totalDelegations[_tokenId] - _amount;
+            clusters[_cluster].totalDelegations[_tokenId] =
+                clusters[_cluster].totalDelegations[_tokenId] -
+                _amount;
         }
         clusters[_cluster].delegators[_delegator][_tokenId] = _newBalance;
     }
@@ -306,11 +383,16 @@ contract RewardDelegators is
         uint256 _oldBalance,
         uint256 _newBalance
     ) internal returns (uint256 _reward) {
-        uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[_tokenId];
-        uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][_tokenId];
+        uint256 _accRewardPerShare = clusters[_cluster].accRewardPerShare[
+            _tokenId
+        ];
+        uint256 _rewardDebt = clusters[_cluster].rewardDebt[_delegator][
+            _tokenId
+        ];
 
         // pending rewards
-        uint256 _tokenPendingRewards = (_accRewardPerShare * _oldBalance) / (10 ** 30);
+        uint256 _tokenPendingRewards = (_accRewardPerShare * _oldBalance) /
+            (10 ** 30);
 
         // calculating pending rewards for the delegator if any
         _reward = _tokenPendingRewards - _rewardDebt;
@@ -321,17 +403,29 @@ contract RewardDelegators is
         }
 
         // update the debt for next reward calculation
-        clusters[_cluster].rewardDebt[_delegator][_tokenId] = (_accRewardPerShare * _newBalance) / (10 ** 30);
+        clusters[_cluster].rewardDebt[_delegator][_tokenId] =
+            (_accRewardPerShare * _newBalance) /
+            (10 ** 30);
     }
 
-    function _updateClusterSelector(bytes32 _networkId, address _cluster, IClusterSelector _clusterSelector) internal {
-        uint256 totalDelegations = _getEffectiveDelegation(_cluster, _networkId);
+    function _updateClusterSelector(
+        bytes32 _networkId,
+        address _cluster,
+        IClusterSelector _clusterSelector
+    ) internal {
+        uint256 totalDelegations = _getEffectiveDelegation(
+            _cluster,
+            _networkId
+        );
 
         if (address(_clusterSelector) != address(0)) {
             // if total delegation is more than 0.5 million pond, then insert into selector
             if (totalDelegations != 0) {
                 // divided by 1e6 to bring the range of totalDelegations(maxSupply is 1e28) into uint64
-                _clusterSelector.upsert(_cluster, uint64(totalDelegations.sqrt()));
+                _clusterSelector.upsert(
+                    _cluster,
+                    uint64(totalDelegations.sqrt())
+                );
             }
             // if not, update it to zero
             else {
@@ -340,29 +434,57 @@ contract RewardDelegators is
         }
     }
 
-    function updateClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
-        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+    function updateClusterDelegation(
+        address _cluster,
+        bytes32 _networkId
+    ) public onlyClusterRegistry {
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(
+            _networkId
+        );
         if (address(_clusterSelector) != address(0)) {
             _updateClusterSelector(_networkId, _cluster, _clusterSelector);
         }
     }
 
-    function removeClusterDelegation(address _cluster, bytes32 _networkId) public onlyClusterRegistry {
-        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+    function removeClusterDelegation(
+        address _cluster,
+        bytes32 _networkId
+    ) public onlyClusterRegistry {
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(
+            _networkId
+        );
         if (address(_clusterSelector) != address(0)) {
             _clusterSelector.deleteIfPresent(_cluster);
         }
     }
 
-    function undelegate(address _delegator, address _cluster, bytes32[] memory _tokens, uint256[] memory _amounts) public onlyStake {
+    function undelegate(
+        address _delegator,
+        address _cluster,
+        bytes32[] memory _tokens,
+        uint256[] memory _amounts
+    ) public onlyStake {
         _updateTokens(_delegator, _cluster, _tokens, _amounts, false);
     }
 
-    function withdrawRewards(address _delegator, address _cluster) public returns (uint256) {
-        return _updateTokens(_delegator, _cluster, tokenList, new uint256[](tokenList.length), true);
+    function withdrawRewards(
+        address _delegator,
+        address _cluster
+    ) public returns (uint256) {
+        return
+            _updateTokens(
+                _delegator,
+                _cluster,
+                tokenList,
+                new uint256[](tokenList.length),
+                true
+            );
     }
 
-    function withdrawRewards(address _delegator, address[] calldata _clusters) external {
+    function withdrawRewards(
+        address _delegator,
+        address[] calldata _clusters
+    ) external {
         for (uint256 i = 0; i < _clusters.length; i++) {
             withdrawRewards(_delegator, _clusters[i]);
         }
@@ -372,84 +494,143 @@ contract RewardDelegators is
         PONDToken.transfer(_to, _amount);
     }
 
-    function getClusterDelegation(address _cluster, bytes32 _tokenId) external view returns (uint256) {
+    function getClusterDelegation(
+        address _cluster,
+        bytes32 _tokenId
+    ) external view returns (uint256) {
         return clusters[_cluster].totalDelegations[_tokenId];
     }
 
-    function getDelegation(address _cluster, address _delegator, bytes32 _tokenId) external view returns (uint256) {
+    function getDelegation(
+        address _cluster,
+        address _delegator,
+        bytes32 _tokenId
+    ) external view returns (uint256) {
         return clusters[_cluster].delegators[_delegator][_tokenId];
     }
 
-    function updateStakeAddress(address _updatedStakeAddress) external onlyAdmin {
-        require(_updatedStakeAddress != address(0), "RD:USA-Stake contract address cant be 0");
+    function updateStakeAddress(
+        address _updatedStakeAddress
+    ) external onlyAdmin {
+        require(
+            _updatedStakeAddress != address(0),
+            "RD:USA-Stake contract address cant be 0"
+        );
         stakeAddress = _updatedStakeAddress;
         emit StakeAddressUpdated(_updatedStakeAddress);
     }
 
-    function updateClusterRewards(address _updatedClusterRewards) external onlyAdmin {
-        require(_updatedClusterRewards != address(0), "RD:UCR-ClusterRewards address cant be 0");
+    function updateClusterRewards(
+        address _updatedClusterRewards
+    ) external onlyAdmin {
+        require(
+            _updatedClusterRewards != address(0),
+            "RD:UCR-ClusterRewards address cant be 0"
+        );
         clusterRewards = IClusterRewards(_updatedClusterRewards);
         emit ClusterRewardsAddressUpdated(_updatedClusterRewards);
     }
 
-    function updateClusterRegistry(address _updatedClusterRegistry) external onlyAdmin {
-        require(_updatedClusterRegistry != address(0), "RD:UCR-Cluster Registry address cant be 0");
+    function updateClusterRegistry(
+        address _updatedClusterRegistry
+    ) external onlyAdmin {
+        require(
+            _updatedClusterRegistry != address(0),
+            "RD:UCR-Cluster Registry address cant be 0"
+        );
         clusterRegistry = IClusterRegistry(_updatedClusterRegistry);
         emit ClusterRegistryUpdated(_updatedClusterRegistry);
     }
 
     function updatePONDAddress(address _updatedPOND) external onlyAdmin {
-        require(_updatedPOND != address(0), "RD:UPA-Updated POND token address cant be 0");
+        require(
+            _updatedPOND != address(0),
+            "RD:UPA-Updated POND token address cant be 0"
+        );
         PONDToken = IERC20Upgradeable(_updatedPOND);
         emit PONDAddressUpdated(_updatedPOND);
     }
 
-    function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns (uint256) {
+    function getAccRewardPerShare(
+        address _cluster,
+        bytes32 _tokenId
+    ) external view returns (uint256) {
         return clusters[_cluster].accRewardPerShare[_tokenId];
     }
 
     event ThresholdForSelectionUpdated(bytes32 networkId, uint256 newThreshold);
 
-    function updateThresholdForSelection(bytes32 networkId, uint256 newThreshold) external onlyAdmin {
+    function updateThresholdForSelection(
+        bytes32 networkId,
+        uint256 newThreshold
+    ) external onlyAdmin {
         _updateThresholdForSelection(networkId, newThreshold);
     }
 
-    function _updateThresholdForSelection(bytes32 _networkId, uint256 _newThreshold) internal {
+    function _updateThresholdForSelection(
+        bytes32 _networkId,
+        uint256 _newThreshold
+    ) internal {
         thresholdForSelection[_networkId] = _newThreshold;
         emit ThresholdForSelectionUpdated(_networkId, _newThreshold);
     }
 
-    event TokenWeightsUpdated(bytes32 tokenId, uint256 thresholdWeight, uint256 delegationWeight);
+    event TokenWeightsUpdated(
+        bytes32 tokenId,
+        uint256 thresholdWeight,
+        uint256 delegationWeight
+    );
 
-    function updateTokenWeights(bytes32 tokenId, uint128 thresholdWeight, uint128 delegationWeight) external onlyAdmin {
+    function updateTokenWeights(
+        bytes32 tokenId,
+        uint128 thresholdWeight,
+        uint128 delegationWeight
+    ) external onlyAdmin {
         _updateTokenWeights(tokenId, thresholdWeight, delegationWeight);
     }
 
-    function _updateTokenWeights(bytes32 tokenId, uint128 thresholdWeight, uint128 delegationWeight) internal {
+    function _updateTokenWeights(
+        bytes32 tokenId,
+        uint128 thresholdWeight,
+        uint128 delegationWeight
+    ) internal {
         tokenWeights[tokenId] = TokenWeight(thresholdWeight, delegationWeight);
         emit TokenWeightsUpdated(tokenId, thresholdWeight, delegationWeight);
     }
 
     event RefreshClusterDelegation(address indexed cluster);
 
-    function refreshClusterDelegation(bytes32 _networkId, address[] calldata clusterList) external onlyAdmin {
+    function refreshClusterDelegation(
+        bytes32 _networkId,
+        address[] calldata clusterList
+    ) external onlyAdmin {
         address[] memory validClusters = new address[](clusterList.length);
         uint64[] memory balances = new uint64[](clusterList.length);
-        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(_networkId);
+        IClusterSelector _clusterSelector = clusterRewards.clusterSelectors(
+            _networkId
+        );
 
         uint256 noOfClustersToUpdate;
         unchecked {
             for (uint256 index = 0; index < clusterList.length; ++index) {
                 address cluster = clusterList[index];
                 bytes32 _clusterNetwork = clusterRegistry.getNetwork(cluster);
-                require(_networkId == _clusterNetwork, "RD:RCD-incorrect network");
+                require(
+                    _networkId == _clusterNetwork,
+                    "RD:RCD-incorrect network"
+                );
 
-                uint256 totalDelegations = _getEffectiveDelegation(cluster, _networkId);
+                uint256 totalDelegations = _getEffectiveDelegation(
+                    cluster,
+                    _networkId
+                );
 
                 if (totalDelegations == 0) continue;
 
                 validClusters[noOfClustersToUpdate] = clusterList[index];
-                balances[noOfClustersToUpdate] = uint64(totalDelegations.sqrt());
+                balances[noOfClustersToUpdate] = uint64(
+                    totalDelegations.sqrt()
+                );
                 ++noOfClustersToUpdate;
                 emit RefreshClusterDelegation(cluster);
             }
@@ -463,17 +644,23 @@ contract RewardDelegators is
         _clusterSelector.upsertMultiple(validClusters, balances);
     }
 
-    function _getEffectiveDelegation(address cluster, bytes32 networkId) internal view returns (uint256 totalDelegations) {
+    function _getEffectiveDelegation(
+        address cluster,
+        bytes32 networkId
+    ) internal view returns (uint256 totalDelegations) {
         uint256 _totalWeight;
         for (uint256 i = 0; i < tokenList.length; i++) {
             bytes32 _tokenId = tokenList[i];
             TokenWeight memory _weights = tokenWeights[_tokenId];
-            uint256 _clusterTokenDelegation = clusters[cluster].totalDelegations[_tokenId];
+            uint256 _clusterTokenDelegation = clusters[cluster]
+                .totalDelegations[_tokenId];
             if (_weights.forThreshold != 0) {
                 _totalWeight += _weights.forThreshold * _clusterTokenDelegation;
             }
             if (_weights.forDelegation != 0) {
-                totalDelegations += _weights.forDelegation * _clusterTokenDelegation;
+                totalDelegations +=
+                    _weights.forDelegation *
+                    _clusterTokenDelegation;
             }
         }
         if (_totalWeight < thresholdForSelection[networkId]) {
@@ -485,7 +672,10 @@ contract RewardDelegators is
     // ------- receiver payments ------------------ //
 
     event AddReceiverBalance(address indexed receiver, uint256 amount);
-    event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
+    event UpdateReceiverRewardPerEpoch(
+        address indexed receiver,
+        uint256 amount
+    );
 
     function addReceiverBalance(address receiver, uint128 amount) public {
         require(receiver != address(0), "RD: address 0");

@@ -12,7 +12,8 @@ BN.prototype.e18 = function () {
 };
 
 async function main() {
-  let chainId = (network.config as any).tag || (await ethers.provider.getNetwork()).chainId;
+  let chainId =
+    (network.config as any).tag || (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
   var addresses: { [key: string]: { [key: string]: string } } = {};
@@ -35,7 +36,9 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const Pond = await ethers.getContractFactory("Pond");
-  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    kind: "uups",
+  });
 
   console.log("Deployed addr:", pond.address);
 

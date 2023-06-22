@@ -33,7 +33,11 @@ async function main() {
   const Bridge = await ethers.getContractFactory("Bridge");
   let bridge = await upgrades.deployProxy(
     Bridge,
-    [addresses[chainId]["MPond"], addresses[chainId]["Pond"], addresses[chainId]["StakeManager"]],
+    [
+      addresses[chainId]["MPond"],
+      addresses[chainId]["Pond"],
+      addresses[chainId]["StakeManager"],
+    ],
     { kind: "uups" }
   );
 

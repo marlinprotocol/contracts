@@ -38,7 +38,10 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const L1Gateway = await ethers.getContractFactory("L1Gateway");
-  let l1Gateway = await upgrades.deployProxy(L1Gateway, { kind: "uups", initializer: false });
+  let l1Gateway = await upgrades.deployProxy(L1Gateway, {
+    kind: "uups",
+    initializer: false,
+  });
 
   console.log("Deployed addr:", l1Gateway.address);
 

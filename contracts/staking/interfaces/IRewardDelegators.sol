@@ -3,27 +3,55 @@
 pragma solidity ^0.8.0;
 
 interface IRewardDelegators {
-    function thresholdForSelection(bytes32 networkId) external returns (uint256);
+    function thresholdForSelection(
+        bytes32 networkId
+    ) external returns (uint256);
 
     function addRewardFactor(bytes32 _tokenId, uint256 _rewardFactor) external;
 
     function removeRewardFactor(bytes32 _tokenId) external;
 
-    function updateRewardFactor(bytes32 _tokenId, uint256 _updatedRewardFactor) external;
+    function updateRewardFactor(
+        bytes32 _tokenId,
+        uint256 _updatedRewardFactor
+    ) external;
 
     function _updateRewards(address _cluster) external;
 
-    function delegate(address _delegator, address _cluster, bytes32[] calldata _tokens, uint256[] calldata _amounts) external;
+    function delegate(
+        address _delegator,
+        address _cluster,
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts
+    ) external;
 
-    function undelegate(address _delegator, address _cluster, bytes32[] calldata _tokens, uint256[] calldata _amounts) external;
+    function undelegate(
+        address _delegator,
+        address _cluster,
+        bytes32[] calldata _tokens,
+        uint256[] calldata _amounts
+    ) external;
 
-    function withdrawRewards(address _delegator, address _cluster) external returns (uint256);
+    function withdrawRewards(
+        address _delegator,
+        address _cluster
+    ) external returns (uint256);
 
-    function getClusterDelegation(address _cluster, bytes32 _tokenId) external view returns (uint256);
+    function getClusterDelegation(
+        address _cluster,
+        bytes32 _tokenId
+    ) external view returns (uint256);
 
-    function getDelegation(address _cluster, address _delegator, bytes32 _tokenId) external view returns (uint256);
+    function getDelegation(
+        address _cluster,
+        address _delegator,
+        bytes32 _tokenId
+    ) external view returns (uint256);
 
-    function updateThresholdForSelection(bytes32 networkId, uint256 thresholdForSelection) external;
+    function updateThresholdForSelection(
+        bytes32 networkId,
+        uint256 thresholdForSelection
+    ) external;
 
     function updateStakeAddress(address _updatedStakeAddress) external;
 
@@ -35,9 +63,18 @@ interface IRewardDelegators {
 
     function tokenList(uint256 index) external view returns (bytes32);
 
-    function getAccRewardPerShare(address _cluster, bytes32 _tokenId) external view returns (uint256);
+    function getAccRewardPerShare(
+        address _cluster,
+        bytes32 _tokenId
+    ) external view returns (uint256);
 
-    function updateClusterDelegation(address _cluster, bytes32 _networkId) external;
+    function updateClusterDelegation(
+        address _cluster,
+        bytes32 _networkId
+    ) external;
 
-    function removeClusterDelegation(address _cluster, bytes32 _networkId) external;
+    function removeClusterDelegation(
+        address _cluster,
+        bytes32 _networkId
+    ) external;
 }

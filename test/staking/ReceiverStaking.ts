@@ -16,7 +16,9 @@ BN.prototype.e18 = function () {
 };
 
 async function skipBlocks(n: number) {
-  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
+  await Promise.all(
+    [...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", []))
+  );
 }
 
 async function skipTime(t: number) {
@@ -57,22 +59,36 @@ describe("ReceiverStaking", function () {
 
   it("deploys with initialization disabled", async function () {
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await ReceiverStaking.deploy(startTime, 3600, addrs[11]);
+    let receiverStaking = await ReceiverStaking.deploy(
+      startTime,
+      3600,
+      addrs[11]
+    );
 
-    await expect(receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND")).to.be.reverted;
+    await expect(receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND"))
+      .to.be.reverted;
   });
 
   it("deploys as proxy and initializes", async function () {
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, addrs[11]],
-    });
+    let receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, addrs[11]],
+      }
+    );
 
     expect(await receiverStaking.name()).to.equal("Receiver POND");
     expect(await receiverStaking.symbol()).to.equal("rPOND");
     expect(await receiverStaking.totalSupply()).to.equal(0);
-    expect(await receiverStaking.hasRole(await receiverStaking.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await receiverStaking.hasRole(
+        await receiverStaking.DEFAULT_ADMIN_ROLE(),
+        addrs[0]
+      )
+    ).to.be.true;
     expect(await receiverStaking.START_TIME()).to.equal(startTime);
     expect(await receiverStaking.EPOCH_LENGTH()).to.equal(3600);
     expect(await receiverStaking.STAKING_TOKEN()).to.equal(addrs[11]);
@@ -80,10 +96,14 @@ describe("ReceiverStaking", function () {
 
   it("upgrades", async function () {
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, addrs[11]],
-    });
+    let receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, addrs[11]],
+      }
+    );
 
     await upgrades.upgradeProxy(receiverStaking.address, ReceiverStaking, {
       kind: "uups",
@@ -93,7 +113,12 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.name()).to.equal("Receiver POND");
     expect(await receiverStaking.symbol()).to.equal("rPOND");
     expect(await receiverStaking.totalSupply()).to.equal(0);
-    expect(await receiverStaking.hasRole(await receiverStaking.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await receiverStaking.hasRole(
+        await receiverStaking.DEFAULT_ADMIN_ROLE(),
+        addrs[0]
+      )
+    ).to.be.true;
     expect(await receiverStaking.START_TIME()).to.equal(startTime);
     expect(await receiverStaking.EPOCH_LENGTH()).to.equal(3600);
     expect(await receiverStaking.STAKING_TOKEN()).to.equal(addrs[11]);
@@ -101,16 +126,24 @@ describe("ReceiverStaking", function () {
 
   it("does not upgrade without admin", async () => {
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, addrs[11]],
-    });
-
-    await expect(
-      upgrades.upgradeProxy(receiverStaking.address, ReceiverStaking.connect(signers[1]), {
+    let receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
         kind: "uups",
         constructorArgs: [startTime, 3600, addrs[11]],
-      })
+      }
+    );
+
+    await expect(
+      upgrades.upgradeProxy(
+        receiverStaking.address,
+        ReceiverStaking.connect(signers[1]),
+        {
+          kind: "uups",
+          constructorArgs: [startTime, 3600, addrs[11]],
+        }
+      )
     ).to.be.reverted;
   });
 });
@@ -119,10 +152,14 @@ testERC165(
   "ReceiverStaking",
   async function (signers: Signer[], addrs: string[]) {
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, addrs[11]],
-    });
+    let receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, addrs[11]],
+      }
+    );
     return receiverStaking;
   },
   {
@@ -133,18 +170,28 @@ testERC165(
       "revokeRole(bytes32,address)",
       "renounceRole(bytes32,address)",
     ],
-    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
+    IAccessControlEnumerable: [
+      "getRoleMember(bytes32,uint256)",
+      "getRoleMemberCount(bytes32)",
+    ],
   }
 );
 
-testAdminRole("ReceiverStaking", async function (signers: Signer[], addrs: string[]) {
-  const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-  let receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-    kind: "uups",
-    constructorArgs: [startTime, 3600, addrs[11]],
-  });
-  return receiverStaking;
-});
+testAdminRole(
+  "ReceiverStaking",
+  async function (signers: Signer[], addrs: string[]) {
+    const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
+    let receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, addrs[11]],
+      }
+    );
+    return receiverStaking;
+  }
+);
 
 describe("ReceiverStaking", function () {
   let signers: Signer[];
@@ -159,18 +206,29 @@ describe("ReceiverStaking", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], {
+      kind: "uups",
+    });
 
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, pond.address],
-    });
+    receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, pond.address],
+      }
+    );
 
     expect(await receiverStaking.name()).to.equal("Receiver POND");
     expect(await receiverStaking.symbol()).to.equal("rPOND");
     expect(await receiverStaking.totalSupply()).to.equal(0);
-    expect(await receiverStaking.hasRole(await receiverStaking.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await receiverStaking.hasRole(
+        await receiverStaking.DEFAULT_ADMIN_ROLE(),
+        addrs[0]
+      )
+    ).to.be.true;
     expect(await receiverStaking.START_TIME()).to.equal(startTime);
     expect(await receiverStaking.EPOCH_LENGTH()).to.equal(3600);
     expect(await receiverStaking.STAKING_TOKEN()).to.equal(pond.address);
@@ -220,13 +278,19 @@ describe("Receiver Staking signer functions", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], {
+      kind: "uups",
+    });
 
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, pond.address],
-    });
+    receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, pond.address],
+      }
+    );
   });
 
   beforeEach(async function () {
@@ -251,44 +315,110 @@ describe("Receiver Staking signer functions", function () {
     const user2Addr = await user2.getAddress();
     const signerAddr2 = addrs[4];
 
-    await receiverStaking.connect(user1).setSigner(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    await receiverStaking
+      .connect(user1)
+      .setSigner(ethers.constants.AddressZero);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
     await receiverStaking.connect(user1).setSigner(signerAddr1);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
     await receiverStaking.connect(user2).setSigner(signerAddr2);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
-    await expect(receiverStaking.connect(user1).setSigner(signerAddr2)).to.be.revertedWith("signer has a staker");
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
+    await expect(
+      receiverStaking.connect(user1).setSigner(signerAddr2)
+    ).to.be.revertedWith("signer has a staker");
 
-    await receiverStaking.connect(user1).setSigner(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
+    await receiverStaking
+      .connect(user1)
+      .setSigner(ethers.constants.AddressZero);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
     await receiverStaking.connect(user2).setSigner(signerAddr1);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
     await receiverStaking.connect(user1).setSigner(signerAddr2);
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user1Addr
+    );
   });
 
   it("user can deposit and set signer", async () => {
@@ -303,68 +433,146 @@ describe("Receiver Staking signer functions", function () {
     await pond.transfer(user2Addr, 100000);
     await pond.connect(user2).approve(receiverStaking.address, 100000);
 
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(100, ethers.constants.AddressZero)).to.changeTokenBalances(
+    await expect(() =>
+      receiverStaking
+        .connect(user1)
+        .depositAndSetSigner(100, ethers.constants.AddressZero)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [-100, 0, 100]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr1)).to.changeTokenBalances(
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr1)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [-100, 0, 100]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(200, signerAddr2)).to.changeTokenBalances(
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user2).depositAndSetSigner(200, signerAddr2)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [0, -200, 200]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
-    await expect(receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr2)).to.be.revertedWith("signer has a staker");
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
+    await expect(
+      receiverStaking.connect(user1).depositAndSetSigner(100, signerAddr2)
+    ).to.be.revertedWith("signer has a staker");
 
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(300, ethers.constants.AddressZero)).to.changeTokenBalances(
+    await expect(() =>
+      receiverStaking
+        .connect(user1)
+        .depositAndSetSigner(300, ethers.constants.AddressZero)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [-300, 0, 300]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
-    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(500, signerAddr1)).to.changeTokenBalances(
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
+    await expect(() =>
+      receiverStaking.connect(user2).depositAndSetSigner(500, signerAddr1)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [0, -500, 500]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(600, signerAddr2)).to.changeTokenBalances(
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user1).depositAndSetSigner(600, signerAddr2)
+    ).to.changeTokenBalances(
       pond,
       [user1, user2, receiverStaking],
       [-600, 0, 600]
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user1Addr
+    );
   });
 
   it("user can set signer without deposit", async () => {
@@ -379,68 +587,122 @@ describe("Receiver Staking signer functions", function () {
     await pond.transfer(user2Addr, 100000);
     await pond.connect(user2).approve(receiverStaking.address, 100000);
 
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, ethers.constants.AddressZero)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    await expect(() =>
+      receiverStaking
+        .connect(user1)
+        .depositAndSetSigner(0, ethers.constants.AddressZero)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr1)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr2)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user1Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
-    await expect(receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2)).to.be.revertedWith("signer has a staker");
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr1)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr2)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user1Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
+    await expect(
+      receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2)
+    ).to.be.revertedWith("signer has a staker");
 
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, ethers.constants.AddressZero)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    await expect(() =>
+      receiverStaking
+        .connect(user1)
+        .depositAndSetSigner(0, ethers.constants.AddressZero)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user2Addr);
-    await expect(() => receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr1)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr2
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(ethers.constants.AddressZero);
-    await expect(() => receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2)).to.changeTokenBalances(
-      pond,
-      [user1, user2, receiverStaking],
-      [0, 0, 0]
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      ethers.constants.AddressZero
     );
-    expect(await receiverStaking.signerToStaker(ethers.constants.AddressZero)).to.equal(ethers.constants.AddressZero);
-    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(signerAddr2);
-    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(signerAddr1);
-    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(user2Addr);
-    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(user1Addr);
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user2Addr
+    );
+    await expect(() =>
+      receiverStaking.connect(user2).depositAndSetSigner(0, signerAddr1)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      ethers.constants.AddressZero
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      ethers.constants.AddressZero
+    );
+    await expect(() =>
+      receiverStaking.connect(user1).depositAndSetSigner(0, signerAddr2)
+    ).to.changeTokenBalances(pond, [user1, user2, receiverStaking], [0, 0, 0]);
+    expect(
+      await receiverStaking.signerToStaker(ethers.constants.AddressZero)
+    ).to.equal(ethers.constants.AddressZero);
+    expect(await receiverStaking.stakerToSigner(user1Addr)).to.equal(
+      signerAddr2
+    );
+    expect(await receiverStaking.stakerToSigner(user2Addr)).to.equal(
+      signerAddr1
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr1)).to.equal(
+      user2Addr
+    );
+    expect(await receiverStaking.signerToStaker(signerAddr2)).to.equal(
+      user1Addr
+    );
   });
 });
 
@@ -457,18 +719,29 @@ describe("ReceiverStaking", function () {
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
     const Pond = await ethers.getContractFactory("Pond");
-    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+    pond = await upgrades.deployProxy(Pond, ["Marlin", "POND"], {
+      kind: "uups",
+    });
 
     const ReceiverStaking = await ethers.getContractFactory("ReceiverStaking");
-    receiverStaking = await upgrades.deployProxy(ReceiverStaking, [addrs[0], "Receiver POND", "rPOND"], {
-      kind: "uups",
-      constructorArgs: [startTime, 3600, pond.address],
-    });
+    receiverStaking = await upgrades.deployProxy(
+      ReceiverStaking,
+      [addrs[0], "Receiver POND", "rPOND"],
+      {
+        kind: "uups",
+        constructorArgs: [startTime, 3600, pond.address],
+      }
+    );
 
     expect(await receiverStaking.name()).to.equal("Receiver POND");
     expect(await receiverStaking.symbol()).to.equal("rPOND");
     expect(await receiverStaking.totalSupply()).to.equal(0);
-    expect(await receiverStaking.hasRole(await receiverStaking.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await receiverStaking.hasRole(
+        await receiverStaking.DEFAULT_ADMIN_ROLE(),
+        addrs[0]
+      )
+    ).to.be.true;
     expect(await receiverStaking.START_TIME()).to.equal(startTime);
     expect(await receiverStaking.EPOCH_LENGTH()).to.equal(3600);
     expect(await receiverStaking.STAKING_TOKEN()).to.equal(pond.address);
@@ -496,12 +769,16 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
 
-    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
+    await receiverStaking
+      .connect(signers[1])
+      .depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -544,7 +821,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(stakerAddr)).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(depositorAddr)).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(depositorAddr)).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
   });
 
   it("can deposit after start time", async function () {
@@ -555,7 +834,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 2000);
@@ -572,7 +853,9 @@ describe("ReceiverStaking", function () {
     expect(stakeInfo._totalStake).to.equal(1000);
     expect(stakeInfo._currentEpoch).to.equal(1);
 
-    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
+    await receiverStaking
+      .connect(signers[1])
+      .depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -666,11 +949,15 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
-    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
+    await receiverStaking
+      .connect(signers[1])
+      .depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -682,7 +969,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(900);
     expect(await receiverStaking.totalSupply()).to.equal(2400);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2400);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2900));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(2900)
+    );
 
     await receiverStaking.connect(signers[1]).withdraw(200);
 
@@ -721,11 +1010,15 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await pond.transfer(addrs[1], 2000);
     await pond.connect(signers[1]).approve(receiverStaking.address, 1500);
-    await receiverStaking.connect(signers[1]).depositAndSetSigner(1500, addrs[7]);
+    await receiverStaking
+      .connect(signers[1])
+      .depositAndSetSigner(1500, addrs[7]);
 
     expect(await receiverStaking.balanceOf(addrs[1])).to.equal(1500);
     expect(await receiverStaking.totalSupply()).to.equal(2500);
@@ -802,7 +1095,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(900);
     expect(await receiverStaking.totalSupply()).to.equal(2400);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2400);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2900));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(2900)
+    );
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
@@ -964,7 +1259,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(800);
     expect(await receiverStaking.totalSupply()).to.equal(2100);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(2100);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2800));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(2800)
+    );
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
@@ -1295,7 +1592,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(700);
     expect(await receiverStaking.totalSupply()).to.equal(1800);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1800);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(2700));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(2700)
+    );
 
     stakeInfo = await receiverStaking.getStakeInfo(addrs[0], 1);
     epochInfo = await receiverStaking.getEpochInfo(1);
@@ -1522,7 +1821,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await expect(receiverStaking.withdraw(1001)).to.be.reverted;
   });
@@ -1534,7 +1835,9 @@ describe("ReceiverStaking", function () {
     expect(await receiverStaking.balanceOf(addrs[0])).to.equal(1000);
     expect(await receiverStaking.totalSupply()).to.equal(1000);
     expect(await pond.balanceOf(receiverStaking.address)).to.equal(1000);
-    expect(await pond.balanceOf(addrs[0])).to.equal(BN.from(10e9).e18().sub(1000));
+    expect(await pond.balanceOf(addrs[0])).to.equal(
+      BN.from(10e9).e18().sub(1000)
+    );
 
     await expect(receiverStaking.transfer(addrs[1], 100)).to.be.reverted;
   });

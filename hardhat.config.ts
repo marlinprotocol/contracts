@@ -20,19 +20,31 @@ export default {
     },
     eth: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      accounts: process.env.ETH_DEPLOYER_KEY !== undefined ? [process.env.ETH_DEPLOYER_KEY] : undefined,
+      accounts:
+        process.env.ETH_DEPLOYER_KEY !== undefined
+          ? [process.env.ETH_DEPLOYER_KEY]
+          : undefined,
     },
     arb1: {
       url: "https://arb1.arbitrum.io/rpc",
-      accounts: process.env.ARBITRUM_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_DEPLOYER_KEY] : undefined,
+      accounts:
+        process.env.ARBITRUM_DEPLOYER_KEY !== undefined
+          ? [process.env.ARBITRUM_DEPLOYER_KEY]
+          : undefined,
     },
     goerli: {
       url: "https://rpc.goerli.dev",
-      accounts: process.env.GOERLI_DEPLOYER_KEY !== undefined ? [process.env.GOERLI_DEPLOYER_KEY] : undefined,
+      accounts:
+        process.env.GOERLI_DEPLOYER_KEY !== undefined
+          ? [process.env.GOERLI_DEPLOYER_KEY]
+          : undefined,
     },
     arbg: {
       url: "https://goerli-rollup.arbitrum.io/rpc",
-      accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
+      accounts:
+        process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined
+          ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY]
+          : undefined,
     },
   },
   solidity: {

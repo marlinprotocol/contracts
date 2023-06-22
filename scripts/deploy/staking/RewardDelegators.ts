@@ -35,7 +35,10 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-  let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
+  let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+    kind: "uups",
+    initializer: false,
+  });
 
   console.log("Deployed addr:", rewardDelegators.address);
 

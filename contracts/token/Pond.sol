@@ -34,7 +34,10 @@ contract Pond is
     // safeguard against takeover of the logic contract
     constructor() initializer {}
 
-    function initialize(string memory _name, string memory _symbol) public initializer {
+    function initialize(
+        string memory _name,
+        string memory _symbol
+    ) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
@@ -51,33 +54,62 @@ contract Pond is
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
-        return interfaceId == type(IArbToken).interfaceId || super.supportsInterface(interfaceId);
+    )
+        public
+        view
+        virtual
+        override(
+            ERC165Upgradeable,
+            AccessControlUpgradeable,
+            AccessControlEnumerableUpgradeable
+        )
+        returns (bool)
+    {
+        return
+            interfaceId == type(IArbToken).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function _grantRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._grantRole(role, account);
     }
 
     function _revokeRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
+        require(
+            getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0,
+            "Cannot be adminless"
+        );
     }
 
-    function _mint(address account, uint256 amount) internal virtual override(ERC20Upgradeable, ERC20CappedUpgradeable) {
+    function _mint(
+        address account,
+        uint256 amount
+    ) internal virtual override(ERC20Upgradeable, ERC20CappedUpgradeable) {
         super._mint(account, amount);
     }
 
     function _authorizeUpgrade(address /*account*/) internal view override {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Pond: must be admin to upgrade");
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "Pond: must be admin to upgrade"
+        );
     }
 
     //-------------------------------- Bridge start --------------------------------//

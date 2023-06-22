@@ -31,29 +31,49 @@ describe("Timelock", function () {
 
   it("deploys as proxy and initializes", async function () {
     const Timelock = await ethers.getContractFactory("Timelock");
-    let timelockContract = await upgrades.deployProxy(Timelock, [2 * 24 * 60 * 60], { kind: "uups" });
+    let timelockContract = await upgrades.deployProxy(
+      Timelock,
+      [2 * 24 * 60 * 60],
+      { kind: "uups" }
+    );
     let timelock = getTimelock(timelockContract.address, signers[0]);
 
     expect(await timelock.delay()).to.equal(2 * 24 * 60 * 60);
-    expect(await timelock.hasRole(await timelock.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await timelock.hasRole(await timelock.DEFAULT_ADMIN_ROLE(), addrs[0])
+    ).to.be.true;
   });
 
   it("upgrades", async function () {
     const Timelock = await ethers.getContractFactory("Timelock");
-    let timelockContract = await upgrades.deployProxy(Timelock, [2 * 24 * 60 * 60], { kind: "uups" });
+    let timelockContract = await upgrades.deployProxy(
+      Timelock,
+      [2 * 24 * 60 * 60],
+      { kind: "uups" }
+    );
     let timelock = getTimelock(timelockContract.address, signers[0]);
 
     await upgrades.upgradeProxy(timelock.address, Timelock, { kind: "uups" });
 
     expect(await timelock.delay()).to.equal(2 * 24 * 60 * 60);
-    expect(await timelock.hasRole(await timelock.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
+    expect(
+      await timelock.hasRole(await timelock.DEFAULT_ADMIN_ROLE(), addrs[0])
+    ).to.be.true;
   });
 
   it("does not upgrade without admin", async function () {
     const Timelock = await ethers.getContractFactory("Timelock");
-    let timelockContract = await upgrades.deployProxy(Timelock, [2 * 24 * 60 * 60], { kind: "uups" });
+    let timelockContract = await upgrades.deployProxy(
+      Timelock,
+      [2 * 24 * 60 * 60],
+      { kind: "uups" }
+    );
     let timelock = getTimelock(timelockContract.address, signers[0]);
 
-    await expect(upgrades.upgradeProxy(timelock.address, Timelock.connect(signers[1]), { kind: "uups" })).to.be.reverted;
+    await expect(
+      upgrades.upgradeProxy(timelock.address, Timelock.connect(signers[1]), {
+        kind: "uups",
+      })
+    ).to.be.reverted;
   });
 });
