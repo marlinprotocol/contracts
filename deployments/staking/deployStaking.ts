@@ -17,32 +17,16 @@ async function deployStaking() {
   const chainConfig = config[chainId];
 
   const rewardDelegators: Contract = await deployRewardDelegators();
-  const stakeManager: Contract = await deployStakeManager(
-    rewardDelegators.address
-  );
-  const clusterRegistry: Contract = await deployClusterRegistry(
-    rewardDelegators.address
-  );
+  const stakeManager: Contract = await deployStakeManager(rewardDelegators.address);
+  const clusterRegistry: Contract = await deployClusterRegistry(rewardDelegators.address);
   const clusterSelectorMap = Object();
   for (let network in chainConfig.staking.rewardWeights) {
-    const clusterSelector = await deployClusterSelector(
-      network,
-      rewardDelegators.address
-    );
+    const clusterSelector = await deployClusterSelector(network, rewardDelegators.address);
     clusterSelectorMap[network] = clusterSelector.address;
   }
   const receiverStaking: Contract = await deployReceiverStaking();
-  const clusterRewards: Contract = await deployClusterRewards(
-    rewardDelegators.address,
-    receiverStaking.address,
-    clusterSelectorMap
-  );
-  await initRewardDelegators(
-    rewardDelegators.address,
-    stakeManager.address,
-    clusterRewards.address,
-    clusterRegistry.address
-  );
+  const clusterRewards: Contract = await deployClusterRewards(rewardDelegators.address, receiverStaking.address, clusterSelectorMap);
+  await initRewardDelegators(rewardDelegators.address, stakeManager.address, clusterRewards.address, clusterRegistry.address);
 }
 
 deployStaking()

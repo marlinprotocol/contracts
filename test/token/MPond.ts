@@ -35,11 +35,8 @@ describe("MPond", function () {
     const mpond = await upgrades.deployProxy(MPond, { kind: "uups" });
 
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
-    expect(await mpond.hasRole(await mpond.DEFAULT_ADMIN_ROLE(), addrs[0])).to
-      .be.true;
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+    expect(await mpond.hasRole(await mpond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
   });
 
   it("upgrades", async function () {
@@ -48,11 +45,8 @@ describe("MPond", function () {
     await upgrades.upgradeProxy(mpond.address, MPond, { kind: "uups" });
 
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
-    expect(await mpond.hasRole(await mpond.DEFAULT_ADMIN_ROLE(), addrs[0])).to
-      .be.true;
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
+    expect(await mpond.hasRole(await mpond.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
   });
 
   it("does not upgrade without admin", async function () {
@@ -81,15 +75,8 @@ testERC165(
       "revokeRole(bytes32,address)",
       "renounceRole(bytes32,address)",
     ],
-    IAccessControlEnumerable: [
-      "getRoleMember(bytes32,uint256)",
-      "getRoleMemberCount(bytes32)",
-    ],
-    IArbToken: [
-      "bridgeMint(address,uint256)",
-      "bridgeBurn(address,uint256)",
-      "l1Address()",
-    ],
+    IAccessControlEnumerable: ["getRoleMember(bytes32,uint256)", "getRoleMemberCount(bytes32)"],
+    IArbToken: ["bridgeMint(address,uint256)", "bridgeBurn(address,uint256)", "l1Address()"],
   }
 );
 
@@ -201,34 +188,22 @@ describe("MPond", function () {
 
   it("can grant large finite transfer allowance up to 2^96 - 1", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(1));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
   });
 
   it("can grant infinite transfer allowance", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(256).sub(1));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(256).sub(1));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
   });
 
   it("cannot grant finite transfer allowance over 2^96 - 1", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await expect(
-      mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(0))
-    ).to.be.reverted;
-    await expect(
-      mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(256).sub(2))
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(0))).to.be.reverted;
+    await expect(mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(256).sub(2))).to.be.reverted;
   });
 
   it("can increase by small finite transfer allowance", async function () {
@@ -246,49 +221,29 @@ describe("MPond", function () {
     await mpond.connect(signers[1]).approve(addrs[2], 1234);
 
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(1234);
-    await mpond
-      .connect(signers[1])
-      .increaseAllowance(addrs[2], BN.from(2).pow(96).sub(1).sub(1234));
+    await mpond.connect(signers[1]).increaseAllowance(addrs[2], BN.from(2).pow(96).sub(1).sub(1234));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
   });
 
   it("can increase by infinite transfer allowance from zero", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .increaseAllowance(addrs[2], BN.from(2).pow(256).sub(1));
+    await mpond.connect(signers[1]).increaseAllowance(addrs[2], BN.from(2).pow(256).sub(1));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
   });
 
   it("cannot increase by infinite transfer allowance from non-zero", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
     await mpond.connect(signers[1]).increaseAllowance(addrs[2], 1);
 
-    await expect(
-      mpond
-        .connect(signers[1])
-        .increaseAllowance(addrs[2], BN.from(2).pow(256).sub(1))
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[1]).increaseAllowance(addrs[2], BN.from(2).pow(256).sub(1))).to.be.reverted;
   });
 
   it("cannot increase finite transfer allowance over 2^96 - 1", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await expect(
-      mpond
-        .connect(signers[1])
-        .increaseAllowance(addrs[2], BN.from(2).pow(96).sub(0))
-    ).to.be.reverted;
-    await expect(
-      mpond
-        .connect(signers[1])
-        .increaseAllowance(addrs[2], BN.from(2).pow(256).sub(2))
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[1]).increaseAllowance(addrs[2], BN.from(2).pow(96).sub(0))).to.be.reverted;
+    await expect(mpond.connect(signers[1]).increaseAllowance(addrs[2], BN.from(2).pow(256).sub(2))).to.be.reverted;
   });
 
   it("can decrease by small finite transfer allowance", async function () {
@@ -303,65 +258,37 @@ describe("MPond", function () {
 
   it("can decrease by large finite transfer allowance up to 2^96 - 1", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(1));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
-    await mpond
-      .connect(signers[1])
-      .decreaseAllowance(addrs[2], BN.from(2).pow(96).sub(1).sub(1234));
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).decreaseAllowance(addrs[2], BN.from(2).pow(96).sub(1).sub(1234));
 
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(1234);
   });
 
   it("can decrease by infinite transfer allowance from infinite", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(1));
 
-    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
-    await mpond
-      .connect(signers[1])
-      .decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(1));
+    expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(1));
 
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
   });
 
   it("cannot decrease by infinite transfer allowance from finite", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(96).sub(2));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(2));
 
-    await expect(
-      mpond
-        .connect(signers[1])
-        .decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(1))
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[1]).decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(1))).to.be.reverted;
   });
 
   it("cannot decrease finite transfer allowance over 2^96 - 1", async function () {
     expect(await mpond.allowance(addrs[1], addrs[2])).to.equal(0);
-    await mpond
-      .connect(signers[1])
-      .approve(addrs[2], BN.from(2).pow(96).sub(1));
+    await mpond.connect(signers[1]).approve(addrs[2], BN.from(2).pow(96).sub(1));
 
-    await expect(
-      mpond
-        .connect(signers[1])
-        .decreaseAllowance(addrs[2], BN.from(2).pow(96).sub(0))
-    ).to.be.reverted;
-    await expect(
-      mpond
-        .connect(signers[1])
-        .decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(2))
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[1]).decreaseAllowance(addrs[2], BN.from(2).pow(96).sub(0))).to.be.reverted;
+    await expect(mpond.connect(signers[1]).decreaseAllowance(addrs[2], BN.from(2).pow(256).sub(2))).to.be.reverted;
   });
 });
 
@@ -381,51 +308,37 @@ describe("MPond", function () {
 
   it("transfer should happen if addr0 is whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.transfer(addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transfer should happen if addr1 is whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.transfer(addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transfer should happen if addr0 and addr1 are whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -433,21 +346,15 @@ describe("MPond", function () {
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.transfer(addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transfer should fail if neither addr0 nor addr1 are whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -456,23 +363,18 @@ describe("MPond", function () {
 
   it("transfer should fail when not enough token balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
-    await expect(mpond.connect(signers[1]).transfer(addrs[0], 1234)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).transfer(addrs[0], 1234)).to.be.reverted;
   });
 
   it("transfer should fail when not enough undelegated balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -484,9 +386,7 @@ describe("MPond", function () {
 
   it("transfer should happen if amount is balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -497,28 +397,20 @@ describe("MPond", function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(0);
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(10000).e18());
   });
 
   it("transfer to zero address should fail", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
-    await expect(
-      mpond.transfer(ethers.constants.AddressZero, BN.from(10000).e18())
-    ).to.be.reverted;
+    await expect(mpond.transfer(ethers.constants.AddressZero, BN.from(10000).e18())).to.be.reverted;
   });
 
   it("transferFrom should happen if addr0 is whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -526,21 +418,15 @@ describe("MPond", function () {
     await mpond.approve(addrs[2], 1234);
     await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transferFrom should happen if addr1 is whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -548,21 +434,15 @@ describe("MPond", function () {
     await mpond.approve(addrs[2], 1234);
     await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transferFrom should happen if addr0 and addr1 are whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -571,51 +451,37 @@ describe("MPond", function () {
     await mpond.approve(addrs[2], 1234);
     await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234);
 
-    expect(await mpond.balanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18().sub(1234)
-    );
+    expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.balanceOf(addrs[1])).to.equal(1234);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(1234);
   });
 
   it("transferFrom should fail if neither addr0 nor addr1 are whitelisted", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.approve(addrs[2], 1234);
-    await expect(
-      mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)).to.be.reverted;
   });
 
   it("transferFrom should fail when not enough allowance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.approve(addrs[2], 1233);
-    await expect(
-      mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)).to.be.reverted;
   });
 
   it("transferFrom should fail when not enough token balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -623,16 +489,12 @@ describe("MPond", function () {
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.transfer(addrs[1], BN.from(10000).e18().sub(1233));
     await mpond.approve(addrs[2], 1234);
-    await expect(
-      mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)).to.be.reverted;
   });
 
   it("transferFrom should fail when not enough undelegated balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -640,39 +502,29 @@ describe("MPond", function () {
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.delegate(addrs[1], BN.from(10000).e18().sub(1233));
     await mpond.approve(addrs[2], 1234);
-    await expect(
-      mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], 1234)).to.be.reverted;
   });
 
   it("transferFrom should happen if amount is balance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.approve(addrs[2], BN.from(10000).e18());
-    await mpond
-      .connect(signers[2])
-      .transferFrom(addrs[0], addrs[1], BN.from(10000).e18());
+    await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], BN.from(10000).e18());
 
     expect(await mpond.balanceOf(addrs[0])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(0);
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(10000).e18());
   });
 
   it("transferFrom should reduce unmaxed allowance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -680,32 +532,20 @@ describe("MPond", function () {
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.approve(addrs[2], BN.from(1000).e18());
 
-    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(
-      BN.from(1000).e18()
-    );
+    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(BN.from(1000).e18());
 
-    await mpond
-      .connect(signers[2])
-      .transferFrom(addrs[0], addrs[1], BN.from(100).e18());
+    await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], BN.from(100).e18());
 
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(9900).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(9900).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(9900).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(100).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(
-      BN.from(100).e18()
-    );
-    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(
-      BN.from(900).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(100).e18());
+    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(BN.from(900).e18());
   });
 
   it("transferFrom should not reduce maxed allowance", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(0);
     expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(0);
 
@@ -713,57 +553,35 @@ describe("MPond", function () {
     await mpond.grantRole(WHITELIST_ROLE, addrs[1]);
     await mpond.approve(addrs[2], BN.from(2).pow(96).sub(1));
 
-    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
 
-    await mpond
-      .connect(signers[2])
-      .transferFrom(addrs[0], addrs[1], BN.from(100).e18());
+    await mpond.connect(signers[2]).transferFrom(addrs[0], addrs[1], BN.from(100).e18());
 
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(9900).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(9900).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(9900).e18());
     expect(await mpond.balanceOf(addrs[1])).to.equal(BN.from(100).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(
-      BN.from(100).e18()
-    );
-    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(
-      BN.from(2).pow(96).sub(1)
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[1])).to.equal(BN.from(100).e18());
+    expect(await mpond.allowance(addrs[0], addrs[2])).to.equal(BN.from(2).pow(96).sub(1));
   });
 
   it("transferFrom to zero address should fail", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.grantRole(WHITELIST_ROLE, ethers.constants.AddressZero);
     await mpond.approve(addrs[2], BN.from(10000).e18());
-    await expect(
-      mpond
-        .connect(signers[2])
-        .transferFrom(addrs[0], ethers.constants.AddressZero, 0)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(addrs[0], ethers.constants.AddressZero, 0)).to.be.reverted;
   });
 
   it("transferFrom from zero address should fail", async function () {
     expect(await mpond.balanceOf(addrs[0])).to.equal(BN.from(10000).e18());
-    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(
-      BN.from(10000).e18()
-    );
+    expect(await mpond.undelegatedBalanceOf(addrs[0])).to.equal(BN.from(10000).e18());
 
     await mpond.grantRole(WHITELIST_ROLE, addrs[0]);
     await mpond.grantRole(WHITELIST_ROLE, ethers.constants.AddressZero);
     await mpond.approve(addrs[2], BN.from(10000).e18());
-    await expect(
-      mpond
-        .connect(signers[2])
-        .transferFrom(ethers.constants.AddressZero, addrs[0], 0)
-    ).to.be.reverted;
+    await expect(mpond.connect(signers[2]).transferFrom(ethers.constants.AddressZero, addrs[0], 0)).to.be.reverted;
   });
 });
 
@@ -780,9 +598,7 @@ describe("MPond", function () {
   });
 
   it("can get delegation for zero address", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
   });
 
   it("can get delegation for non zero address", async function () {
@@ -791,49 +607,34 @@ describe("MPond", function () {
   });
 
   it("can delegate less than undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     await mpond.delegate(addrs[1], 1234);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
   });
 
   it("can delegate equal to undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     await mpond.delegate(addrs[1], BN.from(10000).e18());
-    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(
-      BN.from(10000).e18()
-    );
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(0);
+    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(0);
   });
 
   it("cannot delegate more than undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     await mpond.delegate(addrs[1], 1);
     await expect(mpond.delegate(addrs[2], BN.from(10000).e18())).to.be.reverted;
   });
 
   it("cannot delegate to zero address", async function () {
-    await expect(mpond.delegate(ethers.constants.AddressZero, 1234)).to.be
-      .reverted;
+    await expect(mpond.delegate(ethers.constants.AddressZero, 1234)).to.be.reverted;
   });
 
   it("can delegate multiple times in same block", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     await network.provider.send("evm_setAutomine", [false]);
     await mpond.delegate(addrs[1], 1000);
@@ -841,9 +642,7 @@ describe("MPond", function () {
     await network.provider.send("evm_mine", []);
     await network.provider.send("evm_setAutomine", [true]);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
   });
 
   it("cannot delegate if block number is too high", async function () {
@@ -855,49 +654,36 @@ describe("MPond", function () {
 
   it("can undelegate less than delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     await mpond.undelegate(addrs[1], 1000);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(234));
   });
 
   it("can undelegate equal to delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     await mpond.undelegate(addrs[1], 1234);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
   });
 
   it("cannot undelegate more than delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     await mpond.undelegate(addrs[1], 1);
     await expect(mpond.undelegate(addrs[1], 1234)).to.be.reverted;
   });
 
   it("cannot undelegate from zero address", async function () {
-    await expect(mpond.undelegate(ethers.constants.AddressZero, 1234)).to.be
-      .reverted;
+    await expect(mpond.undelegate(ethers.constants.AddressZero, 1234)).to.be.reverted;
   });
 
   it("can delegate by sig less than undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -925,15 +711,11 @@ describe("MPond", function () {
     );
     await mpond.delegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, 1234);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
   });
 
   it("can delegate by sig equal to undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -959,27 +741,13 @@ describe("MPond", function () {
         }
       )
     );
-    await mpond.delegateBySig(
-      addrs[1],
-      0,
-      ts + 1,
-      sig.v,
-      sig.r,
-      sig.s,
-      BN.from(10000).e18()
-    );
-    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(
-      BN.from(10000).e18()
-    );
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(0);
+    await mpond.delegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(0);
   });
 
   it("cannot delegate by sig more than undelegated balance", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     await mpond.delegate(addrs[1], 1);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
@@ -1006,17 +774,7 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.delegateBySig(
-        addrs[2],
-        0,
-        ts + 1,
-        sig.v,
-        sig.r,
-        sig.s,
-        BN.from(10000).e18()
-      )
-    ).to.be.reverted;
+    await expect(mpond.delegateBySig(addrs[2], 0, ts + 1, sig.v, sig.r, sig.s, BN.from(10000).e18())).to.be.reverted;
   });
 
   it("cannot delegate by sig to zero address", async function () {
@@ -1044,23 +802,11 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.delegateBySig(
-        ethers.constants.AddressZero,
-        0,
-        ts + 1,
-        sig.v,
-        sig.r,
-        sig.s,
-        BN.from(10000).e18()
-      )
-    ).to.be.reverted;
+    await expect(mpond.delegateBySig(ethers.constants.AddressZero, 0, ts + 1, sig.v, sig.r, sig.s, BN.from(10000).e18())).to.be.reverted;
   });
 
   it("cannot delegate by sig with incorrect signature", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1086,15 +832,11 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.delegateBySig(addrs[1], 0, ts + 1, sig.v + 5, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.delegateBySig(addrs[1], 0, ts + 1, sig.v + 5, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("cannot delegate by sig with incorrect nonce", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1120,15 +862,11 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.delegateBySig(addrs[1], 1, ts + 1, sig.v, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.delegateBySig(addrs[1], 1, ts + 1, sig.v, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("cannot delegate by sig with expired", async function () {
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1154,16 +892,12 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.delegateBySig(addrs[1], 0, ts, sig.v, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.delegateBySig(addrs[1], 0, ts, sig.v, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("can undelegate by sig less than delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1191,16 +925,12 @@ describe("MPond", function () {
     );
     await mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, 1000);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(234));
   });
 
   it("can undelegate by sig equal to delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1228,16 +958,12 @@ describe("MPond", function () {
     );
     await mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, 1234);
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(0);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18());
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18());
   });
 
   it("cannot undelegate by sig more than delegated balance", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     await mpond.undelegate(addrs[1], 1);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
@@ -1264,16 +990,12 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("cannot undelegate by sig from zero address", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1299,24 +1021,12 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.undelegateBySig(
-        ethers.constants.AddressZero,
-        0,
-        ts + 1,
-        sig.v,
-        sig.r,
-        sig.s,
-        1000
-      )
-    ).to.be.reverted;
+    await expect(mpond.undelegateBySig(ethers.constants.AddressZero, 0, ts + 1, sig.v, sig.r, sig.s, 1000)).to.be.reverted;
   });
 
   it("cannot undelegate by sig with incorrect signature", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1342,16 +1052,12 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v + 5, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.undelegateBySig(addrs[1], 0, ts + 1, sig.v + 5, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("cannot undelegate by sig with incorrect nonce", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1377,16 +1083,12 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.undelegateBySig(addrs[1], 1, ts + 1, sig.v, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.undelegateBySig(addrs[1], 1, ts + 1, sig.v, sig.r, sig.s, 1234)).to.be.reverted;
   });
 
   it("cannot undelegate by sig with expired", async function () {
     await mpond.delegate(addrs[1], 1234);
-    expect(
-      await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)
-    ).to.equal(BN.from(10000).e18().sub(1234));
+    expect(await mpond.getDelegates(addrs[0], ethers.constants.AddressZero)).to.equal(BN.from(10000).e18().sub(1234));
     expect(await mpond.getDelegates(addrs[0], addrs[1])).to.equal(1234);
     let ts = (await ethers.provider.getBlock("latest")).timestamp;
     let sig = ethers.utils.splitSignature(
@@ -1412,9 +1114,7 @@ describe("MPond", function () {
         }
       )
     );
-    await expect(
-      mpond.undelegateBySig(addrs[1], 0, ts, sig.v, sig.r, sig.s, 1234)
-    ).to.be.reverted;
+    await expect(mpond.undelegateBySig(addrs[1], 0, ts, sig.v, sig.r, sig.s, 1234)).to.be.reverted;
   });
 });
 
@@ -1604,8 +1304,7 @@ describe("MPond", function () {
   });
 
   it("non admin cannot set l1 address", async function () {
-    await expect(mpond.connect(signers[1]).setL1Address(addrs[1])).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).setL1Address(addrs[1])).to.be.reverted;
   });
 
   it("admin can withdraw", async function () {
@@ -1641,8 +1340,7 @@ describe("MPond", function () {
   });
 
   it("non bridge cannot mint", async function () {
-    await expect(mpond.connect(signers[2]).bridgeMint(addrs[2], 100)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[2]).bridgeMint(addrs[2], 100)).to.be.reverted;
   });
 
   it("bridge can mint up to its balance", async function () {
@@ -1664,20 +1362,17 @@ describe("MPond", function () {
   });
 
   it("bridge cannot mint beyond its balance", async function () {
-    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 1001)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 1001)).to.be.reverted;
 
     await mpond.connect(signers[1]).bridgeMint(addrs[2], 100);
 
-    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 901)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).bridgeMint(addrs[2], 901)).to.be.reverted;
   });
 
   it("non bridge cannot burn", async function () {
     await mpond.transfer(addrs[2], 1000);
     await mpond.transfer(addrs[3], 1000);
-    await expect(mpond.connect(signers[2]).bridgeBurn(addrs[2], 100)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[2]).bridgeBurn(addrs[2], 100)).to.be.reverted;
   });
 
   it("bridge can burn up to users balance", async function () {
@@ -1704,12 +1399,10 @@ describe("MPond", function () {
 
   it("bridge cannot burn beyond users balance", async function () {
     await mpond.transfer(addrs[2], 1000);
-    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 1001)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 1001)).to.be.reverted;
 
     await mpond.connect(signers[1]).bridgeBurn(addrs[2], 100);
 
-    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 901)).to.be
-      .reverted;
+    await expect(mpond.connect(signers[1]).bridgeBurn(addrs[2], 901)).to.be.reverted;
   });
 });

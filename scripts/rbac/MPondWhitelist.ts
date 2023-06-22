@@ -14,11 +14,7 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (
-    addresses[chainId] === undefined ||
-    addresses[chainId][name] === undefined ||
-    addresses[chainId][wname] === undefined
-  ) {
+  if (addresses[chainId] === undefined || addresses[chainId][name] === undefined || addresses[chainId][wname] === undefined) {
     console.log("Missing dependencies");
     return;
   }
@@ -33,10 +29,7 @@ async function main() {
 
   console.log("Deployed addr:", mpond.address);
 
-  await mpond.grantRole(
-    await mpond.WHITELIST_ROLE(),
-    addresses[chainId][wname]
-  );
+  await mpond.grantRole(await mpond.WHITELIST_ROLE(), addresses[chainId][wname]);
 }
 
 main()

@@ -17,10 +17,7 @@ export async function pickYLtX(y: number, x: number, callback): Promise<any[]> {
   return await Promise.all(results);
 }
 
-export function randomlyDivideInXPieces(
-  amount: BigNumber,
-  X: number
-): BigNumber[] {
+export function randomlyDivideInXPieces(amount: BigNumber, X: number): BigNumber[] {
   let total: BigNumber = constants.Zero;
   let pieces: BigNumber[] = [];
 
@@ -33,19 +30,14 @@ export function randomlyDivideInXPieces(
   return pieces;
 }
 
-export function getRandomNumber(
-  max: BigNumber = constants.MaxUint256,
-  maxLoss: number = 10
-): BigNumber {
+export function getRandomNumber(max: BigNumber = constants.MaxUint256, maxLoss: number = 10): BigNumber {
   const min = max.mul(100 - maxLoss).div(100);
   const rand = BigNumber.from(utils.randomBytes(32)).mod(max.sub(min)).add(min);
   return rand;
 }
 
 export async function skipBlocks(n: number) {
-  await Promise.all(
-    [...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", []))
-  );
+  await Promise.all([...Array(n)].map(async (x) => await ethers.provider.send("evm_mine", [])));
 }
 
 export async function skipTime(t: number) {

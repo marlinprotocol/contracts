@@ -11,10 +11,7 @@ interface IClusterSelector {
     /// @notice function add multiple addresses in one call
     /// @param newNodes newNodes of the node nodes
     /// @param balances Balances of the new nodes.
-    function upsertMultiple(
-        address[] calldata newNodes,
-        uint64[] calldata balances
-    ) external;
+    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external;
 
     /// @notice Update the balance of the node
     /// @param cluster Address of the existing node
@@ -33,10 +30,7 @@ interface IClusterSelector {
     /// @notice Insert multiple nodes with given balances (unchecked)
     /// @param newNodes Addresses of the new nodes
     /// @param balances Balances of the new nodes
-    function insertMultiple_unchecked(
-        address[] calldata newNodes,
-        uint64[] calldata balances
-    ) external;
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external;
 
     /// @notice timestamp when the selector starts
     function START_TIME() external view returns (uint256);
@@ -54,19 +48,14 @@ interface IClusterSelector {
     /// If the method is not called within the previous epoch, then the last selected clusters
     /// are considered as selected for this epoch
     /// @param epoch Epoch Number
-    function getClusters(
-        uint256 epoch
-    ) external view returns (address[] memory clusters);
+    function getClusters(uint256 epoch) external view returns (address[] memory clusters);
 
     /// @notice Clusters are selected only for next epoch in this epoch using selectClusters method.
     /// If the method is not called within the previous epoch, then the last selected clusters
     /// are considered as selected for this epoch
     /// @param from Epoch Number
     /// @param to Epoch Number
-    function getClustersRanged(
-        uint256 from,
-        uint256 to
-    ) external view returns (address[][] memory clusters);
+    function getClustersRanged(uint256 from, uint256 to) external view returns (address[][] memory clusters);
 
     /// @notice Returns the list of selected clusters for the next
     /// @return nodes List of the clusters selected

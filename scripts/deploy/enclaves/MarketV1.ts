@@ -15,8 +15,7 @@ async function main() {
   let name = process.env.NAME || "MarketV1";
   console.log(name);
 
-  let chainId =
-    (network.config as any).tag || (await ethers.provider.getNetwork()).chainId;
+  let chainId = (network.config as any).tag || (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
   var addresses: { [key: string]: { [key: string]: string } } = {};
@@ -24,10 +23,7 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (
-    addresses[chainId] === undefined ||
-    addresses[chainId]["Pond"] === undefined
-  ) {
+  if (addresses[chainId] === undefined || addresses[chainId]["Pond"] === undefined) {
     console.log("Missing dependencies");
     return;
   }
@@ -43,13 +39,9 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const MarketV1 = await ethers.getContractFactory("MarketV1");
-  let marketv1 = await upgrades.deployProxy(
-    MarketV1,
-    [addresses[chainId]["Pond"], [ethers.utils.id("RATE_LOCK")], [300]],
-    {
-      kind: "uups",
-    }
-  );
+  let marketv1 = await upgrades.deployProxy(MarketV1, [addresses[chainId]["Pond"], [ethers.utils.id("RATE_LOCK")], [300]], {
+    kind: "uups",
+  });
 
   console.log("Deployed addr:", marketv1.address);
 

@@ -7,17 +7,9 @@ interface IClusterRegistry {
 
     function lockWaitTime(bytes32 _selectorId) external returns (uint256);
 
-    function updateLockWaitTime(
-        bytes32 _selector,
-        uint256 _updatedWaitTime
-    ) external;
+    function updateLockWaitTime(bytes32 _selector, uint256 _updatedWaitTime) external;
 
-    function register(
-        bytes32 _networkId,
-        uint256 _commission,
-        address _rewardAddress,
-        address _clientKey
-    ) external;
+    function register(bytes32 _networkId, uint256 _commission, address _rewardAddress, address _clientKey) external;
 
     function requestCommissionUpdate(uint256 _commission) external;
 
@@ -47,17 +39,7 @@ interface IClusterRegistry {
 
     function getCluster(
         address _cluster
-    )
-        external
-        returns (
-            uint256 commission,
-            address rewardAddress,
-            address clientKey,
-            bytes32 networkId,
-            bool isValidCluster
-        );
+    ) external returns (uint256 commission, address rewardAddress, address clientKey, bytes32 networkId, bool isValidCluster);
 
-    function getRewardInfo(
-        address _cluster
-    ) external returns (uint256, address);
+    function getRewardInfo(address _cluster) external returns (uint256, address);
 }

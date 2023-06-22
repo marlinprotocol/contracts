@@ -209,28 +209,12 @@ contract TreeUpgradeable is Initializable {
                 // check left side
                 // search on left side
                 // separated out due to stack too deep errors
-                return
-                    _selectLeft(
-                        _rootIndex,
-                        _searchNumber,
-                        _selectedPathTree,
-                        _mRoot.left,
-                        _mRootIndex,
-                        _mLastIndex
-                    );
+                return _selectLeft(_rootIndex, _searchNumber, _selectedPathTree, _mRoot.left, _mRootIndex, _mLastIndex);
             } else {
                 // has to be on right side
                 // search on right side
                 // separated out due to stack too deep errors
-                return
-                    _selectRight(
-                        _rootIndex,
-                        _searchNumber - _rightBound,
-                        _selectedPathTree,
-                        _mRoot.right,
-                        _mRootIndex,
-                        _mLastIndex
-                    );
+                return _selectRight(_rootIndex, _searchNumber - _rightBound, _selectedPathTree, _mRoot.right, _mRootIndex, _mLastIndex);
             }
         }
     }
@@ -244,18 +228,14 @@ contract TreeUpgradeable is Initializable {
         uint256 _mLastIndex
     ) internal view returns (uint256, uint256, uint256) {
         unchecked {
-            (
-                uint256 _sNode,
-                uint256 _sBalance,
-                uint256 _mTreeSize
-            ) = _selectOne(
-                    // safemath: cannot exceed storage tree size
-                    _rootIndex * 2, // left node
-                    _searchNumber,
-                    _selectedPathTree,
-                    _mRootLeft,
-                    _mLastIndex
-                );
+            (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                // safemath: cannot exceed storage tree size
+                _rootIndex * 2, // left node
+                _searchNumber,
+                _selectedPathTree,
+                _mRootLeft,
+                _mLastIndex
+            );
             // if left is 0, it would have been added in the recursive call
             if (_mRootLeft == 0) {
                 // safemath: cannot exceed storage tree size
@@ -276,18 +256,14 @@ contract TreeUpgradeable is Initializable {
         uint256 _mLastIndex
     ) internal view returns (uint256, uint256, uint256) {
         unchecked {
-            (
-                uint256 _sNode,
-                uint256 _sBalance,
-                uint256 _mTreeSize
-            ) = _selectOne(
-                    // safemath: cannot exceed storage tree size
-                    _rootIndex * 2 + 1, // right node
-                    _searchNumber,
-                    _selectedPathTree,
-                    _mRootRight,
-                    _mLastIndex
-                );
+            (uint256 _sNode, uint256 _sBalance, uint256 _mTreeSize) = _selectOne(
+                // safemath: cannot exceed storage tree size
+                _rootIndex * 2 + 1, // right node
+                _searchNumber,
+                _selectedPathTree,
+                _mRootRight,
+                _mLastIndex
+            );
             // if right is 0, it would have been added in the recursive call
             if (_mRootRight == 0) {
                 // safemath: cannot exceed storage tree size
@@ -299,10 +275,7 @@ contract TreeUpgradeable is Initializable {
         }
     }
 
-    function _selectN(
-        uint256 _randomizer,
-        uint256 _N
-    ) internal view returns (address[] memory _selectedNodes) {
+    function _selectN(uint256 _randomizer, uint256 _N) internal view returns (address[] memory _selectedNodes) {
         uint256 _nodeCount = nodes.length - 1;
         if (_N > _nodeCount) _N = _nodeCount;
         if (_N == 0) return new address[](0);
@@ -334,8 +307,7 @@ contract TreeUpgradeable is Initializable {
             _randomizer = uint256(keccak256(abi.encode(_randomizer, _index)));
             // yes, not the right way to get exact uniform distribution
             // should be really close given the ranges
-            uint256 _searchNumber = _randomizer %
-                (_totalWeightInTree - _sumOfBalancesOfSelectedNodes);
+            uint256 _searchNumber = _randomizer % (_totalWeightInTree - _sumOfBalancesOfSelectedNodes);
             uint256 _node;
             uint256 _selectedNodeBalance;
 

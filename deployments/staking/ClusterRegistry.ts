@@ -4,10 +4,7 @@ import * as fs from "fs";
 import { upgrade as upgradeUtil } from "./Upgrade";
 const config = require("./config");
 
-export async function deploy(
-  rewardDelegatorsAddress: string,
-  noLog?: boolean
-): Promise<Contract> {
+export async function deploy(rewardDelegatorsAddress: string, noLog?: boolean): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
 
   const chainConfig = config[chainId];
@@ -27,32 +24,21 @@ export async function deploy(
     }
 
     if (addresses[chainId]["ClusterRegistry"] !== undefined) {
-      console.log(
-        "Existing deployment:",
-        addresses[chainId]["ClusterRegistry"]
-      );
+      console.log("Existing deployment:", addresses[chainId]["ClusterRegistry"]);
       return ClusterRegistry.attach(addresses[chainId]["ClusterRegistry"]);
     }
   }
 
   const waitTimes = chainConfig.cluster.waitTimes;
 
-  let clusterRegistry = await upgrades.deployProxy(
-    ClusterRegistry,
-    [waitTimes, rewardDelegatorsAddress],
-    { kind: "uups" }
-  );
+  let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [waitTimes, rewardDelegatorsAddress], { kind: "uups" });
 
   if (!noLog) {
     console.log("Deployed addr:", clusterRegistry.address);
 
     addresses[chainId]["ClusterRegistry"] = clusterRegistry.address;
 
-    fs.writeFileSync(
-      "address.json",
-      JSON.stringify(addresses, null, 2),
-      "utf8"
-    );
+    fs.writeFileSync("address.json", JSON.stringify(addresses, null, 2), "utf8");
   }
 
   return clusterRegistry;
@@ -71,16 +57,11 @@ export async function verify() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (
-    addresses[chainId] === undefined ||
-    addresses[chainId]["ClusterRegistry"] === undefined
-  ) {
+  if (addresses[chainId] === undefined || addresses[chainId]["ClusterRegistry"] === undefined) {
     throw new Error("Cluster Registry not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(
-    addresses[chainId]["ClusterRegistry"]
-  );
+  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["ClusterRegistry"]);
 
   await run("verify:verify", {
     address: implAddress,

@@ -42,52 +42,31 @@ export function getTimelock(contractAddress: string, signer: Signer): Timelock {
   return new Timelock__factory(signer).attach(contractAddress);
 }
 
-export function getGovernorAlpha(
-  contractAddress: string,
-  signer: Signer
-): GovernorAlpha {
+export function getGovernorAlpha(contractAddress: string, signer: Signer): GovernorAlpha {
   return new GovernorAlpha__factory(signer).attach(contractAddress);
 }
 
-export function getReceiverStaking(
-  contractAddress: string,
-  signer: Signer
-): ReceiverStaking {
+export function getReceiverStaking(contractAddress: string, signer: Signer): ReceiverStaking {
   return new ReceiverStaking__factory(signer).attach(contractAddress);
 }
 
-export function getClusterRegistry(
-  contractAddress: string,
-  signer: Signer
-): ClusterRegistry {
+export function getClusterRegistry(contractAddress: string, signer: Signer): ClusterRegistry {
   return new ClusterRegistry__factory(signer).attach(contractAddress);
 }
 
-export function getRewardDelegators(
-  contractAddress: string,
-  signer: Signer
-): RewardDelegators {
+export function getRewardDelegators(contractAddress: string, signer: Signer): RewardDelegators {
   return new RewardDelegators__factory(signer).attach(contractAddress);
 }
 
-export function getStakeManager(
-  contractAddress: string,
-  signer: Signer
-): StakeManager {
+export function getStakeManager(contractAddress: string, signer: Signer): StakeManager {
   return new StakeManager__factory(signer).attach(contractAddress);
 }
 
-export function getClusterSelector(
-  contractAddress: string,
-  signer: Signer
-): ClusterSelector {
+export function getClusterSelector(contractAddress: string, signer: Signer): ClusterSelector {
   return new ClusterSelector__factory(signer).attach(contractAddress);
 }
 
-export function getClusterRewards(
-  contractAddress: string,
-  signer: Signer
-): ClusterRewards {
+export function getClusterRewards(contractAddress: string, signer: Signer): ClusterRewards {
   return new ClusterRewards__factory(signer).attach(contractAddress);
 }
 

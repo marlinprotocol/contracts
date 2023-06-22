@@ -46,10 +46,7 @@ async function main() {
 
   console.log("Deployed addr:", l2Gateway.address);
 
-  await l2Gateway.initialize(
-    addresses[chainId][tokenName],
-    addresses[ethChainId][l1GName]
-  );
+  await l2Gateway.initialize(addresses[chainId][tokenName], addresses[ethChainId][l1GName]);
 }
 
 main()
