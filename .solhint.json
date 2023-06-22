@@ -1,12 +1,12 @@
 {
-    "extends": "solhint:default",
-    "plugins": [],
-    "rules": {
-        "const-name-snakecase": "off",
-        "avoid-suicide": "error",
-        "avoid-sha3": "warn",
-        "not-rely-on-time": "warn",
-        "not-rely-on-block-hash": "warn",
-        "max-line-length": 140
-    }
+  "extends": "solhint:default",
+  "plugins": [],
+  "rules": {
+    "const-name-snakecase": "off",
+    "avoid-suicide": "error",
+    "avoid-sha3": "warn",
+    "not-rely-on-time": "warn",
+    "not-rely-on-block-hash": "warn",
+    "max-line-length": 140
+  }
 }

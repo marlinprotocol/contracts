@@ -33,13 +33,13 @@ interface IClusterSelector {
     function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external;
 
     /// @notice timestamp when the selector starts
-    function START_TIME() external view returns(uint256);
+    function START_TIME() external view returns (uint256);
 
     /// @notice length of epoch
-    function EPOCH_LENGTH() external view returns(uint256);
+    function EPOCH_LENGTH() external view returns (uint256);
 
     /// @notice no of cluster selected in an epoch
-    function NUMBER_OF_CLUSTERS_TO_SELECT() external view returns(uint256);
+    function NUMBER_OF_CLUSTERS_TO_SELECT() external view returns (uint256);
 
     /// @notice Current Epoch
     function getCurrentEpoch() external view returns (uint256);
