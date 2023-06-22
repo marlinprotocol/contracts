@@ -2,7 +2,12 @@ import { ethers } from "hardhat";
 import * as fs from "fs";
 const config = require("./config");
 
-export async function init(rewardDelegators: string, stakeManager: string, clusterRewards: string, clusterRegistry: string) {
+export async function init(
+  rewardDelegators: string,
+  stakeManager: string,
+  clusterRewards: string,
+  clusterRegistry: string
+) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -23,7 +28,9 @@ export async function init(rewardDelegators: string, stakeManager: string, clust
   console.log("Signer addrs:", addrs);
 
   const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-  let rewardDelegatorsContract = await RewardDelegators.attach(rewardDelegators);
+  let rewardDelegatorsContract = await RewardDelegators.attach(
+    rewardDelegators
+  );
 
   const tokenIds = [];
   const rewardFactors = [];

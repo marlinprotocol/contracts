@@ -27,7 +27,10 @@ export async function deployNoInit(): Promise<Contract> {
 
   console.log("Signer addrs:", addrs);
 
-  let rewardDelegators = await upgrades.deployProxy(RewardDelegators, { kind: "uups", initializer: false });
+  let rewardDelegators = await upgrades.deployProxy(RewardDelegators, {
+    kind: "uups",
+    initializer: false,
+  });
 
   console.log("Deployed addr:", rewardDelegators.address);
 
@@ -51,11 +54,16 @@ export async function verify() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId]["RewardDelegators"] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId]["RewardDelegators"] === undefined
+  ) {
     throw new Error("Reward Delegators not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["RewardDelegators"]);
+  const implAddress = await upgrades.erc1967.getImplementationAddress(
+    addresses[chainId]["RewardDelegators"]
+  );
 
   await run("verify:verify", {
     address: implAddress,

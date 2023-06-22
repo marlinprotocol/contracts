@@ -20,7 +20,10 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId]["RewardDelegators"] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId]["RewardDelegators"] === undefined
+  ) {
     console.log("Missing dependencies");
     return;
   }
@@ -41,7 +44,12 @@ async function main() {
     [
       addrs[0],
       addresses[chainId]["RewardDelegators"],
-      [ethers.utils.id("ETH"), ethers.utils.id("COSMOS"), ethers.utils.id("DOT"), ethers.utils.id("POLYGON")],
+      [
+        ethers.utils.id("ETH"),
+        ethers.utils.id("COSMOS"),
+        ethers.utils.id("DOT"),
+        ethers.utils.id("POLYGON"),
+      ],
       [BN.from(6).e18(), BN.from(3).e18(), BN.from(2).e18(), BN.from(1).e18()],
       BN.from(1200).e18(),
       100000,

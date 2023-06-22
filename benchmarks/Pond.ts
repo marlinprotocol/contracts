@@ -24,7 +24,9 @@ describe("Pond", function () {
 
   it("transfer all to new address", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
 
     let tx = await pond.transfer(addrs[1], BN.from(10e9).e18());
     let receipt = await tx.wait();
@@ -34,7 +36,9 @@ describe("Pond", function () {
 
   it("transfer all to old address", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     await pond.transfer(addrs[1], BN.from(1e9).e18());
 
     let tx = await pond.transfer(addrs[1], BN.from(9e9).e18());
@@ -45,7 +49,9 @@ describe("Pond", function () {
 
   it("transfer some to old address", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     await pond.transfer(addrs[1], BN.from(1e9).e18());
 
     let tx = await pond.transfer(addrs[1], BN.from(8e9).e18());
@@ -56,7 +62,9 @@ describe("Pond", function () {
 
   it("transfer some to new address", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
 
     let tx = await pond.transfer(addrs[1], BN.from(8e9).e18());
     let receipt = await tx.wait();
@@ -66,7 +74,9 @@ describe("Pond", function () {
 
   it("approve new", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
 
     let tx = await pond.approve(addrs[1], BN.from(8e9).e18());
     let receipt = await tx.wait();
@@ -76,7 +86,9 @@ describe("Pond", function () {
 
   it("approve old", async function () {
     const Pond = await ethers.getContractFactory("Pond");
-    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+    let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+      kind: "uups",
+    });
     await pond.approve(addrs[1], BN.from(1e9).e18());
 
     let tx = await pond.approve(addrs[1], BN.from(8e9).e18());

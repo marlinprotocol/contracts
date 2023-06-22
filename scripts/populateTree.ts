@@ -2,9 +2,13 @@ import { ethers } from "hardhat";
 import * as fs from "fs";
 import fetch from "node-fetch";
 
-import { RewardDelegators__factory, RewardDelegators } from "../typechain-types";
+import {
+  RewardDelegators__factory,
+  RewardDelegators,
+} from "../typechain-types";
 
-const subraphUrl = "https://api.thegraph.com/subgraphs/name/marlinprotocol/staking-kovan";
+const subraphUrl =
+  "https://api.thegraph.com/subgraphs/name/marlinprotocol/staking-kovan";
 const networkId = "0x0000";
 
 async function main() {
@@ -21,8 +25,14 @@ async function main() {
   const relevantContractAddresses = addresses[chainId];
   const clusters = (await getClusters(subraphUrl)).map((a) => a.id) as string[];
 
-  const rewardDelegators = RewardDelegators__factory.connect(relevantContractAddresses.RewardDelegators, admin);
-  const tx = await rewardDelegators.refreshClusterDelegation(networkId, clusters);
+  const rewardDelegators = RewardDelegators__factory.connect(
+    relevantContractAddresses.RewardDelegators,
+    admin
+  );
+  const tx = await rewardDelegators.refreshClusterDelegation(
+    networkId,
+    clusters
+  );
   return { relevantContractAddresses, clusters, receipt: await tx.wait() };
 }
 
@@ -61,6 +71,10 @@ async function getClusters(url: string): Promise<any[]> {
 }
 
 export async function fetchData(requestData: any): Promise<any> {
-  const data = await fetch(requestData.url, { headers: requestData.headers, method: requestData.method, body: requestData.body });
+  const data = await fetch(requestData.url, {
+    headers: requestData.headers,
+    method: requestData.method,
+    body: requestData.body,
+  });
   return data;
 }

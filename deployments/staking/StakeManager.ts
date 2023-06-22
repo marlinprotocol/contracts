@@ -76,11 +76,16 @@ export async function verify() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId]["StakeManager"] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId]["StakeManager"] === undefined
+  ) {
     throw new Error("Stake Manager not deployed");
   }
 
-  const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]["StakeManager"]);
+  const implAddress = await upgrades.erc1967.getImplementationAddress(
+    addresses[chainId]["StakeManager"]
+  );
 
   await run("verify:verify", {
     address: implAddress,

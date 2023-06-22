@@ -35,7 +35,11 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
-  let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [[180, 240, 300]], { kind: "uups" });
+  let clusterRegistry = await upgrades.deployProxy(
+    ClusterRegistry,
+    [[180, 240, 300]],
+    { kind: "uups" }
+  );
 
   console.log("Deployed addr:", clusterRegistry.address);
 

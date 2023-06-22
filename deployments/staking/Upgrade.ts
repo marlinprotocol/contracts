@@ -1,7 +1,11 @@
 import { ethers, upgrades } from "hardhat";
 import * as fs from "fs";
 
-export async function upgrade(contractName: string, contractId: string, constructorArgs?: any[]) {
+export async function upgrade(
+  contractName: string,
+  contractId: string,
+  constructorArgs?: any[]
+) {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
 
@@ -10,7 +14,10 @@ export async function upgrade(contractName: string, contractId: string, construc
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId][contractId] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId][contractId] === undefined
+  ) {
     console.log("Missing dependencies");
     return;
   }

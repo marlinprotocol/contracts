@@ -39,7 +39,13 @@ const TokenLogicCompiled = require("../build/contracts/TokenLogic.json");
 const TokenProxyCompiled = require("../build/contracts/TokenProxy.json");
 
 async function deploy() {
-  const TokenLogicAddress = await deployContract(web3, TokenLogicCompiled.abi, TokenLogicCompiled.bytecode, [], config.deploymentConfig);
+  const TokenLogicAddress = await deployContract(
+    web3,
+    TokenLogicCompiled.abi,
+    TokenLogicCompiled.bytecode,
+    [],
+    config.deploymentConfig
+  );
   const TokenProxyAddress = await deployContract(
     web3,
     TokenProxyCompiled.abi,

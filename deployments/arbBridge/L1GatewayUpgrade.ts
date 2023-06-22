@@ -23,7 +23,10 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId][name] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId][name] === undefined
+  ) {
     console.log("Missing dependencies");
     return;
   }
@@ -34,7 +37,11 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const L1Gateway = await ethers.getContractFactory("L1Gateway");
-  let l1Gateway = await upgrades.upgradeProxy(addresses[chainId][name], L1Gateway, { kind: "uups" });
+  let l1Gateway = await upgrades.upgradeProxy(
+    addresses[chainId][name],
+    L1Gateway,
+    { kind: "uups" }
+  );
   // let l1Gateway = await upgrades.upgradeProxy(addresses[chainId][name], L1Gateway, { kind: "uups", unsafeAllowRenames: true });
 
   console.log("Deployed addr:", l1Gateway.address);

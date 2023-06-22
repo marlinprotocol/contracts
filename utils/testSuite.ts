@@ -1,7 +1,9 @@
 import { network } from "hardhat";
 import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 
-export function takeSnapshotBeforeAndAfterEveryTest(pre_req: () => Promise<any>) {
+export function takeSnapshotBeforeAndAfterEveryTest(
+  pre_req: () => Promise<any>
+) {
   let localsnapshot: any;
 
   beforeEach(async function () {

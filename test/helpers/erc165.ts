@@ -36,7 +36,9 @@ export function testERC165(
 
     function makeInterfaceId(interfaces: string[]): string {
       return ethers.utils.hexlify(
-        interfaces.map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10))).reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
+        interfaces
+          .map((i) => ethers.utils.arrayify(ethers.utils.id(i).substr(0, 10)))
+          .reduce((i1, i2) => i1.map((i, idx) => i ^ i2[idx]))
       );
     }
 

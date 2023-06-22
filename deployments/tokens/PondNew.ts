@@ -35,7 +35,9 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const Pond = await ethers.getContractFactory("Pond");
-  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], { kind: "uups" });
+  let pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    kind: "uups",
+  });
 
   console.log("Deployed addr:", pond.address);
 

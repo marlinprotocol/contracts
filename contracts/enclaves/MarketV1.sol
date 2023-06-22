@@ -39,28 +39,48 @@ contract MarketV1 is
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(
+            ERC165Upgradeable,
+            AccessControlUpgradeable,
+            AccessControlEnumerableUpgradeable
+        )
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 
     function _grantRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._grantRole(role, account);
     }
 
     function _revokeRole(
         bytes32 role,
         address account
-    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    )
+        internal
+        virtual
+        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
+    {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
     }
 
-    function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
+    function _authorizeUpgrade(
+        address /*account*/
+    ) internal view override onlyAdmin {}
 
     //-------------------------------- Overrides end --------------------------------//
 
@@ -68,7 +88,11 @@ contract MarketV1 is
 
     uint256[50] private __gap_1;
 
-    function initialize(IERC20 _token, bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) public initializer {
+    function initialize(
+        IERC20 _token,
+        bytes32[] memory _selectors,
+        uint256[] memory _lockWaitTimes
+    ) public initializer {
         require(_selectors.length == _lockWaitTimes.length);
 
         __Context_init_unchained();
@@ -117,7 +141,10 @@ contract MarketV1 is
         emit ProviderRemoved(_provider);
     }
 
-    function _providerUpdateWithCp(address _provider, string memory _cp) internal {
+    function _providerUpdateWithCp(
+        address _provider,
+        string memory _cp
+    ) internal {
         require(bytes(providers[_provider].cp).length != 0, "not found");
         require(bytes(_cp).length != 0, "invalid");
 
@@ -173,7 +200,11 @@ contract MarketV1 is
     );
     event JobSettled(bytes32 indexed job, uint256 amount, uint256 timestamp);
     event JobClosed(bytes32 indexed job);
-    event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
+    event JobDeposited(
+        bytes32 indexed job,
+        address indexed from,
+        uint256 amount
+    );
     event JobWithdrew(bytes32 indexed job, address indexed to, uint256 amount);
     event JobReviseRateInitiated(bytes32 indexed job, uint256 newRate);
     event JobReviseRateCancelled(bytes32 indexed job);
@@ -197,14 +228,35 @@ contract MarketV1 is
         token.transfer(_to, _amount);
     }
 
-    function _jobOpen(string memory _metadata, address _owner, address _provider, uint256 _rate, uint256 _balance) internal {
+    function _jobOpen(
+        string memory _metadata,
+        address _owner,
+        address _provider,
+        uint256 _rate,
+        uint256 _balance
+    ) internal {
         _deposit(_owner, _balance);
         uint256 _jobIndex = jobIndex;
         jobIndex = _jobIndex + 1;
         bytes32 _job = bytes32(_jobIndex);
-        jobs[_job] = Job(_metadata, _owner, _provider, _rate, _balance, block.timestamp);
+        jobs[_job] = Job(
+            _metadata,
+            _owner,
+            _provider,
+            _rate,
+            _balance,
+            block.timestamp
+        );
 
-        emit JobOpened(_job, _metadata, _owner, _provider, _rate, _balance, block.timestamp);
+        emit JobOpened(
+            _job,
+            _metadata,
+            _owner,
+            _provider,
+            _rate,
+            _balance,
+            block.timestamp
+        );
     }
 
     function _jobSettle(bytes32 _job) internal {
@@ -245,7 +297,11 @@ contract MarketV1 is
         emit JobClosed(_job);
     }
 
-    function _jobDeposit(bytes32 _job, address _from, uint256 _amount) internal {
+    function _jobDeposit(
+        bytes32 _job,
+        address _from,
+        uint256 _amount
+    ) internal {
         require(jobs[_job].owner != address(0), "not found");
 
         _deposit(_from, _amount);
@@ -281,7 +337,12 @@ contract MarketV1 is
         emit JobReviseRateFinalized(_job, _newRate);
     }
 
-    function jobOpen(string calldata _metadata, address _provider, uint256 _rate, uint256 _balance) external {
+    function jobOpen(
+        string calldata _metadata,
+        address _provider,
+        uint256 _rate,
+        uint256 _balance
+    ) external {
         return _jobOpen(_metadata, _msgSender(), _provider, _rate, _balance);
     }
 
@@ -307,17 +368,26 @@ contract MarketV1 is
         return _jobDeposit(_job, _msgSender(), _amount);
     }
 
-    function jobWithdraw(bytes32 _job, uint256 _amount) external onlyJobOwner(_job) {
+    function jobWithdraw(
+        bytes32 _job,
+        uint256 _amount
+    ) external onlyJobOwner(_job) {
         return _jobWithdraw(_job, _msgSender(), _amount);
     }
 
-    function jobReviseRateInitiate(bytes32 _job, uint256 _newRate) external onlyJobOwner(_job) {
+    function jobReviseRateInitiate(
+        bytes32 _job,
+        uint256 _newRate
+    ) external onlyJobOwner(_job) {
         _lock(RATE_LOCK_SELECTOR, _job, _newRate);
         emit JobReviseRateInitiated(_job, _newRate);
     }
 
     function jobReviseRateCancel(bytes32 _job) external onlyJobOwner(_job) {
-        require(_lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None, "no request");
+        require(
+            _lockStatus(RATE_LOCK_SELECTOR, _job) != LockStatus.None,
+            "no request"
+        );
         _revertLock(RATE_LOCK_SELECTOR, _job);
         emit JobReviseRateCancelled(_job);
     }

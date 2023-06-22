@@ -30,7 +30,10 @@ async function main() {
     addresses = JSON.parse(fs.readFileSync("address.json", "utf8"));
   }
 
-  if (addresses[chainId] === undefined || addresses[chainId][name] === undefined) {
+  if (
+    addresses[chainId] === undefined ||
+    addresses[chainId][name] === undefined
+  ) {
     console.log("Missing dependencies");
     return;
   }

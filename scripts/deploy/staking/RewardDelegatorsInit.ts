@@ -38,7 +38,9 @@ async function main() {
   console.log("Signer addrs:", addrs);
 
   const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
-  let rewardDelegators = await RewardDelegators.attach(addresses[chainId]["RewardDelegators"]);
+  let rewardDelegators = await RewardDelegators.attach(
+    addresses[chainId]["RewardDelegators"]
+  );
 
   console.log("Deployed addr:", rewardDelegators.address);
 
