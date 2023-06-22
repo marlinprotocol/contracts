@@ -1068,10 +1068,7 @@
           },
           "t_enum(Status)10802": {
             "label": "enum ClusterRegistry.Status",
-            "members": [
-              "NOT_REGISTERED",
-              "REGISTERED"
-            ]
+            "members": ["NOT_REGISTERED", "REGISTERED"]
           },
           "t_mapping(t_address,t_address)": {
             "label": "mapping(address => address)"
@@ -4000,10 +3997,7 @@
           },
           "t_enum(Status)10044": {
             "label": "enum ClusterRegistry.Status",
-            "members": [
-              "NOT_REGISTERED",
-              "REGISTERED"
-            ],
+            "members": ["NOT_REGISTERED", "REGISTERED"],
             "numberOfBytes": "1"
           },
           "t_mapping(t_address,t_address)": {
@@ -7052,10 +7046,7 @@
           },
           "t_enum(Status)9121": {
             "label": "enum ClusterRegistry.Status",
-            "members": [
-              "NOT_REGISTERED",
-              "REGISTERED"
-            ],
+            "members": ["NOT_REGISTERED", "REGISTERED"],
             "numberOfBytes": "1"
           },
           "t_mapping(t_address,t_address)": {

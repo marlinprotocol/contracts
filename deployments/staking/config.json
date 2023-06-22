@@ -1,120 +1,112 @@
 {
-    "42161": {
-        "startTime": 1677888000,
-        "epochLength": 900,
-        "staking": {
-            "receiver": {
-                "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD"
-            },
-            "rewardWeights": {
-                "ETH": "0"
-            }
-        },
-        "admin": "0x3F5f1Dc1af8897eA74Bf93bfA17F450D88af9FB0",
-        "selectionReward": {
-            "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD",
-            "amount": "0"
-        },
-        "clusterSelection": {
-            "gasRefund": "300000",
-            "maxReward": "285000000000000"
-        },
-        "arbGasInfo": "0x000000000000000000000000000000000000006C"
+  "42161": {
+    "startTime": 1677888000,
+    "epochLength": 900,
+    "staking": {
+      "receiver": {
+        "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD"
+      },
+      "rewardWeights": {
+        "ETH": "0"
+      }
     },
-    "421613": {
-        "cluster": {
-            "waitTimes": [
-                180,
-                240,
-                300
-            ]
-        },
-        "startTime": 1673222400,
-        "epochLength": 900,
-        "noOfClustersToSelect": 5,
-        "clusterSelection": {
-            "gasRefund": "300000",
-            "maxReward": "285000000000000"
-        },
-        "staking": {
-            "tokens": {
-                "POND": {
-                    "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
-                    "address": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
-                    "rewardFactor": "100",
-                    "weightForThreshold": "0",
-                    "weightForDelegation": "1",
-                    "delegatable": false
-                },
-                "MPOND": {
-                    "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
-                    "address": "0x0B3d9b224496C2A2Fa1a4096D8EB4D350eFd9079",
-                    "rewardFactor": "100",
-                    "weightForThreshold": "1000000",
-                    "weightForDelegation": "1000000",
-                    "delegatable": true
-                }
-            },
-            "thresholdForSelection": {
-                "ETH": "500000000000000000"
-            },
-            "rewardWeights": {
-                "ETH": "1000000000000000000"
-            },
-            "waitTimes": {
-                "redelegation": 360,
-                "undelegation": 420
-            },
-            "receiver": {
-                "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C"
-            }
-        },
-        "arbGasInfo": "0x000000000000000000000000000000000000006C",
-        "totalRewardsPerEpoch": "4692550000000000000000",
-        "admin": "0xa2024540267e3366B1D3381285dd11A1B45928df"
+    "admin": "0x3F5f1Dc1af8897eA74Bf93bfA17F450D88af9FB0",
+    "selectionReward": {
+      "token": "0xdA0a57B710768ae17941a9Fa33f8B720c8bD9ddD",
+      "amount": "0"
     },
-    "31337": {
-        "cluster": {
-            "waitTimes": [
-                180,
-                240,
-                300
-            ]
+    "clusterSelection": {
+      "gasRefund": "300000",
+      "maxReward": "285000000000000"
+    },
+    "arbGasInfo": "0x000000000000000000000000000000000000006C"
+  },
+  "421613": {
+    "cluster": {
+      "waitTimes": [180, 240, 300]
+    },
+    "startTime": 1673222400,
+    "epochLength": 900,
+    "noOfClustersToSelect": 5,
+    "clusterSelection": {
+      "gasRefund": "300000",
+      "maxReward": "285000000000000"
+    },
+    "staking": {
+      "tokens": {
+        "POND": {
+          "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
+          "address": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
+          "rewardFactor": "100",
+          "weightForThreshold": "0",
+          "weightForDelegation": "1",
+          "delegatable": false
         },
-        "noOfClustersToSelect": 5,
-        "clusterSelection": {
-            "gasRefund": "300000",
-            "maxGasPrice": "1000000000",
-            "maxBaseL1Gas": "500000"
+        "MPOND": {
+          "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
+          "address": "0x0B3d9b224496C2A2Fa1a4096D8EB4D350eFd9079",
+          "rewardFactor": "100",
+          "weightForThreshold": "1000000",
+          "weightForDelegation": "1000000",
+          "delegatable": true
+        }
+      },
+      "thresholdForSelection": {
+        "ETH": "500000000000000000"
+      },
+      "rewardWeights": {
+        "ETH": "1000000000000000000"
+      },
+      "waitTimes": {
+        "redelegation": 360,
+        "undelegation": 420
+      },
+      "receiver": {
+        "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C"
+      }
+    },
+    "arbGasInfo": "0x000000000000000000000000000000000000006C",
+    "totalRewardsPerEpoch": "4692550000000000000000",
+    "admin": "0xa2024540267e3366B1D3381285dd11A1B45928df"
+  },
+  "31337": {
+    "cluster": {
+      "waitTimes": [180, 240, 300]
+    },
+    "noOfClustersToSelect": 5,
+    "clusterSelection": {
+      "gasRefund": "300000",
+      "maxGasPrice": "1000000000",
+      "maxBaseL1Gas": "500000"
+    },
+    "staking": {
+      "tokens": {
+        "POND": {
+          "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
+          "rewardFactor": "100",
+          "weightForThreshold": "0",
+          "weightForDelegation": "1",
+          "delegatable": false
         },
-        "staking": {
-            "tokens": {
-                "POND": {
-                    "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
-                    "rewardFactor": "100",
-                    "weightForThreshold": "0",
-                    "weightForDelegation": "1",
-                    "delegatable": false
-                },
-                "MPOND": {
-                    "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
-                    "rewardFactor": "100",
-                    "weightForThreshold": "1000000",
-                    "weightForDelegation": "1000000",
-                    "delegatable": true
-                }
-            },
-            "thresholdForSelection": {
-                "ETH": "500000000000000000"
-            },
-            "rewardWeights": {
-                "ETH": "1000000000000000000"
-            },
-            "waitTimes": {
-                "redelegation": 360,
-                "undelegation": 420
-            }
-        },
-        "totalRewardsPerEpoch": "4692550000000000000000"
-    }
+        "MPOND": {
+          "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
+          "rewardFactor": "100",
+          "weightForThreshold": "1000000",
+          "weightForDelegation": "1000000",
+          "delegatable": true
+        }
+      },
+      "thresholdForSelection": {
+        "ETH": "500000000000000000"
+      },
+      "rewardWeights": {
+        "ETH": "1000000000000000000"
+      },
+      "waitTimes": {
+        "redelegation": 360,
+        "undelegation": 420
+      }
+    },
+    "totalRewardsPerEpoch": "4692550000000000000000"
+  }
 }

@@ -5,14 +5,13 @@ pragma solidity ^0.8.0;
 import "../staking/interfaces/IArbGasInfo.sol";
 
 contract ArbGasInfo is IArbGasInfo {
-    
-    uint256 public perL2Tx; 
-    uint256 public gasForL1Calldata; 
+    uint256 public perL2Tx;
+    uint256 public gasForL1Calldata;
     uint256 public storageArbGas;
 
-    constructor(){}
+    constructor() {}
 
-    function setPrices(uint256 _perL2Tx,uint256 _gasForL1Calldata,uint256 _storageArbGas) public {
+    function setPrices(uint256 _perL2Tx, uint256 _gasForL1Calldata, uint256 _storageArbGas) public {
         perL2Tx = _perL2Tx;
         gasForL1Calldata = _gasForL1Calldata;
         storageArbGas = _storageArbGas;
