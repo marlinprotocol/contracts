@@ -40,4 +40,3 @@ interface IArbToken {
      */
     function l1Address() external view returns (address);
 }
-

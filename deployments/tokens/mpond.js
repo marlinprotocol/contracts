@@ -38,13 +38,7 @@ const MPondLogic = require("../build/contracts/MPondLogic.json");
 const MPondProxy = require("../build/contracts/MPondProxy.json");
 
 async function deploy() {
-  const MPondLogicAddress = await deployContract(
-    web3,
-    MPondLogic.abi,
-    MPondLogic.bytecode,
-    [],
-    config.deploymentConfig
-  );
+  const MPondLogicAddress = await deployContract(web3, MPondLogic.abi, MPondLogic.bytecode, [], config.deploymentConfig);
 
   // const MPondProxyAddress = await deployContract(
   //   web3,
@@ -66,11 +60,7 @@ async function init() {
   var tokenAddress = "0x28C29ED8D3288d20719F828D75b1445D1aE4DF84";
   var tokenInstance = new web3.eth.Contract(MPondLogic.abi, tokenAddress);
   let result = await tokenInstance.methods
-    .initialize(
-      "0x0D53E7EB879B5318981a8377f5D459891e2503c5",
-      "0xAE60C5F7D4720108813D4843F487F47439c4a5F4",
-      dropBridgeAddress
-    )
+    .initialize("0x0D53E7EB879B5318981a8377f5D459891e2503c5", "0xAE60C5F7D4720108813D4843F487F47439c4a5F4", dropBridgeAddress)
     .send(config.deploymentConfig);
   return result;
 }

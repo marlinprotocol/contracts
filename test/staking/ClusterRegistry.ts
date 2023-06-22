@@ -4,13 +4,9 @@ import { BigNumber as BN, Contract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
-import {
-  ClusterRegistry,
-} from "../../typechain-types";
+import { ClusterRegistry } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
-import {
-  getClusterRegistry,
-} from "../../utils/typechainConvertor";
+import { getClusterRegistry } from "../../utils/typechainConvertor";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole } from "../helpers/rbac";
 
@@ -19,7 +15,7 @@ declare module "ethers" {
     e18(this: BigNumber): BigNumber;
   }
 }
-BN.prototype.e18 = function() {
+BN.prototype.e18 = function () {
   return this.mul(BN.from(10).pow(18));
 };
 
@@ -29,25 +25,25 @@ const UNREGISTER_LOCK = "0x027b176aae0bed270786878cbabc238973eac20b1957aae44b82a
 const SELECTORS = [COMMISSION_LOCK, SWITCH_NETWORK_LOCK, UNREGISTER_LOCK];
 const WAIT_TIMES: number[] = [120, 300, 600];
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-  it("deploys with initialization disabled", async function() {
+  it("deploys with initialization disabled", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await ClusterRegistry.deploy();
 
     await expect(clusterRegistry.initialize(WAIT_TIMES, addrs[11])).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
-  it("deploys as proxy and initializes", async function() {
+  it("deploys as proxy and initializes", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
 
@@ -60,7 +56,7 @@ describe("ClusterRegistry", function() {
     expect(await clusterRegistry.rewardDelegators()).to.equal(addrs[11]);
   });
 
-  it("upgrades", async function() {
+  it("upgrades", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
     await upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry, { kind: "uups" });
@@ -74,17 +70,19 @@ describe("ClusterRegistry", function() {
     expect(await clusterRegistry.rewardDelegators()).to.equal(addrs[11]);
   });
 
-  it("does not upgrade without admin", async function() {
+  it("does not upgrade without admin", async function () {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     const clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
 
-    await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.revertedWith("only admin");
+    await expect(upgrades.upgradeProxy(clusterRegistry.address, ClusterRegistry.connect(signers[1]), { kind: "uups" })).to.be.revertedWith(
+      "only admin"
+    );
   });
 });
 
 testERC165(
   "ClusterRegistry",
-  async function(_: Signer[], addrs: string[]) {
+  async function (_: Signer[], addrs: string[]) {
     const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
     let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
     return clusterRegistry;
@@ -101,19 +99,19 @@ testERC165(
   }
 );
 
-testAdminRole("ClusterRegistry", async function(_: Signer[], addrs: string[]) {
+testAdminRole("ClusterRegistry", async function (_: Signer[], addrs: string[]) {
   const ClusterRegistry = await ethers.getContractFactory("ClusterRegistry");
   let clusterRegistry = await upgrades.deployProxy(ClusterRegistry, [WAIT_TIMES, addrs[11]], { kind: "uups" });
   return clusterRegistry;
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: ClusterRegistry;
   let rewardDelegators: Contract;
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -126,7 +124,7 @@ describe("ClusterRegistry", function() {
     clusterRegistry = getClusterRegistry(clusterRegistryContract.address, signers[0]);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("non admin cannot update lockWaitTime", async () => {
     await expect(clusterRegistry.connect(signers[1]).updateLockWaitTime(COMMISSION_LOCK, 10)).to.be.revertedWith("only admin");
@@ -155,7 +153,7 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
 
@@ -163,7 +161,7 @@ describe("ClusterRegistry", function() {
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -176,7 +174,7 @@ describe("ClusterRegistry", function() {
     clusterRegistry = getClusterRegistry(clusterRegistryContract.address, signers[0]);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can register new cluster", async () => {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
@@ -272,7 +270,7 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: ClusterRegistry;
@@ -280,7 +278,7 @@ describe("ClusterRegistry", function() {
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -307,7 +305,7 @@ describe("ClusterRegistry", function() {
     expect(clusterRewardData[1]).to.equal(addrs[11]);
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update commission, network, reward address, client key", async () => {
     await clusterRegistry.updateCluster(70, NEARHASH, addrs[21], addrs[22]);
@@ -820,7 +818,12 @@ describe("ClusterRegistry", function() {
   });
 
   it("can update nothing", async () => {
-    await clusterRegistry.updateCluster(ethers.constants.MaxUint256, ethers.constants.HashZero, ethers.constants.AddressZero, ethers.constants.AddressZero);
+    await clusterRegistry.updateCluster(
+      ethers.constants.MaxUint256,
+      ethers.constants.HashZero,
+      ethers.constants.AddressZero,
+      ethers.constants.AddressZero
+    );
     let clusterData = await clusterRegistry.getCluster(addrs[0]);
     expect(clusterData.networkId).to.equal(DOTHASH);
     expect(clusterData.commission).to.equal(7);
@@ -854,14 +857,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -883,7 +886,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request commission update", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
@@ -914,14 +917,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -943,7 +946,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update commission after wait time", async () => {
     await clusterRegistry.requestCommissionUpdate(70);
@@ -1007,7 +1010,7 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
@@ -1015,7 +1018,7 @@ describe("ClusterRegistry", function() {
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1037,7 +1040,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request network switch", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
@@ -1064,7 +1067,7 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
@@ -1072,7 +1075,7 @@ describe("ClusterRegistry", function() {
   const DOTHASH = ethers.utils.id("DOT");
   const NEARHASH = ethers.utils.id("NEAR");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1094,7 +1097,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can switch network after wait time", async () => {
     await clusterRegistry.requestNetworkSwitch(NEARHASH);
@@ -1178,14 +1181,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1207,7 +1210,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update client key", async () => {
     await clusterRegistry.updateClientKey(addrs[22]);
@@ -1254,14 +1257,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1283,7 +1286,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can update reward address", async () => {
     await clusterRegistry.updateRewardAddress(addrs[21]);
@@ -1312,14 +1315,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1341,7 +1344,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can request unregister", async () => {
     await clusterRegistry.requestUnregister();
@@ -1367,14 +1370,14 @@ describe("ClusterRegistry", function() {
   });
 });
 
-describe("ClusterRegistry", function() {
+describe("ClusterRegistry", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistry: Contract;
   let rewardDelegators: Contract;
   const DOTHASH = ethers.utils.id("DOT");
 
-  before(async function() {
+  before(async function () {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
 
@@ -1396,7 +1399,7 @@ describe("ClusterRegistry", function() {
     await rewardDelegators.mock.updateClusterDelegation.reverts();
   });
 
-  takeSnapshotBeforeAndAfterEveryTest(async () => { });
+  takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
   it("can unregister after wait time", async () => {
     await clusterRegistry.requestUnregister();
@@ -1439,4 +1442,3 @@ describe("ClusterRegistry", function() {
     await expect(clusterRegistry.unregister()).to.be.revertedWith("CR:UR-No unregistration request");
   });
 });
-

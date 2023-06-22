@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./Errors.sol";
 
-
 /// @dev Contract implements an upgradeable version of tree which stores
 /// elements in order of insertion. When a element is added, it is added
 /// to the left most empty leaf in the tree. When an element is deleted,
@@ -47,17 +46,17 @@ contract TreeUpgradeable is Initializable {
         nodes.push(Node(0, 0, 0));
     }
 
-    function nodesInTree() public view returns(uint256) {
+    function nodesInTree() public view returns (uint256) {
         return nodes.length - 1;
     }
 
     // assumes index is not 0
     function _add_unchecked(uint256 _index, uint64 _value) internal {
         nodes[_index].value += _value;
-        while(_index > 1) {
+        while (_index > 1) {
             bool _side = _index % 2 == 0;
             _index = _index >> 1;
-            if(_side == true) {
+            if (_side == true) {
                 nodes[_index].leftSum += _value;
             } else {
                 nodes[_index].rightSum += _value;
@@ -68,10 +67,10 @@ contract TreeUpgradeable is Initializable {
     // assumes index is not 0
     function _sub_unchecked(uint256 _index, uint64 _value) internal {
         nodes[_index].value -= _value;
-        while(_index > 1) {
+        while (_index > 1) {
             bool _side = _index % 2 == 0;
             _index = _index >> 1;
-            if(_side == true) {
+            if (_side == true) {
                 nodes[_index].leftSum -= _value;
             } else {
                 nodes[_index].rightSum -= _value;
@@ -94,7 +93,7 @@ contract TreeUpgradeable is Initializable {
     function _update_unchecked(uint256 _index, uint64 _value) internal {
         uint64 _currentValue = nodes[_index].value;
 
-        if(_currentValue >= _value) {
+        if (_currentValue >= _value) {
             _sub_unchecked(_index, _currentValue - _value);
         } else {
             _add_unchecked(_index, _value - _currentValue);
@@ -108,7 +107,7 @@ contract TreeUpgradeable is Initializable {
 
     function _upsert(address _addr, uint64 _value) internal {
         uint256 _index = addressToIndexMap[_addr];
-        if(_index == 0) {
+        if (_index == 0) {
             _insert_unchecked(_addr, _value);
         } else {
             _update_unchecked(_index, _value);
@@ -125,7 +124,7 @@ contract TreeUpgradeable is Initializable {
         _sub_unchecked(_lastNodeIndex, _lastNodeValue);
 
         // only swap if not last node
-        if(_index != _lastNodeIndex) {
+        if (_index != _lastNodeIndex) {
             _update_unchecked(_index, _lastNodeValue);
 
             indexToAddressMap[_index] = _lastNodeAddress;
@@ -140,7 +139,7 @@ contract TreeUpgradeable is Initializable {
 
     function _deleteIfPresent(address _addr) internal {
         uint256 _index = addressToIndexMap[_addr];
-        if(_index == 0) {
+        if (_index == 0) {
             return;
         }
 
@@ -206,11 +205,13 @@ contract TreeUpgradeable is Initializable {
                 // safemath: cannot exceed 2^65
                 _selectedPathTree[_mRootIndex].value += _root.value;
                 return (_rootIndex, _root.value, _mLastIndex);
-            } else if (_searchNumber < _leftBound) {  // check left side
+            } else if (_searchNumber < _leftBound) {
+                // check left side
                 // search on left side
                 // separated out due to stack too deep errors
                 return _selectLeft(_rootIndex, _searchNumber, _selectedPathTree, _mRoot.left, _mRootIndex, _mLastIndex);
-            } else { // has to be on right side
+            } else {
+                // has to be on right side
                 // search on right side
                 // separated out due to stack too deep errors
                 return _selectRight(_rootIndex, _searchNumber - _rightBound, _selectedPathTree, _mRoot.right, _mRootIndex, _mLastIndex);
@@ -276,8 +277,8 @@ contract TreeUpgradeable is Initializable {
 
     function _selectN(uint256 _randomizer, uint256 _N) internal view returns (address[] memory _selectedNodes) {
         uint256 _nodeCount = nodes.length - 1;
-        if(_N > _nodeCount) _N = _nodeCount;
-        if(_N == 0) return new address[](0);
+        if (_N > _nodeCount) _N = _nodeCount;
+        if (_N == 0) return new address[](0);
 
         // WARNING - don't declare any memory variables before this point
 

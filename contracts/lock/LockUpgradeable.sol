@@ -5,10 +5,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
-
 contract LockUpgradeable is
-    Initializable,  // initializer
-    ContextUpgradeable  // _msgSender, _msgData
+    Initializable, // initializer
+    ContextUpgradeable // _msgSender, _msgData
 {
     struct Lock {
         uint256 unlockTime;
@@ -37,9 +36,9 @@ contract LockUpgradeable is
     function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
         uint256 _unlockTime = locks[_lockId].unlockTime;
-        if(_unlockTime == 0) {
+        if (_unlockTime == 0) {
             return LockStatus.None;
-        } else if(_unlockTime <= block.timestamp) {
+        } else if (_unlockTime <= block.timestamp) {
             return LockStatus.Unlocked;
         } else {
             return LockStatus.Locked;
@@ -96,9 +95,8 @@ contract LockUpgradeable is
     function _updateLockWaitTimes(bytes32[] memory _selectors, uint256[] memory _newLockWaitTimes) internal {
         require(_selectors.length == _newLockWaitTimes.length, "Lock: length mismatch");
 
-        for(uint256 _i = 0; _i < _selectors.length; _i++) {
+        for (uint256 _i = 0; _i < _selectors.length; _i++) {
             _updateLockWaitTime(_selectors[_i], _newLockWaitTimes[_i]);
         }
     }
 }
-

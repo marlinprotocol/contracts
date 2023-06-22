@@ -18,13 +18,13 @@ interface IArbGasInfo {
 
 /// @title Contract to select the top 5 clusters in an epoch
 contract ClusterSelector is
-    Initializable,  // initializer
-    ContextUpgradeable,  // _msgSender, _msgData
-    ERC165Upgradeable,  // supportsInterface
-    AccessControlUpgradeable,  // RBAC
-    AccessControlEnumerableUpgradeable,  // RBAC enumeration
-    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable,  // public upgrade,
+    Initializable, // initializer
+    ContextUpgradeable, // _msgSender, _msgData
+    ERC165Upgradeable, // supportsInterface
+    AccessControlUpgradeable, // RBAC
+    AccessControlEnumerableUpgradeable, // RBAC enumeration
+    ERC1967UpgradeUpgradeable, // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable, // public upgrade,
     TreeUpgradeable // storage tree
 {
     // in case we add more contracts in the inheritance chain
@@ -40,29 +40,37 @@ contract ClusterSelector is
     constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo, uint256 _maxReward, uint256 _gasRefund) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
-        ARB_GAS_INFO =  IArbGasInfo(_arbGasInfo);
+        ARB_GAS_INFO = IArbGasInfo(_arbGasInfo);
         MAX_REWARD_FOR_CLUSTER_SELECTION = _maxReward;
         REFUND_GAS_FOR_CLUSTER_SELECTION = _gasRefund;
     }
 
     //-------------------------------- Overrides start --------------------------------//
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
-    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _grantRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._grantRole(role, account);
     }
 
-    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _revokeRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
-    function _authorizeUpgrade(address /*account*/) onlyRole(DEFAULT_ADMIN_ROLE) internal view override {}
+    function _authorizeUpgrade(address /*account*/) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     //-------------------------------- Overrides end --------------------------------//
 
@@ -117,10 +125,7 @@ contract ClusterSelector is
 
     //-------------------------------- Init starts --------------------------------/
 
-    function initialize(
-        address _admin,
-        address _updater
-    ) external initializer {
+    function initialize(address _admin, address _updater) external initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
@@ -148,7 +153,7 @@ contract ClusterSelector is
         uint256 _reward;
         (uint256 gasPerL2Tx, uint256 gasPerL1CalldataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
         unchecked {
-            _reward = (REFUND_GAS_FOR_CLUSTER_SELECTION + gasPerL2Tx + gasPerL1CalldataByte*4) * tx.gasprice;
+            _reward = (REFUND_GAS_FOR_CLUSTER_SELECTION + gasPerL2Tx + gasPerL1CalldataByte * 4) * tx.gasprice;
         }
         if (_reward > MAX_REWARD_FOR_CLUSTER_SELECTION) _reward = MAX_REWARD_FOR_CLUSTER_SELECTION;
         if (_reward != 0 && address(this).balance >= _reward) {
@@ -190,7 +195,7 @@ contract ClusterSelector is
     /// @param _searchEpoch Epoch Number to search for the missing clusters
     /// @param _writeEpoch Epoch Number to write the missing clusters
     function _updateMissingClusters(uint256 _searchEpoch, uint256 _writeEpoch) internal {
-        if(_searchEpoch == 0) {
+        if (_searchEpoch == 0) {
             return;
         }
 
@@ -210,7 +215,7 @@ contract ClusterSelector is
     }
 
     function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
-        for(uint256 i=0; i < newNodes.length; i++) {
+        for (uint256 i = 0; i < newNodes.length; i++) {
             _upsert(newNodes[i], balances[i]);
         }
     }
@@ -220,7 +225,7 @@ contract ClusterSelector is
     }
 
     function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
-        for(uint256 i=0; i < newNodes.length; i++) {
+        for (uint256 i = 0; i < newNodes.length; i++) {
             _insert_unchecked(newNodes[i], balances[i]);
         }
     }

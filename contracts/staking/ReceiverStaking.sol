@@ -8,17 +8,16 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "./lib/ERC20SnapshotUpgradeable.sol";
 
-
 contract ReceiverStaking is
-    Initializable,  // initializer
-    ContextUpgradeable,  // _msgSender, _msgData
-    ERC165Upgradeable,  // supportsInterface
-    AccessControlUpgradeable,  // RBAC
+    Initializable, // initializer
+    ContextUpgradeable, // _msgSender, _msgData
+    ERC165Upgradeable, // supportsInterface
+    AccessControlUpgradeable, // RBAC
     AccessControlEnumerableUpgradeable, // RBAC enumerable
-    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable,  // public upgrade
-    ERC20Upgradeable,  // ERC20
-    ERC20SnapshotUpgradeable  // snapshots
+    ERC1967UpgradeUpgradeable, // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable, // public upgrade
+    ERC20Upgradeable, // ERC20
+    ERC20SnapshotUpgradeable // snapshots
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap_0;
@@ -37,17 +36,25 @@ contract ReceiverStaking is
         _;
     }
 
-//-------------------------------- Overrides start --------------------------------//
+    //-------------------------------- Overrides start --------------------------------//
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
-    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _grantRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._grantRole(role, account);
     }
 
-    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _revokeRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
@@ -56,13 +63,13 @@ contract ReceiverStaking is
 
     function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
 
-//-------------------------------- Overrides end --------------------------------//
+    //-------------------------------- Overrides end --------------------------------//
 
-//-------------------------------- Initializer start --------------------------------//
+    //-------------------------------- Initializer start --------------------------------//
 
     uint256[50] private __gap_1;
 
-    function initialize(address _admin, string calldata _name, string calldata _symbol) initializer public {
+    function initialize(address _admin, string calldata _name, string calldata _symbol) public initializer {
         // initialize parents
         __Context_init_unchained();
         __ERC20Snapshot_init_unchained();
@@ -78,7 +85,7 @@ contract ReceiverStaking is
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
-//-------------------------------- Initializer end --------------------------------//
+    //-------------------------------- Initializer end --------------------------------//
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 public immutable START_TIME;
@@ -99,12 +106,12 @@ contract ReceiverStaking is
         require(signerToStaker[_signer] == address(0), "signer has a staker");
 
         address _oldSigner = stakerToSigner[_staker];
-        if(_oldSigner != address(0)) {
+        if (_oldSigner != address(0)) {
             delete signerToStaker[_oldSigner];
         }
         stakerToSigner[_staker] = _signer;
 
-        if(_signer != address(0)) {
+        if (_signer != address(0)) {
             signerToStaker[_signer] = _staker;
         }
         emit SignerUpdated(_staker, _oldSigner, _signer);
@@ -138,12 +145,15 @@ contract ReceiverStaking is
         STAKING_TOKEN.transfer(_sender, _amount);
     }
 
-    function getStakeInfo(address _user, uint256 _epoch) external view returns(uint256 _userStake, uint256 _totalStake, uint256 _currentEpoch) {
+    function getStakeInfo(
+        address _user,
+        uint256 _epoch
+    ) external view returns (uint256 _userStake, uint256 _totalStake, uint256 _currentEpoch) {
         _userStake = balanceOfAt(_user, _epoch);
         (_totalStake, _currentEpoch) = getEpochInfo(_epoch);
     }
 
-    function getEpochInfo(uint256 epoch) public view returns(uint256 totalStake, uint256 currentEpoch) {
+    function getEpochInfo(uint256 epoch) public view returns (uint256 totalStake, uint256 currentEpoch) {
         totalStake = totalSupplyAt(epoch);
         currentEpoch = _getCurrentSnapshotId();
     }
@@ -157,7 +167,11 @@ contract ReceiverStaking is
         balance = ERC20SnapshotUpgradeable.balanceOfAt(account, snapshotId);
     }
 
-    function balanceOfSignerAtRanged(address signer, uint256 _from, uint256 _count) public view returns (uint256[] memory balances, address account) {
+    function balanceOfSignerAtRanged(
+        address signer,
+        uint256 _from,
+        uint256 _count
+    ) public view returns (uint256[] memory balances, address account) {
         account = signerToStaker[signer];
         balances = new uint256[](_count);
         uint256 i = 0;
@@ -171,8 +185,8 @@ contract ReceiverStaking is
     }
 
     function _getCurrentSnapshotId() internal view override returns (uint256) {
-        if(block.timestamp < START_TIME) return 0;
-        return (block.timestamp - START_TIME)/EPOCH_LENGTH + 1;
+        if (block.timestamp < START_TIME) return 0;
+        return (block.timestamp - START_TIME) / EPOCH_LENGTH + 1;
     }
 
     function totalSupplyAtRanged(uint256 _from, uint256 _count) public view returns (uint256[] memory stakes) {
@@ -196,42 +210,30 @@ contract ReceiverStaking is
         super._beforeTokenTransfer(_from, _to, _amount);
     }
 
-    function _afterTokenTransfer(
-        address _from,
-        address _to,
-        uint256
-    ) internal virtual override {
-        if(_to == address(0)) {
+    function _afterTokenTransfer(address _from, address _to, uint256) internal virtual override {
+        if (_to == address(0)) {
             // burn
             uint256 _updatedBalance = balanceOf(_from);
             Snapshots storage userSnapshots = _accountBalanceSnapshots[_from];
-            if(
-                userSnapshots.values.length > 0 &&
-                userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance
-            ) {
+            if (userSnapshots.values.length > 0 && userSnapshots.values[userSnapshots.values.length - 1] > _updatedBalance) {
                 uint256 _dropInMin = userSnapshots.values[userSnapshots.values.length - 1] - _updatedBalance;
                 uint256 _currentSnapshotId = _getCurrentSnapshotId();
                 uint256 _previousSnapshotId = _currentSnapshotId - 1;
                 // Lowest balance in epoch
-                if(
-                    userSnapshots.values.length == 1 ||
-                    userSnapshots.ids[userSnapshots.values.length - 2] != _previousSnapshotId
-                ) {
+                if (userSnapshots.values.length == 1 || userSnapshots.ids[userSnapshots.values.length - 2] != _previousSnapshotId) {
                     // Last epoch didn't have a snapshot for user
                     userSnapshots.ids[userSnapshots.ids.length - 1] = _previousSnapshotId;
                     userSnapshots.ids.push(_currentSnapshotId);
                     userSnapshots.values.push(_updatedBalance);
                 }
-                if(
+                if (
                     _totalSupplySnapshots.values.length == 1 ||
                     _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 2] != _previousSnapshotId
                 ) {
                     // Previous epoch didn't have a snapshot
                     _totalSupplySnapshots.ids[_totalSupplySnapshots.values.length - 1] = _previousSnapshotId;
                     _totalSupplySnapshots.ids.push(_currentSnapshotId);
-                    _totalSupplySnapshots.values.push(
-                        _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1]
-                    );
+                    _totalSupplySnapshots.values.push(_totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1]);
                 }
                 _totalSupplySnapshots.values[_totalSupplySnapshots.values.length - 1] -= _dropInMin;
                 userSnapshots.values[userSnapshots.values.length - 1] = _updatedBalance;

@@ -1,12 +1,12 @@
-import '@typechain/hardhat';
-import '@nomiclabs/hardhat-ethers';
+import "@typechain/hardhat";
+import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-etherscan";
-import '@openzeppelin/hardhat-upgrades';
-import 'solidity-coverage';
+import "@openzeppelin/hardhat-upgrades";
+import "solidity-coverage";
 import "hardhat-gas-reporter";
-import '@nomicfoundation/hardhat-chai-matchers';
+import "@nomicfoundation/hardhat-chai-matchers";
 
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
@@ -14,7 +14,7 @@ export default {
   networks: {
     hardhat: {
       accounts: {
-        count: 500
+        count: 500,
       },
       allowBlocksWithSameTimestamp: true,
     },
@@ -33,7 +33,7 @@ export default {
     arbg: {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
-    }
+    },
   },
   solidity: {
     version: "0.8.17",
@@ -65,24 +65,26 @@ export default {
       arb1: process.env.ARBISCAN_API_KEY,
       arbg: process.env.ARBISCAN_API_KEY,
     },
-    customChains: [{
-      network: "arbg",
-      chainId: 421613,
-      urls: {
-        apiURL: "https://api-goerli.arbiscan.io/api",
-        browserURL: "https://goerli.arbiscan.io",
+    customChains: [
+      {
+        network: "arbg",
+        chainId: 421613,
+        urls: {
+          apiURL: "https://api-goerli.arbiscan.io/api",
+          browserURL: "https://goerli.arbiscan.io",
+        },
       },
-    }, {
-      network: "arb1",
-      chainId: 42161,
-      urls: {
-        apiURL: "https://api.arbiscan.io/api",
-        browserURL: "https://arbiscan.io",
+      {
+        network: "arb1",
+        chainId: 42161,
+        urls: {
+          apiURL: "https://api.arbiscan.io/api",
+          browserURL: "https://arbiscan.io",
+        },
       },
-    }],
+    ],
   },
   gasReporter: {
-    enabled: process.env?.GAS_REPORTER?.toLowerCase() == "true"
-  }
+    enabled: process.env?.GAS_REPORTER?.toLowerCase() == "true",
+  },
 };
-

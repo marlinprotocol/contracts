@@ -6,12 +6,12 @@ import { verify as verifyRewardDelegators } from "./RewardDelegators";
 import { verify as verifyStakeManager } from "./StakeManager";
 
 async function verifyAll() {
-    await verifyClusterRegistry();
-    await verifyClusterRewards();
-    await verifyClusterSelector("ETH");
-    await verifyReceiverStaking();
-    await verifyRewardDelegators();
-    await verifyStakeManager();
+  await verifyClusterRegistry();
+  await verifyClusterRewards();
+  await verifyClusterSelector("ETH");
+  await verifyReceiverStaking();
+  await verifyRewardDelegators();
+  await verifyStakeManager();
 }
 
 verifyAll();

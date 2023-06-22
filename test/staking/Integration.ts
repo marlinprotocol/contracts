@@ -103,7 +103,7 @@ describe("Integration", function () {
     await skipTime(ethers, 1); // extra 1 second for safety
   };
 
-  before(async function() {
+  before(async function () {
     this.timeout(400000);
     signers = await ethers.getSigners();
 
@@ -191,11 +191,7 @@ describe("Integration", function () {
     for (let index = 0; index < supportedNetworks.length; index++) {
       let clusterSelectorContract = await upgrades.deployProxy(
         ClusterSelector,
-        [
-          await clusterSelectorAdmin.getAddress(),
-          rewardDelegators.address,
-          BN.from(10).pow(20).toString(),
-        ],
+        [await clusterSelectorAdmin.getAddress(), rewardDelegators.address, BN.from(10).pow(20).toString()],
         {
           kind: "uups",
           constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
@@ -286,7 +282,7 @@ describe("Integration", function () {
     }
   });
 
-  describe(`Only ETH Delegations, All Commissions equal, 5 clusters, All Equal Delegations (by delegators)`, async function() {
+  describe(`Only ETH Delegations, All Commissions equal, 5 clusters, All Equal Delegations (by delegators)`, async function () {
     this.timeout(200000);
     const totalClusters = 5;
     const delegatorsToUse = 20;
@@ -350,7 +346,13 @@ describe("Integration", function () {
       const receiver = receivers[0];
       const totalWeight = BN.from(10).pow(18);
       let equiWeightedTickets = totalWeight.div(totalClusters);
-      const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, totalWeight.sub(equiWeightedTickets.mul(4))];
+      const weights = [
+        equiWeightedTickets,
+        equiWeightedTickets,
+        equiWeightedTickets,
+        equiWeightedTickets,
+        totalWeight.sub(equiWeightedTickets.mul(4)),
+      ];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
@@ -633,19 +635,21 @@ describe("Integration", function () {
       const firstClusterTickets = totalTickets.mul(2).div(3);
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
-          supportedNetworkIds[0], 
-          currentPlusOne, 
-          [firstClusterTickets, totalTickets.sub(firstClusterTickets).add(1)]
-        )
+        clusterRewards
+          .connect(ethReceivers[0])
+          ["issueTickets(bytes32,uint256,uint256[])"](supportedNetworkIds[0], currentPlusOne, [
+            firstClusterTickets,
+            totalTickets.sub(firstClusterTickets).add(1),
+          ])
       ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
-          supportedNetworkIds[0], 
-          currentPlusOne, 
-          [firstClusterTickets, totalTickets.sub(firstClusterTickets).sub(1)]
-        )
+        clusterRewards
+          .connect(ethReceivers[0])
+          ["issueTickets(bytes32,uint256,uint256[])"](supportedNetworkIds[0], currentPlusOne, [
+            firstClusterTickets,
+            totalTickets.sub(firstClusterTickets).sub(1),
+          ])
       ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
     });
   });
@@ -930,7 +934,7 @@ describe("Integration", function () {
       }
     };
     it("Commission received proportional to (issued tickets * commission percent) -- ETH", async () => {
-      console.log({randomEthClusters});
+      console.log({ randomEthClusters });
       await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, clusterSelectors[0], supportedNetworkIds[0]);
     });
 
@@ -1023,7 +1027,7 @@ const new_order_of_weights = (existingWeights: BN[], existingClusters: string[],
     const weight = record.get(element);
     if (weight) {
       new_weights.push(weight);
-    }else{
+    } else {
       new_weights.push(BIG_ZERO);
     }
   }

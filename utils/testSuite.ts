@@ -4,21 +4,21 @@ import * as helpers from "@nomicfoundation/hardhat-network-helpers";
 export function takeSnapshotBeforeAndAfterEveryTest(pre_req: () => Promise<any>) {
   let localsnapshot: any;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     localsnapshot = await helpers.takeSnapshot();
 
     await pre_req();
   });
 
-  afterEach(async function() {
-    await localsnapshot.restore()
+  afterEach(async function () {
+    await localsnapshot.restore();
   });
 }
 
 export function saveAndRestoreStateToParent(pre_req: () => Promise<any>) {
   let localsnapshot: any;
 
-  before(async function() {
+  before(async function () {
     localsnapshot = await network.provider.request({
       method: "evm_snapshot",
       params: [],
@@ -28,7 +28,7 @@ export function saveAndRestoreStateToParent(pre_req: () => Promise<any>) {
     await pre_req();
   });
 
-  after(async function() {
+  after(async function () {
     await network.provider.request({
       method: "evm_revert",
       params: [localsnapshot],

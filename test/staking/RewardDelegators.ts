@@ -598,9 +598,13 @@ describe("RewardDelegators", function () {
     await clusterRegistryInstance.connect(registeredCluster).register(networkId, commission, registeredClusterRewardAddress, clientKey1);
     await clusterRegistryInstance.connect(registeredCluster1).register(networkId, commission, registeredClusterRewardAddress1, clientKey2);
     await clusterRegistryInstance.connect(registeredCluster2).register(networkId, commission, registeredClusterRewardAddress2, clientKey3);
-    await clusterRegistryInstance.connect(registeredCluster3).register(ethers.utils.id("RANDOM"), commission, registeredClusterRewardAddress3, clientKey4);
-    await clusterRegistryInstance.connect(registeredCluster4).register(ethers.utils.id("RANDOM"), commission, registeredClusterRewardAddress4, clientKey5);
-    
+    await clusterRegistryInstance
+      .connect(registeredCluster3)
+      .register(ethers.utils.id("RANDOM"), commission, registeredClusterRewardAddress3, clientKey4);
+    await clusterRegistryInstance
+      .connect(registeredCluster4)
+      .register(ethers.utils.id("RANDOM"), commission, registeredClusterRewardAddress4, clientKey5);
+
     const fakeClusterRegistry = signers[10];
     await rewardDelegators.updateClusterRegistry(await fakeClusterRegistry.getAddress());
 
@@ -609,10 +613,12 @@ describe("RewardDelegators", function () {
 
     await rewardDelegators.connect(fakeClusterRegistry).updateClusterDelegation(await registeredCluster3.getAddress(), networkId);
 
-    await rewardDelegators.connect(fakeClusterRegistry).removeClusterDelegation(await registeredCluster4.getAddress(), ethers.utils.id("RANDOM"));
+    await rewardDelegators
+      .connect(fakeClusterRegistry)
+      .removeClusterDelegation(await registeredCluster4.getAddress(), ethers.utils.id("RANDOM"));
 
     await rewardDelegators.connect(fakeClusterRegistry).removeClusterDelegation(await registeredCluster1.getAddress(), networkId);
-  })
+  });
 
   it("refresh cluster delegation", async () => {
     // Check For Correct Update Case
@@ -857,14 +863,14 @@ describe("RewardDelegators Deployment", function () {
     await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0],
-      rewardDelegatorsInstance.address,
-      BigNumber.from(10).pow(20)
-    ], {
-      kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
-    });
+    let clusterSelectorContract = await upgrades.deployProxy(
+      ClusterSelector,
+      [addrs[0], rewardDelegatorsInstance.address, BigNumber.from(10).pow(20)],
+      {
+        kind: "uups",
+        constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
+      }
+    );
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
     await mpondInstance.grantRole(await mpondInstance.WHITELIST_ROLE(), stakeManagerInstance.address);
@@ -1078,7 +1084,7 @@ describe("RewardDelegators Deployment", function () {
     await pondInstance.connect(receiverStaker).approve(receiverStaking.address, pondToUse);
     await receiverStaking.connect(receiverStaker).deposit(pondToUse); // 1 million pond
 
-    let [epoch, clusters] = (await mineTillGivenClusterIsSelected(clusterSelectorInstance, registeredCluster1, false));
+    let [epoch, clusters] = await mineTillGivenClusterIsSelected(clusterSelectorInstance, registeredCluster1, false);
 
     const tickets: BigNumber[] = [];
     for (let i = 0; i < clusters.length; i++) {
@@ -1098,7 +1104,7 @@ describe("RewardDelegators Deployment", function () {
     // expect(cluster2Reward).to.equal(Math.round((((4 + 2) / (10 + 2 + 4 + 2)) * stakingConfig.rewardPerEpoch) / 3));
 
     // issue tickets have no link with total delegations to cluster, hence skipping it.
-    expect(cluster1Reward).to.eq((stakingConfig.rewardPerEpoch/3).toFixed(0));
+    expect(cluster1Reward).to.eq((stakingConfig.rewardPerEpoch / 3).toFixed(0));
 
     // do some delegations for both users to the cluster
     // rewards for one user is withdraw - this reward should be as per the time of oracle feed
@@ -1219,14 +1225,14 @@ describe("RewardDelegators Deployment", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
-    let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
-      addrs[0],
-      rewardDelegatorsInstance.address,
-      BigNumber.from(10).pow(20)
-    ], {
-      kind: "uups",
-      constructorArgs: [blockData.timestamp, 4*60*60]
-    });
+    let clusterSelectorContract = await upgrades.deployProxy(
+      ClusterSelector,
+      [addrs[0], rewardDelegatorsInstance.address, BigNumber.from(10).pow(20)],
+      {
+        kind: "uups",
+        constructorArgs: [blockData.timestamp, 4 * 60 * 60],
+      }
+    );
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
     await rewardDelegatorsInstance.connect(signers[0]).updateClusterRewards(clusterRewardsInstance.address);
@@ -1505,7 +1511,7 @@ describe("RewardDelegators Deployment", function () {
     registeredCluster: Signer,
     print: boolean,
     iter = 0
-  ): Promise<[ currentEpoch: number, clusters: string[] ]> {
+  ): Promise<[currentEpoch: number, clusters: string[]]> {
     let currentEpoch = (await clusterSelector.getCurrentEpoch()).toNumber();
 
     let registeredClusterAddress = (await registeredCluster.getAddress()).toLowerCase();

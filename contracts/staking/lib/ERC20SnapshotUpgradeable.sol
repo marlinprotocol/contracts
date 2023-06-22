@@ -49,8 +49,8 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
         __ERC20Snapshot_init_unchained();
     }
 
-    function __ERC20Snapshot_init_unchained() internal onlyInitializing {
-    }
+    function __ERC20Snapshot_init_unchained() internal onlyInitializing {}
+
     // Inspired by Jordi Baylina's MiniMeToken to record historical balances:
     // https://github.com/Giveth/minimd/blob/ea04d950eea153a04c51fa510b068b9dded390cb/contracts/MiniMeToken.sol
 
@@ -133,11 +133,7 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
 
     // Update balance and/or total supply snapshots before the values are modified. This is implemented
     // in the _beforeTokenTransfer hook, which is executed for _mint, _burn, and _transfer operations.
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from == address(0)) {
@@ -205,5 +201,6 @@ abstract contract ERC20SnapshotUpgradeable is Initializable, ERC20Upgradeable {
             return ids[ids.length - 1];
         }
     }
+
     uint256[46] private __gap;
 }
