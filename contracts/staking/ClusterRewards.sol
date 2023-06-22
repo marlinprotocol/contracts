@@ -410,7 +410,7 @@ contract ClusterRewards is
         receiverRewardPayment[_receiver].rewardRemaining = receiverPayment.rewardRemaining;
     }
 
-    function claimReward(address _cluster) external onlyRole(CLAIMER_ROLE) override returns (uint256) {
+    function claimReward(address _cluster) external override onlyRole(CLAIMER_ROLE) returns (uint256) {
         uint256 pendingRewards = clusterRewards[_cluster];
         if (pendingRewards > 1) {
             uint256 rewardsToTransfer = pendingRewards - 1;

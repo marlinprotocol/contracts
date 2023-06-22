@@ -15,16 +15,16 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./IArbToken.sol";
 
 contract Pond is
-    Initializable,  // initializer
-    ContextUpgradeable,  // _msgSender, _msgData
-    ERC165Upgradeable,  // supportsInterface
-    AccessControlUpgradeable,  // RBAC
-    AccessControlEnumerableUpgradeable,  // RBAC enumeration
-    ERC20Upgradeable,  // token
-    ERC20CappedUpgradeable,  // supply cap
-    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable,  // public upgrade
-    IArbToken  // Arbitrum bridge support
+    Initializable, // initializer
+    ContextUpgradeable, // _msgSender, _msgData
+    ERC165Upgradeable, // supportsInterface
+    AccessControlUpgradeable, // RBAC
+    AccessControlEnumerableUpgradeable, // RBAC enumeration
+    ERC20Upgradeable, // token
+    ERC20CappedUpgradeable, // supply cap
+    ERC1967UpgradeUpgradeable, // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable, // public upgrade
+    IArbToken // Arbitrum bridge support
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap0;
@@ -34,10 +34,7 @@ contract Pond is
     // safeguard against takeover of the logic contract
     constructor() initializer {}
 
-    function initialize(
-        string memory _name,
-        string memory _symbol
-    ) public initializer {
+    function initialize(string memory _name, string memory _symbol) public initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __AccessControl_init_unchained();
@@ -52,15 +49,23 @@ contract Pond is
         _mint(_msgSender(), 10000000000e18);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return interfaceId == type(IArbToken).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _grantRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._grantRole(role, account);
     }
 
-    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _revokeRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
@@ -75,7 +80,7 @@ contract Pond is
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Pond: must be admin to upgrade");
     }
 
-//-------------------------------- Bridge start --------------------------------//
+    //-------------------------------- Bridge start --------------------------------//
 
     // bridge mint/burn functions are implemented using transfers to/from the token contract itself
     // limits exposure to contract balance in case the bridge is compromised
@@ -111,6 +116,5 @@ contract Pond is
         _transfer(address(this), _msgSender(), _amount);
     }
 
-//-------------------------------- Bridge end --------------------------------//
+    //-------------------------------- Bridge end --------------------------------//
 }
-
