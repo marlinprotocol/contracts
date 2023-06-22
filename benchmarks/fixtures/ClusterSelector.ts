@@ -13,9 +13,7 @@ export async function deployFixture() {
   const blockData = await ethers.provider.getBlock(blockNum);
 
   // TODO: mock arbGasInfo precompile might skew gas estimate for precompile call slightly
-  const arbGasInfoMock = await deployMockContract(signers[0], [
-    "function getPricesInArbGas() view returns (uint, uint, uint)",
-  ]);
+  const arbGasInfoMock = await deployMockContract(signers[0], ["function getPricesInArbGas() view returns (uint, uint, uint)"]);
   await arbGasInfoMock.mock.getPricesInArbGas.returns(223148, 1593, 21000);
   const clusterSelector = await deployClusterSelector(
     "ETH", // network
@@ -44,8 +42,7 @@ export async function initDataFixture() {
   const signers = await ethers.getSigners();
   const preAllocEthSigner = signers[8];
 
-  const { arbGasInfoMock, clusterSelector, admin, rewardDelegatorsMock } =
-    await deployFixture();
+  const { arbGasInfoMock, clusterSelector, admin, rewardDelegatorsMock } = await deployFixture();
 
   await preAllocEthSigner.sendTransaction({
     to: clusterSelector.address,
@@ -61,18 +58,12 @@ export async function initDataFixture() {
   for (let i = 0; i < noOfClusters; i++) {
     const address = Wallet.createRandom().address;
     clusters.push(address);
-    balances.push(
-      BigNumber.from(ethers.utils.randomBytes(32)).mod(
-        tokenSupply.div(utils.parseEther(noOfClusters + ""))
-      )
-    );
+    balances.push(BigNumber.from(ethers.utils.randomBytes(32)).mod(tokenSupply.div(utils.parseEther(noOfClusters + ""))));
   }
 
   // insert clusterData into selector
   for (let i = 0; i < clusters.length; i += 100) {
-    await clusterSelector
-      .connect(rewardDelegatorsMock)
-      .upsertMultiple(clusters.slice(i, i + 100), balances.slice(i, i + 100));
+    await clusterSelector.connect(rewardDelegatorsMock).upsertMultiple(clusters.slice(i, i + 100), balances.slice(i, i + 100));
   }
 
   return {

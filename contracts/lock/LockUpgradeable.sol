@@ -25,34 +25,15 @@ contract LockUpgradeable is
         Locked
     }
 
-    event LockWaitTimeUpdated(
-        bytes32 indexed selector,
-        uint256 prevLockTime,
-        uint256 updatedLockTime
-    );
-    event LockCreated(
-        bytes32 indexed selector,
-        bytes32 indexed key,
-        uint256 iValue,
-        uint256 unlockTime
-    );
-    event LockDeleted(
-        bytes32 indexed selector,
-        bytes32 indexed key,
-        uint256 iValue
-    );
+    event LockWaitTimeUpdated(bytes32 indexed selector, uint256 prevLockTime, uint256 updatedLockTime);
+    event LockCreated(bytes32 indexed selector, bytes32 indexed key, uint256 iValue, uint256 unlockTime);
+    event LockDeleted(bytes32 indexed selector, bytes32 indexed key, uint256 iValue);
 
-    function __Lock_init_unchained(
-        bytes32[] memory _selectors,
-        uint256[] memory _lockWaitTimes
-    ) internal onlyInitializing {
+    function __Lock_init_unchained(bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) internal onlyInitializing {
         _updateLockWaitTimes(_selectors, _lockWaitTimes);
     }
 
-    function _lockStatus(
-        bytes32 _selector,
-        bytes32 _key
-    ) internal view returns (LockStatus) {
+    function _lockStatus(bytes32 _selector, bytes32 _key) internal view returns (LockStatus) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
         uint256 _unlockTime = locks[_lockId].unlockTime;
         if (_unlockTime == 0) {
@@ -64,11 +45,7 @@ contract LockUpgradeable is
         }
     }
 
-    function _lock(
-        bytes32 _selector,
-        bytes32 _key,
-        uint256 _iValue
-    ) internal returns (uint256) {
+    function _lock(bytes32 _selector, bytes32 _key, uint256 _iValue) internal returns (uint256) {
         require(_lockStatus(_selector, _key) == LockStatus.None);
 
         uint256 _duration = lockWaitTime[_selector];
@@ -82,10 +59,7 @@ contract LockUpgradeable is
         return _unlockTime;
     }
 
-    function _revertLock(
-        bytes32 _selector,
-        bytes32 _key
-    ) internal returns (uint256) {
+    function _revertLock(bytes32 _selector, bytes32 _key) internal returns (uint256) {
         bytes32 _lockId = keccak256(abi.encodePacked(_selector, _key));
         uint256 _iValue = locks[_lockId].iValue;
         delete locks[_lockId];
@@ -95,19 +69,12 @@ contract LockUpgradeable is
         return _iValue;
     }
 
-    function _unlock(
-        bytes32 _selector,
-        bytes32 _key
-    ) internal returns (uint256) {
+    function _unlock(bytes32 _selector, bytes32 _key) internal returns (uint256) {
         require(_lockStatus(_selector, _key) == LockStatus.Unlocked);
         return _revertLock(_selector, _key);
     }
 
-    function _cloneLock(
-        bytes32 _selector,
-        bytes32 _fromKey,
-        bytes32 _toKey
-    ) internal {
+    function _cloneLock(bytes32 _selector, bytes32 _fromKey, bytes32 _toKey) internal {
         bytes32 _fromLockId = keccak256(abi.encodePacked(_selector, _fromKey));
         bytes32 _toLockId = keccak256(abi.encodePacked(_selector, _toKey));
 
@@ -120,26 +87,13 @@ contract LockUpgradeable is
         emit LockCreated(_selector, _toKey, _iValue, _unlockTime);
     }
 
-    function _updateLockWaitTime(
-        bytes32 _selector,
-        uint256 _newLockWaitTime
-    ) internal {
-        emit LockWaitTimeUpdated(
-            _selector,
-            lockWaitTime[_selector],
-            _newLockWaitTime
-        );
+    function _updateLockWaitTime(bytes32 _selector, uint256 _newLockWaitTime) internal {
+        emit LockWaitTimeUpdated(_selector, lockWaitTime[_selector], _newLockWaitTime);
         lockWaitTime[_selector] = _newLockWaitTime;
     }
 
-    function _updateLockWaitTimes(
-        bytes32[] memory _selectors,
-        uint256[] memory _newLockWaitTimes
-    ) internal {
-        require(
-            _selectors.length == _newLockWaitTimes.length,
-            "Lock: length mismatch"
-        );
+    function _updateLockWaitTimes(bytes32[] memory _selectors, uint256[] memory _newLockWaitTimes) internal {
+        require(_selectors.length == _newLockWaitTimes.length, "Lock: length mismatch");
 
         for (uint256 _i = 0; _i < _selectors.length; _i++) {
             _updateLockWaitTime(_selectors[_i], _newLockWaitTimes[_i]);

@@ -1,8 +1,6 @@
 import { network } from "hardhat";
 
-export function takeSnapshotBeforeAndAfterEveryTest(
-  pre_req: () => Promise<any>
-) {
+export function takeSnapshotBeforeAndAfterEveryTest(pre_req: () => Promise<any>) {
   let localsnapshot: any;
 
   beforeEach(async function () {

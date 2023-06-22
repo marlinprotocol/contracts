@@ -34,13 +34,7 @@ contract ClusterSelector is
     /// @dev startTime and epochLength should match the values in receiverStaking.
     ///     Inconsistent values in receiverStaking and clusterSelector can make data here invalid
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor(
-        uint256 _startTime,
-        uint256 _epochLength,
-        address _arbGasInfo,
-        uint256 _maxReward,
-        uint256 _gasRefund
-    ) initializer {
+    constructor(uint256 _startTime, uint256 _epochLength, address _arbGasInfo, uint256 _maxReward, uint256 _gasRefund) initializer {
         START_TIME = _startTime;
         EPOCH_LENGTH = _epochLength;
         ARB_GAS_INFO = IArbGasInfo(_arbGasInfo);
@@ -52,51 +46,28 @@ contract ClusterSelector is
 
     function supportsInterface(
         bytes4 interfaceId
-    )
-        public
-        view
-        virtual
-        override(
-            ERC165Upgradeable,
-            AccessControlUpgradeable,
-            AccessControlEnumerableUpgradeable
-        )
-        returns (bool)
-    {
+    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
     function _grantRole(
         bytes32 role,
         address account
-    )
-        internal
-        virtual
-        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
-    {
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._grantRole(role, account);
     }
 
     function _revokeRole(
         bytes32 role,
         address account
-    )
-        internal
-        virtual
-        override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable)
-    {
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(
-            getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0,
-            "Cannot be adminless"
-        );
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "Cannot be adminless");
     }
 
-    function _authorizeUpgrade(
-        address /*account*/
-    ) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(address /*account*/) internal view override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     //-------------------------------- Overrides end --------------------------------//
 
@@ -106,8 +77,7 @@ contract ClusterSelector is
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
 
     /// @notice ID for reward control
-    bytes32 public constant REWARD_CONTROLLER_ROLE =
-        keccak256("REWARD_CONTROLLER_ROLE");
+    bytes32 public constant REWARD_CONTROLLER_ROLE = keccak256("REWARD_CONTROLLER_ROLE");
 
     /// @notice Number of clusters selected in every epoch
     uint256 public constant NUMBER_OF_CLUSTERS_TO_SELECT = 5;
@@ -178,28 +148,18 @@ contract ClusterSelector is
     /// @param _to Address to transfer tokens to
     function _dispenseReward(address _to) internal {
         uint256 _reward;
-        (uint256 gasPerL2Tx, uint256 gasPerL1CalldataByte, ) = ARB_GAS_INFO
-            .getPricesInArbGas();
+        (uint256 gasPerL2Tx, uint256 gasPerL1CalldataByte, ) = ARB_GAS_INFO.getPricesInArbGas();
         unchecked {
-            _reward =
-                (REFUND_GAS_FOR_CLUSTER_SELECTION +
-                    gasPerL2Tx +
-                    gasPerL1CalldataByte *
-                    4) *
-                tx.gasprice;
+            _reward = (REFUND_GAS_FOR_CLUSTER_SELECTION + gasPerL2Tx + gasPerL1CalldataByte * 4) * tx.gasprice;
         }
-        if (_reward > MAX_REWARD_FOR_CLUSTER_SELECTION)
-            _reward = MAX_REWARD_FOR_CLUSTER_SELECTION;
+        if (_reward > MAX_REWARD_FOR_CLUSTER_SELECTION) _reward = MAX_REWARD_FOR_CLUSTER_SELECTION;
         if (_reward != 0 && address(this).balance >= _reward) {
             // Cluster selection goes through even if reward reverts
             payable(_to).send(_reward);
         }
     }
 
-    function selectClusters()
-        public
-        returns (address[] memory _selectedClusters)
-    {
+    function selectClusters() public returns (address[] memory _selectedClusters) {
         // select for next epoch
         uint256 _epoch = getCurrentEpoch() + 1;
 
@@ -208,9 +168,7 @@ contract ClusterSelector is
         require(_selectedClusters.length == 0, "CS:SC-Already selected");
 
         // select and save from the tree
-        uint256 _randomizer = uint256(
-            keccak256(abi.encode(blockhash(block.number - 1), block.timestamp))
-        );
+        uint256 _randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
         _selectedClusters = _selectN(_randomizer, NUMBER_OF_CLUSTERS_TO_SELECT);
         require(_selectedClusters.length != 0, "CS:SC-No cluster selected");
         clustersSelected[_epoch] = _selectedClusters;
@@ -233,10 +191,7 @@ contract ClusterSelector is
     /// @notice Internal function to Update the missing cluster in case epoch
     /// @param _searchEpoch Epoch Number to search for the missing clusters
     /// @param _writeEpoch Epoch Number to write the missing clusters
-    function _updateMissingClusters(
-        uint256 _searchEpoch,
-        uint256 _writeEpoch
-    ) internal {
+    function _updateMissingClusters(uint256 _searchEpoch, uint256 _writeEpoch) internal {
         if (_searchEpoch == 0) {
             return;
         }
@@ -252,42 +207,27 @@ contract ClusterSelector is
 
     //-------------------------------- Tree interactions starts --------------------------------//
 
-    function upsert(
-        address newNode,
-        uint64 balance
-    ) external onlyRole(UPDATER_ROLE) {
+    function upsert(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _upsert(newNode, balance);
     }
 
-    function upsertMultiple(
-        address[] calldata newNodes,
-        uint64[] calldata balances
-    ) external onlyRole(UPDATER_ROLE) {
+    function upsertMultiple(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
         for (uint256 i = 0; i < newNodes.length; i++) {
             _upsert(newNodes[i], balances[i]);
         }
     }
 
-    function insert_unchecked(
-        address newNode,
-        uint64 balance
-    ) external onlyRole(UPDATER_ROLE) {
+    function insert_unchecked(address newNode, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _insert_unchecked(newNode, balance);
     }
 
-    function insertMultiple_unchecked(
-        address[] calldata newNodes,
-        uint64[] calldata balances
-    ) external onlyRole(UPDATER_ROLE) {
+    function insertMultiple_unchecked(address[] calldata newNodes, uint64[] calldata balances) external onlyRole(UPDATER_ROLE) {
         for (uint256 i = 0; i < newNodes.length; i++) {
             _insert_unchecked(newNodes[i], balances[i]);
         }
     }
 
-    function update_unchecked(
-        address node,
-        uint64 balance
-    ) external onlyRole(UPDATER_ROLE) {
+    function update_unchecked(address node, uint64 balance) external onlyRole(UPDATER_ROLE) {
         _update_unchecked(node, balance);
     }
 
@@ -312,26 +252,18 @@ contract ClusterSelector is
 
     //-------------------------------- Admin functions ends --------------------------------//
 
-    function _getClusters(
-        uint256 _epoch,
-        uint256 _nextEpoch
-    ) internal view returns (address[] memory) {
+    function _getClusters(uint256 _epoch, uint256 _nextEpoch) internal view returns (address[] memory) {
         address[] memory clusters = clustersSelected[_epoch];
 
         if (clusters.length == 0) {
-            require(
-                _epoch != _nextEpoch,
-                Errors.CLUSTER_SELECTION_NOT_COMPLETE
-            );
+            require(_epoch != _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
             return _getClusters(_epoch - 1, _nextEpoch);
         } else {
             return clusters;
         }
     }
 
-    function getClusters(
-        uint256 _epoch
-    ) public view returns (address[] memory) {
+    function getClusters(uint256 _epoch) public view returns (address[] memory) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
         require(_epoch <= _nextEpoch, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
@@ -339,16 +271,10 @@ contract ClusterSelector is
         return _getClusters(_epoch, _nextEpoch);
     }
 
-    function getClustersRanged(
-        uint256 _from,
-        uint256 _count
-    ) public view returns (address[][] memory clusters) {
+    function getClustersRanged(uint256 _from, uint256 _count) public view returns (address[][] memory clusters) {
         uint256 _nextEpoch = getCurrentEpoch() + 1;
         // To ensure invalid data is not provided for epochs where clusters are not selected
-        require(
-            _from + _count < _nextEpoch + 2,
-            Errors.CLUSTER_SELECTION_NOT_COMPLETE
-        );
+        require(_from + _count < _nextEpoch + 2, Errors.CLUSTER_SELECTION_NOT_COMPLETE);
         clusters = new address[][](_count);
         uint256 i = 0;
         while (i < _count) {

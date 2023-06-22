@@ -46,11 +46,7 @@ async function main() {
 
   console.log("Deployed addr:", l1Gateway.address);
 
-  await l1Gateway.initialize(
-    "0x578BAde599406A8fE3d24Fd7f7211c0911F5B29e",
-    addresses[chainId][tokenName],
-    addresses[arbChainId][l2GName]
-  );
+  await l1Gateway.initialize("0x578BAde599406A8fE3d24Fd7f7211c0911F5B29e", addresses[chainId][tokenName], addresses[arbChainId][l2GName]);
 }
 
 main()

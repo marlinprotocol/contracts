@@ -2,10 +2,7 @@ import { expect } from "chai";
 import { Contract, Signer } from "ethers";
 import { ethers, network } from "hardhat";
 
-export function testAdminRole(
-  name: string,
-  deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>
-) {
+export function testAdminRole(name: string, deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>) {
   describe(name, function () {
     let signers: Signer[];
     let addrs: string[];
@@ -41,9 +38,7 @@ export function testAdminRole(
     });
 
     it("non admin cannot grant admin role", async function () {
-      await expect(
-        contract.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])
-      ).to.be.reverted;
+      await expect(contract.connect(signers[1]).grantRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
     });
 
     it("admin can revoke admin role", async function () {
@@ -58,43 +53,31 @@ export function testAdminRole(
       await contract.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
       expect(await contract.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
-      await expect(
-        contract.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])
-      ).to.be.reverted;
+      await expect(contract.connect(signers[2]).revokeRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
     });
 
     it("admin can renounce own admin role if there are other admins", async function () {
       await contract.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
       expect(await contract.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
-      await contract
-        .connect(signers[1])
-        .renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
+      await contract.connect(signers[1]).renounceRole(DEFAULT_ADMIN_ROLE, addrs[1]);
       expect(await contract.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.false;
     });
 
     it("admin cannot renounce own admin role if there are no other admins", async function () {
-      await expect(
-        contract.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])
-      ).to.be.reverted;
+      await expect(contract.renounceRole(DEFAULT_ADMIN_ROLE, addrs[0])).to.be.reverted;
     });
 
     it("admin cannot renounce admin role of other admins", async function () {
       await contract.grantRole(DEFAULT_ADMIN_ROLE, addrs[1]);
       expect(await contract.hasRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.true;
 
-      await expect(
-        contract.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])
-      ).to.be.reverted;
+      await expect(contract.renounceRole(DEFAULT_ADMIN_ROLE, addrs[1])).to.be.reverted;
     });
   });
 }
 
-export function testRole(
-  name: string,
-  deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>,
-  role: string
-) {
+export function testRole(name: string, deployer: (signers: Signer[], addrs: string[]) => Promise<Contract>, role: string) {
   describe(name, function () {
     let signers: Signer[];
     let addrs: string[];
@@ -130,9 +113,7 @@ export function testRole(
     });
 
     it(`non admin cannot grant ${role} role`, async function () {
-      await expect(
-        contract.connect(signers[1]).grantRole(ROLE, addrs[1])
-      ).to.be.reverted;
+      await expect(contract.connect(signers[1]).grantRole(ROLE, addrs[1])).to.be.reverted;
     });
 
     it(`admin can revoke ${role} role`, async function () {
@@ -147,9 +128,7 @@ export function testRole(
       await contract.grantRole(ROLE, addrs[1]);
       expect(await contract.hasRole(ROLE, addrs[1])).to.be.true;
 
-      await expect(
-        contract.connect(signers[2]).revokeRole(ROLE, addrs[1])
-      ).to.be.reverted;
+      await expect(contract.connect(signers[2]).revokeRole(ROLE, addrs[1])).to.be.reverted;
     });
 
     it(`${role} signer can renounce own ${role} role`, async function () {
