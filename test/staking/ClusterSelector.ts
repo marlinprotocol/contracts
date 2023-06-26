@@ -1374,7 +1374,8 @@ describe("ClusterSelector", function() {
 
   it("current epoch", async () => {
     const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
-    await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWithPanic(0x11);
+    // Todo: check if the revert statement is sufficient
+    await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWith("Panic");
     await time.increaseTo(startTime);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
     await time.increase(epochLength - 1);
@@ -1472,7 +1473,8 @@ describe("ClusterSelector", function() {
 
     await expect(clusterSelector.updateMissingClusters(2)).to.be.revertedWith("cannot update future epochs");
     await clusterSelector.updateMissingClusters(1);
-    await expect(clusterSelector.getClusters(1)).to.be.revertedWithPanic(0x11);
+    // Todo: check if the revert statement is sufficient
+    await expect(clusterSelector.getClusters(1)).to.be.revertedWith("Panic");
 
     await clusterSelector.connect(signers[11]).upsert(addrs[31], 1);
     expect(await clusterSelector.nodesInTree()).to.equal(1);

@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { BigNumber as BN, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import {
+  ArbGasInfo__factory,
   ClusterRegistry,
   ClusterRewards,
   ClusterSelector,
@@ -187,18 +188,21 @@ describe("Integration", function () {
 
     await receiverStaking.initialize(await receiverStakingAdmin.getAddress(), "Receiver POND", "rPOND");
 
+    const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
+    // find the right values and set it
+    await arbGasInfo.setPrices(1000, 1000, 1000)
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     for (let index = 0; index < supportedNetworks.length; index++) {
       let clusterSelectorContract = await upgrades.deployProxy(
         ClusterSelector,
         [
           await clusterSelectorAdmin.getAddress(),
-          rewardDelegators.address,
-          BN.from(10).pow(20).toString(),
+          rewardDelegators.address
         ],
         {
           kind: "uups",
-          constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()],
+          // Todo: check the max value rewards and gas refund
+          constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH(), arbGasInfo.address, '1000000', '10000'],
         }
       );
       let clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
@@ -225,7 +229,9 @@ describe("Integration", function () {
         [pondTokenId, mpondTokenId],
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [supportedNetworkIds[0], supportedNetworkIds[1], supportedNetworkIds[2]],
+        [0,0,0]
       );
 
     await clusterRegistry.initialize([lockWaitTimes[0], lockWaitTimes[1], lockWaitTimes[2]], rewardDelegators.address);
@@ -348,7 +354,7 @@ describe("Integration", function () {
 
     it("Only 1 receiver, all cluster should get equal reward", async () => {
       const receiver = receivers[0];
-      const totalWeight = BN.from(10).pow(18);
+      const totalWeight = BN.from(2).pow(16);
       let equiWeightedTickets = totalWeight.div(totalClusters);
       const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, totalWeight.sub(equiWeightedTickets.mul(4))];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
@@ -614,7 +620,7 @@ describe("Integration", function () {
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toNumber();
 
       await expect(
-        clusterRewards.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](supportedNetworkIds[0], currentEpoch, [fraction])
+        clusterRewards.connect(receiver)["issueTickets(bytes32,uint24,uint16[])"](supportedNetworkIds[0], currentEpoch, [fraction])
       ).to.be.revertedWith("CRW:IPRT-Not eligible to issue tickets");
     });
 
@@ -633,7 +639,7 @@ describe("Integration", function () {
       const firstClusterTickets = totalTickets.mul(2).div(3);
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint24,uint16[])"](
           supportedNetworkIds[0], 
           currentPlusOne, 
           [firstClusterTickets, totalTickets.sub(firstClusterTickets).add(1)]
@@ -641,7 +647,7 @@ describe("Integration", function () {
       ).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
 
       await expect(
-        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint256,uint256[])"](
+        clusterRewards.connect(ethReceivers[0])["issueTickets(bytes32,uint24,uint16[])"](
           supportedNetworkIds[0], 
           currentPlusOne, 
           [firstClusterTickets, totalTickets.sub(firstClusterTickets).sub(1)]
@@ -1061,7 +1067,7 @@ const issueTicketsForClusters = async (
       };
     })
   );
-
+  
   let currentPlusOne = BN.from(currentEpoch).add(1).toString();
   await clusterSelectorInstance.connect(clusterSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
 
@@ -1089,10 +1095,9 @@ const issueTicketsForClusters = async (
 
   // weights array has to re-arranged in order of selected clusters
   const new_weights = new_order_of_weights(weights, clustersToIssueTicketsTo, await clusterSelectorInstance.getClusters(currentPlusOne));
-
   for (let index = 0; index < networkIds.length; index++) {
     const networkId = networkIds[index];
-    await clusterRewardsInstance.connect(receiver)["issueTickets(bytes32,uint256,uint256[])"](networkId, currentPlusOne, new_weights);
+    await clusterRewardsInstance.connect(receiver)["issueTickets(bytes32,uint24,uint16[])"](networkId, currentPlusOne, new_weights);
   }
 
   const pondRewardsPerShare: BN[] = [];

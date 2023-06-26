@@ -3,6 +3,7 @@ import { BigNumber, BigNumber as BN, Signer } from "ethers";
 import { getAddress } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 import {
+  ArbGasInfo__factory,
   ClusterRegistry,
   ClusterRewards,
   ClusterSelector,
@@ -47,6 +48,8 @@ describe("RewardDelegators", function () {
   let pondTokenId: String;
   let mpondTokenId: String;
 
+  const networkId = ethers.utils.id("DOT");
+
   before(async () => {
     signers = await ethers.getSigners();
     addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -90,7 +93,9 @@ describe("RewardDelegators", function () {
         [pondTokenId, mpondTokenId],
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [networkId],
+        [0]
       )
     ).to.be.reverted;
   });
@@ -109,7 +114,9 @@ describe("RewardDelegators", function () {
       [pondTokenId, mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
     expect([await rewardDelegators.tokenList(0), await rewardDelegators.tokenList(1)]).to.eql([pondTokenId, mpondTokenId]);
@@ -129,7 +136,9 @@ describe("RewardDelegators", function () {
       [pondTokenId, mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
     await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { kind: "uups" });
     expect(await rewardDelegators.hasRole(await rewardDelegators.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
@@ -158,7 +167,9 @@ describe("RewardDelegators", function () {
       [pondTokenId, mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
     await expect(
       upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators.connect(signers[1]), {
@@ -178,6 +189,8 @@ describe("RewardDelegators", function () {
   let rewardDelegators: RewardDelegators;
   let pondTokenId: String;
   let mpondTokenId: String;
+
+  const networkId = ethers.utils.id("DOT");
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -220,7 +233,9 @@ describe("RewardDelegators", function () {
       ["" + pondTokenId, "" + mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
   });
 
@@ -308,6 +323,8 @@ describe("RewardDelegators", function () {
   let rewardDelegators: RewardDelegators;
   let pondTokenId: String;
   let mpondTokenId: String;
+  
+  const networkId = ethers.utils.id("DOT");
 
   before(async () => {
     signers = await ethers.getSigners();
@@ -350,7 +367,9 @@ describe("RewardDelegators", function () {
       ["" + pondTokenId, "" + mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
   });
 
@@ -515,7 +534,9 @@ describe("RewardDelegators", function () {
       ["" + pondTokenId, "" + mpondTokenId],
       [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
       [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+      [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+      [networkId],
+      [0]
     );
 
     const lockWaitTimes = [20, 21, 22];
@@ -527,13 +548,17 @@ describe("RewardDelegators", function () {
 
     const blockData = await ethers.provider.getBlock("latest");
 
+    const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
+    // Todo: Check and change the value accordingly
+    await arbGasInfo.setPrices(1000, 1000, 1000)
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     let clusterSelectorContract = await upgrades.deployProxy(
       ClusterSelector,
-      [addrs[0], rewardDelegators.address, BigNumber.from(10).pow(20)],
+      [addrs[0], rewardDelegators.address],
       {
         kind: "uups",
-        constructorArgs: [blockData.timestamp, 4 * 3600],
+        // Todo: Check and change the values accordingly
+        constructorArgs: [blockData.timestamp, 4 * 3600, arbGasInfo.address, '100000', '100000'],
       }
     );
     clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
@@ -690,7 +715,7 @@ describe("RewardDelegators", function () {
   });
 });
 
-describe("RewardDelegators Deployment", function () {
+describe("RewardDelegators Deployment (These tests should be run serially)", function () {
   let signers: Signer[];
   let addrs: string[];
   let clusterRegistryInstance: ClusterRegistry;
@@ -736,6 +761,8 @@ describe("RewardDelegators Deployment", function () {
   let receiverStakerAddress: string;
   let receiverSigner: Signer;
   let receiverSigningKey: string;
+
+  const networkId = ethers.utils.id("DOT");
 
   before(async function () {
     signers = await ethers.getSigners();
@@ -811,7 +838,9 @@ describe("RewardDelegators Deployment", function () {
         [pondTokenId, mpondTokenId],
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
-        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation]
+        [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [networkId],
+        [0]
       )
     ).to.be.reverted;
   });
@@ -829,6 +858,9 @@ describe("RewardDelegators Deployment", function () {
         [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
         [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
         [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+        [networkId],
+        // Todo: Check if this value acceptable
+        [0]
       ],
       { kind: "uups" }
     );
@@ -856,14 +888,18 @@ describe("RewardDelegators Deployment", function () {
 
     await receiverStaking.initialize(addrs[0], "Receiver POND", "rPOND");
 
+    const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
+    // Todo: Check and change the value accordingly
+    await arbGasInfo.setPrices(1000, 1000, 1000)
+
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
-      rewardDelegatorsInstance.address,
-      BigNumber.from(10).pow(20)
+      rewardDelegatorsInstance.address
     ], {
       kind: "uups",
-      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH()]
+      // Todo: Check and change the values accordingly
+      constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH(), arbGasInfo.address, '1000000', '1000000']
     });
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
@@ -993,14 +1029,14 @@ describe("RewardDelegators Deployment", function () {
     const tickets: BigNumber[] = [];
     for (let i = 0; i < clusters.length; i++) {
       let value = BigNumber.from(0);
-      if (clusters[i] == (await registeredCluster.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      if (clusters[i] == (await registeredCluster.getAddress()).toLowerCase()) value = BigNumber.from(2).pow(16);
       tickets.push(value);
     }
 
     await ethers.provider.send("evm_increaseTime", [4 * 60 * 61]);
     await ethers.provider.send("evm_mine", []);
 
-    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint256,uint256[])"](ethers.utils.id("DOT"), epoch, tickets);
+    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint24,uint16[])"](ethers.utils.id("DOT"), epoch, tickets);
 
     const clusterUpdatedReward = await clusterRewardsInstance.clusterRewards(await registeredCluster.getAddress());
     expect(Number(clusterUpdatedReward)).equal(3333);
@@ -1083,11 +1119,11 @@ describe("RewardDelegators Deployment", function () {
     const tickets: BigNumber[] = [];
     for (let i = 0; i < clusters.length; i++) {
       let value = BigNumber.from(0);
-      if (clusters[i] == (await registeredCluster1.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      if (clusters[i] == (await registeredCluster1.getAddress()).toLowerCase()) value = BigNumber.from(2).pow(16);
       tickets.push(value);
     }
 
-    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint256,uint256[])"](ethers.utils.id("DOT"), epoch, tickets);
+    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint24,uint16[])"](ethers.utils.id("DOT"), epoch, tickets);
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
@@ -1140,13 +1176,13 @@ describe("RewardDelegators Deployment", function () {
     const tickets: BigNumber[] = [];
     for (let i = 0; i < clusters.length; i++) {
       let value = BigNumber.from(0);
-      if (clusters[i] == (await registeredCluster3.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      if (clusters[i] == (await registeredCluster3.getAddress()).toLowerCase()) value = BigNumber.from(2).pow(16);
       tickets.push(value);
     }
 
     console.log({ tickets });
 
-    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint256,uint256[])"](ethers.utils.id("DOT"), epoch, tickets);
+    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint24,uint16[])"](ethers.utils.id("DOT"), epoch, tickets);
 
     await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
@@ -1210,6 +1246,8 @@ describe("RewardDelegators Deployment", function () {
         [100],
         [1],
         [1],
+        [networkId],
+        [0]
       ],
       { kind: "uups" }
     );
@@ -1218,14 +1256,19 @@ describe("RewardDelegators Deployment", function () {
     await clusterRegistryInstance.initialize([lockWaitTimes[0], lockWaitTimes[1], lockWaitTimes[2]], rewardDelegatorsInstance.address);
 
     const blockData = await ethers.provider.getBlock("latest");
+
+    const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
+    // Todo: Check and change the value accordingly
+    await arbGasInfo.setPrices(1000, 1000, 1000)
+
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     let clusterSelectorContract = await upgrades.deployProxy(ClusterSelector, [
       addrs[0],
       rewardDelegatorsInstance.address,
-      BigNumber.from(10).pow(20)
     ], {
       kind: "uups",
-      constructorArgs: [blockData.timestamp, 4*60*60]
+      // Todo: Check and change the values accordingly
+      constructorArgs: [blockData.timestamp, 4*60*60, arbGasInfo.address, '100000', '100000']
     });
     clusterSelectorInstance = getClusterSelector(clusterSelectorContract.address, signers[0]);
 
@@ -1342,11 +1385,11 @@ describe("RewardDelegators Deployment", function () {
     const tickets: BigNumber[] = [];
     for (let i = 0; i < clusters.length; i++) {
       let value = BigNumber.from(0);
-      if (clusters[i] == (await registeredCluster.getAddress()).toLowerCase()) value = BigNumber.from(10).pow(18);
+      if (clusters[i] == (await registeredCluster.getAddress()).toLowerCase()) value = BigNumber.from(2).pow(16);
       tickets.push(value);
     }
 
-    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint256,uint256[])"](ethers.utils.id("DOT"), epoch, tickets);
+    await clusterRewardsInstance.connect(receiverSigner)["issueTickets(bytes32,uint24,uint16[])"](ethers.utils.id("DOT"), epoch, tickets);
 
     // await ethers.provider.send("evm_increaseTime", [24 * 60 * 60]);
     // await ethers.provider.send("evm_mine", []);
