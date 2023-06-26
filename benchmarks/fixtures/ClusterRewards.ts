@@ -4,6 +4,8 @@ import { deploy as deployClusterRewards } from "../../deployments/staking/Cluste
 import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
 
+import { ArbGasInfo__factory } from "../../typechain-types";
+
 const EPOCH_LENGTH = 15*60;
 
 export async function deployFixture() {
@@ -18,14 +20,22 @@ export async function deployFixture() {
         kind: "uups",
     });
 
+    const mockArbGas = await new ArbGasInfo__factory().connect(signers[0]).deploy();
+    mockArbGas.setPrices(10000, 10000, 10000);
+
     const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
-
-    const clusterSelector = await deployClusterSelector("ETH", addrs[1], "0x000000000000000000000000000000000000006C", addrs[0], blockData.timestamp, EPOCH_LENGTH, ethers.utils.parseEther('1').toString(), true);
-
+    const clusterSelector = await deployClusterSelector("ETH",
+    addrs[1],
+    mockArbGas.address,
+    addrs[0],
+    blockData.timestamp,
+    EPOCH_LENGTH,
+    "10000000",
+    ethers.utils.parseEther("1").toString(),
+    true);
     const clusterRewards = await deployClusterRewards(addrs[1], receiverStaking.address, {
         "ETH": clusterSelector.address
     }, addrs[0], true);
-
     return {
         pond,
         receiverStaking,
