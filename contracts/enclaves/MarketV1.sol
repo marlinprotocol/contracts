@@ -159,6 +159,7 @@ contract MarketV1 is
     uint256 public jobIndex;
 
     IERC20 public token;
+    uint256 public constant EXTRA_DECIMALS = 12;
 
     uint256[47] private __gap_3;
 
@@ -208,7 +209,7 @@ contract MarketV1 is
         uint256 _lastSettled = jobs[_job].lastSettled;
 
         uint256 _usageDuration = block.timestamp - _lastSettled;
-        uint256 _amount = _rate * _usageDuration;
+        uint256 _amount = (_rate * _usageDuration + 10**EXTRA_DECIMALS - 1) / 10**EXTRA_DECIMALS;
 
         if(_amount > _balance) {
             _amount = _balance;
@@ -254,7 +255,7 @@ contract MarketV1 is
         _jobSettle(_job);
 
         // leftover adjustment
-        uint256 _leftover = jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR];
+        uint256 _leftover = (jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR] + 10**EXTRA_DECIMALS - 1) / 10**EXTRA_DECIMALS;
         require(jobs[_job].balance >= _leftover, "not enough balance");
         uint256 _maxAmount = jobs[_job].balance - _leftover;
         require(_amount <= _maxAmount, "not enough balance");
