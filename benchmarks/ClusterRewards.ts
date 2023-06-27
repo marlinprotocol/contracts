@@ -1,4 +1,5 @@
-import { ethers, waffle } from "hardhat";
+import { ethers } from "hardhat";
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterRewards";
 import { BigNumber, BigNumberish, constants, Contract, PopulatedTransaction, Signer, utils } from "ethers";
@@ -62,7 +63,7 @@ describe("Cluster Rewards", async () => {
                 nodesInserted,
                 receivers,
                 receiverSigners
-            } = await waffle.loadFixture(initDataFixture));
+            } = await loadFixture(initDataFixture));
 
             clusterRewards = ClusterRewards__factory.connect(tempClusterRewards.address, admin)
             l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();

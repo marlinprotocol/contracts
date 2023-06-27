@@ -4,7 +4,8 @@ import "@nomiclabs/hardhat-etherscan";
 import '@openzeppelin/hardhat-upgrades';
 import 'solidity-coverage';
 import "hardhat-gas-reporter";
-import "@nomiclabs/hardhat-waffle";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-network-helpers";
 
 import dotenv from 'dotenv';
 

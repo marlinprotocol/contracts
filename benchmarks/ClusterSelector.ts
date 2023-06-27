@@ -1,4 +1,5 @@
-import { ethers, waffle } from "hardhat";
+import { ethers } from "hardhat";
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterSelector";
 import { BigNumber, BigNumberish, constants, Contract, PopulatedTransaction, Signer, utils } from "ethers";
@@ -35,7 +36,7 @@ describe("Cluster Rewards", async () => {
                 admin,
                 rewardDelegatorsMock,
                 nodesInserted,
-            } = await waffle.loadFixture(initDataFixture));
+            } = await loadFixture(initDataFixture));
 
             l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();
             EPOCH_LENGTH = await clusterSelector.EPOCH_LENGTH();
