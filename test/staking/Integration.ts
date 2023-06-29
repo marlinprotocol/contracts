@@ -472,8 +472,8 @@ describe("Integration", function () {
         mpondTokenId
       );
 
-      // console.log(pondRewards.map((a) => a.toString()));
-      // console.log(mpondRewards.map((a) => a.toString()));
+      console.log(pondRewards.map((a) => a.toString()));
+      console.log(mpondRewards.map((a) => a.toString()));
 
       let pondZeroRewardClusterCount: number = 0
       pondRewards.forEach(a => {
@@ -1094,13 +1094,13 @@ const issueTicketsForClusters = async (
   let currentPlusOne = BN.from(currentEpoch).add(1).toString();
   await clusterSelectorInstance.connect(clusterSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
   
-  // console.log({
-  //   currentPlusOne,
-  //   networkIds,
-  //   weights: weights.map((a) => a.toString()),
-  //   clustersToIssueTicketsTo,
-  //   selectedClusters: await clusterSelectorInstance.getClusters(currentPlusOne),
-  // });
+  console.log({
+    currentPlusOne,
+    networkIds,
+    weights: weights.map((a) => a.toString()),
+    clustersToIssueTicketsTo,
+    selectedClusters: await clusterSelectorInstance.getClusters(currentPlusOne),
+  });
 
   const clusterRewardBalancesBefore: BN[] = [];
   for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {
@@ -1118,6 +1118,7 @@ const issueTicketsForClusters = async (
 
   // weights array has to re-arranged in order of selected clusters
   const new_weights = new_order_of_weights(weights, clustersToIssueTicketsTo, await clusterSelectorInstance.getClusters(currentPlusOne));
+  console.log(new_weights)
   for (let index = 0; index < networkIds.length; index++) {
     const networkId = networkIds[index];
     await clusterRewardsInstance.connect(receiver)["issueTickets(bytes32,uint24,uint16[])"](networkId, currentPlusOne, new_weights);

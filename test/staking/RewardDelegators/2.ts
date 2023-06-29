@@ -815,17 +815,19 @@ describe("RewardDelegators ", function () {
         let delegator1CurrentReward = rewardPerShare4.add(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(clusterDelegationInit)).sub(rewardPerShare2).mul(delegationInit).div(e30).add(1);
         let delegator1CurrentRewardMpond = mpondRewardPerShare4.add(rewardAmount1.sub(clusterCommission).mul(e30).div(2).div(mpondClusterDelegation)).sub(mpondRewardPerShare2).mul(mpondDelegationInit).div(e30).add(1);
         clusterCommission = rewardAmount1.mul(commission).div(100);
-        await expect(rewardDelegators.connect(imperonatedStakeManager).delegate(
+        const balancesBefore = await Promise.all([rewardDelegators.address, rewardAddress, delegator1].map(async(a) => await pond.balanceOf(a)))
+        await rewardDelegators.connect(imperonatedStakeManager).delegate(
             delegator1, 
             cluster, 
             [pondTokenId, mpondTokenId], 
             [amount2, mpondAmount2])
-        ).to.changeTokenBalances(
-            pond, 
-            [rewardDelegators, rewardAddress, delegator1], 
-            [-delegator1CurrentReward.add(delegator1CurrentRewardMpond).add(clusterCommission), clusterCommission, delegator1CurrentReward.add(delegator1CurrentRewardMpond)],
-            2
-        );
+        const balancesAfter = await Promise.all([rewardDelegators.address, rewardAddress, delegator1].map(async(a) => await pond.balanceOf(a)))
+        const balancesChange = balancesAfter.map((a, index) => a.sub(balancesBefore[index]))
+        
+        expect(balancesChange[0]).to.closeTo(-delegator1CurrentReward.add(delegator1CurrentRewardMpond).add(clusterCommission), 2)
+        expect(balancesChange[1]).to.closeTo(clusterCommission, 0)
+        expect(balancesChange[2]).to.closeTo(delegator1CurrentReward.add(delegator1CurrentRewardMpond), 0)
+
         clusterDelegation = await rewardDelegators.getClusterDelegation(cluster, pondTokenId);
         mpondClusterDelegation = await rewardDelegators.getClusterDelegation(cluster, mpondTokenId);
         delegation = await rewardDelegators.getDelegation(cluster, delegator1, pondTokenId);
@@ -972,17 +974,19 @@ describe("RewardDelegators ", function () {
         delegatorCurrentRewardMpond = mpondRewardPerShare4.add(changeInRewardPerShareMpond).sub(mpondRewardPerShare2).mul(mpondDelegationInit).div(e30).add(1);
         clusterCommission = commission.mul(rewardAmount1).div(100);
 
-        await expect(rewardDelegators.connect(imperonatedStakeManager).undelegate(
+        const balancesBefore = await Promise.all([rewardDelegators.address, rewardAddress, delegator1].map(async(a) => await pond.balanceOf(a)))
+        await rewardDelegators.connect(imperonatedStakeManager).undelegate(
             delegator1, 
             cluster, 
             [pondTokenId, mpondTokenId], 
             [amount2.div(2), mpondAmount2.div(2)])
-        ).to.changeTokenBalances(
-            pond, 
-            [rewardDelegators, rewardAddress, delegator1], 
-            [-(delegatorCurrentReward.add(delegatorCurrentRewardMpond).add(clusterCommission)), clusterCommission, delegatorCurrentReward.add(delegatorCurrentRewardMpond)],
-            2
-        );
+        const balanceAfter = await Promise.all([rewardDelegators.address, rewardAddress, delegator1].map(async(a) => await pond.balanceOf(a)))
+        const balanceChange = balanceAfter.map((a,index) => a.sub(balancesBefore[index]))
+        
+        expect(balanceChange[0]).to.closeTo(-(delegatorCurrentReward.add(delegatorCurrentRewardMpond).add(clusterCommission)), 2)
+        expect(balanceChange[1]).to.closeTo(clusterCommission, 2)
+        expect(balanceChange[2]).to.closeTo(delegatorCurrentReward.add(delegatorCurrentRewardMpond), 1)
+        
         clusterDelegation = await rewardDelegators.getClusterDelegation(cluster, pondTokenId);
         mpondClusterDelegation = await rewardDelegators.getClusterDelegation(cluster, mpondTokenId);
         delegation = await rewardDelegators.getDelegation(cluster, delegator1, pondTokenId);
@@ -1165,9 +1169,14 @@ describe("RewardDelegators ", function () {
         await expect(rewardDelegators["withdrawRewards(address,address)"](delegator1, cluster2))
             .to.changeTokenBalances(pond, [rewardDelegators.address, delegator1, cluster2], [-rewardAfterCommission, rewardAfterCommission, 0]);
 
-        // TODO: understand the lower total balance
-        await expect(rewardDelegators["withdrawRewards(address,address)"](delegator1, cluster))
-            .to.changeTokenBalances(pond, [rewardDelegators.address, delegator1, cluster], [-(rewardAfterCommission - delegatorClusterReward), rewardAfterCommission - delegatorClusterReward, 0], 2);
+        const balancesBefore = await Promise.all([rewardDelegators.address, delegator1, cluster].map(async(a) => await pond.balanceOf(a)))
+        await rewardDelegators["withdrawRewards(address,address)"](delegator1, cluster)
+        const balancesAfter = await Promise.all([rewardDelegators.address, delegator1, cluster].map(async(a) => await pond.balanceOf(a)))
+        const balanceChange = balancesBefore.map((a, index) => balancesAfter[index].sub(a))
+
+        expect(balanceChange[0]).to.be.closeTo(-(rewardAfterCommission - delegatorClusterReward), 2)
+        expect(balanceChange[1]).to.be.closeTo(rewardAfterCommission - delegatorClusterReward, 2)
+        expect(balanceChange[2]).to.be.closeTo(0, 0)
 
         // no reward when already withdrawn
         await expect(rewardDelegators["withdrawRewards(address,address)"](delegator1, cluster1))
