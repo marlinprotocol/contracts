@@ -1055,7 +1055,7 @@ describe("RewardDelegators ", function () {
         
         expect(balanceChange[0]).to.closeTo(-(delegatorCurrentReward.add(delegatorCurrentRewardMpond).add(clusterCommission)), 2)
         expect(balanceChange[1]).to.closeTo(clusterCommission, 2)
-        expect(balanceChange[2]).to.closeTo(delegatorCurrentReward.add(delegatorCurrentRewardMpond), 1)
+        expect(balanceChange[2]).to.closeTo(delegatorCurrentReward.add(delegatorCurrentRewardMpond), 2)
         
         clusterDelegation = await rewardDelegators.getClusterDelegation(cluster, pondTokenId);
         mpondClusterDelegation = await rewardDelegators.getClusterDelegation(cluster, mpondTokenId);

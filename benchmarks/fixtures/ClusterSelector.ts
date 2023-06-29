@@ -2,6 +2,7 @@ import { ethers, upgrades } from "hardhat";
 import { BigNumber, BigNumberish, Signer, utils, Wallet } from "ethers";
 import { deployMockContract } from "@ethereum-waffle/mock-contract";
 import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
+import { ClusterSelector__factory } from "../../typechain-types";
 
 const EPOCH_LENGTH = 15*60;
 
@@ -15,7 +16,7 @@ export async function deployFixture() {
     // TODO: mock arbGasInfo precompile might skew gas estimate for precompile call slightly
     const arbGasInfoMock = await deployMockContract(signers[0], ["function getPricesInArbGas() view returns (uint, uint, uint)"]);
     await arbGasInfoMock.mock.getPricesInArbGas.returns(223148, 1593, 21000);
-    const clusterSelector = await deployClusterSelector(
+    const clusterSelectorInstance = await deployClusterSelector(
         "ETH", // network
         addrs[1], // rewardDelegators
         arbGasInfoMock.address, // arbGasInfo
@@ -27,9 +28,10 @@ export async function deployFixture() {
         true
     );
 
+
     return {
         arbGasInfoMock,
-        clusterSelector,
+        clusterSelector: ClusterSelector__factory.connect(clusterSelectorInstance.address, signers[0]),
         admin: signers[2],
         rewardDelegatorsMock: signers[1]
     };

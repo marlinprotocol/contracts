@@ -911,8 +911,14 @@ describe("ClusterRewards submit tickets", function() {
 
     await time.increaseTo(startTime + 34 * 86400);
 
+    let ticketsToIssue = [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(40)]
+    let missingTickets = MAX_TICKETS.sub(ticketsToIssue.reduce((prev, curr) => prev.add(curr), BN.from(0)))
+    
+    // 1 ticket more than the maximum possible number
+    ticketsToIssue[ticketsToIssue.length - 1] = ticketsToIssue[ticketsToIssue.length - 1].add(missingTickets).add(1)
+
     // reverted because of overflow in args
-    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, [MAX_TICKETS_1_pc.mul(10), MAX_TICKETS_1_pc.mul(20), MAX_TICKETS_1_pc.mul(30), MAX_TICKETS_1_pc.mul(40).add(10000)])).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
+    await expect(clusterRewards.connect(signers[5])["issueTickets(bytes32,uint24,uint16[])"](ETHHASH, epochWithRewards, ticketsToIssue)).to.be.revertedWith("CRW:IPRT-Total ticket count invalid");
   });
 });
 

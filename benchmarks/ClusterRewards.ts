@@ -2,10 +2,9 @@ import { ethers } from "hardhat";
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterRewards";
-import { BigNumber, BigNumberish, constants, Contract, PopulatedTransaction, Signer, utils } from "ethers";
+import { BigNumber, BigNumberish, constants, PopulatedTransaction, Signer, utils } from "ethers";
 import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
-import { ClusterRewards, ClusterRewards__factory } from "../typechain-types";
-import { IArbGasInfo__factory } from "../typechain-types/factories/contracts/staking/ClusterSelector.sol";
+import { ClusterRewards, ClusterRewards__factory, ClusterSelector, Pond, ReceiverStaking } from "../typechain-types";
 
 const estimator = new ethers.Contract("0x000000000000000000000000000000000000006c", [
     "function getPricesInArbGas() view returns(uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, uint256)"
@@ -28,9 +27,9 @@ describe("Cluster Rewards", async () => {
     ]);
 
     describe("issue tickets", async () => {
-        let pond: Contract;
-        let receiverStaking: Contract;
-        let clusterSelector: Contract;
+        let pond: Pond;
+        let receiverStaking: ReceiverStaking;
+        let clusterSelector: ClusterSelector;
         let clusterRewards: ClusterRewards;
         let admin: Signer;
         let rewardDelegatorsMock: Signer;
@@ -52,20 +51,17 @@ describe("Cluster Rewards", async () => {
 
         beforeEach(async function() {
             this.timeout(1000000);
-            let tempClusterRewards: Contract
             ({
                 pond,
                 receiverStaking,
                 clusterSelector,
-                clusterRewards: tempClusterRewards,
+                clusterRewards,
                 admin,
                 rewardDelegatorsMock,
                 nodesInserted,
                 receivers,
                 receiverSigners
             } = await loadFixture(initDataFixture));
-
-            clusterRewards = ClusterRewards__factory.connect(tempClusterRewards.address, admin)
             l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();
         });
 
@@ -73,34 +69,36 @@ describe("Cluster Rewards", async () => {
             const selectedReceiverIndex: number = Math.floor(Math.random() * receivers.length);
             const selectedReceiverSigner: Signer = receiverSigners[selectedReceiverIndex];
 
-            // skip first epoch
-            await skipTime(EPOCH_LENGTH);
+            for(let i=1; i <= 5; i++) {
+                // skip first epoch
+                await skipTime(EPOCH_LENGTH);
 
-            // select clusters for next epoch
-            await clusterSelector.selectClusters();
+                // select clusters for next epoch
+                await clusterSelector.selectClusters();
 
-            // skip to next epoch
-            await skipTime(EPOCH_LENGTH);
+                // skip to next epoch
+                await skipTime(EPOCH_LENGTH);
 
-            let epoch = await clusterSelector.getCurrentEpoch();
-            const tickets: BigNumber[] = randomlyDivideInXPieces(MAX_TICKETS, 5);
+                let epoch = await clusterSelector.getCurrentEpoch();
+                const tickets: BigNumber[] = randomlyDivideInXPieces(MAX_TICKETS, i);
 
-            console.log(tickets.map(a => a.toString()))
-            // skip to next epoch so that tickets can be distributed for previous epoch
-            await skipTime(EPOCH_LENGTH);
+                console.log(tickets.map(a => a.toString()))
+                // skip to next epoch so that tickets can be distributed for previous epoch
+                await skipTime(EPOCH_LENGTH);
 
-            const gasEstimate = await clusterRewards.connect(selectedReceiverSigner).estimateGas["issueTickets(bytes32,uint24,uint16[])"](
-                ethers.utils.id("ETH"), epoch, tickets
-            );
-            console.log(`gas used for ${5} cluster : ${gasEstimate.toNumber()}`);
+                const gasEstimate = await clusterRewards.connect(selectedReceiverSigner).estimateGas["issueTickets(bytes32,uint24,uint16[])"](
+                    ethers.utils.id("ETH"), epoch, tickets
+                );
+                console.log(`gas used for ${i} cluster : ${gasEstimate.toNumber()}`);
 
-            // Todo: estimate call data cost here
-            // const tx: PopulatedTransaction = await clusterRewards.connect(selectedReceiverSigner).populateTransaction["issueTickets(bytes32,uint24,uint16[])"](
-            //     ethers.utils.id("ETH"), epoch, tickets
-            // );
+                // Todo: estimate call data cost here
+                // const tx: PopulatedTransaction = await clusterRewards.connect(selectedReceiverSigner).populateTransaction["issueTickets(bytes32,uint24,uint16[])"](
+                //     ethers.utils.id("ETH"), epoch, tickets
+                // );
 
-            // const gasData = await IArbGasInfo__factory.connect(estimator.address, selectedReceiverSigner).callStatic.gasEstimateComponents(clusterRewards.address, false, tx.data);
-            // console.log(gasData);
+                // const gasData = await IArbGasInfo__factory.connect(estimator.address, selectedReceiverSigner).callStatic.gasEstimateComponents(clusterRewards.address, false, tx.data);
+                // console.log(gasData);
+            }
 
         });
 

@@ -3,10 +3,12 @@ import { BigNumber, BigNumberish, Signer, utils, Wallet } from "ethers";
 import { deploy as deployClusterRewards } from "../../deployments/staking/ClusterRewards";
 import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
+import { ClusterRewards__factory, ClusterSelector__factory, Pond__factory, ReceiverStaking__factory } from "../../typechain-types";
 
 // import { ArbGasInfo__factory } from "../../typechain-types";
 const arbGasContract = '0x000000000000000000000000000000000000006c'
-
+const maxGasRefundOnClusterSelection = "10000000"
+const maxRewardOnClusterSelection = ethers.utils.parseEther("1").toString()
 const EPOCH_LENGTH = 15*60;
 
 export async function deployFixture() {
@@ -17,26 +19,30 @@ export async function deployFixture() {
     const blockData = await ethers.provider.getBlock(blockNum);
 
     const Pond = await ethers.getContractFactory("Pond");
-    const pond = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
+    const pondInstance = await upgrades.deployProxy(Pond, ["Marlin POND", "POND"], {
         kind: "uups",
     });
+    const pond = Pond__factory.connect(pondInstance.address, signers[0])
 
-    // const mockArbGas = await new ArbGasInfo__factory().connect(signers[0]).deploy();
-    // mockArbGas.setPrices(10000, 10000, 10000);
+    const receiverStakingInstance = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
+    const receiverStaking = ReceiverStaking__factory.connect(receiverStakingInstance.address, signers[0])
 
-    const receiverStaking = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
-    const clusterSelector = await deployClusterSelector("ETH",
+    const clusterSelectorInstance = await deployClusterSelector("ETH",
     addrs[1],
     arbGasContract,
     addrs[0],
     blockData.timestamp,
     EPOCH_LENGTH,
-    "10000000",
-    ethers.utils.parseEther("1").toString(),
+    maxGasRefundOnClusterSelection,
+    maxRewardOnClusterSelection,
     true);
-    const clusterRewards = await deployClusterRewards(addrs[1], receiverStaking.address, {
+    const clusterSelector = ClusterSelector__factory.connect(clusterSelectorInstance.address, signers[0])
+
+    const clusterRewardsInstance = await deployClusterRewards(addrs[1], receiverStaking.address, {
         "ETH": clusterSelector.address
     }, addrs[0], true);
+    const clusterRewards = ClusterRewards__factory.connect(clusterRewardsInstance.address, signers[0])
+
     return {
         pond,
         receiverStaking,
@@ -99,7 +105,7 @@ export async function initDataFixture() {
         });
         await pond.transfer(receiver.address, depositAmount);
         await pond.connect(receiver).approve(receiverStaking.address, depositAmount);
-        await receiverStaking.connect(receiver)["depositFor(uint256,address)"](depositAmount, receiverSigner.address);
+        await receiverStaking.connect(receiver).depositFor(depositAmount, receiverSigner.address);
     }
 
     return {
