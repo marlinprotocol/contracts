@@ -90,8 +90,13 @@ describe("Cluster Rewards", async () => {
                 );
                 console.log(`gas used for ${i} cluster : ${gasEstimate.toNumber()}`);
 
-                // Todo: estimate call data cost here
-                
+                const tx = await clusterRewards.connect(selectedReceiverSigner).populateTransaction["issueTickets(bytes32,uint24,uint16[])"](
+                    ethers.utils.id("ETH"), epoch, tickets
+                );
+                if(!tx.data) return;
+
+                const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((tx.data.length - 2)/2));
+                console.log(`L1 gas used for ${i} cluster : ${l1GasInL2.toNumber()}`);
 
                 // const gasData = await IArbGasInfo__factory.connect(estimator.address, selectedReceiverSigner).callStatic.gasEstimateComponents(clusterRewards.address, false, tx.data);
                 // console.log(gasData);
