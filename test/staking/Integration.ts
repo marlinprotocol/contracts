@@ -488,8 +488,8 @@ describe("Integration", function () {
         mpondTokenId
       );
 
-      console.log(pondRewards.map((a) => a.toString()));
-      console.log(mpondRewards.map((a) => a.toString()));
+      // console.log(pondRewards.map((a) => a.toString()));
+      // console.log(mpondRewards.map((a) => a.toString()));
 
       let pondZeroRewardClusterCount: number = 0
       pondRewards.forEach(a => {
