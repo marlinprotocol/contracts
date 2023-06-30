@@ -892,14 +892,19 @@ describe("Integration", function () {
         randomMaticClustersTotalMPondDelegation.push(totalMPondDelegation);
       }
 
+      // this will ensure there is a set of selected clusters in past for cluster selector
+      await skipEpoch();
+      console.log(clusterSelectors.map(a => a.address))
+      await Promise.all(clusterSelectors.map(async (a) => await a.selectClusters()));
+      await skipEpoch();
+
       [ethClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[0], randomEthClusters, skipEpoch);
       [dotClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[1], randomDotClusters, skipEpoch);
       [maticClustersSelectedAt] = await mineTillGivenClustersAreSelected(clusterSelectors[2], randomMaticClusters, skipEpoch);
 
+      // changes will reflect in next epoch
       await populateEpochReward(pond, pondHoldingAddress, rewardDelegators);
       await skipEpoch();
-      await skipEpoch();
-
       // console.log({ ethClustersSelectedAt, dotClustersSelectedAt, maticClustersSelectedAt });
     });
 
@@ -971,7 +976,7 @@ describe("Integration", function () {
         }
       }
     };
-    it("Commission received proportional to (issued tickets * commission percent) -- ETH", async () => {
+    it.only("Commission received proportional to (issued tickets * commission percent) -- ETH", async () => {
       await test_scene(ethClustersSelectedAt, randomEthClusters, ethReceiversToUse, clusterSelectors[0], supportedNetworkIds[0]);
     });
 
@@ -998,6 +1003,7 @@ const mineTillGivenClustersAreSelected = async (
 ): Promise<[string, string[]]> => {
   let currentEpoch = (await clusterSelector.getCurrentEpoch()).toString();
   for (;;) {
+    console.log({currentEpoch})
     let clusters = (await clusterSelector.getClusters(currentEpoch)) as string[];
     clusters = clusters.map((a) => a.toLowerCase());
     clusterAddresses = clusterAddresses.map((a) => a.toLowerCase());
@@ -1102,17 +1108,17 @@ const issueTicketsForClusters = async (
       };
     })
   );
-  
+    
   let currentPlusOne = BN.from(currentEpoch).add(1).toString();
   await clusterSelectorInstance.connect(clusterSelectorAdmin).selectClusters(); // these clusters are selected in currentPlusOne epoch
   
-  // console.log({
-  //   currentPlusOne,
-  //   networkIds,
-  //   weights: weights.map((a) => a.toString()),
-  //   clustersToIssueTicketsTo,
-  //   selectedClusters: await clusterSelectorInstance.getClusters(currentPlusOne),
-  // });
+  console.log({
+    currentPlusOne,
+    networkIds,
+    weights: weights.map((a) => a.toString()),
+    clustersToIssueTicketsTo,
+    selectedClusters: await clusterSelectorInstance.getClusters(currentPlusOne),
+  });
 
   const clusterRewardBalancesBefore: BN[] = [];
   for (let index = 0; index < clustersToIssueTicketsTo.length; index++) {

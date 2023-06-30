@@ -38,7 +38,7 @@ describe("Cluster Rewards", async () => {
         let receiverSigners: Signer[];
         let l1GasDetails: any;
 
-        const MAX_TICKETS = BigNumber.from(2).pow(16);
+        const MAX_TICKETS = BigNumber.from(2).pow(16).sub(1);
         const DAY = 60*60*24;
         const EPOCH_LENGTH = 15*60;
 

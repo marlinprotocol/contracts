@@ -6,7 +6,7 @@ import { BigNumber, BigNumberish, constants, PopulatedTransaction, Signer, utils
 import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
 import { MockContract } from "@ethereum-waffle/mock-contract";
 import { FuzzedNumber } from "../utils/fuzzer";
-import { ClusterSelector } from "../typechain-types";
+import { ArbGasInfo__factory, ClusterSelector } from "../typechain-types";
 
 const estimator = new ethers.Contract("0x000000000000000000000000000000000000006c", [
     "function getPricesInArbGas() view returns(uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, uint256)"
@@ -14,7 +14,11 @@ const estimator = new ethers.Contract("0x000000000000000000000000000000000000006
 const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
 describe("Cluster Rewards", async () => {
-    benchmarkDeployment('ClusterSelector', [parseInt(Date.now()/1000 + ""), 900, "0x000000000000000000000000000000000000006C", 1000, 200000], [
+    const arbGasInfo = await new ArbGasInfo__factory().deploy()
+    const gasResult = await estimator.getPricesInArbGas()
+    await arbGasInfo.setPrices(gasResult[0], gasResult[1], gasResult[2])
+    
+    benchmarkDeployment('ClusterSelector', [parseInt(Date.now()/1000 + ""), 900, arbGasInfo.address, 1000, 200000], [
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",
     ]);

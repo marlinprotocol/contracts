@@ -3,13 +3,18 @@ import { BigNumber, BigNumberish, Signer, utils, Wallet } from "ethers";
 import { deploy as deployClusterRewards } from "../../deployments/staking/ClusterRewards";
 import { deploy as deployClusterSelector } from "../../deployments/staking/ClusterSelector";
 import { deploy as deployReceiverStaking } from "../../deployments/staking/ReceiverStaking";
-import { ClusterRewards__factory, ClusterSelector__factory, Pond__factory, ReceiverStaking__factory } from "../../typechain-types";
+import { ArbGasInfo__factory, ClusterRewards__factory, ClusterSelector__factory, Pond__factory, ReceiverStaking__factory } from "../../typechain-types";
 
 // import { ArbGasInfo__factory } from "../../typechain-types";
 const arbGasContract = '0x000000000000000000000000000000000000006c'
 const maxGasRefundOnClusterSelection = "10000000"
 const maxRewardOnClusterSelection = ethers.utils.parseEther("1").toString()
 const EPOCH_LENGTH = 15*60;
+
+const estimator = new ethers.Contract(arbGasContract, [
+    "function getPricesInArbGas() view returns(uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, uint256)"
+]);
+const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
 export async function deployFixture() {
     const signers = await ethers.getSigners();
@@ -27,9 +32,13 @@ export async function deployFixture() {
     const receiverStakingInstance = await deployReceiverStaking(addrs[0], blockData.timestamp, EPOCH_LENGTH, pond.address, true);
     const receiverStaking = ReceiverStaking__factory.connect(receiverStakingInstance.address, signers[0])
 
+    const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
+    const gasResult = await estimator.connect(mainnetProvider).getPricesInArbGas()
+    await arbGasInfo.setPrices(gasResult[0], gasResult[1], gasResult[2])
+
     const clusterSelectorInstance = await deployClusterSelector("ETH",
     addrs[1],
-    arbGasContract,
+    arbGasInfo.address,
     addrs[0],
     blockData.timestamp,
     EPOCH_LENGTH,
