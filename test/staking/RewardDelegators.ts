@@ -30,7 +30,7 @@ const e30 = ethers.utils.parseEther("1000000000000");
 describe("RewardDelegators init and upgrades", function () {
     let signers: Signer[];
     let addrs: string[];
-  
+
     before(async function () {
         signers = await ethers.getSigners();
         addrs = await Promise.all(signers.map((a) => a.getAddress()));
@@ -141,9 +141,8 @@ describe("RewardDelegators init and upgrades", function () {
         await initializationTx.to.emit(rewardDelegators, "TokenWeightsUpdated").withArgs(mpondTokenId, stakingConfig.MPondWeightForThreshold, stakingConfig.MPondWeightForDelegation);
 
         const originalImplemetationAddress = await upgrades.erc1967.getImplementationAddress(rewardDelegators.address);
-        await upgrades.upgradeProxy(rewardDelegators, RewardDelegators, { kind: "uups" });
-        // TODO: Find a diff way of upgrading with different contract
-        // expect(originalImplemetationAddress).to.not.equal(await upgrades.erc1967.getImplementationAddress(rewardDelegators.address));
+        await upgrades.upgradeProxy(rewardDelegators.address, RewardDelegators, { kind: "uups", redeployImplementation: 'always' });
+        expect(originalImplemetationAddress).to.not.equal(await upgrades.erc1967.getImplementationAddress(rewardDelegators.address));
         
         expect(await rewardDelegators.stakeAddress()).to.equal(fakeStakeManagerAddr);
         expect(await rewardDelegators.clusterRegistry()).to.equal(fakeClusterRegistryAddr);
@@ -621,7 +620,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster).returns(rewardAmount);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
 
         // ----------------- Give reward when previous total delegation and user has no prev rewards ---------------
@@ -754,7 +752,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster).returns(rewardAmount);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
 
         // ----------------- Give reward when previous total delegation and user has no prev rewards ---------------
@@ -961,7 +958,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster).returns(rewardAmount);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
         // ----------------- Setup clusters and their delegations ---------------
         const amount1 = FuzzedNumber.randomInRange(e18, e20);
@@ -1096,7 +1092,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster2).returns(rewardAmount);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster2).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster2).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
 
         await rewardDelegators.connect(imperonatedStakeManager).delegate(
@@ -1187,7 +1182,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster2).returns(0);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster2).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster2).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
         
         // TODO: fix this
@@ -1279,7 +1273,6 @@ describe("RewardDelegators ", function () {
         await fakeClusterRewards.mock.claimReward.withArgs(cluster2).returns(0);
         await fakeClusterRegistry.mock.getRewardInfo.withArgs(cluster2).returns(commission, rewardAddress);
         await fakeClusterRegistry.mock.getNetwork.withArgs(cluster2).returns(networkId);
-        // TODO: only upsert with `cluster` as arg are accepted
         await fakeClusterSelectors["ETH"].mock.upsert.returns();
 
         await rewardDelegators.connect(imperonatedStakeManager).delegate(

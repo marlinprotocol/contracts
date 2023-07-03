@@ -7,6 +7,7 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole, testRole } from "../helpers/rbac";
 import { increaseBalance } from "../helpers/common";
+import { Invoke__factory } from "../../typechain-types";
 
 
 declare module "ethers" {
@@ -1374,7 +1375,7 @@ describe("ClusterSelector", function() {
 
   it("current epoch", async () => {
     const epochLength = parseInt((await clusterSelector.EPOCH_LENGTH()).toString());
-    // Todo: check if the revert statement is sufficient
+    // 0x11 mean Arithmetic underflow or overflow
     await expect(clusterSelector.getCurrentEpoch()).to.be.revertedWithPanic(0x11);
     await time.increaseTo(startTime);
     expect(await clusterSelector.getCurrentEpoch()).to.equal(1);
@@ -1459,8 +1460,6 @@ describe("ClusterSelector", function() {
     let epochLength = (await clusterSelector.EPOCH_LENGTH()).toNumber();
     let clusters: string[] = [];
 
-    // TODO: test case where contract invokes and reward transfer succeeds and fails
-
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.reverted;
     await time.increaseTo(startTime - 2);
     await expect(clusterSelector.selectClusters({ gasPrice })).to.be.reverted;
@@ -1473,7 +1472,7 @@ describe("ClusterSelector", function() {
 
     await expect(clusterSelector.updateMissingClusters(2)).to.be.revertedWith("cannot update future epochs");
     await clusterSelector.updateMissingClusters(1);
-    // Todo: check if the revert statement is sufficient
+    // 0x11 mean Arithmetic underflow or overflow
     await expect(clusterSelector.getClusters(1)).to.be.revertedWithPanic(0x11);
 
     await clusterSelector.connect(signers[11]).upsert(addrs[31], 1);
@@ -1598,5 +1597,17 @@ describe("ClusterSelector", function() {
     const baseReward = (gasForSelection.add(BASE_L1_GAS + GAS_PER_BYTE * 4).sub(gasForSelection)).mul(gasPrice);
     await expect(() => clusterSelector.selectClusters({ gasPrice }))
       .to.changeEtherBalances([clusterSelector, signers[0]], [-baseReward, baseReward]);
+
+    // Testing _dispense failure
+    await time.increaseTo(epochLength * 13 + startTime + epochLength * 1 / 2);
+    expect(await clusterSelector.getCurrentEpoch()).equals(14);
+    await upgrades.upgradeProxy(clusterSelector.address, ClusterSelector.connect(signers[1]), { kind: "uups", constructorArgs: [startTime, 900, arbGasInfoMock.address, 10000, 10000] });
+    const invoke = await new Invoke__factory(signers[0]).deploy()
+
+    const balanceBefore = await signers[0].provider?.getBalance(invoke.address)
+    await expect(invoke.selectClusters(clusterSelector.address)).to.emit(clusterSelector, "ClusterSelected")
+    const balanceAfter = await signers[0].provider?.getBalance(invoke.address)
+    expect(balanceAfter).eq(balanceBefore);
   });
+  
 });

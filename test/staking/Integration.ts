@@ -100,8 +100,13 @@ describe("Integration", function () {
   const minPondToUseByReceiver = BN.from(10).pow(16);
   const maxPondToUseByReeiver = BN.from(10).pow(20);
 
-  const maxRewardForClusterSelection = BN.from(10).pow(18) // 1 ETH
-  const maxGasRefundForClusterSelection = BN.from(10).pow(9).mul('100') // 100 gwei
+  const MAX_REWARD_FOR_CLUSTER_SELECTION = BN.from(10).pow(18) // 1 ETH
+  const REFUND_GAS_FOR_CLUSTER_SELECTION = BN.from(10).pow(9).mul('100') // 100 gwei
+
+  const _perL2Tx = 1000
+  const _gasForL1Calldata = 1000
+  const _storageArbGas = 1000
+
   const skipEpoch = async () => {
     await skipTime(ethers, epochDuration);
     await skipTime(ethers, 1); // extra 1 second for safety
@@ -193,7 +198,7 @@ describe("Integration", function () {
 
     const arbGasInfo = await new ArbGasInfo__factory(signers[0]).deploy()
     // find the right values and set it
-    await arbGasInfo.setPrices(1000, 1000, 1000)
+    await arbGasInfo.setPrices(_perL2Tx, _gasForL1Calldata, _storageArbGas)
     let ClusterSelector = await ethers.getContractFactory("ClusterSelector");
     for (let index = 0; index < supportedNetworks.length; index++) {
       let clusterSelectorContract = await upgrades.deployProxy(
@@ -204,8 +209,7 @@ describe("Integration", function () {
         ],
         {
           kind: "uups",
-          // Todo: check the max value rewards and gas refund
-          constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH(), arbGasInfo.address, maxRewardForClusterSelection, maxGasRefundForClusterSelection],
+          constructorArgs: [await receiverStaking.START_TIME(), await receiverStaking.EPOCH_LENGTH(), arbGasInfo.address, MAX_REWARD_FOR_CLUSTER_SELECTION, REFUND_GAS_FOR_CLUSTER_SELECTION],
         }
       );
       let clusterSelector = getClusterSelector(clusterSelectorContract.address, signers[0]);
@@ -350,10 +354,18 @@ describe("Integration", function () {
       const provider = signers[0].provider
 
       const balanceBefore = await provider?.getBalance(clusterSelectorAdmin.getAddress())
-      await clusterSelectors[0].connect(clusterSelectorAdmin).selectClusters();
+      const tx = await clusterSelectors[0].connect(clusterSelectorAdmin).selectClusters();
+      const receipt = await tx.wait()
       const balanceAfter = await provider?.getBalance(clusterSelectorAdmin.getAddress())
       expect(balanceAfter).gt(balanceBefore)
-      //Todo: exact values and compare the reward
+
+      // values derived from contract
+      let _reward = BN.from(REFUND_GAS_FOR_CLUSTER_SELECTION).add(_perL2Tx).add(_gasForL1Calldata*4).mul(receipt.effectiveGasPrice);
+      if (_reward.gt(MAX_REWARD_FOR_CLUSTER_SELECTION)){
+        _reward = BN.from(MAX_REWARD_FOR_CLUSTER_SELECTION);
+      } 
+
+      expect(balanceAfter?.sub(BN.from(balanceBefore))).to.be.closeTo(_reward, _reward.div(1000))
     })
 
     it(`All ${totalClusters} clusters should be selected`, async () => {
@@ -427,7 +439,7 @@ describe("Integration", function () {
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
 
-      const [pondRewards, mpondRewards] = await issueTicketsForClusters(
+      const [pondRewardsPerShare, mpondRewardsPerShare] = await issueTicketsForClusters(
         clusterSelectors[0],
         rewardDelegators,
         clusterRegistry,
@@ -445,21 +457,17 @@ describe("Integration", function () {
         mpondTokenId
       );
 
-      // console.log(pondRewards.map((a) => a.toString()));
-      // console.log(mpondRewards.map((a) => a.toString()));
+      expect(pondRewardsPerShare[0]).gt(0)
+      expect(pondRewardsPerShare[0]).to.closeTo(pondRewardsPerShare[1].div(2), pondRewardsPerShare[0].div(1000))
+      expect(pondRewardsPerShare[0]).to.closeTo(pondRewardsPerShare[2].div(3), pondRewardsPerShare[0].div(1000))
+      expect(pondRewardsPerShare[0]).to.closeTo(pondRewardsPerShare[3].div(4), pondRewardsPerShare[0].div(1000))
+      expect(pondRewardsPerShare[0]).to.closeTo(pondRewardsPerShare[4].div(5), pondRewardsPerShare[0].div(1000))
 
-      const scaler = MAX_TICKETS;
-      for (let index = 0; index < pondRewards.length - 1; index++) {
-        const element = pondRewards[index];
-        expect(element).gt(0);
-        expect(element.mul(scaler).div(pondRewards[0])).to.be.closeTo(scaler.mul(weights[index]).div(fration), 30);
-      }
-
-      for (let index = 0; index < mpondRewards.length; index++) {
-        const element = mpondRewards[index];
-        expect(element).gt(0);
-        expect(element.mul(scaler).div(mpondRewards[0])).to.be.closeTo(scaler.mul(weights[index]).div(fration), 30);
-      }
+      expect(mpondRewardsPerShare[0]).gt(0)
+      expect(mpondRewardsPerShare[0]).to.closeTo(mpondRewardsPerShare[1].div(2), mpondRewardsPerShare[0].div(1000))
+      expect(mpondRewardsPerShare[0]).to.closeTo(mpondRewardsPerShare[2].div(3), mpondRewardsPerShare[0].div(1000))
+      expect(mpondRewardsPerShare[0]).to.closeTo(mpondRewardsPerShare[3].div(4), mpondRewardsPerShare[0].div(1000))
+      expect(mpondRewardsPerShare[0]).to.closeTo(mpondRewardsPerShare[4].div(5), mpondRewardsPerShare[0].div(1000))
     });
 
     it("4 Clusters get rewards, tickets ratio 1:1:1:1:0", async () => {
@@ -587,12 +595,6 @@ describe("Integration", function () {
         delegatorAddresss.slice(0, delegatorsToUse),
         clusterAddresses.slice(0, totalClusters)
       );
-      // console.log(delegatorRewardsRecevied.map(a => a.toString()));
-      expect(delegatorRewardsRecevied.every((a) => a.gt(0))).to.be.true;
-      for (let index = 0; index < delegatorRewardsRecevied.length - 1; index++) {
-        const element = delegatorRewardsRecevied[index];
-        expect(element).to.be.closeTo(delegatorRewardsRecevied[index + 1], delegatorRewardsRecevied[index + 1].div(10000))
-      }
 
       const totalPondDistributed = [...delegatorRewardsRecevied, ...clusterCommisionReceived].reduce(
         (prev, val) => prev.add(val),

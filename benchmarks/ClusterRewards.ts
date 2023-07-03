@@ -97,9 +97,6 @@ describe("Cluster Rewards", async () => {
 
                 const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((tx.data.length - 2)/2));
                 console.log(`L1 gas used for ${i} cluster : ${l1GasInL2.toNumber()}`);
-
-                // const gasData = await IArbGasInfo__factory.connect(estimator.address, selectedReceiverSigner).callStatic.gasEstimateComponents(clusterRewards.address, false, tx.data);
-                // console.log(gasData);
             }
 
         });
