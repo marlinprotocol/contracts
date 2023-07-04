@@ -3,7 +3,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterRewards";
 import { BigNumber, BigNumberish, Signer } from "ethers";
-import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
+import { gasConsumedInYear, randomlyDivideInXPieces, skipTime } from "./helpers/util";
 import { ClusterRewards, ClusterSelector, Pond, ReceiverStaking } from "../typechain-types";
 
 const estimator = new ethers.Contract("0x000000000000000000000000000000000000006c", [
@@ -148,7 +148,7 @@ describe("Cluster Rewards", async () => {
             const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((tx.data.length - 2)/2));
             console.log(`L1 gas used for ${DAY/EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
 
-            console.log(gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+            console.log('gas consumed in year', gasConsumedInYear(gasEstimate, l1GasInL2).toString())
         });
 
         it("all epochs in a day, tickets to all selected clusters optimized", async function() {
@@ -197,7 +197,7 @@ describe("Cluster Rewards", async () => {
             const l1GasInL2 = l1GasDetails.gasPerL2Tx.add(l1GasDetails.gasPerL1CallDataByte.mul((rawTicketInfo.length - 2)/2));
             console.log(`L1 gas used for ${DAY/EPOCH_LENGTH} epochs : ${l1GasInL2.toNumber()}`);
 
-            console.log(gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10)).toString());
+            console.log('gas consumed in year', gasConsumedInYear(gasEstimate, l1GasInL2).toString())
         });
     });
 
