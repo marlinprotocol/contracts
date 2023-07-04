@@ -1,10 +1,12 @@
-import { ethers, waffle } from "hardhat";
+import { ethers } from "hardhat";
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { benchmark as benchmarkDeployment } from "./helpers/deployment";
 import { initDataFixture } from "./fixtures/ClusterSelector";
-import { BigNumber, BigNumberish, constants, Contract, PopulatedTransaction, Signer, utils } from "ethers";
+import { BigNumber, BigNumberish, constants, PopulatedTransaction, Signer, utils } from "ethers";
 import { randomlyDivideInXPieces, skipTime } from "./helpers/util";
 import { MockContract } from "@ethereum-waffle/mock-contract";
 import { FuzzedNumber } from "../utils/fuzzer";
+import { ArbGasInfo__factory, ClusterSelector } from "../typechain-types";
 
 const estimator = new ethers.Contract("0x000000000000000000000000000000000000006c", [
     "function getPricesInArbGas() view returns(uint256 gasPerL2Tx, uint256 gasPerL1CallDataByte, uint256)"
@@ -12,14 +14,18 @@ const estimator = new ethers.Contract("0x000000000000000000000000000000000000006
 const mainnetProvider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
 
 describe("Cluster Rewards", async () => {
-    benchmarkDeployment('ClusterSelector', [parseInt(Date.now()/1000 + ""), 900, "0x000000000000000000000000000000000000006C", 1000, 200000], [
+    const arbGasInfo = await new ArbGasInfo__factory().deploy()
+    const gasResult = await estimator.getPricesInArbGas()
+    await arbGasInfo.setPrices(gasResult[0], gasResult[1], gasResult[2])
+    
+    benchmarkDeployment('ClusterSelector', [parseInt(Date.now()/1000 + ""), 900, arbGasInfo.address, 1000, 200000], [
         "0x000000000000000000000000000000000000dEaD",
         "0x000000000000000000000000000000000000dEaD",
     ]);
 
     describe("Select Clusters", async () => {
         let arbGasInfoMock: MockContract;
-        let clusterSelector: Contract;
+        let clusterSelector: ClusterSelector;
         let admin: Signer;
         let rewardDelegatorsMock: Signer;
         let nodesInserted: number;
@@ -35,7 +41,7 @@ describe("Cluster Rewards", async () => {
                 admin,
                 rewardDelegatorsMock,
                 nodesInserted,
-            } = await waffle.loadFixture(initDataFixture));
+            } = await loadFixture(initDataFixture));
 
             l1GasDetails = await estimator.connect(mainnetProvider).getPricesInArbGas();
             EPOCH_LENGTH = await clusterSelector.EPOCH_LENGTH();

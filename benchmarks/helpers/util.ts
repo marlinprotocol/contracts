@@ -44,3 +44,7 @@ export async function skipTime(t: number) {
     await ethers.provider.send("evm_increaseTime", [t]);
     await skipBlocks(1);
 }
+
+export const gasConsumedInYear = (gasEstimate: BigNumber, l1GasInL2: BigNumber): BigNumber => {
+    return gasEstimate.add(l1GasInL2).mul(1600).mul(50).mul(365).div(BigNumber.from(10).pow(10))
+}
