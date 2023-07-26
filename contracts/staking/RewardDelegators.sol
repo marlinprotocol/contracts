@@ -524,4 +524,23 @@ contract RewardDelegators is
             return 0;
         }
     }
+
+    // ------- receiver payments ------------------ //
+    
+    event AddReceiverBalance(address indexed receiver, uint256 amount);
+    event UpdateReceiverRewardPerEpoch(address indexed receiver, uint256 amount);
+
+    function addReceiverBalance(address receiver, uint128 amount) public {
+        require(receiver != address(0), "RD: address 0");
+        require(amount != 0, "RD: amount 0");
+        PONDToken.transferFrom(msg.sender, address(this), amount);
+        clusterRewards._increaseReceiverBalance(receiver, amount);
+        emit AddReceiverBalance(receiver, amount);
+    }
+
+    function setReceiverRewardPerEpoch(uint128 rewardPerEpoch) public {
+        address _sender = _msgSender();
+        clusterRewards._setReceiverRewardPerEpoch(_sender, rewardPerEpoch);
+        emit UpdateReceiverRewardPerEpoch(_sender, rewardPerEpoch);
+    }
 }

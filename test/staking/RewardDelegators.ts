@@ -1320,3 +1320,73 @@ describe("RewardDelegators ", function () {
         await fakeClusterSelectors["ETH"].mock.upsertMultiple.withArgs([cluster2], [10000]).reverts();
     });
 });
+
+describe("RewardDelegators 5", function() {
+    let signers: Signer[];
+    let addrs: string[];
+    let mockClusterRewards: MockContract;
+    let receiver: Signer
+    const receiverAmountToTest: BN = BN.from(10).pow(20)
+    const rewardPerEpochToTest: BN = BN.from(10).pow(18).mul(5)
+    let pond: Pond;
+    let rewardDelegators: RewardDelegators
+
+
+    before(async function () {
+        signers = await ethers.getSigners();
+        receiver = signers[10]
+        addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+        const ClusterRewards = await ethers.getContractFactory("ClusterRewards");
+        mockClusterRewards = await deployMockContract(signers[0], ClusterRewards.interface.format());
+
+        await mockClusterRewards.mock._increaseReceiverBalance.withArgs(await receiver.getAddress(), receiverAmountToTest).returns();
+        await mockClusterRewards.mock._setReceiverRewardPerEpoch.withArgs(await receiver.getAddress(), rewardPerEpochToTest).returns();
+
+        const Pond = await ethers.getContractFactory("Pond");
+        let pondContract = await upgrades.deployProxy(Pond, ["Marlin", "POND"], { kind: "uups" });
+        pond = getPond(pondContract.address, signers[0]);
+        await pond.transfer(await receiver.getAddress(), receiverAmountToTest)
+
+        const RewardDelegators = await ethers.getContractFactory("RewardDelegators");
+        const rewardDelegatorsUntyped: Contract = await upgrades.deployProxy(RewardDelegators, {
+            kind: "uups",
+            initializer: false,
+        });
+        rewardDelegators = getRewardDelegators(rewardDelegatorsUntyped.address, signers[0]);
+
+        const fakeStakeManagerAddr = addrs[20];
+        const fakeClusterRegistryAddr = addrs[18];
+        const fakeMPond = addrs[6];
+        const pondTokenId = ethers.utils.id(pond.address);
+        const mpondTokenId = ethers.utils.id(fakeMPond);
+
+        await rewardDelegators.initialize(
+            fakeStakeManagerAddr,
+            mockClusterRewards.address,
+            fakeClusterRegistryAddr,
+            pond.address,
+            [pondTokenId, mpondTokenId],
+            [stakingConfig.PondRewardFactor, stakingConfig.MPondRewardFactor],
+            [stakingConfig.PondWeightForThreshold, stakingConfig.MPondWeightForThreshold],
+            [stakingConfig.PondWeightForDelegation, stakingConfig.MPondWeightForDelegation],
+            [],
+            []
+        );
+    });
+  
+    takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+    it("Check receiver deposit", async() => {
+        await pond.connect(receiver).approve(rewardDelegators.address, receiverAmountToTest)
+        const balanceBefore = await pond.balanceOf(rewardDelegators.address)
+        await expect(rewardDelegators.connect(receiver).addReceiverBalance(await receiver.getAddress(), receiverAmountToTest)).to.emit(rewardDelegators, "AddReceiverBalance").withArgs(await receiver.getAddress(), receiverAmountToTest);
+        const balanceAfter = await pond.balanceOf(rewardDelegators.address)
+
+        expect(balanceAfter.sub(balanceBefore)).eq(receiverAmountToTest);
+    })
+
+    it("Check receiver receiver reward per epoch", async() => {
+        await expect(rewardDelegators.connect(receiver).setReceiverRewardPerEpoch(rewardPerEpochToTest)).to.emit(rewardDelegators, "UpdateReceiverRewardPerEpoch").withArgs(await receiver.getAddress(), rewardPerEpochToTest)
+    })
+})
