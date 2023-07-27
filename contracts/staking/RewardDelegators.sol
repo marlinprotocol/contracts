@@ -543,4 +543,10 @@ contract RewardDelegators is
         clusterRewards._setReceiverRewardPerEpoch(_sender, rewardPerEpoch);
         emit UpdateReceiverRewardPerEpoch(_sender, rewardPerEpoch);
     }
+
+    function addReceiverBalanceAndSetReceiverRewardPerEpoch(uint128 amount, uint128 rewardPerEpoch) public {
+        address _sender = _msgSender();
+        addReceiverBalance(_sender, amount);
+        setReceiverRewardPerEpoch(rewardPerEpoch);
+    }
 }

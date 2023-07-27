@@ -1389,4 +1389,11 @@ describe("RewardDelegators 5", function() {
     it("Check receiver receiver reward per epoch", async() => {
         await expect(rewardDelegators.connect(receiver).setReceiverRewardPerEpoch(rewardPerEpochToTest)).to.emit(rewardDelegators, "UpdateReceiverRewardPerEpoch").withArgs(await receiver.getAddress(), rewardPerEpochToTest)
     })
+
+    it("Receiver can deposit and set reward per epoch in same tranasction", async() => {
+        await pond.connect(receiver).approve(rewardDelegators.address, receiverAmountToTest)
+        const tx = rewardDelegators.connect(receiver).addReceiverBalanceAndSetReceiverRewardPerEpoch(receiverAmountToTest, rewardPerEpochToTest)
+        await expect(tx).to.emit(rewardDelegators, "AddReceiverBalance").withArgs(await receiver.getAddress(), receiverAmountToTest)
+                        .to.emit(rewardDelegators, "UpdateReceiverRewardPerEpoch").withArgs(await receiver.getAddress(), rewardPerEpochToTest);
+    })
 })
