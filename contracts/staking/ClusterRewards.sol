@@ -138,7 +138,7 @@ contract ClusterRewards is
     event ReceiverStakingUpdated(address receiverStaking);
     event RewardPerEpochChanged(uint256 updatedRewardPerEpoch);
     event RewardDistributionWaitTimeChanged(uint256 updatedWaitTime);
-    event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed user);
+    event TicketsIssued(bytes32 indexed networkId, uint256 indexed epoch, address indexed signer);
 
     function addNetwork(bytes32 _networkId, uint256 _rewardWeight, address _clusterSelector) external onlyAdmin {
         require(rewardWeight[_networkId] == 0, "CRW:AN-Network already exists");

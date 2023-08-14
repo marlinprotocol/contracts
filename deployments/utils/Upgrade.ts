@@ -25,8 +25,8 @@ export async function upgrade(contractName: string, contractId: string, construc
   const CF = await ethers.getContractFactory(contractName);
   let c = await upgrades.upgradeProxy(addresses[chainId][contractId], CF, { 
     kind: "uups",
-    constructorArgs
+    constructorArgs,
   });
 
-  console.log("Deployed addr:", c.address);
+  console.log("Upgraded implementation:", await upgrades.erc1967.getImplementationAddress(addresses[chainId][contractId]));
 }

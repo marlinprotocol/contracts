@@ -1,7 +1,7 @@
 import { ethers, run, upgrades } from 'hardhat';
 import { Contract } from 'ethers';
 import * as fs from 'fs';
-import { upgrade as upgradeUtil } from './Upgrade';
+import { upgrade as upgradeUtil } from '../utils/Upgrade';
 
 export async function deployNoInit(): Promise<Contract> {
   let chainId = (await ethers.provider.getNetwork()).chainId;
