@@ -31,7 +31,7 @@ const stakingConfig = require("../config/staking.json");
 const UNDELEGATION_WAIT_TIME = 604800;
 const REDELEGATION_WAIT_TIME = 21600;
 const REWARD_PER_EPOCH = BN.from(10).pow(21).mul(35);
-const MAX_TICKETS = BN.from(2).pow(16)
+const MAX_TICKETS = BN.from(2).pow(16).sub(1)
 
 describe("Integration", function () {
   let signers: Signer[];
@@ -389,7 +389,7 @@ describe("Integration", function () {
 
     it("Only 1 receiver, all cluster should get equal reward", async () => {
       const receiver = receivers[0];
-      const totalWeight = MAX_TICKETS.sub(1);
+      const totalWeight = MAX_TICKETS;
       let equiWeightedTickets = totalWeight.div(totalClusters);
       const weights = [equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, equiWeightedTickets, totalWeight.sub(equiWeightedTickets.mul(4))];
       // let missingWeights = totalWeight.sub(weights.reduce((prev, curr) => prev.add(curr), BN.from(0)))
@@ -432,7 +432,7 @@ describe("Integration", function () {
 
     it("Only 1 receiver, tickets ratio 1:2:3:4:5", async () => {
       const receiver = receivers[0];
-      const totalWeight = MAX_TICKETS.sub(1);
+      const totalWeight = MAX_TICKETS;
       let fration = totalWeight.div(15);
       const weights = [fration.mul(1), fration.mul(2), fration.mul(3), fration.mul(4), totalWeight.sub(fration.mul(10))];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
@@ -474,7 +474,7 @@ describe("Integration", function () {
       const receiver = receivers[0];
       let fration = MAX_TICKETS.div(4);
       const zero = BN.from(0);
-      const weights = [fration, fration, fration, fration, zero];
+      const weights = [fration, fration, fration, MAX_TICKETS.sub(fration.mul(3)), zero];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
@@ -498,28 +498,29 @@ describe("Integration", function () {
       );
 
       expect(pondRewards[0]).gt(0)
-      expect(pondRewards[0]).eq(pondRewards[1])
-      expect(pondRewards[0]).eq(pondRewards[2])
-      expect(pondRewards[0]).eq(pondRewards[3])
+      expect(pondRewards[0]).closeTo(pondRewards[1], 1)
+      expect(pondRewards[0]).closeTo(pondRewards[2], 1)
+      // compare by fractions for better accuracy
+      expect(MAX_TICKETS.sub(fration.mul(3)).div(fration)).to.eq(pondRewards[3].div(pondRewards[0]));
       expect(pondRewards[4]).eq(0)
 
       expect(mpondRewards[0]).gt(0)
-      expect(mpondRewards[0]).eq(mpondRewards[1])
-      expect(mpondRewards[0]).eq(mpondRewards[2])
-      expect(mpondRewards[0]).eq(mpondRewards[3])
+      expect(mpondRewards[0]).closeTo(mpondRewards[1], 1)
+      expect(mpondRewards[0]).closeTo(mpondRewards[2], 1)
+      expect(mpondRewards[0]).closeTo(mpondRewards[3], mpondRewards[0].div(2000))
       expect(mpondRewards[4]).eq(0)
 
       expect(commision[0]).gt(0)
-      expect(commision[0]).eq(commision[1])
-      expect(commision[0]).eq(commision[2])
-      expect(commision[0]).eq(commision[3])
+      expect(commision[0]).closeTo(commision[1], 1)
+      expect(commision[0]).closeTo(commision[2], 1)
+      expect(commision[0]).closeTo(commision[3], commision[0].div(2000))
       expect(commision[4]).eq(0)
       
     });
 
     it("Only 1 receiver, tickets ratio 0:0:0:0:1", async () => {
       const receiver = receivers[0];
-      let fration = MAX_TICKETS.sub(1);
+      let fration = MAX_TICKETS;
       const zero = BN.from(0);
       const weights = [zero, zero, zero, zero, fration];
       await receiverDeposit(pond, receiverStaking, receiver, minPondToUseByReceiver);
@@ -612,7 +613,7 @@ describe("Integration", function () {
 
       await receiverDeposit(pond, receiverStaking, receiver1, minPondToUseByReceiver.div(2));
       await receiverDeposit(pond, receiverStaking, receiver2, minPondToUseByReceiver);
-      const fraction = MAX_TICKETS.sub(1);
+      const fraction = MAX_TICKETS;
       await skipEpoch();
       let currentEpoch = (await clusterSelectors[0].getCurrentEpoch()).toString();
 
@@ -695,7 +696,7 @@ describe("Integration", function () {
 
     it("Should Fail: Invalid Receiver can't submit tickets", async () => {
       const receiver = invalidReceivers[0];
-      const fraction = MAX_TICKETS.sub(1);
+      const fraction = MAX_TICKETS;
       
       // move some epoch/s ahead
       await skipEpoch();
@@ -967,7 +968,7 @@ describe("Integration", function () {
     ): Promise<void> => {
       const epoch = BN.from(clusterSelectedAtEpoch).sub(1).toString();
       const weights: BN[] = [];
-      let pendingFraction = MAX_TICKETS.sub(1);
+      let pendingFraction = MAX_TICKETS;
 
       for (let index = 0; index < randomClustersSelected.length - 1; index++) {
         const fraction = FuzzedNumber.randomInRange("1", pendingFraction);
@@ -1064,7 +1065,7 @@ const mineTillGivenClustersAreSelected = async (
       return [currentEpoch, clusters];
     } else {
       await whenNotFound();
-      await clusterSelector.selectClusters();
+      await clusterSelector.selectClusters({gasLimit: "2000000"});
       currentEpoch = BN.from(currentEpoch.toString()).add(1).toString();
     }
   }
