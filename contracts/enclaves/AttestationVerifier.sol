@@ -50,6 +50,16 @@ contract AttestationVerifier is Initializable,  // initializer
 
     function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys) external initializer {
         require(images.length == enclaveKeys.length, "AV:I-Image and key length mismatch");
+
+        __Context_init_unchained();
+        __ERC165_init_unchained();
+        __AccessControl_init_unchained();
+        __AccessControlEnumerable_init_unchained();
+        __ERC1967Upgrade_init_unchained();
+        __UUPSUpgradeable_init_unchained();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
         for (uint i = 0; i < enclaveKeys.length; i++) {
             address enclaveKey = enclaveKeys[i];
             bytes32 imageId = _whitelistImage(images[i]);
