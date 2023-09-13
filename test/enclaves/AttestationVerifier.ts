@@ -19,7 +19,7 @@ const image2: AttestationVerifier.EnclaveImageStruct = {
     PCR2: parseUnits("6", 114).toHexString(),
 };
 
-describe("Attestation Verifier", function() {
+describe("Attestation Verifier Deploy and Init", function() {
     let signers: Signer[];
 	let addrs: string[];
 
@@ -129,7 +129,7 @@ describe("Attestation Verifier", function() {
 });
 
 testERC165(
-	"AttestationVerifier",
+	"Attestation Verifier ERC165",
 	async function(_signers: Signer[], addrs: string[]) {
 		const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const attestationVerifier = await upgrades.deployProxy(
@@ -154,7 +154,7 @@ testERC165(
 	},
 );
 
-testAdminRole("MarketV1", async function(_signers: Signer[], addrs: string[]) {
+testAdminRole("Attestation Verifier Admin", async function(_signers: Signer[], addrs: string[]) {
 	const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const attestationVerifier = await upgrades.deployProxy(
             AttestationVerifier,
