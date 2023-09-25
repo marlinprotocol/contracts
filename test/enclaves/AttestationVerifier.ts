@@ -177,7 +177,7 @@ testAdminRole("Attestation Verifier Admin", async function(_signers: Signer[], a
 		return attestationVerifier;
 });
 
-describe("Attestation Verifier", function() {
+describe("Attestation Verifier - whitelisting images", function() {
     let signers: Signer[];
 	let addrs: string[];
 
@@ -195,7 +195,7 @@ describe("Attestation Verifier", function() {
 
 	takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-    it("", async function() {
-
+    it("whitelist image", async function() {
+        
     });
 });
