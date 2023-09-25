@@ -126,6 +126,19 @@ describe("Attestation Verifier Deploy and Init", function() {
 			}),
 		).to.be.revertedWith("only admin");
 	});
+
+    it("cannot revoke all admins", async function() {
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+        const attestationVerifier = await upgrades.deployProxy(
+            AttestationVerifier,
+            [Object.values(enclaveKeyMap), Object.keys(enclaveKeyMap)],
+            { kind: "uups" },
+        );
+
+        await expect(
+            attestationVerifier.revokeRole(await attestationVerifier.DEFAULT_ADMIN_ROLE(), addrs[0]),
+        ).to.be.revertedWith("AV:RR-All admins cannot be removed");
+    });
 });
 
 testERC165(
@@ -162,4 +175,27 @@ testAdminRole("Attestation Verifier Admin", async function(_signers: Signer[], a
             { kind: "uups" },
         );
 		return attestationVerifier;
+});
+
+describe("Attestation Verifier", function() {
+    let signers: Signer[];
+	let addrs: string[];
+
+    let enclaveKeyMap: Record<string, AttestationVerifier.EnclaveImageStruct> = {};
+
+	before(async function() {
+		signers = await ethers.getSigners();
+		addrs = await Promise.all(signers.map((a) => a.getAddress()));
+
+        expect(addrs.length).to.be.greaterThanOrEqual(15, "Number of addresses are too less");
+
+        enclaveKeyMap[addrs[13]] = image1;
+        enclaveKeyMap[addrs[14]] = image2;
+	});
+
+	takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+    it("", async function() {
+
+    });
 });

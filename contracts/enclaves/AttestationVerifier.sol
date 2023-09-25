@@ -43,7 +43,7 @@ contract AttestationVerifier is Initializable,  // initializer
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "AV:RR-All admins cannot be removed");
     }
 
     function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
