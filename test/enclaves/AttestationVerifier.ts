@@ -282,6 +282,8 @@ describe("Attestation Verifier - whitelisting images", function() {
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[12]))
                 .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(addrs[12], imageId);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+            const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
+            expect({PCR0, PCR1, PCR2}).to.deep.equal({PCR0: "0x", PCR1: "0x", PCR2: "0x"});
         });
 
         it("revoke enclave that doesn't exist", async function() {
@@ -302,6 +304,9 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.whitelistEnclaveKey(addrs[11], imageId);
             await attestationVerifier.revokeWhitelistedEnclave(addrs[12]);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+            const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
+            expect({PCR0, PCR1, PCR2}).to.deep.equal({PCR0: "0x", PCR1: "0x", PCR2: "0x"});
+            expect(await attestationVerifier.isVerified(addrs[11])).to.equal(imageId);
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[11]))
                 .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(addrs[11], imageId);
         });
