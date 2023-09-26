@@ -49,8 +49,8 @@ contract AttestationVerifier is Initializable,  // initializer
     function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
 
     function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys) external initializer {
-        // The images and their enclave keys are whitelisted without verification that enclave keys are created within the enclave.
-        // This is to initialize chain of trust and will be replaced with a more robust solution in the future.
+        // The images and their enclave keys are whitelisted without verification that enclave keys are created within
+        // the enclave. This is to initialize chain of trust and will be replaced with a more robust solution.
         require(images.length != 0, "AV:I-At least one image must be provided");
         require(images.length == enclaveKeys.length, "AV:I-Image and key length mismatch");
 
@@ -84,7 +84,7 @@ contract AttestationVerifier is Initializable,  // initializer
     mapping(address => bytes32) public isVerified;
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
-    event WhitelistedImageRemoved(bytes32 indexed imageId);
+    event WhitelistedImageRevoked(bytes32 indexed imageId);
     event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
 
@@ -94,14 +94,18 @@ contract AttestationVerifier is Initializable,  // initializer
 
     // TODO: is this flexibility necessary?
     function whitelistEnclaveKey(bytes32 imageId, address enclaveKey) external onlyAdmin {
-        require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image must be whitelisted");
+        require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image not whitelisted");
+        require(enclaveKey != address(0), "AV:W-Invalid enclave key");
+        require(isVerified[enclaveKey] == bytes32(0), "AV:W-Enclave key already verified");
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyWhitelisted(enclaveKey, imageId);
     }
 
-    function removeWhitelistedImage(bytes32 imageId) external onlyAdmin {
+    function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
+        bytes32 imageId = isVerified[enclaveKey];
         delete whitelistedImages[imageId];
-        emit WhitelistedImageRemoved(imageId);
+        delete isVerified[enclaveKey];
+        emit WhitelistedEnclaveRevoked(imageId);
     }
 
     // This function is used to add enclave key of a whitelisted image to the list of verified enclave keys.

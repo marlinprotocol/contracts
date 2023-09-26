@@ -67,7 +67,7 @@ describe("Attestation Verifier Deploy and Init", function() {
 
         const imageId = await attestationVerifier.isVerified(addrs[13]);
 
-        expect(imageId).to.equal(keccak256(solidityPack(["bytes", "bytes", "bytes"], [image1.PCR0, image1.PCR1, image1.PCR2])));
+        expect(imageId).to.equal(getImageId(image1));
         let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
         expect({PCR0, PCR1, PCR2}).to.deep.equal(image1);
     });
@@ -83,7 +83,7 @@ describe("Attestation Verifier Deploy and Init", function() {
         for(let i=0; i < Object.keys(enclaveKeyMap).length; i++) {
             const imageId = await attestationVerifier.isVerified(Object.keys(enclaveKeyMap)[i]);
             const image = Object.values(enclaveKeyMap)[i];
-            expect(imageId).to.equal(keccak256(solidityPack(["bytes", "bytes", "bytes"], [image.PCR0, image.PCR1, image.PCR2])));
+            expect(imageId).to.equal(getImageId(image));
             const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
             expect({PCR0, PCR1, PCR2}).to.deep.equal(image);
         }
@@ -111,7 +111,7 @@ describe("Attestation Verifier Deploy and Init", function() {
 
         for(let verifierKey in enclaveKeyMap) {
             const image = enclaveKeyMap[verifierKey];
-            expect(await attestationVerifier.isVerified(verifierKey)).to.equal(keccak256(solidityPack(["bytes", "bytes", "bytes"], [image.PCR0, image.PCR1, image.PCR2])));
+            expect(await attestationVerifier.isVerified(verifierKey)).to.equal(getImageId(image));
         }
 
 		expect(
@@ -211,10 +211,65 @@ describe("Attestation Verifier - whitelisting images", function() {
 	takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
     it("whitelist image", async function() {
-        const imageId = await attestationVerifier.isVerified(addrs[0]);
-        expect(imageId).to.equal();
-        expect(imageId).to.equal(keccak256(solidityPack(["bytes", "bytes", "bytes"], [image1.PCR0, image1.PCR1, image1.PCR2])));
+        const imageId = getImageId(image3);
+        const PCRs = await attestationVerifier.whitelistedImages(imageId);
+        expect(PCRs.PCR0).to.equal("0x");
+        expect(PCRs.PCR1).to.equal("0x");
+        expect(PCRs.PCR2).to.equal("0x");
+        await expect(attestationVerifier.whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2))
+            .to.emit(attestationVerifier, "EnclaveImageWhitelisted").withArgs(imageId, image3.PCR0, image3.PCR1, image3.PCR2);
         let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-        expect({PCR0, PCR1, PCR2}).to.deep.equal(image1);
+        expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
+    });
+
+    it("whitelist image with empty PCRs", async function() {
+        await expect(attestationVerifier.whitelistImage("0x", "0x", "0x"))
+            .to.be.revertedWith("AV:IWI-PCR values must be 48 bytes");
+    });
+
+    it("whitelist image with invalid PCRs", async function() {
+        const invalidImage = {
+            PCR0: parseUnits("1", 14).toHexString(),
+            PCR1: parseUnits("2", 14).toHexString(),
+            PCR2: parseUnits("3", 14).toHexString(),
+        };
+        await expect(attestationVerifier.whitelistImage(invalidImage.PCR0, invalidImage.PCR1, invalidImage.PCR2))
+            .to.be.revertedWith("AV:IWI-PCR values must be 48 bytes");
+    });
+
+    describe("whitelist enclave key", async function() {
+        this.beforeAll(async function() {
+            await attestationVerifier.whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
+        });
+
+        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+        it("whitelist enclave key", async function() {
+            const imageId = getImageId(image3);
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], imageId))
+                .to.emit(attestationVerifier, "EnclaveKeyWhitelisted").withArgs(addrs[0], imageId);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+        });
+
+        it("whitelist enclave key with invalid imageId", async function() {
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], "0x"))
+                .to.be.revertedWith("AV:W-Image not whitelisted");
+        });
+
+        it("whitelist enclave key with invalid key", async function() {
+            await expect(attestationVerifier.whitelistEnclaveKey("0x", getImageId(image3)))
+                .to.be.revertedWith("AV:W-Invalid enclave key");
+        });
+
+        it("whitelist enclave key with already whitelisted key", async function() {
+            const imageId = getImageId(image3);
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], imageId))
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[0], getImageId(image3)))
+                .to.be.revertedWith("AV:W-Enclave key already verified");
+        });
     });
 });
+
+function getImageId(image: AttestationVerifier.EnclaveImageStruct): string {
+    return keccak256(solidityPack(["bytes", "bytes", "bytes"], [image.PCR0, image.PCR1, image.PCR2]));
+}
