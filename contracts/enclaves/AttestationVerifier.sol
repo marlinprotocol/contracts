@@ -84,7 +84,7 @@ contract AttestationVerifier is Initializable,  // initializer
     mapping(address => bytes32) public isVerified;
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
-    event WhitelistedImageRevoked(bytes32 indexed imageId);
+    event WhitelistedEnclaveRevoked(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
 
@@ -93,7 +93,7 @@ contract AttestationVerifier is Initializable,  // initializer
     }
 
     // TODO: is this flexibility necessary?
-    function whitelistEnclaveKey(bytes32 imageId, address enclaveKey) external onlyAdmin {
+    function whitelistEnclaveKey(address enclaveKey, bytes32 imageId) external onlyAdmin {
         require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image not whitelisted");
         require(enclaveKey != address(0), "AV:W-Invalid enclave key");
         require(isVerified[enclaveKey] == bytes32(0), "AV:W-Enclave key already verified");
@@ -102,10 +102,11 @@ contract AttestationVerifier is Initializable,  // initializer
     }
 
     function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
+        require(isVerified[enclaveKey] != bytes32(0), "AV:R-Enclave key not verified");
         bytes32 imageId = isVerified[enclaveKey];
         delete whitelistedImages[imageId];
         delete isVerified[enclaveKey];
-        emit WhitelistedEnclaveRevoked(imageId);
+        emit WhitelistedEnclaveRevoked(enclaveKey, imageId);
     }
 
     // This function is used to add enclave key of a whitelisted image to the list of verified enclave keys.
