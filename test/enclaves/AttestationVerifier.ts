@@ -1,11 +1,12 @@
 import { expect } from "chai";
-import { Signer } from "ethers";
+import { Contract, Signer } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { AttestationVerifier } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
 import { keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole } from "../helpers/rbac";
+import { getAttestationVerifier } from "../../utils/typechainConvertor";
 
 const image1: AttestationVerifier.EnclaveImageStruct = {
     PCR0: parseUnits("1", 115).toHexString(),
@@ -17,6 +18,12 @@ const image2: AttestationVerifier.EnclaveImageStruct = {
     PCR0: parseUnits("4", 114).toHexString(),
     PCR1: parseUnits("5", 114).toHexString(),
     PCR2: parseUnits("6", 114).toHexString(),
+};
+
+const image3: AttestationVerifier.EnclaveImageStruct = {
+    PCR0: parseUnits("7", 114).toHexString(),
+    PCR1: parseUnits("8", 114).toHexString(),
+    PCR2: parseUnits("9", 114).toHexString(),
 };
 
 describe("Attestation Verifier Deploy and Init", function() {
@@ -169,12 +176,12 @@ testERC165(
 
 testAdminRole("Attestation Verifier Admin", async function(_signers: Signer[], addrs: string[]) {
 	const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
-        const attestationVerifier = await upgrades.deployProxy(
-            AttestationVerifier,
-            [[image1], [addrs[0]]],
-            { kind: "uups" },
-        );
-		return attestationVerifier;
+    const attestationVerifier = await upgrades.deployProxy(
+        AttestationVerifier,
+        [[image1], [addrs[0]]],
+        { kind: "uups" },
+    );
+    return attestationVerifier;
 });
 
 describe("Attestation Verifier - whitelisting images", function() {
@@ -182,6 +189,7 @@ describe("Attestation Verifier - whitelisting images", function() {
 	let addrs: string[];
 
     let enclaveKeyMap: Record<string, AttestationVerifier.EnclaveImageStruct> = {};
+    let attestationVerifier: AttestationVerifier;
 
 	before(async function() {
 		signers = await ethers.getSigners();
@@ -191,11 +199,22 @@ describe("Attestation Verifier - whitelisting images", function() {
 
         enclaveKeyMap[addrs[13]] = image1;
         enclaveKeyMap[addrs[14]] = image2;
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+        const attestationVerifierGeneric = await upgrades.deployProxy(
+            AttestationVerifier,
+            [Object.values(enclaveKeyMap), Object.keys(enclaveKeyMap)],
+            { kind: "uups" },
+        );
+        attestationVerifier = getAttestationVerifier(attestationVerifierGeneric.address, signers[0]);
 	});
 
 	takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
     it("whitelist image", async function() {
-        
+        const imageId = await attestationVerifier.isVerified(addrs[0]);
+        expect(imageId).to.equal();
+        expect(imageId).to.equal(keccak256(solidityPack(["bytes", "bytes", "bytes"], [image1.PCR0, image1.PCR1, image1.PCR2])));
+        let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
+        expect({PCR0, PCR1, PCR2}).to.deep.equal(image1);
     });
 });

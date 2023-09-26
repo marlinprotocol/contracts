@@ -88,29 +88,15 @@ contract AttestationVerifier is Initializable,  // initializer
     event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
 
+    function whitelistImage(bytes memory PCR0, bytes memory PCR1, bytes memory PCR2) external onlyAdmin {
+        _whitelistImage(EnclaveImage(PCR0, PCR1, PCR2));
+    }
+
     // TODO: is this flexibility necessary?
     function whitelistEnclaveKey(bytes32 imageId, address enclaveKey) external onlyAdmin {
         require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image must be whitelisted");
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyWhitelisted(enclaveKey, imageId);
-    }
-
-    function whitelistImage(bytes memory PCR0, bytes memory PCR1, bytes memory PCR2) external onlyAdmin {
-        _whitelistImage(EnclaveImage(PCR0, PCR1, PCR2));
-    }
-
-    function _whitelistImage(EnclaveImage memory image) internal returns(bytes32) {
-        require(
-            image.PCR0.length == 48 &&
-            image.PCR1.length == 48 &&
-            image.PCR2.length == 48,
-            "AV:IWI-PCR values must be 48 bytes"
-        );
-
-        bytes32 imageId = keccak256(abi.encodePacked(image.PCR0, image.PCR1, image.PCR2));
-        whitelistedImages[imageId] = EnclaveImage(image.PCR0, image.PCR1, image.PCR2);
-        emit EnclaveImageWhitelisted(imageId, image.PCR0, image.PCR1, image.PCR2);
-        return imageId;
     }
 
     function removeWhitelistedImage(bytes32 imageId) external onlyAdmin {
@@ -136,7 +122,7 @@ contract AttestationVerifier is Initializable,  // initializer
         _verify(attestation, sourceEnclaveKey, enclaveKey, image, enclaveCPUs, enclaveMemory);
 
         isVerified[enclaveKey] = imageId;
-        emit AttestationVerified(enclaveKey, imageId);
+        emit EnclaveKeyVerified(enclaveKey, imageId);
     }
 
     // This function is used to verify enclave key of any image by the enclave key generated in a whitelisted image.
@@ -151,6 +137,20 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveMemory
     ) external view {
         _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+    }
+
+    function _whitelistImage(EnclaveImage memory image) internal returns(bytes32) {
+        require(
+            image.PCR0.length == 48 &&
+            image.PCR1.length == 48 &&
+            image.PCR2.length == 48,
+            "AV:IWI-PCR values must be 48 bytes"
+        );
+
+        bytes32 imageId = keccak256(abi.encodePacked(image.PCR0, image.PCR1, image.PCR2));
+        whitelistedImages[imageId] = EnclaveImage(image.PCR0, image.PCR1, image.PCR2);
+        emit EnclaveImageWhitelisted(imageId, image.PCR0, image.PCR1, image.PCR2);
+        return imageId;
     }
 
     function _verify(

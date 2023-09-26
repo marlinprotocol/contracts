@@ -24,6 +24,8 @@ import {
   ClusterSelector__factory,
   MarketV1,
   MarketV1__factory,
+  AttestationVerifier__factory,
+  AttestationVerifier,
 } from "../typechain-types";
 
 export function getMpond(contractAddress: string, signer: Signer): MPond {
@@ -72,4 +74,8 @@ export function getClusterRewards(contractAddress: string, signer: Signer): Clus
 
 export function getMarketV1(contractAddress: string, signer: Signer): MarketV1 {
   return new MarketV1__factory(signer).attach(contractAddress);
+}
+
+export function getAttestationVerifier(contractAddress: string, signer: Signer): AttestationVerifier {
+  return new AttestationVerifier__factory(signer).attach(contractAddress);
 }
