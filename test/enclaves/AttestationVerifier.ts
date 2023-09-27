@@ -341,6 +341,36 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
         });
+
+        it("verify enclave key of nonwhitelisted enclave", async function() {
+            const nonWhitelistedEnclave: AttestationVerifier.EnclaveImageStruct = ({
+                PCR0: parseUnits("11", 113).toHexString(),
+                PCR1: parseUnits("12", 113).toHexString(),
+                PCR2: parseUnits("13", 113).toHexString(),
+            });
+            const imageId = getImageId(nonWhitelistedEnclave);
+            const attestation = await createAttestation(addrs[12], nonWhitelistedEnclave, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024))
+                .to.be.revertedWith("AV:V-Enclave image to verify not whitelisted");
+        });
+
+        it("verify enclave key with invalid attestation", async function() {
+            let attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 5000);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
+                .to.be.revertedWith("AV:VE-Attestation must be signed by source enclave");
+            attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 3, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
+                .to.be.revertedWith("AV:VE-Attestation must be signed by source enclave");
+            attestation = await createAttestation(addrs[12], image3, ethers.Wallet.createRandom(), 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
+                .to.be.revertedWith("AV:VE-Attestation must be signed by source enclave");
+            attestation = await createAttestation(addrs[12], image1, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
+                .to.be.revertedWith("AV:VE-Attestation must be signed by source enclave");
+            attestation = await createAttestation(addrs[11], image3, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
+                .to.be.revertedWith("AV:VE-Attestation must be signed by source enclave");
+        });
     });
 });
 

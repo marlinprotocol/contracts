@@ -120,7 +120,7 @@ contract AttestationVerifier is Initializable,  // initializer
     ) external {
         require(
             whitelistedImages[imageId].PCR0.length != 0,
-            "AV:V-Image of Enclave to verify must be whitelisted"
+            "AV:V-Enclave image to verify not whitelisted"
         );
 
         EnclaveImage memory image = whitelistedImages[imageId];
