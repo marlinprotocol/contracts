@@ -78,7 +78,7 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes PCR1;
         bytes PCR2;
     }
-    string constant ATTESTATION_PREFIX = "Enclave Attestation Verified";
+    string public constant ATTESTATION_PREFIX = "Enclave Attestation Verified";
 
     mapping(bytes32 => EnclaveImage) public whitelistedImages;
     mapping(address => bytes32) public isVerified;

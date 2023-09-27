@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { Contract, Signer } from "ethers";
+import { Contract, Signer, Wallet } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { AttestationVerifier } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
-import { keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
+import { AbiCoder, BytesLike, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole } from "../helpers/rbac";
 import { getAttestationVerifier } from "../../utils/typechainConvertor";
@@ -25,6 +25,9 @@ const image3: AttestationVerifier.EnclaveImageStruct = {
     PCR1: parseUnits("8", 114).toHexString(),
     PCR2: parseUnits("9", 114).toHexString(),
 };
+
+// TODO: get this from contract
+const ATTESTATION_PREFIX = "Enclave Attestation Verified";
 
 describe("Attestation Verifier Deploy and Init", function() {
     let signers: Signer[];
@@ -251,6 +254,16 @@ describe("Attestation Verifier - whitelisting images", function() {
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
         });
 
+        it("whitelist multiple keys for same enclave image", async function() {
+            const imageId = getImageId(image3);
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[11], imageId))
+                .to.emit(attestationVerifier, "EnclaveKeyWhitelisted").withArgs(addrs[11], imageId);
+            expect(await attestationVerifier.isVerified(addrs[11])).to.equal(imageId);
+            await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], imageId))
+                .to.emit(attestationVerifier, "EnclaveKeyWhitelisted").withArgs(addrs[12], imageId);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+        });
+
         it("whitelist enclave key with invalid imageId", async function() {
             await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], "0x0000000000000000000000000000000000000000000000000000000000000000"))
                 .to.be.revertedWith("AV:W-Image not whitelisted");
@@ -311,8 +324,43 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(addrs[11], imageId);
         });
     });
+
+    describe("verify enclave key", async function() {
+        const sourceEnclaveWallet = ethers.Wallet.createRandom();
+        this.beforeAll(async function() {
+            await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
+            await attestationVerifier.whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
+        });
+
+        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+        it("verify enclave key", async function() {
+            const imageId = getImageId(image3);
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024))
+                .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+        });
+    });
 });
 
 function getImageId(image: AttestationVerifier.EnclaveImageStruct): string {
     return keccak256(solidityPack(["bytes", "bytes", "bytes"], [image.PCR0, image.PCR1, image.PCR2]));
+}
+
+async function createAttestation(
+    enclaveKey: string, 
+    image: AttestationVerifier.EnclaveImageStruct, 
+    sourceEnclaveKey: Wallet, 
+    CPU: number, 
+    memory: number
+): Promise<string> {
+    const abiCoder = new AbiCoder();
+    const message = abiCoder.encode(
+        ["string", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+        [ATTESTATION_PREFIX, enclaveKey, image.PCR0, image.PCR1, image.PCR2, CPU, memory]
+    );
+    const digest = ethers.utils.keccak256(message);
+    const sign = sourceEnclaveKey._signingKey().signDigest(digest);
+    return ethers.utils.joinSignature(sign);
 }
