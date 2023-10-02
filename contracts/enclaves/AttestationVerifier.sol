@@ -145,6 +145,20 @@ contract AttestationVerifier is Initializable,  // initializer
         return _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
     }
 
+    function safeVerify(
+        bytes memory attestation,
+        address sourceEnclaveKey,
+        address enclaveKey,
+        bytes memory PCR0,
+        bytes memory PCR1,
+        bytes memory PCR2,
+        uint256 enclaveCPUs,
+        uint256 enclaveMemory
+    ) external view {
+        bool isValid = _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        require(isValid, "AV:SV-invalid attestation");
+    }
+
     function verify(bytes memory data) external view returns (bool) {
         (
             bytes memory attestation, 
@@ -157,6 +171,21 @@ contract AttestationVerifier is Initializable,  // initializer
             uint256 enclaveMemory
         ) = abi.decode(data, (bytes, address, address, bytes, bytes, bytes, uint256, uint256));
         return _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+    }
+
+    function safeVerify(bytes memory data) external view {
+        (
+            bytes memory attestation, 
+            address sourceEnclaveKey, 
+            address enclaveKey, 
+            bytes memory PCR0, 
+            bytes memory PCR1, 
+            bytes memory PCR2, 
+            uint256 enclaveCPUs, 
+            uint256 enclaveMemory
+        ) = abi.decode(data, (bytes, address, address, bytes, bytes, bytes, uint256, uint256));
+        bool isValid = _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        require(isValid, "AV:SV-invalid attestation");
     }
 
     function _whitelistImage(EnclaveImage memory image) internal returns(bytes32) {
