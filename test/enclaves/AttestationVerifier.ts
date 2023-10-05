@@ -642,7 +642,7 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .withArgs(sourceEnclaveWallet.address, getImageId(image2));
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
-            await expect(attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
+            await expect(attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             )).to.be.revertedWith("AV:V-Enclave must be verified");
         });
@@ -772,11 +772,119 @@ describe("Attestation Verifier - whitelisting images", function() {
 
     describe("safe verify attestation - compressed", async function() {
         const sourceEnclaveWallet = ethers.Wallet.createRandom();
+        const abiCoder = new AbiCoder();
+
         before(async function() {
+            await network.provider.request({
+                method: "evm_revert",
+                params: [baseSnapshot],
+            });
+            baseSnapshot = await network.provider.request({
+                method: "evm_snapshot",
+                params: [],
+            });
             await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
         });
 
-        
+        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+        it("verify attestation", async function() {
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            const verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await attestationVerifier["safeVerify(bytes)"](verificationData);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+        });
+
+        it("verify attestation - verified enclave", async function() {
+            await attestationVerifier.whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
+            const imageId = getImageId(image3);
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024))
+                .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
+
+            const verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await attestationVerifier["safeVerify(bytes)"](verificationData);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+        });
+
+        it("verify attestation - from same enclave multiple times", async function() {
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            const verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await attestationVerifier["safeVerify(bytes)"](verificationData);
+            await attestationVerifier["safeVerify(bytes)"](verificationData);
+        });
+
+        it("verify attestation - invalid attestation", async function() {
+            let attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 5000);
+            let verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 5000]
+            );
+            await attestationVerifier["safeVerify(bytes)"](verificationData);
+            verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:SV-invalid attestation");
+            attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 3, 1024);
+            verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:SV-invalid attestation");
+            const randomWallet = ethers.Wallet.createRandom();
+            attestation = await createAttestation(addrs[12], image3, randomWallet, 2, 1024);
+            verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:SV-invalid attestation");
+            attestation = await createAttestation(addrs[12], image1, sourceEnclaveWallet, 2, 1024);
+            verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:SV-invalid attestation");
+            attestation = await createAttestation(addrs[11], image3, sourceEnclaveWallet, 2, 1024);
+            verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:SV-invalid attestation");
+        });
+
+        it("verify attestation - non whitelisted source enclave", async function() {
+            const nonWhitelistedEnclaveKey = ethers.Wallet.createRandom();
+            const attestation = await createAttestation(addrs[12], image3, nonWhitelistedEnclaveKey, 2, 1024);
+            const verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, nonWhitelistedEnclaveKey.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+        });
+
+        it("verify attestation - whitelisted and removed source enclave", async function() {
+            expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal(getImageId(image2));
+            await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
+                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked")
+                .withArgs(sourceEnclaveWallet.address, getImageId(image2));
+            expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            const verificationData = abiCoder.encode(
+                ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+            );
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+        });
     });
 });
 
