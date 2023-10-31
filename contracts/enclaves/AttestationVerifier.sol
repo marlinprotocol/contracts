@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
 contract AttestationVerifier is Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -31,6 +31,8 @@ contract AttestationVerifier is Initializable,  // initializer
         _;
     }
 
+//-------------------------------- Overrides start --------------------------------//
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
@@ -47,6 +49,10 @@ contract AttestationVerifier is Initializable,  // initializer
     }
 
     function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
+
+//-------------------------------- Overrides end --------------------------------//
+
+//-------------------------------- Initializer start --------------------------------//
 
     function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys) external initializer {
         // The images and their enclave keys are whitelisted without verification that enclave keys are created within
@@ -71,6 +77,10 @@ contract AttestationVerifier is Initializable,  // initializer
         }
     }
 
+//-------------------------------- Initializer start --------------------------------//
+
+//-------------------------------- Declarations start --------------------------------//
+
     uint256[50] private __gap_1;
 
     struct EnclaveImage {
@@ -87,6 +97,10 @@ contract AttestationVerifier is Initializable,  // initializer
     event WhitelistedEnclaveRevoked(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
+
+//-------------------------------- Declarations end --------------------------------//
+
+//-------------------------------- Admin methods start --------------------------------//
 
     function whitelistImage(bytes memory PCR0, bytes memory PCR1, bytes memory PCR2) external onlyAdmin {
         _whitelistImage(EnclaveImage(PCR0, PCR1, PCR2));
@@ -109,6 +123,10 @@ contract AttestationVerifier is Initializable,  // initializer
         emit WhitelistedEnclaveRevoked(enclaveKey, imageId);
     }
 
+//-------------------------------- Admin methods end --------------------------------//
+
+//-------------------------------- Open methods start -------------------------------//
+
     // This function is used to add enclave key of a whitelisted image to the list of verified enclave keys.
     function verifyEnclaveKey(
         bytes memory attestation, 
@@ -130,6 +148,10 @@ contract AttestationVerifier is Initializable,  // initializer
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyVerified(enclaveKey, imageId);
     }
+
+//-------------------------------- Open methods end -------------------------------//
+
+//-------------------------------- Read only methods start -------------------------------//
 
     // This function is used to verify enclave key of any image by the enclave key generated in a whitelisted image.
     function verify(
@@ -188,6 +210,10 @@ contract AttestationVerifier is Initializable,  // initializer
         require(isValid, "AV:SV-invalid attestation");
     }
 
+//-------------------------------- Read only methods end -------------------------------//
+
+//-------------------------------- Internal methods start -------------------------------//
+
     function _whitelistImage(EnclaveImage memory image) internal returns(bytes32) {
         require(
             image.PCR0.length == 48 &&
@@ -234,4 +260,6 @@ contract AttestationVerifier is Initializable,  // initializer
 
         return (sourceEnclaveKey == signer);
     }
+
+//-------------------------------- Internal methods end -------------------------------//
 }
