@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeabl
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "./interfaces/IAttestationVerifier.sol";
 
 contract AttestationVerifier is Initializable,  // initializer
     ContextUpgradeable,  // _msgSender, _msgData
@@ -16,7 +17,8 @@ contract AttestationVerifier is Initializable,  // initializer
     AccessControlUpgradeable,  // RBAC
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
     ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable  // public upgrade
+    UUPSUpgradeable,  // public upgrade
+    IAttestationVerifier  // interface
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap_0;
@@ -45,7 +47,7 @@ contract AttestationVerifier is Initializable,  // initializer
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
-        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "AV:RR-All admins cannot be removed");
+        require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0, "AV:RR-All admins cant be removed");
     }
 
     function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
@@ -106,7 +108,6 @@ contract AttestationVerifier is Initializable,  // initializer
         _whitelistImage(EnclaveImage(PCR0, PCR1, PCR2));
     }
 
-    // TODO: is this flexibility necessary?
     function whitelistEnclaveKey(address enclaveKey, bytes32 imageId) external onlyAdmin {
         require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image not whitelisted");
         require(enclaveKey != address(0), "AV:W-Invalid enclave key");
@@ -115,6 +116,7 @@ contract AttestationVerifier is Initializable,  // initializer
         emit EnclaveKeyWhitelisted(enclaveKey, imageId);
     }
 
+    // Revoking a whitelisted enclave key will also remove the image from whitelist as the image is no longer trusted.
     function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
         require(isVerified[enclaveKey] != bytes32(0), "AV:R-Enclave key not verified");
         bytes32 imageId = isVerified[enclaveKey];
