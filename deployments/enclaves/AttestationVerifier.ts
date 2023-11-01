@@ -32,15 +32,36 @@ export async function deploy(enclaveImages?: AttestationVerifier.EnclaveImageStr
 
     if(enclaveImages === undefined) {
         enclaveImages = [];
-        for(let i = 0; i < chainConfig.enclaveImages.length; i++) {
-            enclaveImages.push(chainConfig.enclaveImages[i].PCR);
+        for(let i = 0; i < chainConfig.enclaves.whitelistedImages.length; i++) {
+            if(chainConfig.enclaves.whitelistedImages[i].PCR === undefined) {
+                throw new Error(`Image ${i}: PCR not defined for image`);
+            }
+            // length of PCRs should be 96 each
+            if(chainConfig.enclaves.whitelistedImages[i].PCR.PCR0.length !== 96) {
+                throw new Error(`Image ${i}: PCR0 length is not 96`);
+            }
+            if(chainConfig.enclaves.whitelistedImages[i].PCR.PCR1.length !== 96) {
+                throw new Error(`Image ${i}: PCR1 length is not 96`);
+            }
+            if(chainConfig.enclaves.whitelistedImages[i].PCR.PCR2.length !== 96) {
+                throw new Error(`Image ${i}: PCR2 length is not 96`);
+            }
+            const image = {
+                PCR0: "0x"+chainConfig.enclaves.whitelistedImages[i].PCR.PCR0,
+                PCR1: "0x"+chainConfig.enclaves.whitelistedImages[i].PCR.PCR1,
+                PCR2: "0x"+chainConfig.enclaves.whitelistedImages[i].PCR.PCR2,
+            };
+            enclaveImages.push(image);
         }
     }
 
     if(enclaveKeys === undefined) {
         enclaveKeys = [];
-        for(let i = 0; i < chainConfig.enclaveImages.length; i++) {
-            enclaveKeys.push(chainConfig.enclaveImages[i].enclaveKey);
+        for(let i = 0; i < chainConfig.enclaves.whitelistedImages.length; i++) {
+            if(chainConfig.enclaves.whitelistedImages[i].enclaveKey === undefined) {
+                throw new Error(`Image ${i}: Enclave key not defined for image`);
+            }
+            enclaveKeys.push(chainConfig.enclaves.whitelistedImages[i].enclaveKey);
         }
     }
 
@@ -74,7 +95,7 @@ export async function verify() {
         throw new Error("Attestation Verifier not deployed");
     }
 
-    const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['AttetationVerifier']);
+    const implAddress = await upgrades.erc1967.getImplementationAddress(addresses[chainId]['AttestationVerifier']);
 
     await run("verify:verify", {
         address: implAddress,
