@@ -96,7 +96,8 @@ contract AttestationVerifier is Initializable,  // initializer
     mapping(address => bytes32) public isVerified;
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
-    event WhitelistedEnclaveRevoked(address indexed enclaveKey, bytes32 indexed imageId);
+    event WhitelistedImageRevoked(bytes32 indexed imageId);
+    event WhitelistedEnclaveKeyRevoked(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
     event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
 
@@ -108,21 +109,25 @@ contract AttestationVerifier is Initializable,  // initializer
         _whitelistImage(EnclaveImage(PCR0, PCR1, PCR2));
     }
 
+    function revokeWhitelistedImage(bytes32 imageId) external onlyAdmin {
+        require(whitelistedImages[imageId].PCR0.length != 0, "AV:RWI-Image not whitelisted");
+        delete whitelistedImages[imageId];
+        emit WhitelistedImageRevoked(imageId);
+    }
+
     function whitelistEnclaveKey(address enclaveKey, bytes32 imageId) external onlyAdmin {
-        require(whitelistedImages[imageId].PCR0.length != 0, "AV:W-Image not whitelisted");
-        require(enclaveKey != address(0), "AV:W-Invalid enclave key");
-        require(isVerified[enclaveKey] == bytes32(0), "AV:W-Enclave key already verified");
+        require(whitelistedImages[imageId].PCR0.length != 0, "AV:WE-Image not whitelisted");
+        require(enclaveKey != address(0), "AV:WE-Invalid enclave key");
+        require(isVerified[enclaveKey] == bytes32(0), "AV:WE-Enclave key already verified");
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyWhitelisted(enclaveKey, imageId);
     }
 
-    // Revoking a whitelisted enclave key will also remove the image from whitelist as the image is no longer trusted.
     function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
-        require(isVerified[enclaveKey] != bytes32(0), "AV:R-Enclave key not verified");
+        require(isVerified[enclaveKey] != bytes32(0), "AV:RWE-Enclave key not verified");
         bytes32 imageId = isVerified[enclaveKey];
-        delete whitelistedImages[imageId];
         delete isVerified[enclaveKey];
-        emit WhitelistedEnclaveRevoked(enclaveKey, imageId);
+        emit WhitelistedEnclaveKeyRevoked(enclaveKey, imageId);
     }
 
 //-------------------------------- Admin methods end --------------------------------//
@@ -141,6 +146,10 @@ contract AttestationVerifier is Initializable,  // initializer
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
+        );
+        require(
+            isVerified[enclaveKey] == bytes32(0),
+            "AV:V-Enclave key already verified"
         );
 
         EnclaveImage memory image = whitelistedImages[imageId];
@@ -241,7 +250,7 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes32 sourceImageId = isVerified[sourceEnclaveKey];
         require(
             sourceImageId != bytes32(0),
-            "AV:V-Enclave must be verified"
+            "AV:V-Enclave key must be verified"
         );
         require(
             whitelistedImages[sourceImageId].PCR0.length != 0,

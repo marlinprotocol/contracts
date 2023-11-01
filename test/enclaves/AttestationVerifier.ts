@@ -1,9 +1,9 @@
 import { expect } from "chai";
-import { Contract, Signer, Wallet } from "ethers";
+import { Signer, Wallet } from "ethers";
 import { ethers, network, upgrades } from "hardhat";
 import { AttestationVerifier } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
-import { AbiCoder, BytesLike, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
+import { AbiCoder, BytesLike, hexZeroPad, keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole } from "../helpers/rbac";
 import { getAttestationVerifier } from "../../utils/typechainConvertor";
@@ -147,7 +147,7 @@ describe("Attestation Verifier Deploy and Init", function() {
 
         await expect(
             attestationVerifier.revokeRole(await attestationVerifier.DEFAULT_ADMIN_ROLE(), addrs[0]),
-        ).to.be.revertedWith("AV:RR-All admins cannot be removed");
+        ).to.be.revertedWith("AV:RR-All admins cant be removed");
     });
 });
 
@@ -268,6 +268,79 @@ describe("Attestation Verifier - whitelisting images", function() {
             .to.be.revertedWith("AV:IWI-PCR values must be 48 bytes");
     });
 
+    describe("revoke image", function() {
+        before(async function() {
+            await network.provider.request({
+                method: "evm_revert",
+                params: [baseSnapshot],
+            });
+            baseSnapshot = await network.provider.request({
+                method: "evm_snapshot",
+                params: [],
+            });
+            await attestationVerifier.whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
+        });
+
+        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+
+        it("Revoke whitelisted image", async function() {
+            const imageId = getImageId(image3);
+            await expect(attestationVerifier.revokeWhitelistedImage(imageId))
+                .to.emit(attestationVerifier, "WhitelistedImageRevoked").withArgs(imageId);
+            const PCRs = await attestationVerifier.whitelistedImages(imageId);
+            expect(PCRs.PCR0).to.equal("0x");
+            expect(PCRs.PCR1).to.equal("0x");
+            expect(PCRs.PCR2).to.equal("0x");
+        });
+
+        it("Revoke image with invalid imageId", async function() {
+            await expect(attestationVerifier.revokeWhitelistedImage(ethers.utils.hexZeroPad("0x01", 32)))
+                .to.be.revertedWith("AV:RWI-Image not whitelisted");
+        });
+
+        it("Revoke image with already revoked imageId", async function() {
+            const imageId = getImageId(image3);
+            await attestationVerifier.revokeWhitelistedImage(imageId);
+            await expect(attestationVerifier.revokeWhitelistedImage(imageId))
+                .to.be.revertedWith("AV:RWI-Image not whitelisted");
+        });
+
+        it("Revoke image with whitelisted enclave key", async function() {
+            const imageId = getImageId(image3);
+            await attestationVerifier.whitelistEnclaveKey(addrs[12], imageId);
+            await expect(attestationVerifier.revokeWhitelistedImage(imageId))
+                .to.emit(attestationVerifier, "WhitelistedImageRevoked").withArgs(imageId);
+            const PCRs = await attestationVerifier.whitelistedImages(imageId);
+            expect(PCRs.PCR0).to.equal("0x");
+            expect(PCRs.PCR1).to.equal("0x");
+            expect(PCRs.PCR2).to.equal("0x");
+        });
+
+        it("Revoke image with whitelisted enclave and remove enclave", async function() {
+            const imageId = getImageId(image3);
+            await attestationVerifier.whitelistEnclaveKey(addrs[12], imageId);
+            await attestationVerifier.revokeWhitelistedEnclave(addrs[12]);
+            await expect(attestationVerifier.revokeWhitelistedImage(imageId))
+                .to.emit(attestationVerifier, "WhitelistedImageRevoked").withArgs(imageId);
+            const PCRs = await attestationVerifier.whitelistedImages(imageId);
+            expect(PCRs.PCR0).to.equal("0x");
+            expect(PCRs.PCR1).to.equal("0x");
+            expect(PCRs.PCR2).to.equal("0x");
+        });
+
+        it("Revoke image with multiple whitelisted enclaves", async function() {
+            const imageId = getImageId(image3);
+            await attestationVerifier.whitelistEnclaveKey(addrs[12], imageId);
+            await attestationVerifier.whitelistEnclaveKey(addrs[11], imageId);
+            await expect(attestationVerifier.revokeWhitelistedImage(imageId))
+                .to.emit(attestationVerifier, "WhitelistedImageRevoked").withArgs(imageId);
+            const PCRs = await attestationVerifier.whitelistedImages(imageId);
+            expect(PCRs.PCR0).to.equal("0x");
+            expect(PCRs.PCR1).to.equal("0x");
+            expect(PCRs.PCR2).to.equal("0x");
+        });
+    });
+
     describe("whitelist enclave key", function() {
         before(async function() {
             await network.provider.request({
@@ -302,23 +375,23 @@ describe("Attestation Verifier - whitelisting images", function() {
 
         it("whitelist enclave key with invalid imageId", async function() {
             await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], "0x0000000000000000000000000000000000000000000000000000000000000000"))
-                .to.be.revertedWith("AV:W-Image not whitelisted");
+                .to.be.revertedWith("AV:WE-Image not whitelisted");
         });
 
         it("whitelist enclave key with invalid key", async function() {
             await expect(attestationVerifier.whitelistEnclaveKey(ethers.constants.AddressZero, getImageId(image3)))
-                .to.be.revertedWith("AV:W-Invalid enclave key");
+                .to.be.revertedWith("AV:WE-Invalid enclave key");
         });
 
         it("whitelist enclave key with already whitelisted key", async function() {
             const imageId = getImageId(image3);
             await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], imageId))
             await expect(attestationVerifier.whitelistEnclaveKey(addrs[12], imageId))
-                .to.be.revertedWith("AV:W-Enclave key already verified");
+                .to.be.revertedWith("AV:WE-Enclave key already verified");
         });
     });
 
-    describe("revoke enclave", function() {
+    describe("revoke enclave key", function() {
         before(async function() {
             await network.provider.request({
                 method: "evm_revert",
@@ -334,26 +407,26 @@ describe("Attestation Verifier - whitelisting images", function() {
 
         takeSnapshotBeforeAndAfterEveryTest(async () => {});
 
-        it("revoke enclave", async function() {
+        it("revoke enclave key", async function() {
             const imageId = getImageId(image3);
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[12]))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(addrs[12], imageId);
-            expect(await attestationVerifier.isVerified(addrs[12])).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(addrs[12], imageId);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(hexZeroPad("0x0", 32));
             const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-            expect({PCR0, PCR1, PCR2}).to.deep.equal({PCR0: "0x", PCR1: "0x", PCR2: "0x"});
+            expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
         });
 
         it("revoke enclave that doesn't exist", async function() {
             await expect(attestationVerifier.revokeWhitelistedEnclave(ethers.constants.AddressZero))
-                .to.be.revertedWith("AV:R-Enclave key not verified");
+                .to.be.revertedWith("AV:RWE-Enclave key not verified");
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[1]))
-                .to.be.revertedWith("AV:R-Enclave key not verified");
+                .to.be.revertedWith("AV:RWE-Enclave key not verified");
         });
 
         it("revoke enclave key that is already revoked", async function() {
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[12]));
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[12]))
-                .to.be.revertedWith("AV:R-Enclave key not verified");
+                .to.be.revertedWith("AV:RWE-Enclave key not verified");
         });
 
         it("revoke enclave key for enclave that is revoked", async function() {
@@ -362,10 +435,10 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.revokeWhitelistedEnclave(addrs[12]);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-            expect({PCR0, PCR1, PCR2}).to.deep.equal({PCR0: "0x", PCR1: "0x", PCR2: "0x"});
+            expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
             expect(await attestationVerifier.isVerified(addrs[11])).to.equal(imageId);
             await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[11]))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(addrs[11], imageId);
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(addrs[11], imageId);
         });
     });
 
@@ -436,14 +509,25 @@ describe("Attestation Verifier - whitelisting images", function() {
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
             const imageId2 = getImageId(image2);
             await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked").withArgs(sourceEnclaveWallet.address, imageId2);
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(sourceEnclaveWallet.address, imageId2);
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation2 = await createAttestation(addrs[11], image3, sourceEnclaveWallet, 2, 1024);
-            await expect(attestationVerifier.verifyEnclaveKey(attestation2, sourceEnclaveWallet.address, addrs[11], imageId2, 2, 1024))  
-                .to.be.revertedWith("AV:V-Enclave image to verify not whitelisted");
+            await expect(attestationVerifier.verifyEnclaveKey(attestation2, sourceEnclaveWallet.address, addrs[11], imageId2, 2, 1024))
+                .to.be.revertedWith("AV:V-Enclave key must be verified");
             await expect(attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
-            )).to.be.revertedWith("AV:V-Enclave must be verified");
+            )).to.be.revertedWith("AV:V-Enclave key must be verified");
+        });
+
+        it("verify enclave key for a whitelisted enclave and remove enclave key", async function() {
+            const imageId = getImageId(image3);
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024))
+                .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+            const imageId2 = getImageId(image2);
+            await expect(attestationVerifier.revokeWhitelistedEnclave(addrs[12]))
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(addrs[12], imageId);
         });
     });
 
@@ -537,19 +621,19 @@ describe("Attestation Verifier - whitelisting images", function() {
             const attestation = await createAttestation(addrs[12], image3, nonWhitelistedEnclaveKey, 2, 1024);
             await expect(attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, nonWhitelistedEnclaveKey.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
-            )).to.be.revertedWith("AV:V-Enclave must be verified");
+            )).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
 
         it("verify attestation - whitelisted and removed source enclave", async function() {
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal(getImageId(image2));
             await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked")
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked")
                 .withArgs(sourceEnclaveWallet.address, getImageId(image2));
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             await expect(attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
-            )).to.be.revertedWith("AV:V-Enclave must be verified");
+            )).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
     });
 
@@ -632,19 +716,19 @@ describe("Attestation Verifier - whitelisting images", function() {
             const attestation = await createAttestation(addrs[12], image3, nonWhitelistedEnclaveKey, 2, 1024);
             await expect(attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, nonWhitelistedEnclaveKey.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
-            )).to.be.revertedWith("AV:V-Enclave must be verified");
+            )).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
 
         it("verify attestation - whitelisted and removed source enclave", async function() {
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal(getImageId(image2));
             await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked")
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked")
                 .withArgs(sourceEnclaveWallet.address, getImageId(image2));
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             await expect(attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
                 attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
-            )).to.be.revertedWith("AV:V-Enclave must be verified");
+            )).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
     });
 
@@ -752,13 +836,13 @@ describe("Attestation Verifier - whitelisting images", function() {
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
                 [attestation, nonWhitelistedEnclaveKey.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
-            await expect(attestationVerifier["verify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+            await expect(attestationVerifier["verify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
 
         it("verify attestation - whitelisted and removed source enclave", async function() {
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal(getImageId(image2));
             await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked")
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked")
                 .withArgs(sourceEnclaveWallet.address, getImageId(image2));
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
@@ -766,7 +850,7 @@ describe("Attestation Verifier - whitelisting images", function() {
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
                 [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
-            await expect(attestationVerifier["verify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+            await expect(attestationVerifier["verify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
     });
 
@@ -869,13 +953,13 @@ describe("Attestation Verifier - whitelisting images", function() {
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
                 [attestation, nonWhitelistedEnclaveKey.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
-            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
 
         it("verify attestation - whitelisted and removed source enclave", async function() {
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal(getImageId(image2));
             await expect(attestationVerifier.revokeWhitelistedEnclave(sourceEnclaveWallet.address))
-                .to.emit(attestationVerifier, "WhitelistedEnclaveRevoked")
+                .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked")
                 .withArgs(sourceEnclaveWallet.address, getImageId(image2));
             expect(await attestationVerifier.isVerified(sourceEnclaveWallet.address)).to.equal("0x0000000000000000000000000000000000000000000000000000000000000000");
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
@@ -883,7 +967,7 @@ describe("Attestation Verifier - whitelisting images", function() {
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
                 [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
-            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave must be verified");
+            await expect(attestationVerifier["safeVerify(bytes)"](verificationData)).to.be.revertedWith("AV:V-Enclave key must be verified");
         });
     });
 });
