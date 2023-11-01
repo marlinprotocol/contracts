@@ -36,7 +36,6 @@ export async function deploy(enclaveImages?: AttestationVerifier.EnclaveImageStr
             if(chainConfig.enclaves.whitelistedImages[i].PCR === undefined) {
                 throw new Error(`Image ${i}: PCR not defined for image`);
             }
-            // length of PCRs should be 96 each
             if(chainConfig.enclaves.whitelistedImages[i].PCR.PCR0.length !== 96) {
                 throw new Error(`Image ${i}: PCR0 length is not 96`);
             }
