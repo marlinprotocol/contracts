@@ -481,6 +481,16 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .to.be.revertedWith("AV:V-Enclave image to verify not whitelisted");
         });
 
+        it("verify enclave key which is already verified", async () => {
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(ethers.constants.HashZero);
+            const imageId = getImageId(image3);
+            const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
+            await attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024);
+            expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
+            await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], imageId, 2, 1024))
+                .to.be.revertedWith("AV:V-Enclave key already verified");
+        });
+
         it("verify enclave key with invalid attestation", async function() {
             let attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 5000);
             await expect(attestationVerifier.verifyEnclaveKey(attestation, sourceEnclaveWallet.address, addrs[12], getImageId(image3), 2, 1024))
