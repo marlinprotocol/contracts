@@ -33,7 +33,10 @@ export default {
     arbg: {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
-    }
+    },
+    linea: {
+      url: "https://rpc.linea.build",
+    },
   },
   solidity: {
     version: "0.8.17",
@@ -64,6 +67,7 @@ export default {
       mainnet: process.env.ETHERSCAN_API_KEY,
       arb1: process.env.ARBISCAN_API_KEY,
       arbg: process.env.ARBISCAN_API_KEY,
+      linea: process.env.LINEASCAN_API_KEY,
     },
     customChains: [{
       network: "arbg",
@@ -78,6 +82,13 @@ export default {
       urls: {
         apiURL: "https://api.arbiscan.io/api",
         browserURL: "https://arbiscan.io",
+      },
+    }, {
+      network: "linea",
+      chainId: 59144,
+      urls: {
+        apiURL: "https://api.lineascan.build/api",
+        browserURL: "https://lineascan.build",
       },
     }],
   },
