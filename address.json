@@ -49,5 +49,8 @@
     "ClusterSelector_ETH": "0x9c17478fC7300AB513111d93455Bee5105792FB4",
     "ReceiverStaking": "0x49fB661B8Cd1A76DEF8E11eB6d16e7c61C2C9270",
     "ClusterRewards": "0xf0ac76EB619DA28ed6907965C17eDbFd16B15CE0"
+  },
+  "59144": {
+    "MarketV1": "0xdD78e7F31B98dD8BD1F44F8FFCCeb4EdA6abdc5B"
   }
 }
