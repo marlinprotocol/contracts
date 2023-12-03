@@ -56,7 +56,7 @@ contract AttestationVerifier is Initializable,  // initializer
 
 //-------------------------------- Initializer start --------------------------------//
 
-    function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys) external initializer {
+    function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys, address _admin) external initializer {
         // The images and their enclave keys are whitelisted without verification that enclave keys are created within
         // the enclave. This is to initialize chain of trust and will be replaced with a more robust solution.
         require(images.length != 0, "AV:I-At least one image must be provided");
@@ -69,7 +69,7 @@ contract AttestationVerifier is Initializable,  // initializer
         __ERC1967Upgrade_init_unchained();
         __UUPSUpgradeable_init_unchained();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         for (uint i = 0; i < enclaveKeys.length; i++) {
             address enclaveKey = enclaveKeys[i];
