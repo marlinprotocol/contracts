@@ -83,8 +83,6 @@ contract AttestationVerifier is Initializable,  // initializer
 
 //-------------------------------- Declarations start --------------------------------//
 
-    uint256[50] private __gap_1;
-
     struct EnclaveImage {
         bytes PCR0;
         bytes PCR1;
@@ -94,6 +92,8 @@ contract AttestationVerifier is Initializable,  // initializer
 
     mapping(bytes32 => EnclaveImage) public whitelistedImages;
     mapping(address => bytes32) public isVerified;
+
+    uint256[48] private __gap_1;
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
     event WhitelistedImageRevoked(bytes32 indexed imageId);
