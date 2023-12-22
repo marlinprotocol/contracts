@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "./EnclaveVerifier.sol";
 
 contract ServerlessRelay is
     Initializable,  // initializer
@@ -55,7 +55,7 @@ contract ServerlessRelay is
 
     uint256[50] private __gap_1;
 
-    function initialize(address _admin)
+    function initialize(address _admin, EnclaveVerifier _serverlessVerifier)
         initializer
         public
     {
@@ -68,6 +68,7 @@ contract ServerlessRelay is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         active_provider_count = 0;
+        serverlessVerifier = _serverlessVerifier;
     }
 
 //-------------------------------- Initializer end --------------------------------//
@@ -103,12 +104,20 @@ contract ServerlessRelay is
 
     uint256 active_provider_count;
 
-    address serverlessVerifier;
+    EnclaveVerifier serverlessVerifier;
 
     uint256[49] private __gap_2;
 
 
-    event JobPlaced(uint256 job, address indexed sender, bytes32 indexed txhash, address indexed provider, bytes inputs, uint256 off_chain_deposit);
+    event JobPlaced(
+        uint256 job,
+        address indexed sender,
+        bytes32 indexed txhash,
+        address indexed provider,
+        bytes inputs,
+        uint256 off_chain_deposit
+    );
+
     event JobFinished(uint256 indexed job, address indexed node, bool indexed success, bytes outputs);
     event JobFailed(uint256 indexed job, uint indexed error, uint exec_time);
 
@@ -125,8 +134,19 @@ contract ServerlessRelay is
         return provider_list[current_provider];
     }
 
-    function _jobPlace(address _sender, bytes32 _txhash, bytes calldata _inputs, uint256 _off_chain_deposit, uint256 _callback_deposit) internal {
-        require(msg.value == _off_chain_deposit + _callback_deposit, "Transferred value is not equal to the given deposit values");
+    function _jobPlace(
+        address _sender,
+        bytes32 _txhash,
+        bytes calldata _inputs,
+        uint256 _off_chain_deposit,
+        uint256 _callback_deposit
+    )
+        internal
+    {
+        require(
+            msg.value == _off_chain_deposit + _callback_deposit,
+            "Transferred value is not equal to the given deposit values"
+        );
         // Check availability of active providers
         require(active_provider_count > 0, "Active providers are unavailable");
         bytes4 id = bytes4(keccak256(abi.encodePacked(_txhash, _inputs)));
@@ -138,26 +158,22 @@ contract ServerlessRelay is
         emit JobPlaced(jobs.length - 1, _sender, _txhash, provider, _inputs, _off_chain_deposit);
     }
 
-    function _verifySignerEnclave(bytes calldata _digest, bytes calldata _sig) internal {
+    function _verifySignerEnclave(bytes calldata _digest, bytes calldata _sig) internal view {
 
         address signer = ECDSAUpgradeable.recover(keccak256(_digest), _sig);
-
-        (bool success, bytes memory ret) = serverlessVerifier.call(abi.encodeWithSignature("verifyEnclave(address)", signer));
-        if (!success) {
-            revert("Failed to verify enclave");
-        }
-        (bool is_verified) = abi.decode(ret, (bool));
+        bool  is_verified = serverlessVerifier.verifyEnclave(signer);
         require(is_verified, "Provider is not using verified serverless backend");
     }
 
     function _callBackWithLimit(uint256 _job_id, Job memory _job, bytes memory _input, uint256 _job_cost) internal {
         uint start_gas = gasleft();
-        (bool success,) = _job.sender.call{gas: (_job.callback_deposit / tx.gasprice)}(abi.encodeWithSignature("oysterResultCall(bytes32,bytes)", _job, _input));
+        (bool success,) = _job.sender.call{gas: (_job.callback_deposit / tx.gasprice)}(
+            abi.encodeWithSignature("oysterResultCall(bytes32,bytes)", _job_id, _input)
+        );
         uint callback_cost = (start_gas - gasleft()) * tx.gasprice;
 
         payable(_job.provider).transfer(_job_cost + callback_cost);
         payable(_job.sender).transfer(_job.off_chain_deposit - _job_cost + _job.callback_deposit - callback_cost);
-        // pay provider
         emit JobFinished(_job_id, _job.provider, success, _input);
     }
 
@@ -167,7 +183,7 @@ contract ServerlessRelay is
 
         Job memory job = jobs[_job];
         require(_provider == job.provider, "Sender is not the assigned provider for the job");
-        // verify signature is one of the serverless enclave (Call to other contract verifying and storing the enclave sig)
+        // verify signature is one of the serverless enclave
         _verifySignerEnclave(_outputs, _msg_sig);
         // Unpack the output
         (
@@ -192,10 +208,6 @@ contract ServerlessRelay is
 
         _callBackWithLimit(_job, job, output, job_cost);
 
-
-
-        // // Note: keep gasleft operation around callback method
-        
     }
 
     function _registerProvider(address _provider) internal {
@@ -209,6 +221,7 @@ contract ServerlessRelay is
         require(providers[_sender].id != 0, "Provider not registered");
         delete providers[_sender];
     }
+
     function _activateProdvider(address _sender) internal {
         require(providers[_sender].id != 0, "Provider not registered");
         providers[_sender].active = true;
@@ -221,11 +234,23 @@ contract ServerlessRelay is
         active_provider_count--;
     }
 
-    function jobPlace(bytes32 _txhash, bytes calldata _inputs, uint256 _off_chain_deposit, uint256 _callback_deposit) external payable {
+    function jobPlace(
+        bytes32 _txhash,
+        bytes calldata _inputs,
+        uint256 _off_chain_deposit,
+        uint256 _callback_deposit
+    )
+        external
+        payable
+    {
         return _jobPlace(_msgSender(), _txhash, _inputs, _off_chain_deposit, _callback_deposit);
     }
 
-    function jobFinish(uint256 _job, bytes calldata _outputs, bytes calldata _msg_sig) external activeJob(_job) onlyRole(WORKER_ROLE) {
+    function jobFinish(uint256 _job, bytes calldata _outputs, bytes calldata _msg_sig)
+        external
+        activeJob(_job)
+        onlyRole(WORKER_ROLE)
+    {
         return _jobFinish(_job, _msgSender(), _outputs, _msg_sig);
     }
 
@@ -252,4 +277,3 @@ contract ServerlessRelay is
 //-------------------------------- Jobs end --------------------------------//
 
 }
-
