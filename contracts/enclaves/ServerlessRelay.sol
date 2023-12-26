@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "hardhat/console.sol";
 import "./EnclaveVerifier.sol";
 
 contract ServerlessRelay is
@@ -88,6 +89,7 @@ contract ServerlessRelay is
         address provider;
         uint256 off_chain_deposit;
         uint256 callback_deposit;
+        uint256 block_number; // Block number which placed this job
     }
 
     struct Provider {
@@ -108,6 +110,9 @@ contract ServerlessRelay is
 
     uint256[49] private __gap_2;
 
+    uint constant MinCallbackGas = 4334;
+
+    uint256 constant JobBlockLimit = 5;
 
     event JobPlaced(
         uint256 job,
@@ -153,7 +158,20 @@ contract ServerlessRelay is
         // TODO: Choose provider
         // Implement round robin
         address provider = _nextActiveProvider();
-        jobs.push(Job(_sender, true, _txhash, _inputs, id, provider, _off_chain_deposit, _callback_deposit));
+        // TODO: Set the start time, so that provider can be bound to some deadline to post result
+        // Can't use time, because time can vary 0-900 seconds. We can go with blocks, that result should be submitted
+        // before 5 blocks 
+        jobs.push(Job(
+            _sender,
+            true,
+            _txhash,
+            _inputs,
+            id,
+            provider,
+            _off_chain_deposit,
+            _callback_deposit,
+            block.number
+        ));
 
         emit JobPlaced(jobs.length - 1, _sender, _txhash, provider, _inputs, _off_chain_deposit);
     }
@@ -170,8 +188,8 @@ contract ServerlessRelay is
         (bool success,) = _job.sender.call{gas: (_job.callback_deposit / tx.gasprice)}(
             abi.encodeWithSignature("oysterResultCall(bytes32,bytes)", _job_id, _input)
         );
-        uint callback_cost = (start_gas - gasleft()) * tx.gasprice;
-
+        // offsetting the gas consumed by wrapping methods, calculated manually by checking callback_cost when deposit is 0
+        uint callback_cost = (start_gas - gasleft() - MinCallbackGas) * tx.gasprice;
         payable(_job.provider).transfer(_job_cost + callback_cost);
         payable(_job.sender).transfer(_job.off_chain_deposit - _job_cost + _job.callback_deposit - callback_cost);
         emit JobFinished(_job_id, _job.provider, success, _input);
@@ -196,7 +214,7 @@ contract ServerlessRelay is
 
         require(req_hash == job.id, "Job request doesn't match with executed request"); // Maybe slashing can be done
         address payable sender = payable(job.sender);
-        job.active = false;
+        jobs[_job].active = false; //Need to update in storage
         uint job_cost = RATE * exec_time;
 
         if (!job_success) {
@@ -218,6 +236,7 @@ contract ServerlessRelay is
     }
 
     function _deregisterProvider(address _sender) internal {
+        // TODO: check provider has no active job assigned.
         require(providers[_sender].id != 0, "Provider not registered");
         delete providers[_sender];
     }
@@ -232,6 +251,15 @@ contract ServerlessRelay is
         require(providers[_sender].id != 0, "Provider not registered");
         providers[_sender].active = false;
         active_provider_count--;
+    }
+
+    function _closeExpiredJob(uint256 _job) internal {
+        Job memory job = jobs[_job];
+        require(block.number > job.block_number + JobBlockLimit, "Block limit for job hasn't reached yet");
+        jobs[_job].active = false;
+        // TODO: pay some compensation on top of reverting the deposit
+        // TODO: slashing from providers account has to be done
+        payable(job.sender).transfer(job.off_chain_deposit + job.callback_deposit);
     }
 
     function jobPlace(
@@ -268,6 +296,10 @@ contract ServerlessRelay is
 
     function deactivateProvider() external onlyRole(WORKER_ROLE) {
         return _deactivateProdvider(_msgSender());
+    }
+
+    function closeExpiredJob(uint256 _job) activeJob(_job) external {
+        return _closeExpiredJob(_job);
     }
 
     function runtimeLimit(uint256 _job) external view returns (uint256 msecs) {
