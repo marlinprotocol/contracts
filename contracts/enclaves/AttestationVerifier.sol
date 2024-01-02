@@ -56,7 +56,7 @@ contract AttestationVerifier is Initializable,  // initializer
 
 //-------------------------------- Initializer start --------------------------------//
 
-    function initialize(EnclaveImage[] memory images, address[] memory enclaveKeys, address _admin) external initializer {
+    function initialize(EnclaveImage[] memory images, bytes[] memory enclaveKeys, address _admin) external initializer {
         // The images and their enclave keys are whitelisted without verification that enclave keys are created within
         // the enclave. This is to initialize chain of trust and will be replaced with a more robust solution.
         require(images.length != 0, "AV:I-At least one image must be provided");
@@ -72,8 +72,11 @@ contract AttestationVerifier is Initializable,  // initializer
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         for (uint i = 0; i < enclaveKeys.length; i++) {
-            address enclaveKey = enclaveKeys[i];
+            bytes memory enclaveKey = enclaveKeys[i];
+            address enclaveKeyAddress = pubKeyToAddress(enclaveKey);
             bytes32 imageId = _whitelistImage(images[i]);
+
+            addressToPubKey[enclaveKeyAddress] = enclaveKey;
             isVerified[enclaveKey] = imageId;
             emit EnclaveKeyWhitelisted(enclaveKey, imageId);
         }
@@ -91,15 +94,16 @@ contract AttestationVerifier is Initializable,  // initializer
     string public constant ATTESTATION_PREFIX = "Enclave Attestation Verified";
 
     mapping(bytes32 => EnclaveImage) public whitelistedImages;
-    mapping(address => bytes32) public isVerified;
+    mapping(bytes => bytes32) public isVerified;
+    mapping(address => bytes) public addressToPubKey;
 
-    uint256[48] private __gap_1;
+    uint256[50] private __gap_1;
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
     event WhitelistedImageRevoked(bytes32 indexed imageId);
-    event WhitelistedEnclaveKeyRevoked(address indexed enclaveKey, bytes32 indexed imageId);
-    event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
-    event EnclaveKeyVerified(address indexed enclaveKey, bytes32 indexed imageId);
+    event WhitelistedEnclaveKeyRevoked(bytes enclaveKey, bytes32 indexed imageId);
+    event EnclaveKeyWhitelisted(bytes enclaveKey, bytes32 indexed imageId);
+    event EnclaveKeyVerified(bytes enclaveKey, bytes32 indexed imageId);
 
 //-------------------------------- Declarations end --------------------------------//
 
@@ -115,18 +119,24 @@ contract AttestationVerifier is Initializable,  // initializer
         emit WhitelistedImageRevoked(imageId);
     }
 
-    function whitelistEnclaveKey(address enclaveKey, bytes32 imageId) external onlyAdmin {
+    function whitelistEnclave(bytes32 imageId, bytes calldata enclaveKey) external onlyAdmin {
         require(whitelistedImages[imageId].PCR0.length != 0, "AV:WE-Image not whitelisted");
-        require(enclaveKey != address(0), "AV:WE-Invalid enclave key");
+        require(enclaveKey.length == 64, "AV:WE-Invalid enclave key");
         require(isVerified[enclaveKey] == bytes32(0), "AV:WE-Enclave key already verified");
+        address enclaveKeyAddress = pubKeyToAddress(enclaveKey);
+        require(addressToPubKey[enclaveKeyAddress].length == 0, "AV:WE-Address already mapped to pubkey");
+        addressToPubKey[enclaveKeyAddress] = enclaveKey;
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyWhitelisted(enclaveKey, imageId);
     }
 
-    function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
+    function revokeWhitelistedEnclave(bytes calldata enclaveKey) external onlyAdmin {
+        require(enclaveKey.length == 64, "AV:RWE-Invalid enclave key");
         require(isVerified[enclaveKey] != bytes32(0), "AV:RWE-Enclave key not verified");
         bytes32 imageId = isVerified[enclaveKey];
         delete isVerified[enclaveKey];
+        address enclaveKeyAddress = pubKeyToAddress(enclaveKey);
+        delete addressToPubKey[enclaveKeyAddress];
         emit WhitelistedEnclaveKeyRevoked(enclaveKey, imageId);
     }
 
@@ -136,13 +146,13 @@ contract AttestationVerifier is Initializable,  // initializer
 
     // This function is used to add enclave key of a whitelisted image to the list of verified enclave keys.
     function verifyEnclaveKey(
-        bytes memory attestation, 
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory attestation,
+        bytes memory enclaveKey,
         bytes32 imageId, 
         uint256 enclaveCPUs, 
         uint256 enclaveMemory
     ) external {
+        require(enclaveKey.length == 64, "AV:V-Invalid enclave key");
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
@@ -153,8 +163,8 @@ contract AttestationVerifier is Initializable,  // initializer
         );
 
         EnclaveImage memory image = whitelistedImages[imageId];
-        bool isValid = _verify(attestation, sourceEnclaveKey, enclaveKey, image, enclaveCPUs, enclaveMemory);
-        require(isValid, "AV:VE-Attestation must be signed by source enclave");
+        bool isValid = _verify(attestation, enclaveKey, image, enclaveCPUs, enclaveMemory);
+        require(isValid, "AV:VE-Attestation must be signed by whitelisted enclave");
 
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyVerified(enclaveKey, imageId);
@@ -167,57 +177,53 @@ contract AttestationVerifier is Initializable,  // initializer
     // This function is used to verify enclave key of any image by the enclave key generated in a whitelisted image.
     function verify(
         bytes memory attestation,
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory enclaveKey,
         bytes memory PCR0,
         bytes memory PCR1,
         bytes memory PCR2,
         uint256 enclaveCPUs,
         uint256 enclaveMemory
     ) external view returns(bool) {
-        return _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
     }
 
     function safeVerify(
         bytes memory attestation,
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory  enclaveKey,
         bytes memory PCR0,
         bytes memory PCR1,
         bytes memory PCR2,
         uint256 enclaveCPUs,
         uint256 enclaveMemory
     ) external view {
-        bool isValid = _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
         require(isValid, "AV:SV-invalid attestation");
     }
 
     function verify(bytes memory data) external view returns (bool) {
         (
             bytes memory attestation, 
-            address sourceEnclaveKey, 
-            address enclaveKey, 
+            bytes memory  enclaveKey, 
             bytes memory PCR0, 
             bytes memory PCR1, 
             bytes memory PCR2, 
             uint256 enclaveCPUs, 
             uint256 enclaveMemory
-        ) = abi.decode(data, (bytes, address, address, bytes, bytes, bytes, uint256, uint256));
-        return _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256));
+        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
     }
 
     function safeVerify(bytes memory data) external view {
         (
             bytes memory attestation, 
-            address sourceEnclaveKey, 
-            address enclaveKey, 
+            bytes memory  enclaveKey, 
             bytes memory PCR0, 
             bytes memory PCR1, 
             bytes memory PCR2, 
             uint256 enclaveCPUs, 
             uint256 enclaveMemory
-        ) = abi.decode(data, (bytes, address, address, bytes, bytes, bytes, uint256, uint256));
-        bool isValid = _verify(attestation, sourceEnclaveKey, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256));
+        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
         require(isValid, "AV:SV-invalid attestation");
     }
 
@@ -241,22 +247,11 @@ contract AttestationVerifier is Initializable,  // initializer
 
     function _verify(
         bytes memory attestation,
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory enclaveKey,
         EnclaveImage memory image,
         uint256 enclaveCPUs,
         uint256 enclaveMemory
-    ) internal view returns(bool) {
-        bytes32 sourceImageId = isVerified[sourceEnclaveKey];
-        require(
-            sourceImageId != bytes32(0),
-            "AV:V-Enclave key must be verified"
-        );
-        require(
-            whitelistedImages[sourceImageId].PCR0.length != 0,
-            "AV:V-Source image must be whitelisted"
-        );
-
+    ) internal view returns (bool) {
         bytes32 digest = keccak256(abi.encode(
             ATTESTATION_PREFIX, 
             enclaveKey, 
@@ -268,9 +263,18 @@ contract AttestationVerifier is Initializable,  // initializer
         ));
 
         address signer = ECDSAUpgradeable.recover(digest, attestation);
+        bytes memory pubKey = addressToPubKey[signer];
+        bytes32 sourceImageId = isVerified[pubKey];
 
-        return (sourceEnclaveKey == signer);
+        return (sourceImageId != bytes32(0)) && (whitelistedImages[sourceImageId].PCR0.length != 0);
     }
 
 //-------------------------------- Internal methods end -------------------------------//
+
+    function pubKeyToAddress(bytes memory pubKey) public pure returns (address) {
+        require(pubKey.length == 64, "Invalid public key length");
+
+        bytes32 hash = keccak256(pubKey);
+        return address(uint160(uint256(hash)));
+    }
 }

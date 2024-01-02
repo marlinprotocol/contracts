@@ -5,8 +5,7 @@ pragma solidity ^0.8.0;
 interface IAttestationVerifier {
     function verify(
         bytes memory attestation,
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory  enclaveKey,
         bytes memory PCR0,
         bytes memory PCR1,
         bytes memory PCR2,
@@ -15,8 +14,7 @@ interface IAttestationVerifier {
     ) external view returns(bool);
     function safeVerify(
         bytes memory attestation,
-        address sourceEnclaveKey,
-        address enclaveKey,
+        bytes memory  enclaveKey,
         bytes memory PCR0,
         bytes memory PCR1,
         bytes memory PCR2,
