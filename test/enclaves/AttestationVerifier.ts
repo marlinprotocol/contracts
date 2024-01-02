@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Signer, Wallet } from "ethers";
+import { Signer, Wallet, BigNumber } from "ethers";
 import { ethers, network, upgrades } from "hardhat";
 import { AttestationVerifier } from "../../typechain-types";
 import { takeSnapshotBeforeAndAfterEveryTest } from "../../utils/testSuite";
@@ -30,19 +30,17 @@ const image3: AttestationVerifier.EnclaveImageStruct = {
 const ATTESTATION_PREFIX = "Enclave Attestation Verified";
 
 describe("Attestation Verifier Deploy and Init", function() {
-    let signers: Signer[];
-	let addrs: string[];
+    let wallets: Wallet[];
 
     let enclaveKeyMap: Record<string, AttestationVerifier.EnclaveImageStruct> = {};
 
 	before(async function() {
-		signers = await ethers.getSigners();
-		addrs = await Promise.all(signers.map((a) => a.getAddress()));
+		wallets = await createWallets(15, BigNumber.from("100000000000"));
 
-        expect(addrs.length).to.be.greaterThanOrEqual(15, "Number of addresses are too less");
+        expect(wallets.length).to.be.greaterThanOrEqual(15, "Number of addresses are too less");
 
-        enclaveKeyMap[addrs[13]] = image1;
-        enclaveKeyMap[addrs[14]] = image2;
+        enclaveKeyMap[wallets[13].publicKey] = image1;
+        enclaveKeyMap[wallets[14].publicKey] = image2;
 	});
 
 	takeSnapshotBeforeAndAfterEveryTest(async () => {});
@@ -64,11 +62,11 @@ describe("Attestation Verifier Deploy and Init", function() {
         const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const attestationVerifier = await upgrades.deployProxy(
             AttestationVerifier,
-            [[image1], [addrs[13]]],
+            [[image1], [wallets[13].publicKey]],
             { kind: "uups" },
         );
 
-        const imageId = await attestationVerifier.isVerified(addrs[13]);
+        const imageId = await attestationVerifier.isVerified(wallets[13].publicKey);
 
         expect(imageId).to.equal(getImageId(image1));
         let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
@@ -1001,4 +999,18 @@ async function createAttestation(
     const digest = ethers.utils.keccak256(message);
     const sign = sourceEnclaveKey._signingKey().signDigest(digest);
     return ethers.utils.joinSignature(sign);
+}
+
+async function createWallets(n: number, amount: BigNumber): Promise<Wallet[]> {
+    const wallets: Wallet[] = [];
+    const signer = (await ethers.getSigners())[0];
+    for(let i=0; i < n; i++) {
+        const wallet: Wallet = ethers.Wallet.createRandom();
+        const tx = await signer.sendTransaction({
+            to: wallet.address,
+            value: amount
+        });
+        await tx.wait();
+    }
+    return wallets;
 }
