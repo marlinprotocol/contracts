@@ -34,11 +34,6 @@ export default {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
     },
-    lineag: {
-      url: "https://rpc.goerli.linea.build",
-      accounts: process.env.LINEA_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.LINEA_GOERLI_DEPLOYER_KEY] : undefined,
-      gasPrice: 1000000007
-    },
   },
   solidity: {
     version: "0.8.17",
@@ -69,7 +64,6 @@ export default {
       mainnet: process.env.ETHERSCAN_API_KEY,
       arb1: process.env.ARBISCAN_API_KEY,
       arbg: process.env.ARBISCAN_API_KEY,
-      lineag: process.env.LINEASCAN_API_KEY,
     },
     customChains: [{
       network: "arbg",
@@ -85,13 +79,6 @@ export default {
         apiURL: "https://api.arbiscan.io/api",
         browserURL: "https://arbiscan.io",
       },
-    }, {
-      network: "lineag",
-      chainId: 59140,
-      urls: {
-        apiURL: "https://api-goerli.lineascan.build/api",
-        browserURL: "https://goerli.lineascan.build/",
-      }
     }],
   },
   gasReporter: {
