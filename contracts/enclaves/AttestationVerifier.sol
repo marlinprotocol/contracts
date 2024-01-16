@@ -61,6 +61,7 @@ contract AttestationVerifier is Initializable,  // initializer
         // the enclave. This is to initialize chain of trust and will be replaced with a more robust solution.
         require(images.length != 0, "AV:I-At least one image must be provided");
         require(images.length == enclaveKeys.length, "AV:I-Image and key length mismatch");
+        require(_admin != address(0), "AV:I-At least one admin necessary");
 
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -76,7 +77,7 @@ contract AttestationVerifier is Initializable,  // initializer
             bytes32 imageId = _whitelistImage(images[i]);
 
             isVerified[enclaveKey] = imageId;
-            emit EnclaveKeyWhitelisted(enclaveKey, imageId);
+            emit EnclaveKeyWhitelisted(imageId, enclaveKey);
         }
     }
 
@@ -100,9 +101,9 @@ contract AttestationVerifier is Initializable,  // initializer
 
     event EnclaveImageWhitelisted(bytes32 indexed imageId, bytes PCR0, bytes PCR1, bytes PCR2);
     event WhitelistedImageRevoked(bytes32 indexed imageId);
-    event WhitelistedEnclaveKeyRevoked(address indexed enclaveKey, bytes32 indexed imageId);
-    event EnclaveKeyWhitelisted(address indexed enclaveKey, bytes32 indexed imageId);
-    event EnclaveKeyVerified(bytes enclaveKey, bytes32 indexed imageId);
+    event WhitelistedEnclaveKeyRevoked(bytes32 indexed imageId, address indexed enclaveKey);
+    event EnclaveKeyWhitelisted(bytes32 indexed imageId, address indexed enclaveKey);
+    event EnclaveKeyVerified(bytes32 indexed imageId, bytes enclaveKey);
 
 //-------------------------------- Declarations end --------------------------------//
 
@@ -121,15 +122,16 @@ contract AttestationVerifier is Initializable,  // initializer
     function whitelistEnclave(bytes32 imageId, address enclaveKey) external onlyAdmin {
         require(whitelistedImages[imageId].PCR0.length != 0, "AV:WE-Image not whitelisted");
         require(isVerified[enclaveKey] == bytes32(0), "AV:WE-Enclave key already verified");
+        require(enclaveKey != address(0), "AV:WE-Invalid enclave key");
         isVerified[enclaveKey] = imageId;
-        emit EnclaveKeyWhitelisted(enclaveKey, imageId);
+        emit EnclaveKeyWhitelisted(imageId, enclaveKey);
     }
 
     function revokeWhitelistedEnclave(address enclaveKey) external onlyAdmin {
         require(isVerified[enclaveKey] != bytes32(0), "AV:RWE-Enclave key not verified");
         bytes32 imageId = isVerified[enclaveKey];
         delete isVerified[enclaveKey];
-        emit WhitelistedEnclaveKeyRevoked(enclaveKey, imageId);
+        emit WhitelistedEnclaveKeyRevoked(imageId, enclaveKey);
     }
 
 //-------------------------------- Admin methods end --------------------------------//
@@ -144,7 +146,7 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveCPUs, 
         uint256 enclaveMemory
     ) external {
-        require(enclavePubKey.length == 64, "AV:V-Invalid enclave key");
+        require(enclavePubKey.length == 65, "AV:V-Invalid enclave key");
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
@@ -157,10 +159,10 @@ contract AttestationVerifier is Initializable,  // initializer
 
         EnclaveImage memory image = whitelistedImages[imageId];
         bool isValid = _verify(attestation, enclavePubKey, image, enclaveCPUs, enclaveMemory);
-        require(isValid, "AV:VE-Attestation must be signed by whitelisted enclave");
+        require(isValid, "AV:V-Attestation must be signed by whitelisted enclave");
 
         isVerified[enclaveKey] = imageId;
-        emit EnclaveKeyVerified(enclavePubKey, imageId);
+        emit EnclaveKeyVerified(imageId, enclavePubKey);
     }
 
 //-------------------------------- Open methods end -------------------------------//
@@ -196,7 +198,7 @@ contract AttestationVerifier is Initializable,  // initializer
     function verify(bytes memory data) external view returns (bool) {
         (
             bytes memory attestation, 
-            bytes memory  enclaveKey, 
+            bytes memory enclaveKey, 
             bytes memory PCR0, 
             bytes memory PCR1, 
             bytes memory PCR2, 
@@ -265,7 +267,7 @@ contract AttestationVerifier is Initializable,  // initializer
 //-------------------------------- Internal methods end -------------------------------//
 
     function pubKeyToAddress(bytes memory pubKey) public pure returns (address) {
-        require(pubKey.length == 64, "Invalid public key length");
+        require(pubKey.length == 65, "Invalid public key length");
 
         bytes32 hash = keccak256(pubKey);
         return address(uint160(uint256(hash)));
