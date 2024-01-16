@@ -35,17 +35,17 @@ describe("Attestation Verifier Deploy and Init", function() {
 
     let enclaveKeyMap: Record<string, AttestationVerifier.EnclaveImageStruct> = {};
 
-	before(async function() {
-		wallets = await createWallets(15, BigNumber.from("1000000000000000000"));
+    before(async function() {
+        wallets = await createWallets(15, BigNumber.from("1000000000000000000"));
         admin = wallets[0].connect(ethers.provider);
 
         expect(wallets.length).to.be.greaterThanOrEqual(15, "Number of addresses are too less");
 
         enclaveKeyMap[wallets[13].publicKey] = image1;
         enclaveKeyMap[wallets[14].publicKey] = image2;
-	});
+    });
 
-	takeSnapshotBeforeAndAfterEveryTest(async () => {});
+    takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
     it("deploys with initialization disabled", async function() {
         const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
@@ -70,8 +70,8 @@ describe("Attestation Verifier Deploy and Init", function() {
 
         const imageId = await attestationVerifier.isVerified(wallets[13].address);
         expect(imageId).to.equal(getImageId(image1));
-        let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-        expect({PCR0, PCR1, PCR2}).to.deep.equal(image1);
+        let { PCR0, PCR1, PCR2 } = await attestationVerifier.whitelistedImages(imageId);
+        expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image1);
         const adminRole = await attestationVerifier.DEFAULT_ADMIN_ROLE();
         const contractAdmin = await attestationVerifier.getRoleMember(adminRole, 0);
         expect(contractAdmin).to.equal(admin.address);
@@ -88,12 +88,12 @@ describe("Attestation Verifier Deploy and Init", function() {
             { kind: "uups" },
         );
 
-        for(let i=0; i < Object.keys(enclaveKeyMap).length; i++) {
+        for (let i = 0; i < Object.keys(enclaveKeyMap).length; i++) {
             const imageId = await attestationVerifier.isVerified(enclaveKeys[i]);
             const image = Object.values(enclaveKeyMap)[i];
             expect(imageId).to.equal(getImageId(image));
-            const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-            expect({PCR0, PCR1, PCR2}).to.deep.equal(image);
+            const { PCR0, PCR1, PCR2 } = await attestationVerifier.whitelistedImages(imageId);
+            expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image);
         }
         const adminRole = await attestationVerifier.DEFAULT_ADMIN_ROLE();
         const contractAdmin = await attestationVerifier.getRoleMember(adminRole, 0);
@@ -125,39 +125,39 @@ describe("Attestation Verifier Deploy and Init", function() {
     });
 
     it("upgrades", async function() {
-		const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const attestationVerifier = await upgrades.deployProxy(
             AttestationVerifier,
             [Object.values(enclaveKeyMap), pubKeysToAddress(Object.keys(enclaveKeyMap)), admin.address],
             { kind: "uups" },
         );
-		await upgrades.upgradeProxy(attestationVerifier.address, AttestationVerifier.connect(admin), { kind: "uups" });
+        await upgrades.upgradeProxy(attestationVerifier.address, AttestationVerifier.connect(admin), { kind: "uups" });
 
-        for(let verifierPubKey in enclaveKeyMap) {
+        for (let verifierPubKey in enclaveKeyMap) {
             let verifierKey = pubKeyToAddress(verifierPubKey);
             const image = enclaveKeyMap[verifierPubKey];
             expect(await attestationVerifier.isVerified(verifierKey)).to.equal(getImageId(image));
         }
 
-		expect(
-			await attestationVerifier.hasRole(await attestationVerifier.DEFAULT_ADMIN_ROLE(), wallets[0].address),
-		).to.be.true;
-	});
+        expect(
+            await attestationVerifier.hasRole(await attestationVerifier.DEFAULT_ADMIN_ROLE(), wallets[0].address),
+        ).to.be.true;
+    });
 
-	it("does not upgrade without admin", async function() {
-		const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+    it("does not upgrade without admin", async function() {
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const attestationVerifier = await upgrades.deployProxy(
             AttestationVerifier,
             [Object.values(enclaveKeyMap), pubKeysToAddress(Object.keys(enclaveKeyMap)), admin.address],
             { kind: "uups" },
         );
 
-		await expect(
-			upgrades.upgradeProxy(attestationVerifier.address, AttestationVerifier.connect(wallets[1].connect(ethers.provider)), {
-				kind: "uups",
-			}),
-		).to.be.revertedWith("only admin");
-	});
+        await expect(
+            upgrades.upgradeProxy(attestationVerifier.address, AttestationVerifier.connect(wallets[1].connect(ethers.provider)), {
+                kind: "uups",
+            }),
+        ).to.be.revertedWith("only admin");
+    });
 
     it("cannot revoke all admins", async function() {
         const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
@@ -174,34 +174,34 @@ describe("Attestation Verifier Deploy and Init", function() {
 });
 
 testERC165(
-	"Attestation Verifier ERC165",
-	async function(_signers: Signer[], addrs: string[]) {
-		const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+    "Attestation Verifier ERC165",
+    async function(_signers: Signer[], addrs: string[]) {
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         const wallet = ethers.Wallet.createRandom();
         const attestationVerifier = await upgrades.deployProxy(
             AttestationVerifier,
             [[image1], [wallet.address], wallet.address],
             { kind: "uups" },
         );
-		return attestationVerifier.connect(wallet.connect(ethers.provider));
-	},
-	{
-		IAccessControl: [
-			"hasRole(bytes32,address)",
-			"getRoleAdmin(bytes32)",
-			"grantRole(bytes32,address)",
-			"revokeRole(bytes32,address)",
-			"renounceRole(bytes32,address)",
-		],
-		IAccessControlEnumerable: [
-			"getRoleMember(bytes32,uint256)",
-			"getRoleMemberCount(bytes32)",
-		],
-	},
+        return attestationVerifier.connect(wallet.connect(ethers.provider));
+    },
+    {
+        IAccessControl: [
+            "hasRole(bytes32,address)",
+            "getRoleAdmin(bytes32)",
+            "grantRole(bytes32,address)",
+            "revokeRole(bytes32,address)",
+            "renounceRole(bytes32,address)",
+        ],
+        IAccessControlEnumerable: [
+            "getRoleMember(bytes32,uint256)",
+            "getRoleMemberCount(bytes32)",
+        ],
+    },
 );
 
 testAdminRole("Attestation Verifier Admin", async function(_signers: Signer[], addrs: string[]) {
-	const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+    const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
     const wallet = ethers.Wallet.createRandom();
     const wallets = await createWallets(1, BigNumber.from("1000000000000000000"));
     const admin = wallets[0].connect(ethers.provider);
@@ -222,7 +222,7 @@ describe("Attestation Verifier - whitelisting images", function() {
 
     let baseSnapshot: any;
 
-	before(async function() {
+    before(async function() {
         wallets = await createWallets(15, BigNumber.from("1000000000000000000"));
         admin = wallets[0].connect(ethers.provider);
         expect(wallets.length).to.be.greaterThanOrEqual(15, "Number of addresses are too less");
@@ -240,7 +240,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             method: "evm_snapshot",
             params: [],
         });
-	});
+    });
 
     it("whitelist image", async function() {
         await network.provider.request({
@@ -260,8 +260,8 @@ describe("Attestation Verifier - whitelisting images", function() {
             .to.be.revertedWith("only admin");
         await expect(attestationVerifier.connect(admin).whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2))
             .to.emit(attestationVerifier, "EnclaveImageWhitelisted").withArgs(imageId, image3.PCR0, image3.PCR1, image3.PCR2);
-        let {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-        expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
+        let { PCR0, PCR1, PCR2 } = await attestationVerifier.whitelistedImages(imageId);
+        expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
     });
 
     it("whitelist image with empty PCRs", async function() {
@@ -308,7 +308,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.connect(admin).whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("Revoke whitelisted image", async function() {
             const imageId = getImageId(image3);
@@ -381,7 +381,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.connect(admin).whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("whitelist enclave key", async function() {
             const imageId = getImageId(image3);
@@ -432,15 +432,15 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.connect(admin).whitelistEnclave(getImageId(image3), wallets[12].address);
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("revoke enclave key", async function() {
             const imageId = getImageId(image3);
             await expect(attestationVerifier.connect(admin).revokeWhitelistedEnclave(wallets[12].address))
                 .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(imageId, wallets[12].address);
             expect(await attestationVerifier.isVerified(wallets[12].address)).to.equal(ethers.constants.HashZero);
-            const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-            expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
+            const { PCR0, PCR1, PCR2 } = await attestationVerifier.whitelistedImages(imageId);
+            expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
         });
 
         it("revoke enclave that doesn't exist", async function() {
@@ -461,8 +461,8 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.connect(admin).whitelistEnclave(imageId, wallets[11].address);
             await attestationVerifier.connect(admin).revokeWhitelistedEnclave(wallets[12].address);
             expect(await attestationVerifier.isVerified(wallets[12].address)).to.equal(ethers.constants.HashZero);
-            const {PCR0, PCR1, PCR2} = await attestationVerifier.whitelistedImages(imageId);
-            expect({PCR0, PCR1, PCR2}).to.deep.equal(image3);
+            const { PCR0, PCR1, PCR2 } = await attestationVerifier.whitelistedImages(imageId);
+            expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
             expect(await attestationVerifier.isVerified(wallets[11].address)).to.equal(imageId);
             await expect(attestationVerifier.connect(admin).revokeWhitelistedEnclave(wallets[11].address))
                 .to.emit(attestationVerifier, "WhitelistedEnclaveKeyRevoked").withArgs(imageId, wallets[11].address);
@@ -485,7 +485,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.connect(admin).whitelistImage(image3.PCR0, image3.PCR1, image3.PCR2);
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("verify enclave key", async () => {
             expect(await attestationVerifier.isVerified(wallets[12].address)).to.equal(ethers.constants.HashZero);
@@ -583,16 +583,16 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("verify attestation", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             expect(await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             )).to.be.true;
 
             await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(ethers.constants.HashZero);
         });
@@ -605,11 +605,11 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
 
             expect(await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             )).to.be.true;
 
             await attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
         });
@@ -617,13 +617,13 @@ describe("Attestation Verifier - whitelisting images", function() {
         it("verify attestation - from same enclave multiple times", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             expect(await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             )).to.be.true;
             await attestationVerifier["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             expect(await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             )).to.be.true;
         });
 
@@ -689,7 +689,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("verify attestation", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
@@ -707,7 +707,7 @@ describe("Attestation Verifier - whitelisting images", function() {
                 .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(addrs[12], imageId);
 
             await attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
         });
@@ -715,10 +715,10 @@ describe("Attestation Verifier - whitelisting images", function() {
         it("verify attestation - from same enclave multiple times", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             await attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             await attestationVerifier["safeVerify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
         });
 
@@ -785,18 +785,18 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("verify attestation", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             expect(await attestationVerifier.callStatic["verify(bytes)"](verificationData)).to.be.true;
 
             await attestationVerifier.callStatic["verify(bytes,address,address,bytes,bytes,bytes,uint256,uint256)"](
-                attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
+                attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024
             );
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(ethers.constants.HashZero);
         });
@@ -810,7 +810,7 @@ describe("Attestation Verifier - whitelisting images", function() {
 
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             expect(await attestationVerifier.callStatic["verify(bytes)"](verificationData)).to.be.true;
             await attestationVerifier["verify(bytes)"](verificationData);
@@ -821,7 +821,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             expect(await attestationVerifier.callStatic["verify(bytes)"](verificationData)).to.be.true;
             await attestationVerifier["verify(bytes)"](verificationData);
@@ -907,13 +907,13 @@ describe("Attestation Verifier - whitelisting images", function() {
             await attestationVerifier.whitelistEnclaveKey(sourceEnclaveWallet.address, getImageId(image2));
         });
 
-        takeSnapshotBeforeAndAfterEveryTest(async () => {});
+        takeSnapshotBeforeAndAfterEveryTest(async () => { });
 
         it("verify attestation", async function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             await attestationVerifier["safeVerify(bytes)"](verificationData);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(ethers.constants.HashZero);
@@ -928,7 +928,7 @@ describe("Attestation Verifier - whitelisting images", function() {
 
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             await attestationVerifier["safeVerify(bytes)"](verificationData);
             expect(await attestationVerifier.isVerified(addrs[12])).to.equal(imageId);
@@ -938,7 +938,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             const attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 1024);
             const verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 1024]
             );
             await attestationVerifier["safeVerify(bytes)"](verificationData);
             await attestationVerifier["safeVerify(bytes)"](verificationData);
@@ -948,7 +948,7 @@ describe("Attestation Verifier - whitelisting images", function() {
             let attestation = await createAttestation(addrs[12], image3, sourceEnclaveWallet, 2, 5000);
             let verificationData = abiCoder.encode(
                 ["bytes", "address", "address", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, sourceEnclaveWallet.address, addrs[12],image3.PCR0, image3.PCR1, image3.PCR2, 2, 5000]
+                [attestation, sourceEnclaveWallet.address, addrs[12], image3.PCR0, image3.PCR1, image3.PCR2, 2, 5000]
             );
             await attestationVerifier["safeVerify(bytes)"](verificationData);
             verificationData = abiCoder.encode(
@@ -1014,10 +1014,10 @@ function getImageId(image: AttestationVerifier.EnclaveImageStruct): string {
 }
 
 async function createAttestation(
-    enclaveKey: string, 
-    image: AttestationVerifier.EnclaveImageStruct, 
-    sourceEnclaveKey: Wallet, 
-    CPU: number, 
+    enclaveKey: string,
+    image: AttestationVerifier.EnclaveImageStruct,
+    sourceEnclaveKey: Wallet,
+    CPU: number,
     memory: number
 ): Promise<string> {
     const abiCoder = new AbiCoder();
@@ -1033,7 +1033,7 @@ async function createAttestation(
 async function createWallets(n: number, amount: BigNumber): Promise<Wallet[]> {
     const wallets: Wallet[] = [];
     const signer = (await ethers.getSigners())[0];
-    for(let i=0; i < n; i++) {
+    for (let i = 0; i < n; i++) {
         const wallet: Wallet = ethers.Wallet.createRandom();
         const tx = await signer.sendTransaction({
             to: wallet.address,
@@ -1047,7 +1047,7 @@ async function createWallets(n: number, amount: BigNumber): Promise<Wallet[]> {
 
 function pubKeysToAddress(pubKeys: string[]): string[] {
     let addresses: string[] = [];
-    for(let i=0; i< pubKeys.length; i++) {
+    for (let i = 0; i < pubKeys.length; i++) {
         addresses.push(ethers.utils.computeAddress(pubKeys[i]));
     }
     return addresses;
