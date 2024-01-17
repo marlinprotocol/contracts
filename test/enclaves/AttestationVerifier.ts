@@ -96,7 +96,7 @@ describe("AttestationVerifier - Init", function() {
         }
     });
 
-    it("does not initialize with mismatched lengths", async function() {
+    it("cannot initialize with mismatched lengths", async function() {
         const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         await expect(
             upgrades.deployProxy(
@@ -114,7 +114,18 @@ describe("AttestationVerifier - Init", function() {
         ).to.be.revertedWith("AV:I-Image and key length mismatch");
     });
 
-    it("cannot initialize with 0 address as admin", async function() {
+    it("cannot initialize with no whitelisted images", async function() {
+        const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
+        await expect(
+            upgrades.deployProxy(
+                AttestationVerifier,
+                [[], [], addrs[0]],
+                { kind: "uups" },
+            )
+        ).to.be.revertedWith("AV:I-At least one image must be provided");
+    });
+
+    it("cannot initialize with zero address as admin", async function() {
         const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
         await expect(
             upgrades.deployProxy(
@@ -451,7 +462,7 @@ describe("AttestationVerifier - Verify enclave key", function() {
         let attestation = createAttestation(ethers.constants.AddressZero, image1, wallet14, 2, 4096);
 
         await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, ethers.constants.AddressZero, getImageId(image1), 2, 4096))
-            .to.be.revertedWith("AV:V-Invalid enclave key");
+            .to.be.revertedWith("Invalid public key length");
     });
 
     it("cannot verify enclave key with unwhitelisted image", async function() {
