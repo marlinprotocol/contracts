@@ -144,8 +144,10 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes memory enclavePubKey,
         bytes32 imageId, 
         uint256 enclaveCPUs, 
-        uint256 enclaveMemory
+        uint256 enclaveMemory,
+        uint256 maxAge
     ) external {
+        require(maxAge <= 300000, "AV:V-Attestation too old");
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
@@ -157,7 +159,7 @@ contract AttestationVerifier is Initializable,  // initializer
         );
 
         EnclaveImage memory image = whitelistedImages[imageId];
-        bool isValid = _verify(attestation, enclavePubKey, image, enclaveCPUs, enclaveMemory);
+        bool isValid = _verify(attestation, enclavePubKey, image, enclaveCPUs, enclaveMemory, maxAge);
         require(isValid, "AV:V-Attestation must be signed by whitelisted enclave");
 
         isVerified[enclaveKey] = imageId;
@@ -178,9 +180,10 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes memory PCR1,
         bytes memory PCR2,
         uint256 enclaveCPUs,
-        uint256 enclaveMemory
+        uint256 enclaveMemory,
+        uint256 maxAge
     ) external view returns(bool) {
-        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, maxAge);
     }
 
     function verify(
@@ -190,9 +193,10 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes memory PCR1,
         bytes memory PCR2,
         uint256 enclaveCPUs,
-        uint256 enclaveMemory
+        uint256 enclaveMemory,
+        uint256 maxAge
     ) external view {
-        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, maxAge);
         require(isValid, "AV:SV-invalid attestation");
     }
 
@@ -205,9 +209,10 @@ contract AttestationVerifier is Initializable,  // initializer
             bytes memory PCR1, 
             bytes memory PCR2, 
             uint256 enclaveCPUs, 
-            uint256 enclaveMemory
-        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256));
-        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+            uint256 enclaveMemory,
+            uint256 maxAge
+        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256, uint256));
+        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, maxAge);
     }
 
     function verify(bytes memory data) external view {
@@ -218,9 +223,10 @@ contract AttestationVerifier is Initializable,  // initializer
             bytes memory PCR1, 
             bytes memory PCR2, 
             uint256 enclaveCPUs, 
-            uint256 enclaveMemory
-        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256));
-        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
+            uint256 enclaveMemory,
+            uint256 maxAge
+        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256, uint256));
+        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, maxAge);
         require(isValid, "AV:SV-invalid attestation");
     }
 
@@ -248,7 +254,8 @@ contract AttestationVerifier is Initializable,  // initializer
         bytes memory enclaveKey,
         EnclaveImage memory image,
         uint256 enclaveCPUs,
-        uint256 enclaveMemory
+        uint256 enclaveMemory,
+        uint256 maxAge
     ) internal view returns (bool) {
         bytes32 digest = keccak256(abi.encode(
             ATTESTATION_PREFIX, 
@@ -257,7 +264,8 @@ contract AttestationVerifier is Initializable,  // initializer
             image.PCR1, 
             image.PCR2, 
             enclaveCPUs, 
-            enclaveMemory
+            enclaveMemory,
+            maxAge
         ));
 
         address signer = ECDSAUpgradeable.recover(digest, attestation);
