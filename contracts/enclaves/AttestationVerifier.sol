@@ -168,8 +168,10 @@ contract AttestationVerifier is Initializable,  // initializer
 
 //-------------------------------- Read only methods start -------------------------------//
 
-    // This function is used to verify enclave key of any image by the enclave key generated in a whitelisted image.
-    function verify(
+    // These functions are used to verify enclave key of any image by the enclave key generated in a whitelisted image.
+
+    // UNSAFE: returns bool, caller has to verify true or false
+    function verifyUnsafe(
         bytes memory attestation,
         bytes memory enclaveKey,
         bytes memory PCR0,
@@ -181,7 +183,7 @@ contract AttestationVerifier is Initializable,  // initializer
         return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
     }
 
-    function safeVerify(
+    function verify(
         bytes memory attestation,
         bytes memory  enclaveKey,
         bytes memory PCR0,
@@ -194,7 +196,8 @@ contract AttestationVerifier is Initializable,  // initializer
         require(isValid, "AV:SV-invalid attestation");
     }
 
-    function verify(bytes memory data) external view returns (bool) {
+    // UNSAFE: returns bool, caller has to verify true or false
+    function verifyUnsafe(bytes memory data) external view returns (bool) {
         (
             bytes memory attestation, 
             bytes memory enclaveKey, 
@@ -207,7 +210,7 @@ contract AttestationVerifier is Initializable,  // initializer
         return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory);
     }
 
-    function safeVerify(bytes memory data) external view {
+    function verify(bytes memory data) external view {
         (
             bytes memory attestation, 
             bytes memory  enclaveKey, 
