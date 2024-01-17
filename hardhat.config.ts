@@ -34,6 +34,10 @@ export default {
       url: "https://goerli-rollup.arbitrum.io/rpc",
       accounts: process.env.ARBITRUM_GOERLI_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_GOERLI_DEPLOYER_KEY] : undefined,
     },
+    arbs: {
+      url: "https://sepolia-rollup.arbitrum.io/rpc",
+      accounts: process.env.ARBITRUM_SEPOLIA_DEPLOYER_KEY !== undefined ? [process.env.ARBITRUM_SEPOLIA_DEPLOYER_KEY] : undefined,
+    },
   },
   solidity: {
     version: "0.8.17",
@@ -64,6 +68,7 @@ export default {
       mainnet: process.env.ETHERSCAN_API_KEY,
       arb1: process.env.ARBISCAN_API_KEY,
       arbg: process.env.ARBISCAN_API_KEY,
+      arbs: process.env.ARBISCAN_API_KEY,
     },
     customChains: [{
       network: "arbg",
@@ -71,6 +76,13 @@ export default {
       urls: {
         apiURL: "https://api-goerli.arbiscan.io/api",
         browserURL: "https://goerli.arbiscan.io",
+      },
+    }, {
+      network: "arbs",
+      chainId: 421614,
+      urls: {
+        apiURL: "https://api-sepolia.arbiscan.io/api",
+        browserURL: "https://sepolia.arbiscan.io",
       },
     }, {
       network: "arb1",
