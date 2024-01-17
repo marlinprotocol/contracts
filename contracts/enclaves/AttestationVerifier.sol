@@ -146,7 +146,6 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveCPUs, 
         uint256 enclaveMemory
     ) external {
-        require(enclavePubKey.length == 64, "AV:V-Invalid enclave key");
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
