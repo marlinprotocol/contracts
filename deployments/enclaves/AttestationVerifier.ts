@@ -64,7 +64,9 @@ export async function deploy(enclaveImages?: AttestationVerifier.EnclaveImageStr
         }
     }
 
-    let attestationVerifier = await upgrades.deployProxy(AttestationVerifier, [enclaveImages, enclaveKeys], { kind: "uups" });
+    let admin = chainConfig.admin;
+
+    let attestationVerifier = await upgrades.deployProxy(AttestationVerifier, [enclaveImages, enclaveKeys, admin], { kind: "uups" });
 
     if (!noLog) {
         console.log("Deployed addr:", attestationVerifier.address);
