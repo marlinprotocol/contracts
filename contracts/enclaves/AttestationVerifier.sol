@@ -146,7 +146,7 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveCPUs, 
         uint256 enclaveMemory
     ) external {
-        require(enclavePubKey.length == 65, "AV:V-Invalid enclave key");
+        require(enclavePubKey.length == 64, "AV:V-Invalid enclave key");
         require(
             whitelistedImages[imageId].PCR0.length != 0,
             "AV:V-Enclave image to verify not whitelisted"
@@ -267,7 +267,7 @@ contract AttestationVerifier is Initializable,  // initializer
 //-------------------------------- Internal methods end -------------------------------//
 
     function pubKeyToAddress(bytes memory pubKey) public pure returns (address) {
-        require(pubKey.length == 65, "Invalid public key length");
+        require(pubKey.length == 64, "Invalid public key length");
 
         bytes32 hash = keccak256(pubKey);
         return address(uint160(uint256(hash)));
