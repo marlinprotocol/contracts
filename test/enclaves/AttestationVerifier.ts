@@ -434,87 +434,98 @@ describe("AttestationVerifier - Verify enclave key", function() {
     it("can verify enclave key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(getImageId(image1), normalize(wallet15.publicKey));
         expect(await attestationVerifier.isVerified(addrs[15])).to.equal(getImageId(image1));
+    });
+
+    it("cannot verify enclave key with too old attestation", async function() {
+        let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
+        let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 600000))
+            .to.be.revertedWith("AV:V-Attestation too old");
     });
 
     it("cannot verify enclave key with invalid data", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image2), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image2), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 1, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 1, 4096, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4095))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4095, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet16.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet16.publicKey), getImageId(image1), 2, 4096, 300000))
+            .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 200000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with invalid public key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
-        let attestation = createAttestation(ethers.constants.AddressZero, image1, wallet14, 2, 4096);
+        let attestation = createAttestation(ethers.constants.AddressZero, image1, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, ethers.constants.AddressZero, getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, ethers.constants.AddressZero, getImageId(image1), 2, 4096, 300000))
             .to.be.revertedWith("Invalid public key length");
     });
 
     it("cannot verify enclave key with unwhitelisted image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Enclave image to verify not whitelisted");
     });
 
     it("cannot reverify enclave key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(getImageId(image1), normalize(wallet15.publicKey));
         expect(await attestationVerifier.isVerified(addrs[15])).to.equal(getImageId(image1));
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Enclave key already verified");
     });
 
     it("cannot verify enclave key with unwhitelisted key", async function() {
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet16, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet16, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with revoked key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with revoked image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 });
@@ -546,69 +557,72 @@ describe("AttestationVerifier - Verify with params", function() {
     it("can verify", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.true;
     });
 
     it("cannot verify with invalid data", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096, 300000,
         )).to.be.false;
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096, 300000,
         )).to.be.false;
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095, 300000,
+        )).to.be.false;
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 200000,
         )).to.be.false;
     });
 
     it("cannot verify with unwhitelisted key", async function() {
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096, 300000);
 
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
     });
 
     it("cannot verify with revoked key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
     });
 
     it("cannot verify with revoked image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
-        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.false;
     });
 });
@@ -640,69 +654,72 @@ describe("AttestationVerifier - Safe verify with params", function() {
     it("can verify", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.not.be.reverted;
     });
 
     it("cannot verify with invalid data", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095, 300000,
+        )).to.be.revertedWith("AV:SV-invalid attestation");
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 200000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
 
     it("cannot verify with unwhitelisted key", async function() {
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096, 300000);
 
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
 
     it("cannot verify with revoked key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
 
     it("cannot verify with revoked image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
-        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256)'](
-            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096,
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes,bytes,bytes,bytes,bytes,uint256,uint256,uint256)'](
+            attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000,
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
 });
@@ -734,12 +751,12 @@ describe("AttestationVerifier - Verify with bytes", function() {
     it("can verify", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.true;
     });
@@ -747,42 +764,48 @@ describe("AttestationVerifier - Verify with bytes", function() {
     it("cannot verify with invalid data", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096, 300000],
             ),
         )).to.be.false;
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096, 300000],
             ),
         )).to.be.false;
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095, 300000],
+            ),
+        )).to.be.false;
+        expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
+            ethers.utils.defaultAbiCoder.encode(
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 200000],
             ),
         )).to.be.false;
     });
@@ -790,12 +813,12 @@ describe("AttestationVerifier - Verify with bytes", function() {
     it("cannot verify with unwhitelisted key", async function() {
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096, 300000);
 
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
     });
@@ -803,14 +826,14 @@ describe("AttestationVerifier - Verify with bytes", function() {
     it("cannot verify with revoked key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
     });
@@ -818,14 +841,14 @@ describe("AttestationVerifier - Verify with bytes", function() {
     it("cannot verify with revoked image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
         expect(await attestationVerifier.connect(signers[1])['verifyUnsafe(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.false;
     });
@@ -858,12 +881,12 @@ describe("AttestationVerifier - Safe verify with bytes", function() {
     it("can verify", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.not.be.reverted;
     });
@@ -871,42 +894,48 @@ describe("AttestationVerifier - Safe verify with bytes", function() {
     it("cannot verify with invalid data", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR0, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR0, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR1, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet14.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 1, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4095, 300000],
+            ),
+        )).to.be.revertedWith("AV:SV-invalid attestation");
+        await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
+            ethers.utils.defaultAbiCoder.encode(
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 200000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
@@ -914,12 +943,12 @@ describe("AttestationVerifier - Safe verify with bytes", function() {
     it("cannot verify with unwhitelisted key", async function() {
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet16, 2, 4096, 300000);
 
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
@@ -927,14 +956,14 @@ describe("AttestationVerifier - Safe verify with bytes", function() {
     it("cannot verify with revoked key", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
@@ -942,14 +971,14 @@ describe("AttestationVerifier - Safe verify with bytes", function() {
     it("cannot verify with revoked image", async function() {
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
         await expect(attestationVerifier.connect(signers[1])['verify(bytes)'](
             ethers.utils.defaultAbiCoder.encode(
-                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096],
+                ["bytes", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+                [attestation, normalize(wallet15.publicKey), image3.PCR0, image3.PCR1, image3.PCR2, 2, 4096, 300000],
             ),
         )).to.be.revertedWith("AV:SV-invalid attestation");
     });
@@ -964,11 +993,12 @@ function createAttestation(
     image: AttestationVerifier.EnclaveImageStruct,
     sourceEnclaveKey: Wallet,
     CPU: number,
-    memory: number
+    memory: number,
+    maxAge = 300000
 ): string {
     const message = ethers.utils.defaultAbiCoder.encode(
-        ["string", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256"],
-        [ATTESTATION_PREFIX, enclaveKey, image.PCR0, image.PCR1, image.PCR2, CPU, memory]
+        ["string", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
+        [ATTESTATION_PREFIX, enclaveKey, image.PCR0, image.PCR1, image.PCR2, CPU, memory, maxAge]
     );
     const digest = ethers.utils.keccak256(message);
     const sign = sourceEnclaveKey._signingKey().signDigest(digest);
