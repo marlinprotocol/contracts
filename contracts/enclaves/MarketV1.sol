@@ -191,7 +191,8 @@ contract MarketV1 is
     }
 
     function _eifUpdate(bytes32 _job, string memory _metadata) internal {
-        emit EifUpdated(_job, metadata);
+        jobs[_job].metadata = _metadata;
+        emit EifUpdated(_job, _metadata);
     }
 
     function eifUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
