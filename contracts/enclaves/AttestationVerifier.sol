@@ -175,20 +175,6 @@ contract AttestationVerifier is Initializable,  // initializer
 
     // These functions are used to verify enclave key of any image by the enclave key generated in a whitelisted image.
 
-    // UNSAFE: returns bool, caller has to verify true or false
-    function verifyUnsafe(
-        bytes memory attestation,
-        bytes memory enclaveKey,
-        bytes memory PCR0,
-        bytes memory PCR1,
-        bytes memory PCR2,
-        uint256 enclaveCPUs,
-        uint256 enclaveMemory,
-        uint256 timestamp
-    ) external view returns(bool) {
-        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
-    }
-
     function verify(
         bytes memory attestation,
         bytes memory  enclaveKey,
@@ -201,21 +187,6 @@ contract AttestationVerifier is Initializable,  // initializer
     ) external view {
         bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
         require(isValid, "AV:SV-invalid attestation");
-    }
-
-    // UNSAFE: returns bool, caller has to verify true or false
-    function verifyUnsafe(bytes memory data) external view returns (bool) {
-        (
-            bytes memory attestation, 
-            bytes memory enclaveKey, 
-            bytes memory PCR0, 
-            bytes memory PCR1, 
-            bytes memory PCR2, 
-            uint256 enclaveCPUs, 
-            uint256 enclaveMemory,
-            uint256 timestamp
-        ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256, uint256));
-        return _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
     }
 
     function verify(bytes memory data) external view {
