@@ -162,8 +162,7 @@ contract AttestationVerifier is Initializable,  // initializer
         );
 
         EnclaveImage memory image = whitelistedImages[imageId];
-        bool isValid = _verify(attestation, enclavePubKey, image, enclaveCPUs, enclaveMemory, timestamp);
-        require(isValid, "AV:V-Attestation must be signed by whitelisted enclave");
+        _verify(attestation, enclavePubKey, image, enclaveCPUs, enclaveMemory, timestamp);
 
         isVerified[enclaveKey] = imageId;
         emit EnclaveKeyVerified(imageId, enclavePubKey);
@@ -185,8 +184,7 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveMemory,
         uint256 timestamp
     ) external view {
-        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
-        require(isValid, "AV:SV-invalid attestation");
+         _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
     }
 
     function verify(bytes memory data) external view {
@@ -200,8 +198,7 @@ contract AttestationVerifier is Initializable,  // initializer
             uint256 enclaveMemory,
             uint256 timestamp
         ) = abi.decode(data, (bytes, bytes, bytes, bytes, bytes, uint256, uint256, uint256));
-        bool isValid = _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
-        require(isValid, "AV:SV-invalid attestation");
+        _verify(attestation, enclaveKey, EnclaveImage(PCR0, PCR1, PCR2), enclaveCPUs, enclaveMemory, timestamp);
     }
 
 //-------------------------------- Read only methods end -------------------------------//
@@ -230,7 +227,7 @@ contract AttestationVerifier is Initializable,  // initializer
         uint256 enclaveCPUs,
         uint256 enclaveMemory,
         uint256 timestamp
-    ) internal view returns (bool) {
+    ) internal view {
         bytes32 digest = keccak256(abi.encode(
             ATTESTATION_PREFIX, 
             enclaveKey, 
@@ -245,7 +242,10 @@ contract AttestationVerifier is Initializable,  // initializer
         address signer = ECDSAUpgradeable.recover(digest, attestation);
         bytes32 sourceImageId = isVerified[signer];
 
-        return (sourceImageId != bytes32(0)) && (whitelistedImages[sourceImageId].PCR0.length != 0);
+        require(
+            sourceImageId != bytes32(0) && whitelistedImages[sourceImageId].PCR0.length != 0, 
+            "AV:V-invalid attestation or unwhitelisted image/signer"
+        );
     }
 
 //-------------------------------- Internal methods end -------------------------------//
