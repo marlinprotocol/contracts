@@ -7,6 +7,7 @@ import { keccak256, parseUnits, solidityPack } from "ethers/lib/utils";
 import { testERC165 } from "../helpers/erc165";
 import { testAdminRole } from "../helpers/rbac";
 import { getAttestationVerifier } from "../../utils/typechainConvertor";
+import { time } from '@nomicfoundation/hardhat-network-helpers';
 
 const image1: AttestationVerifier.EnclaveImageStruct = {
     PCR0: parseUnits("1", 115).toHexString(),
@@ -432,100 +433,109 @@ describe("AttestationVerifier - Verify enclave key", function() {
     }
 
     it("can verify enclave key", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(getImageId(image1), normalize(wallet15.publicKey));
         expect(await attestationVerifier.isVerified(addrs[15])).to.equal(getImageId(image1));
     });
 
     it("cannot verify enclave key with too old attestation", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 360000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 600000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 360000))
             .to.be.revertedWith("AV:V-Attestation too old");
     });
 
     it("cannot verify enclave key with invalid data", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image2), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image2), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 1, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 1, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4095, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4095, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet16.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet16.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 200000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 200000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with invalid public key", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
-        let attestation = createAttestation(ethers.constants.AddressZero, image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(ethers.constants.AddressZero, image1, wallet14, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, ethers.constants.AddressZero, getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, ethers.constants.AddressZero, getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("Invalid public key length");
     });
 
     it("cannot verify enclave key with unwhitelisted image", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image3, wallet14, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Enclave image to verify not whitelisted");
     });
 
     it("cannot reverify enclave key", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.emit(attestationVerifier, "EnclaveKeyVerified").withArgs(getImageId(image1), normalize(wallet15.publicKey));
         expect(await attestationVerifier.isVerified(addrs[15])).to.equal(getImageId(image1));
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Enclave key already verified");
     });
 
     it("cannot verify enclave key with unwhitelisted key", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet16 = walletForIndex(16).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet16, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet16, 2, 4096, timestamp - 240000);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with revoked key", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 240000);
 
         await attestationVerifier.revokeWhitelistedEnclave(addrs[14]);
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 
     it("cannot verify enclave key with revoked image", async function() {
+        const timestamp = await time.latest() * 1000;
         let wallet14 = walletForIndex(14).connect(attestationVerifier.provider);
         let wallet15 = walletForIndex(15).connect(attestationVerifier.provider);
-        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, 300000);
+        let attestation = createAttestation(normalize(wallet15.publicKey), image1, wallet14, 2, 4096, timestamp - 240000);
 
         await attestationVerifier.revokeWhitelistedImage(getImageId(image2));
 
-        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, 300000))
+        await expect(attestationVerifier.connect(signers[1]).verifyEnclaveKey(attestation, normalize(wallet15.publicKey), getImageId(image1), 2, 4096, timestamp - 240000))
             .to.be.revertedWith("AV:V-Attestation must be signed by whitelisted enclave");
     });
 });
@@ -994,11 +1004,11 @@ function createAttestation(
     sourceEnclaveKey: Wallet,
     CPU: number,
     memory: number,
-    maxAge = 300000
+    timestamp: number,
 ): string {
     const message = ethers.utils.defaultAbiCoder.encode(
         ["string", "bytes", "bytes", "bytes", "bytes", "uint256", "uint256", "uint256"],
-        [ATTESTATION_PREFIX, enclaveKey, image.PCR0, image.PCR1, image.PCR2, CPU, memory, maxAge]
+        [ATTESTATION_PREFIX, enclaveKey, image.PCR0, image.PCR1, image.PCR2, CPU, memory, timestamp]
     );
     const digest = ethers.utils.keccak256(message);
     const sign = sourceEnclaveKey._signingKey().signDigest(digest);
