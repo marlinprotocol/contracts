@@ -55,6 +55,7 @@
   },
   "421614": {
     "AttestationVerifier": "0x777c32858660B3B38D54216c43589A74a4896220",
-    "Pond": "0x8995673cef56d4cBAE3cE96157a8fc977D4f8525"
+    "Pond": "0x8995673cef56d4cBAE3cE96157a8fc977D4f8525",
+    "MPond": "0x071BaFF53B0Ca54E4aec59Cda64f9cC5a7205e2c"
   }
 }
