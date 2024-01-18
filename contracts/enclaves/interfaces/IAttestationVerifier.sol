@@ -11,7 +11,7 @@ interface IAttestationVerifier {
         bytes memory PCR2,
         uint256 enclaveCPUs,
         uint256 enclaveMemory,
-        uint256 maxAge
+        uint256 timestamp
     ) external view returns(bool);
     function verify(
         bytes memory attestation,
@@ -21,7 +21,7 @@ interface IAttestationVerifier {
         bytes memory PCR2,
         uint256 enclaveCPUs,
         uint256 enclaveMemory,
-        uint256 maxAge
+        uint256 timestamp
     ) external view;
 
     function verifyUnsafe(bytes memory data) external view returns (bool);
