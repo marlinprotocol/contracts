@@ -165,6 +165,8 @@ contract MarketV1 is
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
+    event EifUpdated(bytes32 indexed job, string metadata);
+
     event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 balance, uint256 timestamp);
     event JobSettled(bytes32 indexed job, uint256 amount, uint256 timestamp);
     event JobClosed(bytes32 indexed job);
@@ -186,6 +188,14 @@ contract MarketV1 is
 
     function updateToken(IERC20 _token) external onlyAdmin {
         _updateToken(_token);
+    }
+
+    function _eifUpdate(bytes32 _job, string memory _metadata) internal {
+        emit EifUpdated(_job, metadata);
+    }
+
+    function eifUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
+        return _eifUpdate(_job, _metadata);
     }
 
     function _deposit(address _from, uint256 _amount) internal {
@@ -329,4 +339,3 @@ contract MarketV1 is
 //-------------------------------- Jobs end --------------------------------//
 
 }
-
