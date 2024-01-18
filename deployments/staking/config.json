@@ -21,7 +21,7 @@
         },
         "arbGasInfo": "0x000000000000000000000000000000000000006C"
     },
-    "421613": {
+    "421614": {
         "cluster": {
             "waitTimes": [
                 180,
@@ -29,7 +29,7 @@
                 300
             ]
         },
-        "startTime": 1673222400,
+        "startTime": 1705536000,
         "epochLength": 900,
         "noOfClustersToSelect": 5,
         "clusterSelection": {
@@ -40,7 +40,7 @@
             "tokens": {
                 "POND": {
                     "id": "0x5802add45f8ec0a524470683e7295faacc853f97cf4a8d3ffbaaf25ce0fd87c4",
-                    "address": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C",
+                    "address": "0x8995673cef56d4cBAE3cE96157a8fc977D4f8525",
                     "rewardFactor": "100",
                     "weightForThreshold": "0",
                     "weightForDelegation": "1",
@@ -48,7 +48,7 @@
                 },
                 "MPOND": {
                     "id": "0x1635815984abab0dbb9afd77984dad69c24bf3d711bc0ddb1e2d53ef2d523e5e",
-                    "address": "0x0B3d9b224496C2A2Fa1a4096D8EB4D350eFd9079",
+                    "address": "0x071BaFF53B0Ca54E4aec59Cda64f9cC5a7205e2c",
                     "rewardFactor": "100",
                     "weightForThreshold": "1000000",
                     "weightForDelegation": "1000000",
@@ -66,12 +66,12 @@
                 "undelegation": 420
             },
             "receiver": {
-                "token": "0xa9472a9C135Cb33221de441a4DEd393FD515a69C"
+                "token": "0x8995673cef56d4cBAE3cE96157a8fc977D4f8525"
             }
         },
         "arbGasInfo": "0x000000000000000000000000000000000000006C",
         "totalRewardsPerEpoch": "4692550000000000000000",
-        "admin": "0xa2024540267e3366B1D3381285dd11A1B45928df"
+        "admin": "0xd7E109d2219b5b5b90656FB8B33F2ba679b22062"
     },
     "31337": {
         "cluster": {
