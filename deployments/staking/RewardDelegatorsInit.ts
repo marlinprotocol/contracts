@@ -8,12 +8,12 @@ export async function init(rewardDelegators: string, stakeManager: string, clust
 
   const chainConfig = config[chainId];
 
-  var addresses: {[key: string]: {[key: string]: string}} = {};
-  if(fs.existsSync('address.json')) {
+  var addresses: { [key: string]: { [key: string]: string } } = {};
+  if (fs.existsSync('address.json')) {
     addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
   }
 
-  if(addresses[chainId] === undefined) {
+  if (addresses[chainId] === undefined) {
     addresses[chainId] = {};
   }
 
@@ -30,7 +30,7 @@ export async function init(rewardDelegators: string, stakeManager: string, clust
   const weightForThreshold = [];
   const weightForDelegation = [];
 
-  for(let token in chainConfig.staking.tokens) {
+  for (let token in chainConfig.staking.tokens) {
     const tokenInfo = chainConfig.staking.tokens[token];
     tokenIds.push(tokenInfo.id);
     rewardFactors.push(tokenInfo.rewardFactor);
@@ -46,10 +46,12 @@ export async function init(rewardDelegators: string, stakeManager: string, clust
     tokenIds,
     rewardFactors,
     weightForThreshold,
-    weightForDelegation
+    weightForDelegation,
+    [],
+    [],
   );
 
-  for(let network in chainConfig.staking.thresholdForSelection) {
+  for (let network in chainConfig.staking.thresholdForSelection) {
     await rewardDelegatorsContract.updateThresholdForSelection(ethers.utils.id(network), chainConfig.staking.thresholdForSelection[network]);
   }
 
