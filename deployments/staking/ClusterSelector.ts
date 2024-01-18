@@ -1,7 +1,7 @@
 import { ethers, run, upgrades } from "hardhat";
 import { Contract } from "ethers";
 import * as fs from "fs";
-import { upgrade as upgradeUtil } from './Upgrade';
+import { upgrade as upgradeUtil } from '../utils/Upgrade';
 const config = require('./config');
 
 export async function deploy(network: string, rewardDelegators: string, arbGasInfo?: string, admin?: string, startTime?: number, epochLength?: number, gasRefund?: string, maxReward?: string, noLog?: boolean): Promise<Contract> {
