@@ -176,7 +176,7 @@ contract AttestationVerifier is Initializable,  // initializer
 
     function verify(
         bytes memory attestation,
-        bytes memory  enclaveKey,
+        bytes memory enclaveKey,
         bytes memory PCR0,
         bytes memory PCR1,
         bytes memory PCR2,
@@ -190,7 +190,7 @@ contract AttestationVerifier is Initializable,  // initializer
     function verify(bytes memory data) external view {
         (
             bytes memory attestation, 
-            bytes memory  enclaveKey, 
+            bytes memory enclaveKey,
             bytes memory PCR0, 
             bytes memory PCR1, 
             bytes memory PCR2, 
