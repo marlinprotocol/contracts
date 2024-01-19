@@ -12,8 +12,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IAttestationVerifier.sol";
 
 contract AttestationAutherUpgradeable is
-    Initializable,  // initializer
-    ContextUpgradeable  // _msgSender, _msgData
+    Initializable  // initializer
 {
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     IAttestationVerifier public immutable ATTESTATION_VERIFIER;
