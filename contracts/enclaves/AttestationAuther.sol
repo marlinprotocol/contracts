@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./interfaces/IAttestationVerifier.sol";
 
-contract AttestationAuther is
+contract AttestationAutherUpgradeable is
     Initializable,  // initializer
     ContextUpgradeable  // _msgSender, _msgData
 {
