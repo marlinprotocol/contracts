@@ -202,7 +202,7 @@ contract MarketV1 is
     }
 
     function jobMetadataUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
-        return _eifUpdate(_job, _metadata);
+        return _jobMetadataUpdate(_job, _metadata);
     }
 
     function _deposit(address _from, uint256 _amount) internal {
