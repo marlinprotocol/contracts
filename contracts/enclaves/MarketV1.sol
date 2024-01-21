@@ -12,16 +12,15 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../lock/LockUpgradeable.sol";
 
-
 contract MarketV1 is
-    Initializable,  // initializer
-    ContextUpgradeable,  // _msgSender, _msgData
-    ERC165Upgradeable,  // supportsInterface
-    AccessControlUpgradeable,  // RBAC
-    AccessControlEnumerableUpgradeable,  // RBAC enumeration
-    ERC1967UpgradeUpgradeable,  // delegate slots, proxy admin, private upgrade
-    UUPSUpgradeable,  // public upgrade
-    LockUpgradeable  // time locks
+    Initializable, // initializer
+    ContextUpgradeable, // _msgSender, _msgData
+    ERC165Upgradeable, // supportsInterface
+    AccessControlUpgradeable, // RBAC
+    AccessControlEnumerableUpgradeable, // RBAC enumeration
+    ERC1967UpgradeUpgradeable, // delegate slots, proxy admin, private upgrade
+    UUPSUpgradeable, // public upgrade
+    LockUpgradeable // time locks
 {
     // in case we add more contracts in the inheritance chain
     uint256[500] private __gap_0;
@@ -36,42 +35,41 @@ contract MarketV1 is
         _;
     }
 
-//-------------------------------- Overrides start --------------------------------//
+    //-------------------------------- Overrides start --------------------------------//
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165Upgradeable, AccessControlUpgradeable, AccessControlEnumerableUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 
-    function _grantRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _grantRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._grantRole(role, account);
     }
 
-    function _revokeRole(bytes32 role, address account) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
+    function _revokeRole(
+        bytes32 role,
+        address account
+    ) internal virtual override(AccessControlUpgradeable, AccessControlEnumerableUpgradeable) {
         super._revokeRole(role, account);
 
         // protect against accidentally removing all admins
         require(getRoleMemberCount(DEFAULT_ADMIN_ROLE) != 0);
     }
 
-    function _authorizeUpgrade(address /*account*/) onlyAdmin internal view override {}
+    function _authorizeUpgrade(address /*account*/) internal view override onlyAdmin {}
 
-//-------------------------------- Overrides end --------------------------------//
+    //-------------------------------- Overrides end --------------------------------//
 
-//-------------------------------- Initializer start --------------------------------//
+    //-------------------------------- Initializer start --------------------------------//
 
     uint256[50] private __gap_1;
 
-    function initialize(
-        IERC20 _token,
-        bytes32[] memory _selectors,
-        uint256[] memory _lockWaitTimes
-    )
-        initializer
-        public
-    {
-        require(
-            _selectors.length == _lockWaitTimes.length
-        );
+    function initialize(IERC20 _token, bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) public initializer {
+        require(_selectors.length == _lockWaitTimes.length);
 
         __Context_init_unchained();
         __ERC165_init_unchained();
@@ -86,12 +84,12 @@ contract MarketV1 is
         _updateToken(_token);
     }
 
-//-------------------------------- Initializer end --------------------------------//
+    //-------------------------------- Initializer end --------------------------------//
 
-//-------------------------------- Providers start --------------------------------//
+    //-------------------------------- Providers start --------------------------------//
 
     struct Provider {
-        string cp;  // url of control plane
+        string cp; // url of control plane
     }
 
     mapping(address => Provider) public providers;
@@ -140,9 +138,9 @@ contract MarketV1 is
         return _providerUpdateWithCp(_msgSender(), _cp);
     }
 
-//-------------------------------- Providers end --------------------------------//
+    //-------------------------------- Providers end --------------------------------//
 
-//-------------------------------- Jobs start --------------------------------//
+    //-------------------------------- Jobs start --------------------------------//
 
     bytes32 public constant RATE_LOCK_SELECTOR = keccak256("RATE_LOCK");
 
@@ -165,9 +163,17 @@ contract MarketV1 is
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event EifUpdated(bytes32 indexed job, string metadata);
+    event JobMetadataUpdated(bytes32 indexed job, string metadata);
 
-    event JobOpened(bytes32 indexed job, string metadata, address indexed owner, address indexed provider, uint256 rate, uint256 balance, uint256 timestamp);
+    event JobOpened(
+        bytes32 indexed job,
+        string metadata,
+        address indexed owner,
+        address indexed provider,
+        uint256 rate,
+        uint256 balance,
+        uint256 timestamp
+    );
     event JobSettled(bytes32 indexed job, uint256 amount, uint256 timestamp);
     event JobClosed(bytes32 indexed job);
     event JobDeposited(bytes32 indexed job, address indexed from, uint256 amount);
@@ -190,12 +196,12 @@ contract MarketV1 is
         _updateToken(_token);
     }
 
-    function _eifUpdate(bytes32 _job, string memory _metadata) internal {
+    function _jobMetadataUpdate(bytes32 _job, string memory _metadata) internal {
         jobs[_job].metadata = _metadata;
-        emit EifUpdated(_job, _metadata);
+        emit JobMetadataUpdated(_job, _metadata);
     }
 
-    function eifUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
+    function jobMetadataUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
         return _eifUpdate(_job, _metadata);
     }
 
@@ -224,9 +230,9 @@ contract MarketV1 is
         uint256 _lastSettled = jobs[_job].lastSettled;
 
         uint256 _usageDuration = block.timestamp - _lastSettled;
-        uint256 _amount = (_rate * _usageDuration + 10**EXTRA_DECIMALS - 1) / 10**EXTRA_DECIMALS;
+        uint256 _amount = (_rate * _usageDuration + 10 ** EXTRA_DECIMALS - 1) / 10 ** EXTRA_DECIMALS;
 
-        if(_amount > _balance) {
+        if (_amount > _balance) {
             _amount = _balance;
             _balance = 0;
         } else {
@@ -244,7 +250,7 @@ contract MarketV1 is
     function _jobClose(bytes32 _job) internal {
         _jobSettle(_job);
         uint256 _balance = jobs[_job].balance;
-        if(_balance > 0) {
+        if (_balance > 0) {
             address _owner = jobs[_job].owner;
             _withdraw(_owner, _balance);
         }
@@ -270,7 +276,7 @@ contract MarketV1 is
         _jobSettle(_job);
 
         // leftover adjustment
-        uint256 _leftover = (jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR] + 10**EXTRA_DECIMALS - 1) / 10**EXTRA_DECIMALS;
+        uint256 _leftover = (jobs[_job].rate * lockWaitTime[RATE_LOCK_SELECTOR] + 10 ** EXTRA_DECIMALS - 1) / 10 ** EXTRA_DECIMALS;
         require(jobs[_job].balance >= _leftover, "not enough balance");
         uint256 _maxAmount = jobs[_job].balance - _leftover;
         require(_amount <= _maxAmount, "not enough balance");
@@ -301,7 +307,7 @@ contract MarketV1 is
 
     function jobClose(bytes32 _job) external onlyJobOwner(_job) {
         // 0 rate jobs can be closed without notice
-        if(jobs[_job].rate == 0) {
+        if (jobs[_job].rate == 0) {
             return _jobClose(_job);
         }
 
@@ -337,6 +343,5 @@ contract MarketV1 is
         return _jobReviseRate(_job, _newRate);
     }
 
-//-------------------------------- Jobs end --------------------------------//
-
+    //-------------------------------- Jobs end --------------------------------//
 }
