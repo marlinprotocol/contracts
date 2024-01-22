@@ -163,8 +163,6 @@ contract MarketV1 is
 
     event TokenUpdated(IERC20 indexed oldToken, IERC20 indexed newToken);
 
-    event JobMetadataUpdated(bytes32 indexed job, string metadata);
-
     event JobOpened(
         bytes32 indexed job,
         string metadata,
@@ -181,6 +179,7 @@ contract MarketV1 is
     event JobReviseRateInitiated(bytes32 indexed job, uint256 newRate);
     event JobReviseRateCancelled(bytes32 indexed job);
     event JobReviseRateFinalized(bytes32 indexed job, uint256 newRate);
+    event JobMetadataUpdated(bytes32 indexed job, string metadata);
 
     modifier onlyJobOwner(bytes32 _job) {
         require(jobs[_job].owner == _msgSender(), "only job owner");
@@ -194,15 +193,6 @@ contract MarketV1 is
 
     function updateToken(IERC20 _token) external onlyAdmin {
         _updateToken(_token);
-    }
-
-    function _jobMetadataUpdate(bytes32 _job, string memory _metadata) internal {
-        jobs[_job].metadata = _metadata;
-        emit JobMetadataUpdated(_job, _metadata);
-    }
-
-    function jobMetadataUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
-        return _jobMetadataUpdate(_job, _metadata);
     }
 
     function _deposit(address _from, uint256 _amount) internal {
@@ -297,6 +287,11 @@ contract MarketV1 is
         emit JobReviseRateFinalized(_job, _newRate);
     }
 
+    function _jobMetadataUpdate(bytes32 _job, string memory _metadata) internal {
+        jobs[_job].metadata = _metadata;
+        emit JobMetadataUpdated(_job, _metadata);
+    }
+
     function jobOpen(string calldata _metadata, address _provider, uint256 _rate, uint256 _balance) external {
         return _jobOpen(_metadata, _msgSender(), _provider, _rate, _balance);
     }
@@ -341,6 +336,10 @@ contract MarketV1 is
     function jobReviseRateFinalize(bytes32 _job) external onlyJobOwner(_job) {
         uint256 _newRate = _unlock(RATE_LOCK_SELECTOR, _job);
         return _jobReviseRate(_job, _newRate);
+    }
+
+    function jobMetadataUpdate(bytes32 _job, string calldata _metadata) external onlyJobOwner(_job) {
+        return _jobMetadataUpdate(_job, _metadata);
     }
 
     //-------------------------------- Jobs end --------------------------------//
