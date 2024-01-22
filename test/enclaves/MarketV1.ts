@@ -1574,4 +1574,29 @@ describe("MarketV1", function() {
 		expect(await pond.balanceOf(addrs[1])).to.equal(950);
 		expect(await pond.balanceOf(marketv1.address)).to.equal(50);
 	});
+
+	it("cannot update metadata of other jobs", async () => {
+		const ts = Math.floor(Date.now() / 1000) + 86400;
+		await time.increaseTo(ts);
+
+		await pond.connect(signers[1]).approve(marketv1.address, 100);
+		await marketv1
+			.connect(signers[1])
+			.jobOpen("some metadata", addrs[2], BN.from(5).e12(), 50);
+
+		const jobInfo = await marketv1.jobs(ethers.constants.HashZero);
+		expect(jobInfo.metadata).to.equal("some metadata");
+		expect(jobInfo.owner).to.equal(addrs[1]);
+		expect(jobInfo.provider).to.equal(addrs[2]);
+		expect(jobInfo.rate).to.equal(BN.from(5).e12());
+		expect(jobInfo.balance).to.equal(50);
+		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
+		
+		expect(await pond.balanceOf(addrs[1])).to.equal(950);
+		expect(await pond.balanceOf(marketv1.address)).to.equal(50);
+		
+		await expect(marketv1
+			.jobMetadataUpdate(ethers.constants.HashZero, "some updated metadata")).to.be.revertedWith("only job owner");
+		
+	});
 });
