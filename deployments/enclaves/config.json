@@ -10,7 +10,12 @@
           },
           "enclaveKey": "0x62f3392bcbc10f5ec56355d616eb598e5c5ca782"
         }
-      ]
+      ],
+      "paymentToken": "Pond",
+      "lockWaitTimes": [{
+        "selector": "0xbb00c34f1a27e23493f1bd516e88ec0af9b091cc990f207e765f5bd5af012243",
+        "time": 300
+      }]
     },
     "admin": "0xd7E109d2219b5b5b90656FB8B33F2ba679b22062"
   }
