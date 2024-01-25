@@ -65,6 +65,7 @@ contract AttestationAutherUpgradeable is
         );
 
         bytes32 imageId = keccak256(abi.encodePacked(image.PCR0, image.PCR1, image.PCR2));
+        require(whitelistedImages[imageId].PCR0.length == 0, "AA:WI-image already whitelisted");
         whitelistedImages[imageId] = EnclaveImage(image.PCR0, image.PCR1, image.PCR2);
         emit EnclaveImageWhitelisted(imageId, image.PCR0, image.PCR1, image.PCR2);
         return imageId;
