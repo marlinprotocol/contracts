@@ -59,6 +59,7 @@ contract AttestationAutherSample is Initializable,  // initializer
 //-------------------------------- Initializer start --------------------------------//
 
     function initialize(EnclaveImage[] memory images, address _admin) external initializer {
+        require(images.length != 0, "AAS:I-At least one image necessary");
         require(_admin != address(0), "AAS:I-At least one admin necessary");
 
         __Context_init_unchained();
