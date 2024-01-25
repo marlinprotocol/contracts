@@ -81,7 +81,6 @@ contract AttestationAutherUpgradeable is
     function _whitelistEnclaveKey(bytes memory enclavePubKey, bytes32 imageId) internal {
         require(whitelistedImages[imageId].PCR0.length != 0, "AA:WK-Image not whitelisted");
         address enclaveKey = _pubKeyToAddress(enclavePubKey);
-        require(enclaveKey != address(0), "AA:WK-Invalid enclave key");
         require(verifiedKeys[enclaveKey] == bytes32(0), "AA:WK-Enclave key already verified");
 
         verifiedKeys[enclaveKey] = imageId;
