@@ -89,7 +89,7 @@ contract AttestationAutherUpgradeable is
 
     function _revokeEnclaveKey(bytes memory enclavePubKey) internal {
         address enclaveKey = _pubKeyToAddress(enclavePubKey);
-        require(verifiedKeys[enclaveKey] != bytes32(0), "AA:RI-Enclave key not verified");
+        require(verifiedKeys[enclaveKey] != bytes32(0), "AA:RK-Enclave key not verified");
 
         delete verifiedKeys[enclaveKey];
         emit EnclaveKeyRevoked(enclavePubKey);
