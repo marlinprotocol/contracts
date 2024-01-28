@@ -153,10 +153,4 @@ contract AttestationAutherUpgradeable is
             "AA:AOV-Source image must be whitelisted"
         );
     }
-
-    modifier onlyVerified(address key) {
-        _allowOnlyVerified(key);
-
-        _;
-    }
 }
