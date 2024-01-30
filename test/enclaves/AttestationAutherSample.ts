@@ -74,7 +74,7 @@ describe("AttestationAutherSample - Init", function() {
 		expect(await attestationAutherSample.hasRole(await attestationAutherSample.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
 		expect(await attestationAutherSample.getRoleMemberCount(await attestationAutherSample.DEFAULT_ADMIN_ROLE())).to.equal(1);
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image1));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image1));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image1);
 		}
 	});
@@ -93,15 +93,15 @@ describe("AttestationAutherSample - Init", function() {
 		expect(await attestationAutherSample.hasRole(await attestationAutherSample.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
 		expect(await attestationAutherSample.getRoleMemberCount(await attestationAutherSample.DEFAULT_ADMIN_ROLE())).to.equal(1);
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image1));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image1));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image1);
 		}
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image2));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image2));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image2);
 		}
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image3));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image3));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
 		}
 	});
@@ -143,15 +143,15 @@ describe("AttestationAutherSample - Init", function() {
 		expect(await attestationAutherSample.hasRole(await attestationAutherSample.DEFAULT_ADMIN_ROLE(), addrs[0])).to.be.true;
 		expect(await attestationAutherSample.getRoleMemberCount(await attestationAutherSample.DEFAULT_ADMIN_ROLE())).to.equal(1);
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image1));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image1));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image1);
 		}
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image2));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image2));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image2);
 		}
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image3));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image3));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
 		}
 	});
@@ -235,14 +235,14 @@ describe("AttestationAutherSample - Whitelist image", function() {
 
 	it("admin can whitelist image", async function() {
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image3));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image3));
 			expect([PCR0, PCR1, PCR2]).to.deep.equal(["0x", "0x", "0x"]);
 		}
 
 		await expect(attestationAutherSample.whitelistEnclaveImage(image3.PCR0, image3.PCR1, image3.PCR2))
 			.to.emit(attestationAutherSample, "EnclaveImageWhitelisted").withArgs(getImageId(image3), image3.PCR0, image3.PCR1, image3.PCR2);
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image3));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image3));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
 		}
 	});
@@ -261,7 +261,7 @@ describe("AttestationAutherSample - Whitelist image", function() {
 		await expect(attestationAutherSample.whitelistEnclaveImage(image3.PCR0, image3.PCR1, image3.PCR2))
 			.to.emit(attestationAutherSample, "EnclaveImageWhitelisted").withArgs(getImageId(image3), image3.PCR0, image3.PCR1, image3.PCR2);
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image3));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image3));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image3);
 		}
 
@@ -295,14 +295,14 @@ describe("AttestationAutherSample - Revoke image", function() {
 
 	it("admin can revoke image", async function() {
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image1));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image1));
 			expect({ PCR0, PCR1, PCR2 }).to.deep.equal(image1);
 		}
 
 		await expect(attestationAutherSample.revokeEnclaveImage(getImageId(image1)))
 			.to.emit(attestationAutherSample, "EnclaveImageRevoked").withArgs(getImageId(image1));
 		{
-			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.whitelistedImages(getImageId(image1));
+			const { PCR0, PCR1, PCR2 } = await attestationAutherSample.getWhitelistedImage(getImageId(image1));
 			expect([PCR0, PCR1, PCR2]).to.deep.equal(["0x", "0x", "0x"]);
 		}
 	});
