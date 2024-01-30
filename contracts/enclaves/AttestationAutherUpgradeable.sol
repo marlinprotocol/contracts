@@ -33,7 +33,7 @@ contract AttestationAutherUpgradeable is
     }
 
     mapping(bytes32 => EnclaveImage) private whitelistedImages;
-    mapping(address => bytes32) public verifiedKeys;
+    mapping(address => bytes32) private verifiedKeys;
 
     uint256[48] private __gap;
 
@@ -156,5 +156,9 @@ contract AttestationAutherUpgradeable is
 
     function getWhitelistedImage(bytes32 _imageId) external view returns (EnclaveImage memory) {
         return whitelistedImages[_imageId];
+    }
+
+    function getVerifiedKey(address _key) external view returns (bytes32) {
+        return verifiedKeys[_key];
     }
 }
