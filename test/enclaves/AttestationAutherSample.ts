@@ -339,11 +339,11 @@ describe("AttestationAutherSample - Whitelist enclave", function() {
 
 	it("admin can whitelist enclave", async function() {
 		let wallet15 = walletForIndex(15).connect(attestationAutherSample.provider);
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(ethers.constants.HashZero);
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(ethers.constants.HashZero);
 
 		await expect(attestationAutherSample.whitelistEnclaveKey(normalize(wallet15.publicKey), getImageId(image1)))
 			.to.emit(attestationAutherSample, "EnclaveKeyWhitelisted").withArgs(normalize(wallet15.publicKey), getImageId(image1));
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(getImageId(image1));
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(getImageId(image1));
 	});
 
 	it("admin cannot whitelist enclave with unwhitelisted image", async function() {
@@ -353,11 +353,11 @@ describe("AttestationAutherSample - Whitelist enclave", function() {
 
 	it("admin cannot rewhitelist enclave", async function() {
 		let wallet15 = walletForIndex(15).connect(attestationAutherSample.provider);
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(ethers.constants.HashZero);
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(ethers.constants.HashZero);
 
 		await expect(attestationAutherSample.whitelistEnclaveKey(normalize(wallet15.publicKey), getImageId(image1)))
 			.to.emit(attestationAutherSample, "EnclaveKeyWhitelisted").withArgs(normalize(wallet15.publicKey), getImageId(image1));
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(getImageId(image1));
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(getImageId(image1));
 
 		await expect(attestationAutherSample.whitelistEnclaveKey(normalize(wallet15.publicKey), getImageId(image1))).to.be.revertedWith("AA:WK-Enclave key already verified");
 	});
@@ -391,11 +391,11 @@ describe("AttestationAutherSample - Revoke enclave", function() {
 	it("admin can revoke enclave", async function() {
 		let wallet14 = walletForIndex(14).connect(attestationAutherSample.provider);
 		await attestationAutherSample.whitelistEnclaveKey(normalize(wallet14.publicKey), getImageId(image2));
-		expect(await attestationAutherSample.verifiedKeys(addrs[14])).to.equal(getImageId(image2));
+		expect(await attestationAutherSample.getVerifiedKey(addrs[14])).to.equal(getImageId(image2));
 
 		await expect(attestationAutherSample.revokeEnclaveKey(normalize(wallet14.publicKey)))
 			.to.emit(attestationAutherSample, "EnclaveKeyRevoked").withArgs(normalize(wallet14.publicKey));
-		expect(await attestationAutherSample.verifiedKeys(addrs[14])).to.equal(ethers.constants.HashZero);
+		expect(await attestationAutherSample.getVerifiedKey(addrs[14])).to.equal(ethers.constants.HashZero);
 	});
 
 	it("admin cannot revoke unwhitelisted enclave", async function() {
@@ -445,7 +445,7 @@ describe("AttestationAutherSample - Verify enclave key", function() {
 
 		await expect(attestationAutherSample.connect(signers[1]).verifyKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, timestamp - 540000))
 			.to.emit(attestationAutherSample, "EnclaveKeyVerified").withArgs(normalize(wallet15.publicKey), getImageId(image3));
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(getImageId(image3));
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(getImageId(image3));
 	});
 
 	it("cannot verify enclave key with too old attestation", async function() {
@@ -504,7 +504,7 @@ describe("AttestationAutherSample - Verify enclave key", function() {
 
 		await expect(attestationAutherSample.connect(signers[1]).verifyKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, timestamp - 540000))
 			.to.emit(attestationAutherSample, "EnclaveKeyVerified").withArgs(normalize(wallet15.publicKey), getImageId(image3));
-		expect(await attestationAutherSample.verifiedKeys(addrs[15])).to.equal(getImageId(image3));
+		expect(await attestationAutherSample.getVerifiedKey(addrs[15])).to.equal(getImageId(image3));
 
 		await expect(attestationAutherSample.connect(signers[1]).verifyKey(attestation, normalize(wallet15.publicKey), getImageId(image3), 2, 4096, timestamp - 540000))
 			.to.be.revertedWith("AA:VK-Enclave key already verified");
