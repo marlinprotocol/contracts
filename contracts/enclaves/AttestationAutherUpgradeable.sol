@@ -32,7 +32,7 @@ contract AttestationAutherUpgradeable is
         bytes PCR2;
     }
 
-    mapping(bytes32 => EnclaveImage) public whitelistedImages;
+    mapping(bytes32 => EnclaveImage) private whitelistedImages;
     mapping(address => bytes32) public verifiedKeys;
 
     uint256[48] private __gap;
@@ -152,5 +152,9 @@ contract AttestationAutherUpgradeable is
             whitelistedImages[imageId].PCR0.length != 0,
             "AA:AOV-Source image must be whitelisted"
         );
+    }
+
+    function getWhitelistedImage(bytes32 _imageId) external view returns (EnclaveImage memory) {
+        return whitelistedImages[_imageId];
     }
 }
