@@ -26,6 +26,10 @@ import {
   MarketV1__factory,
   AttestationVerifier__factory,
   AttestationVerifier,
+  AttestationAutherUpgradeable__factory,
+  AttestationAutherUpgradeable,
+  AttestationAutherSample__factory,
+  AttestationAutherSample,
 } from "../typechain-types";
 
 export function getMpond(contractAddress: string, signer: Signer): MPond {
@@ -78,4 +82,12 @@ export function getMarketV1(contractAddress: string, signer: Signer): MarketV1 {
 
 export function getAttestationVerifier(contractAddress: string, signer: Signer): AttestationVerifier {
   return new AttestationVerifier__factory(signer).attach(contractAddress);
+}
+
+export function getAttestationAutherUpgradeable(contractAddress: string, signer: Signer): AttestationAutherUpgradeable {
+  return new AttestationAutherUpgradeable__factory(signer).attach(contractAddress);
+}
+
+export function getAttestationAutherSample(contractAddress: string, signer: Signer): AttestationAutherSample {
+  return new AttestationAutherSample__factory(signer).attach(contractAddress);
 }
