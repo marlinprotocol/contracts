@@ -39,7 +39,7 @@ describe("MarketV1", function() {
 		const marketv1 = await MarketV1.deploy();
 
 		await expect(
-			marketv1.initialize(addrs[11], SELECTORS, WAIT_TIMES),
+			marketv1.initialize(addrs[0], addrs[11], SELECTORS, WAIT_TIMES),
 		).to.be.revertedWith("Initializable: contract is already initialized");
 	});
 
@@ -47,7 +47,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1 = await upgrades.deployProxy(
 			MarketV1,
-			[addrs[11], SELECTORS, WAIT_TIMES],
+			[addrs[0], addrs[11], SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 
@@ -67,7 +67,7 @@ describe("MarketV1", function() {
 		await expect(
 			upgrades.deployProxy(
 				MarketV1,
-				[addrs[11], SELECTORS, [...WAIT_TIMES, 0]],
+				[addrs[0], addrs[11], SELECTORS, [...WAIT_TIMES, 0]],
 				{ kind: "uups" },
 			),
 		).to.be.reverted;
@@ -77,7 +77,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1 = await upgrades.deployProxy(
 			MarketV1,
-			[addrs[11], SELECTORS, WAIT_TIMES],
+			[addrs[0], addrs[11], SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		await upgrades.upgradeProxy(marketv1.address, MarketV1, { kind: "uups" });
@@ -97,7 +97,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1 = await upgrades.deployProxy(
 			MarketV1,
-			[addrs[11], SELECTORS, WAIT_TIMES],
+			[addrs[0], addrs[11], SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 
@@ -115,7 +115,7 @@ testERC165(
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1 = await upgrades.deployProxy(
 			MarketV1,
-			[addrs[11], SELECTORS, WAIT_TIMES],
+			[addrs[0], addrs[11], SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		return marketv1;
@@ -139,7 +139,7 @@ testAdminRole("MarketV1", async function(_signers: Signer[], addrs: string[]) {
 	const MarketV1 = await ethers.getContractFactory("MarketV1");
 	const marketv1 = await upgrades.deployProxy(
 		MarketV1,
-		[addrs[11], SELECTORS, WAIT_TIMES],
+		[addrs[0], addrs[11], SELECTORS, WAIT_TIMES],
 		{ kind: "uups" },
 	);
 	return marketv1;
@@ -163,7 +163,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -210,7 +210,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -259,7 +259,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -312,7 +312,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -375,7 +375,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -480,7 +480,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -629,7 +629,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -864,7 +864,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -993,7 +993,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -1143,7 +1143,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -1299,7 +1299,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -1535,7 +1535,7 @@ describe("MarketV1", function() {
 		const MarketV1 = await ethers.getContractFactory("MarketV1");
 		const marketv1Contract = await upgrades.deployProxy(
 			MarketV1,
-			[pond.address, SELECTORS, WAIT_TIMES],
+			[addrs[0], pond.address, SELECTORS, WAIT_TIMES],
 			{ kind: "uups" },
 		);
 		marketv1 = getMarketV1(marketv1Contract.address, signers[0]);
@@ -1543,7 +1543,7 @@ describe("MarketV1", function() {
 	});
 
 	takeSnapshotBeforeAndAfterEveryTest(async () => { });
-	
+
 	it("can update metadata", async () => {
 		const ts = Math.floor(Date.now() / 1000) + 86400;
 		await time.increaseTo(ts);
@@ -1560,14 +1560,14 @@ describe("MarketV1", function() {
 		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
-		
+
 		expect(await pond.balanceOf(addrs[1])).to.equal(950);
 		expect(await pond.balanceOf(marketv1.address)).to.equal(50);
-		
+
 		await marketv1
 			.connect(signers[1])
 			.jobMetadataUpdate(ethers.constants.HashZero, "some updated metadata");
-		
+
 		const jobInfo2 = await marketv1.jobs(ethers.constants.HashZero);
 		expect(jobInfo2.metadata).to.equal("some updated metadata");
 
@@ -1591,12 +1591,12 @@ describe("MarketV1", function() {
 		expect(jobInfo.rate).to.equal(BN.from(5).e12());
 		expect(jobInfo.balance).to.equal(50);
 		expect(jobInfo.lastSettled).to.be.within(ts, ts + 1);
-		
+
 		expect(await pond.balanceOf(addrs[1])).to.equal(950);
 		expect(await pond.balanceOf(marketv1.address)).to.equal(50);
-		
+
 		await expect(marketv1
 			.jobMetadataUpdate(ethers.constants.HashZero, "some updated metadata")).to.be.revertedWith("only job owner");
-		
+
 	});
 });

@@ -11,6 +11,10 @@
     "PondGateway": "0x05aD26750F777EbA9bb523Aeb688C2438df080E5",
     "MPondGateway": "0x4F937970082771355B3Aab3d171Cb8FaA9F28EE8"
   },
+  "137": {
+    "MarketV1": "0x4dA7A531EF660533074341df098F722F1Aa5dFaa",
+    "AttestationVerifier": "0xDEb1326Bf357FA5BfBf0632dF7b6E338d817500D"
+  },
   "250": {
     "Pond": "0x8Fbf3759cDe693B19493663a4ef5853728Cb71f8"
   },
