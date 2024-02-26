@@ -52,10 +52,7 @@ export async function deploy(paymentToken?: string, lockSelectors?: string[], lo
 
     let admin = chainConfig.admin;
 
-    let marketV1 = await upgrades.deployProxy(MarketV1, [paymentToken, lockSelectors, lockWaitTimes], { kind: "uups" });
-    let adminRole = await marketV1.DEFAULT_ADMIN_ROLE();
-    await marketV1.grantRole(adminRole, admin);
-    await marketV1.revokeRole(adminRole, await marketV1.signer.getAddress());
+    let marketV1 = await upgrades.deployProxy(MarketV1, [admin, paymentToken, lockSelectors, lockWaitTimes], { kind: "uups" });
 
     if (!noLog) {
         console.log("Deployed addr:", marketV1.address);
