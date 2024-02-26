@@ -76,6 +76,7 @@ export default {
       arbg: process.env.ARBISCAN_API_KEY,
       arbs: process.env.ARBISCAN_API_KEY,
       linea: process.env.LINEASCAN_API_KEY,
+      polygon: process.env.POLYGONSCAN_API_KEY,
     },
     customChains: [{
       network: "arbg",
