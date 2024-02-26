@@ -26,13 +26,13 @@ export async function deploy(paymentToken?: string, lockSelectors?: string[], lo
     }
 
     if (addresses[chainId]['MarketV1'] !== undefined) {
-        if(!noLog) console.log("Existing deployment:", addresses[chainId]['MarketV1']);
+        if (!noLog) console.log("Existing deployment:", addresses[chainId]['MarketV1']);
         return MarketV1.attach(addresses[chainId]['MarketV1']);
     }
 
     if (paymentToken === undefined) {
         paymentToken = addresses[chainId][chainConfig.enclaves.paymentToken];
-        if(paymentToken === undefined) {
+        if (paymentToken === undefined) {
             if (chainConfig.enclaves.paymentToken.startsWith("0x")) {
                 paymentToken = chainConfig.enclaves.paymentToken;
             } else {
@@ -41,12 +41,12 @@ export async function deploy(paymentToken?: string, lockSelectors?: string[], lo
         }
     }
 
-    if(lockSelectors === undefined && lockWaitTimes === undefined) {
+    if (lockSelectors === undefined && lockWaitTimes === undefined) {
         lockSelectors = chainConfig.enclaves.lockWaitTimes.map((a: any) => a.selector);
         lockWaitTimes = chainConfig.enclaves.lockWaitTimes.map((a: any) => a.time);
     }
 
-    if(lockSelectors?.length != lockWaitTimes?.length) {
+    if (lockSelectors?.length != lockWaitTimes?.length) {
         throw new Error("lockSelectors and lockWaitTimes not matching lengths");
     }
 
