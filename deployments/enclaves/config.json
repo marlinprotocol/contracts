@@ -1,4 +1,14 @@
 {
+  "137": {
+    "enclaves": {
+      "paymentToken": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+      "lockWaitTimes": [{
+        "selector": "0xbb00c34f1a27e23493f1bd516e88ec0af9b091cc990f207e765f5bd5af012243",
+        "time": 300
+      }]
+    },
+    "admin": "0x31CeB460C8085CD5324e90966ea718Ed7CBc09c6"
+  },
   "421614": {
     "enclaves": {
       "whitelistedImages": [
