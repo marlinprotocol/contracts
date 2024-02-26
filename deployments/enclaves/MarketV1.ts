@@ -33,7 +33,11 @@ export async function deploy(paymentToken?: string, lockSelectors?: string[], lo
     if (paymentToken === undefined) {
         paymentToken = addresses[chainId][chainConfig.enclaves.paymentToken];
         if(paymentToken === undefined) {
-            throw new Error("Payment token unavailable");
+            if (chainConfig.enclaves.paymentToken.startsWith("0x")) {
+                paymentToken = chainConfig.enclaves.paymentToken;
+            } else {
+                throw new Error("Payment token unavailable");
+            }
         }
     }
 
