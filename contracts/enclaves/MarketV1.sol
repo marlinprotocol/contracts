@@ -68,7 +68,7 @@ contract MarketV1 is
 
     uint256[50] private __gap_1;
 
-    function initialize(IERC20 _token, bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) public initializer {
+    function initialize(address _admin, IERC20 _token, bytes32[] memory _selectors, uint256[] memory _lockWaitTimes) public initializer {
         require(_selectors.length == _lockWaitTimes.length);
 
         __Context_init_unchained();
@@ -79,7 +79,7 @@ contract MarketV1 is
         __UUPSUpgradeable_init_unchained();
         __Lock_init_unchained(_selectors, _lockWaitTimes);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
 
         _updateToken(_token);
     }
