@@ -41,6 +41,9 @@ export default {
     linea: {
       url: "https://rpc.linea.build",
     },
+    polygon: {
+      url: "https://polygon-rpc.com/",
+    },
   },
   solidity: {
     version: "0.8.17",
