@@ -1,4 +1,4 @@
-import { ethers, upgrades } from 'hardhat';
+import { ethers, upgrades, run } from 'hardhat';
 import * as fs from 'fs'
 
 async function main() {
@@ -41,6 +41,29 @@ async function main() {
   addresses[chainId]['Bridge'] = bridge.address;
 
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+}
+
+async function verify() {
+  let chainId = (await ethers.provider.getNetwork()).chainId;
+  console.log("Chain Id:", chainId);
+
+  var addresses: {[key: string]: {[key: string]: string}} = {};
+  if(fs.existsSync('address.json')) {
+    addresses = JSON.parse(fs.readFileSync('address.json', 'utf8'));
+  }
+
+  if(
+    addresses[chainId] === undefined ||
+    addresses[chainId]['Bridge'] === undefined
+  ) {
+    console.log("Missing dependencies");
+    return;
+  }
+
+  await run("verify:verify", {
+    address: addresses[chainId]['Bridge'],
+    constructorArguments: []
+  });
 }
 
 main()
