@@ -72,7 +72,9 @@ contract RequestChainContract is
     function __RequestChainContract_init(
         address _admin,
         IERC20 _token,
-        EnclaveImage[] memory _images
+        EnclaveImage[] memory _images,
+        uint256 _globalMinTimeout,
+        uint256 _globalMaxTimeout
     ) public initializer {
         __Context_init();
         __ERC165_init();
@@ -82,7 +84,12 @@ contract RequestChainContract is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
 
+        require(address(_token) != address(0), "INVALID_TOKEN");
         token = _token;
+
+        require(_globalMinTimeout < _globalMaxTimeout, "INVALID_GLOBAL_TIMEOUTS");
+        globalMinTimeout = _globalMinTimeout;
+        globalMaxTimeout = _globalMaxTimeout;
     }
 
     //-------------------------------- Initializer end --------------------------------//
@@ -90,6 +97,10 @@ contract RequestChainContract is
     //-------------------------------- Gateway start --------------------------------//
 
     IERC20 public token;
+
+    uint256 public globalMinTimeout;
+    uint256 public globalMaxTimeout;
+    uint256 public overallTimeout;
 
     struct Gateway {
         address operator;
@@ -169,6 +180,7 @@ contract RequestChainContract is
         bytes32 codehash;
         bytes codeInputs;
         uint256 userTimeout;
+        uint256 startTime;
         uint256 maxGasPrice;
         uint256 usdcDeposit;
         uint256 callbackDeposit;
@@ -221,10 +233,12 @@ contract RequestChainContract is
         uint256 _usdcDeposit,
         uint256 _callbackDeposit
     ) external {
+        require(_userTimeout > globalMinTimeout && _userTimeout < globalMaxTimeout, "INVALID_USER_TIMEOUT");
         jobs[++jobCount] = Job({
             codehash: _codehash,
             codeInputs: _codeInputs,
-            userTimeout: block.timestamp + _userTimeout,
+            userTimeout: _userTimeout,
+            startTime: block.timestamp,
             maxGasPrice: _maxGasPrice,
             usdcDeposit: _usdcDeposit,
             callbackDeposit: _callbackDeposit,
@@ -241,6 +255,9 @@ contract RequestChainContract is
         uint256 _totalTime,
         uint8 _errorCode
     ) external {
+        // check time case
+        require(block.timestamp <= jobs[_jobId].startTime + overallTimeout, "OVERALL_TIMEOUT_OVER");
+
         // signature check
         bytes32 digest = keccak256(
             abi.encode(
@@ -274,6 +291,7 @@ contract RequestChainContract is
         require(!jobOutputs[_jobId].received, "JOB_OUTPUT_ALREADY_RECEIVED");
 
         // check time case
+        require(block.timestamp > jobs[_jobId].startTime + overallTimeout, "OVERALL_TIMEOUT_NOT_OVER");
 
         delete jobs[_jobId];
         emit JobCancelled(_jobId);

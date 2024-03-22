@@ -13,7 +13,8 @@
     "coverage": "npx hardhat coverage",
     "clean": "npx hardhat clean && rm -rf coverage && rm -rf artifacts && npx hardhat typechain",
     "prettify:contracts": "npx prettier --write contracts/**/*.sol",
-    "prettify:test": "npx prettier --write test"
+    "prettify:test": "npx prettier --write test",
+    "size": "npx hardhat size-contracts"
   },
   "repository": {
     "type": "git",
@@ -45,6 +46,7 @@
     "ethereum-waffle": "^4.0.10",
     "ethers": "^5.7.2",
     "hardhat": "2.15.0",
+    "hardhat-contract-sizer": "^2.10.0",
     "hardhat-gas-reporter": "^1.0.9",
     "solidity-coverage": "^0.8.2",
     "ts-node": "^10.9.1",

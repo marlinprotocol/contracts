@@ -69,17 +69,13 @@ contract CommonChainContract is
 
     //-------------------------------- Initializer start --------------------------------//
 
-    uint256 public userTimeout;
     uint256 public executionBufferTime;
-    uint256 public globalMinTimeout;
-    uint256 public globalMaxTimeout;
 
     function __CommonChainContract_init(
         address _admin,
         EnclaveImage[] memory _images,
         IERC20 _token,
-        uint256 _globalMinTimeout,
-        uint256 _globalMaxTimeout
+        uint256 _executionBufferTime
     ) public initializer {
         __Context_init();
         __ERC165_init();
@@ -90,8 +86,7 @@ contract CommonChainContract is
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
 
         token = _token;
-        globalMinTimeout = _globalMinTimeout;
-        globalMaxTimeout = _globalMaxTimeout;
+        executionBufferTime = _executionBufferTime;
     }
 
     //-------------------------------- Initializer end --------------------------------//
@@ -100,9 +95,15 @@ contract CommonChainContract is
 
     IERC20 public token;
 
+    struct RequestChain {
+        uint256 chainId;
+        address contractAddress;
+        string rpcUrl;
+    }
+
     struct Gateway {
         address operator;
-        uint256[] requestChainIds;
+        RequestChain[] requestChains;
         uint256 stakeAmount;
         bool status;
     }
@@ -141,7 +142,9 @@ contract CommonChainContract is
 
     event ChainAdded(
         bytes enclavePubKey,
-        uint256 chainId
+        uint256 chainId,
+        address contractAddress,
+        string rpcUrl
     );
 
     event ChainRemoved(
@@ -158,7 +161,7 @@ contract CommonChainContract is
         uint256 _enclaveCPUs,
         uint256 _enclaveMemory,
         uint256 _timestampInMilliseconds,
-        uint256[] memory _requestChainIds,
+        RequestChain memory _requestChain,
         bytes memory _signature,
         uint256 _stakeAmount
     ) external {
@@ -174,8 +177,8 @@ contract CommonChainContract is
         );
 
         // signature check
-        bytes32 digest = keccak256(abi.encode(_requestChainIds));
-        address signer = digest.recover(_attestation);
+        bytes32 digest = keccak256(abi.encode(_requestChain));
+        address signer = digest.recover(_signature);
 
         _allowOnlyVerified(signer);
 
@@ -183,12 +186,10 @@ contract CommonChainContract is
         token.safeTransferFrom(_msgSender(), address(this), _stakeAmount);
 
         address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        gateways[enclaveKey] = Gateway({
-            operator: _msgSender(),
-            requestChainIds: _requestChainIds,
-            stakeAmount: _stakeAmount,
-            status: true
-        });
+        gateways[enclaveKey].operator = _msgSender();
+        gateways[enclaveKey].requestChains.push(_requestChain);
+        gateways[enclaveKey].stakeAmount = _stakeAmount;
+        gateways[enclaveKey].status = true;
 
         // emit GatewayRegistered(_enclavePubKey, enclaveKey, _msgSender());
     }
@@ -236,39 +237,76 @@ contract CommonChainContract is
         emit GatewayStakeRemoved(_enclavePubKey, _amount, gateways[enclaveKey].stakeAmount);
     }
 
+    function addChains(
+        bytes memory _enclavePubKey,
+        RequestChain[] memory _requestChains
+    ) external onlyGatewayOperator(_enclavePubKey) {
+        require(_requestChains.length > 0, "EMPTY_REQ_CHAINS");
+
+        for (uint256 index = 0; index < _requestChains.length; index++) {
+            addChain(
+                _enclavePubKey, 
+                _requestChains[index].chainId,
+                _requestChains[index].contractAddress,
+                _requestChains[index].rpcUrl
+            );
+        }
+    }
+
     function addChain(
         bytes memory _enclavePubKey,
-        uint256 _chainId
-    ) external onlyGatewayOperator(_enclavePubKey) {
+        uint256 _chainId,
+        address _requestChainContract,
+        string memory _requestChainRpc
+    ) public onlyGatewayOperator(_enclavePubKey) {
         address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        uint256[] memory chainList = gateways[enclaveKey].requestChainIds;
+        RequestChain[] memory chainList = gateways[enclaveKey].requestChains;
         for (uint256 index = 0; index < chainList.length; index++) {
-            require(chainList[index] != _chainId, "CHAIN_ALREADY_EXISTS");
+            require(chainList[index].chainId != _chainId, "CHAIN_ALREADY_EXISTS");
         }
-        gateways[enclaveKey].requestChainIds.push(_chainId);
+        RequestChain memory reqChain = RequestChain({
+            chainId: _chainId,
+            contractAddress: _requestChainContract,
+            rpcUrl: _requestChainRpc
+        });
+        gateways[enclaveKey].requestChains.push(reqChain);
 
-        emit ChainAdded(_enclavePubKey, _chainId);
+        emit ChainAdded(_enclavePubKey, _chainId, _requestChainContract, _requestChainRpc);
+    }
+
+    function removeChains(
+        bytes memory _enclavePubKey,
+        uint256[] memory _chainIds
+    ) external onlyGatewayOperator(_enclavePubKey) {
+        require(_chainIds.length > 0, "EMPTY_REQ_CHAINS");
+
+        for (uint256 index = 0; index < _chainIds.length; index++) {
+            removeChain(
+                _enclavePubKey, 
+                _chainIds[index]
+            );
+        }
     }
 
     function removeChain(
         bytes memory _enclavePubKey,
         uint256 _chainId
-    ) external onlyGatewayOperator(_enclavePubKey) {
+    ) public onlyGatewayOperator(_enclavePubKey) {
         address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        uint256[] memory chainList = gateways[enclaveKey].requestChainIds;
+        RequestChain[] memory chainList = gateways[enclaveKey].requestChains;
         uint256 len = chainList.length;
         require(len > 0, "EMPTY_CHAINLIST");
 
         uint256 index = 0;
         for (; index < len; index++) {
-            if (chainList[index] == _chainId) break;
+            if (chainList[index].chainId == _chainId) break;
         }
 
         require(index == len, "CHAIN_NOT_FOUND");
         if (index != len - 1)
-            gateways[enclaveKey].requestChainIds[index] = gateways[enclaveKey].requestChainIds[len - 1];
+            gateways[enclaveKey].requestChains[index] = gateways[enclaveKey].requestChains[len - 1];
 
-        gateways[enclaveKey].requestChainIds.pop();
+        gateways[enclaveKey].requestChains.pop();
 
         emit ChainRemoved(_enclavePubKey, _chainId);
     }
@@ -370,6 +408,10 @@ contract CommonChainContract is
             executors[enclaveKey].operator != address(0),
             "INVALID_ENCLAVE_KEY"
         );
+        require(
+            executors[enclaveKey].activeJobs == 0,
+            "ACTIVE_JOBS_PENDING"
+        );
         delete executors[enclaveKey];
 
         emit ExecutorDeregistered(_enclavePubKey);
@@ -412,6 +454,7 @@ contract CommonChainContract is
         bytes32 codehash;
         bytes codeInputs;
         uint256 deadline;
+        uint256 execStartTime;
         address jobOwner;
         bytes executorId;
         address gatewayOperator;
@@ -476,8 +519,7 @@ contract CommonChainContract is
         address executorKey = _pubKeyToAddress(executorPubKey);
 
         require(
-            executors[executorKey].activeJobs <
-                executors[executorKey].jobCapacity,
+            executors[executorKey].activeJobs < executors[executorKey].jobCapacity,
             "MAX_JOB_LIMIT_REACHED"
         );
         executors[executorKey].activeJobs += 1;
@@ -486,7 +528,8 @@ contract CommonChainContract is
             reqChainId: _reqChainId,
             codehash: _codehash,
             codeInputs: _codeInputs,
-            deadline: block.timestamp + _deadline,
+            deadline: _deadline,
+            execStartTime: block.timestamp,
             jobOwner: _jobOwner,
             executorId: executorPubKey,
             gatewayOperator: _msgSender()
@@ -542,18 +585,20 @@ contract CommonChainContract is
     ) external {
         // check for time
         require(
-            block.timestamp + userTimeout + executionBufferTime >
-                jobs[_jobId].deadline,
+            block.timestamp > jobs[_jobId].execStartTime + jobs[_jobId].deadline + executionBufferTime,
             "DEADLINE_NOT_OVER"
         );
 
         jobs[_jobId].executorId = _executorPubKey;
-        // jobs[_jobId].deadline = block.timestamp + _deadline;
+        jobs[_jobId].execStartTime = block.timestamp;
 
         address executorKey = _pubKeyToAddress(_executorPubKey);
         executors[executorKey].activeJobs -= 1;
 
         emit ExecutorReassigned(_jobId, _executorPubKey);
+
+        // slash Execution node
+
     }
 
     function reassignGatewayRelay(
