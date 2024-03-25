@@ -35,7 +35,9 @@ async function main() {
         [
             admin_addr,
             token_addr,
-            [img]
+            [img],
+            1000,
+            10000
         ],
         {
             initializer : "__RequestChainContract_init",
@@ -57,7 +59,6 @@ async function main() {
             admin_addr,
             [img],
             token_addr,
-            1,
             10
         ],
         {
