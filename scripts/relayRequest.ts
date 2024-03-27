@@ -59,7 +59,8 @@ async function main() {
             admin_addr,
             [img],
             token_addr,
-            10
+            10,
+            3
         ],
         {
             initializer : "__CommonChainContract_init",
@@ -71,6 +72,19 @@ async function main() {
         });
     let job_mgmt_addr = jobManagement.address;
     console.log("CommonChainContract Deployed address: ", job_mgmt_addr);
+
+    // Place a job
+    await serverlessrelay.relayJob(
+        "0x036b1ca09fd4094f55f57cde4204cf2edcaa90f7b18e5b58e2e1de9dae57ddd2",
+        ethers.utils.toUtf8Bytes(""),
+        2000,
+        30,
+        10,
+        300000000
+    );
+
+    console.log(await serverlessrelay.queryFilter("JobRelayed"));
+
 }
 
 main()

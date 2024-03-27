@@ -213,7 +213,8 @@ contract RequestChainContract is
         uint256 userTimeout,
         uint256 maxGasPrice,
         uint256 usdcDeposit,
-        uint256 callbackDeposit
+        uint256 callbackDeposit,
+        uint256 startTime
     );
 
     event JobResponded(
@@ -245,7 +246,7 @@ contract RequestChainContract is
             jobOwner: _msgSender()
         });
 
-        emit JobRelayed(jobCount, _codehash, _codeInputs, _userTimeout, _maxGasPrice, _usdcDeposit, _callbackDeposit);
+        emit JobRelayed(jobCount, _codehash, _codeInputs, _userTimeout, _maxGasPrice, _usdcDeposit, _callbackDeposit, block.timestamp);
     }
 
     function jobResponse(

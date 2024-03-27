@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 // import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../enclaves/AttestationAutherUpgradeable.sol";
-import "../staking/tree/TreeUpgradeable.sol";
+// import "../staking/tree/TreeUpgradeable.sol";
 
 contract CommonChainContract is
     Initializable, // initializer
@@ -19,7 +19,7 @@ contract CommonChainContract is
     ERC165Upgradeable, // supportsInterface
     AccessControlEnumerableUpgradeable, // RBAC enumeration
     AttestationAutherUpgradeable,
-    TreeUpgradeable,
+    // TreeUpgradeable,
     UUPSUpgradeable // public upgrade
 {
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -82,7 +82,7 @@ contract CommonChainContract is
         __ERC165_init();
         __AccessControlEnumerable_init();
         __AttestationAuther_init_unchained(_images);
-        __TreeUpgradeable_init_unchained();
+        // __TreeUpgradeable_init_unchained();
         __UUPSUpgradeable_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -107,6 +107,7 @@ contract CommonChainContract is
 
     mapping(uint256 => RequestChain) public requestChains;
 
+    // TODO: Add a getter to return chainIDs gateway is registered on, check if chainIDs is actually required in gateway struct
     struct Gateway {
         address operator;
         uint256[] chainIds;
@@ -233,31 +234,31 @@ contract CommonChainContract is
         // return stake amount
     }
 
-    function addGatewayStake(
-        bytes memory _enclavePubKey,
-        uint256 _amount
-    ) external onlyGatewayOperator(_enclavePubKey) {
-        // transfer stake
-        token.safeTransferFrom(_msgSender(), address(this), _amount);
+    // function addGatewayStake(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _amount
+    // ) external onlyGatewayOperator(_enclavePubKey) {
+    //     // transfer stake
+    //     token.safeTransferFrom(_msgSender(), address(this), _amount);
 
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        gateways[enclaveKey].stakeAmount += _amount;
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     gateways[enclaveKey].stakeAmount += _amount;
 
-        emit GatewayStakeAdded(_enclavePubKey, _amount, gateways[enclaveKey].stakeAmount);
-    }
+    //     emit GatewayStakeAdded(_enclavePubKey, _amount, gateways[enclaveKey].stakeAmount);
+    // }
 
-    function removeGatewayStake(
-        bytes memory _enclavePubKey,
-        uint256 _amount
-    ) external onlyGatewayOperator(_enclavePubKey) {
-        // transfer stake
-        token.safeTransfer(_msgSender(), _amount);
+    // function removeGatewayStake(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _amount
+    // ) external onlyGatewayOperator(_enclavePubKey) {
+    //     // transfer stake
+    //     token.safeTransfer(_msgSender(), _amount);
 
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        gateways[enclaveKey].stakeAmount -= _amount;
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     gateways[enclaveKey].stakeAmount -= _amount;
 
-        emit GatewayStakeRemoved(_enclavePubKey, _amount, gateways[enclaveKey].stakeAmount);
-    }
+    //     emit GatewayStakeRemoved(_enclavePubKey, _amount, gateways[enclaveKey].stakeAmount);
+    // }
 
     function addChainGlobal(
         uint256[] memory _chainIds,
@@ -285,73 +286,73 @@ contract CommonChainContract is
         }
     }
 
-    function addChains(
-        bytes memory _enclavePubKey,
-        uint256[] memory _chainIds
-    ) external onlyGatewayOperator(_enclavePubKey) {
-        require(_chainIds.length > 0, "EMPTY_REQ_CHAINS");
+    // function addChains(
+    //     bytes memory _enclavePubKey,
+    //     uint256[] memory _chainIds
+    // ) external onlyGatewayOperator(_enclavePubKey) {
+    //     require(_chainIds.length > 0, "EMPTY_REQ_CHAINS");
 
-        for (uint256 index = 0; index < _chainIds.length; index++) {
-            addChain(
-                _enclavePubKey, 
-                _chainIds[index]
-            );
-        }
-    }
+    //     for (uint256 index = 0; index < _chainIds.length; index++) {
+    //         addChain(
+    //             _enclavePubKey, 
+    //             _chainIds[index]
+    //         );
+    //     }
+    // }
 
-    function addChain(
-        bytes memory _enclavePubKey,
-        uint256 _chainId
-    ) public onlyGatewayOperator(_enclavePubKey) {
-        require(requestChains[_chainId].contractAddress != address(0), "UNSUPPORTED_CHAIN");
+    // function addChain(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _chainId
+    // ) public onlyGatewayOperator(_enclavePubKey) {
+    //     require(requestChains[_chainId].contractAddress != address(0), "UNSUPPORTED_CHAIN");
 
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        uint256[] memory chainIdList = gateways[enclaveKey].chainIds;
-        for (uint256 index = 0; index < chainIdList.length; index++) {
-            require(chainIdList[index] != _chainId, "CHAIN_ALREADY_EXISTS");
-        }
-        gateways[enclaveKey].chainIds.push(_chainId);
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     uint256[] memory chainIdList = gateways[enclaveKey].chainIds;
+    //     for (uint256 index = 0; index < chainIdList.length; index++) {
+    //         require(chainIdList[index] != _chainId, "CHAIN_ALREADY_EXISTS");
+    //     }
+    //     gateways[enclaveKey].chainIds.push(_chainId);
 
-        emit ChainAdded(_enclavePubKey, _chainId);
-    }
+    //     emit ChainAdded(_enclavePubKey, _chainId);
+    // }
 
-    function removeChains(
-        bytes memory _enclavePubKey,
-        uint256[] memory _chainIds
-    ) external onlyGatewayOperator(_enclavePubKey) {
-        require(_chainIds.length > 0, "EMPTY_REQ_CHAINS");
+    // function removeChains(
+    //     bytes memory _enclavePubKey,
+    //     uint256[] memory _chainIds
+    // ) external onlyGatewayOperator(_enclavePubKey) {
+    //     require(_chainIds.length > 0, "EMPTY_REQ_CHAINS");
 
-        for (uint256 index = 0; index < _chainIds.length; index++) {
-            removeChain(
-                _enclavePubKey, 
-                _chainIds[index]
-            );
-        }
-    }
+    //     for (uint256 index = 0; index < _chainIds.length; index++) {
+    //         removeChain(
+    //             _enclavePubKey, 
+    //             _chainIds[index]
+    //         );
+    //     }
+    // }
 
-    function removeChain(
-        bytes memory _enclavePubKey,
-        uint256 _chainId
-    ) public onlyGatewayOperator(_enclavePubKey) {
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        uint256[] memory chainIdList = gateways[enclaveKey].chainIds;
-        uint256 len = chainIdList.length;
-        require(len > 0, "EMPTY_CHAINLIST");
+    // function removeChain(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _chainId
+    // ) public onlyGatewayOperator(_enclavePubKey) {
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     uint256[] memory chainIdList = gateways[enclaveKey].chainIds;
+    //     uint256 len = chainIdList.length;
+    //     require(len > 0, "EMPTY_CHAINLIST");
 
-        uint256 index = 0;
-        for (; index < len; index++) {
-            if (chainIdList[index] == _chainId) 
-                break;
-        }
+    //     uint256 index = 0;
+    //     for (; index < len; index++) {
+    //         if (chainIdList[index] == _chainId) 
+    //             break;
+    //     }
 
-        require(index == len, "CHAIN_NOT_FOUND");
-        if (index != len - 1)
-            gateways[enclaveKey].chainIds[index] = gateways[enclaveKey].chainIds[len - 1];
+    //     require(index == len, "CHAIN_NOT_FOUND");
+    //     if (index != len - 1)
+    //         gateways[enclaveKey].chainIds[index] = gateways[enclaveKey].chainIds[len - 1];
 
-        gateways[enclaveKey].chainIds.pop();
+    //     gateways[enclaveKey].chainIds.pop();
 
-        emit ChainRemoved(_enclavePubKey, _chainId);
-    }
+    //     emit ChainRemoved(_enclavePubKey, _chainId);
+    // }
 
     //-------------------------------- Gateway end --------------------------------//
 
@@ -440,7 +441,7 @@ contract CommonChainContract is
         });
 
         // add node to the tree
-        _insert_unchecked(enclaveKey, uint64(_stakeAmount));
+        // _insert_unchecked(enclaveKey, uint64(_stakeAmount));
 
         // emit ExecutorRegistered(_enclavePubKey, enclaveKey, _msgSender());
     }
@@ -460,46 +461,46 @@ contract CommonChainContract is
         delete executors[enclaveKey];
 
         // remove node from the tree
-        _deleteIfPresent(enclaveKey);
+        // _deleteIfPresent(enclaveKey);
 
         emit ExecutorDeregistered(_enclavePubKey);
 
         // return stake amount
     }
 
-    function addExecutorStake(
-        bytes memory _enclavePubKey,
-        uint256 _amount
-    ) external onlyExecutorOperator(_enclavePubKey) {
-        // transfer stake
-        token.safeTransferFrom(_msgSender(), address(this), _amount);
+    // function addExecutorStake(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _amount
+    // ) external onlyExecutorOperator(_enclavePubKey) {
+    //     // transfer stake
+    //     token.safeTransferFrom(_msgSender(), address(this), _amount);
 
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        executors[enclaveKey].stakeAmount += _amount;
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     executors[enclaveKey].stakeAmount += _amount;
 
-        // update the value in tree only if the node exists in the tree
-        if(executors[enclaveKey].activeJobs != executors[enclaveKey].jobCapacity)
-            _update_unchecked(enclaveKey, uint64(_amount));
+    //     // update the value in tree only if the node exists in the tree
+    //     // if(executors[enclaveKey].activeJobs != executors[enclaveKey].jobCapacity)
+    //     //     _update_unchecked(enclaveKey, uint64(_amount));
 
-        emit ExecutorStakeAdded(_enclavePubKey, _amount, executors[enclaveKey].stakeAmount);
-    }
+    //     emit ExecutorStakeAdded(_enclavePubKey, _amount, executors[enclaveKey].stakeAmount);
+    // }
 
-    function removeExecutorStake(
-        bytes memory _enclavePubKey,
-        uint256 _amount
-    ) external onlyExecutorOperator(_enclavePubKey) {
-        // transfer stake
-        token.safeTransfer(_msgSender(), _amount);
+    // function removeExecutorStake(
+    //     bytes memory _enclavePubKey,
+    //     uint256 _amount
+    // ) external onlyExecutorOperator(_enclavePubKey) {
+    //     // transfer stake
+    //     token.safeTransfer(_msgSender(), _amount);
 
-        address enclaveKey = _pubKeyToAddress(_enclavePubKey);
-        executors[enclaveKey].stakeAmount -= _amount;
+    //     address enclaveKey = _pubKeyToAddress(_enclavePubKey);
+    //     executors[enclaveKey].stakeAmount -= _amount;
 
-        // update the value in tree only if the node exists in the tree
-        if(executors[enclaveKey].activeJobs != executors[enclaveKey].jobCapacity)
-            _update_unchecked(enclaveKey, uint64(_amount));
+    //     // update the value in tree only if the node exists in the tree
+    //     // if(executors[enclaveKey].activeJobs != executors[enclaveKey].jobCapacity)
+    //     //     _update_unchecked(enclaveKey, uint64(_amount));
 
-        emit ExecutorStakeRemoved(_enclavePubKey, _amount, executors[enclaveKey].stakeAmount);
-    }
+    //     emit ExecutorStakeRemoved(_enclavePubKey, _amount, executors[enclaveKey].stakeAmount);
+    // }
 
     //-------------------------------- Executor end --------------------------------//
 
@@ -538,8 +539,7 @@ contract CommonChainContract is
         bytes32 codehash,
         bytes codeInputs,
         uint256 deadline,
-        address jobOwner,
-        address gatewayOperator
+        address[] selectedNodes
     );
 
     event JobResponded(
@@ -559,6 +559,7 @@ contract CommonChainContract is
         uint256 _deadline,
         address _jobOwner
     ) external {
+        // TODO: can we trust gateway enclave here and not use require
         require(requestChains[_reqChainId].contractAddress != address(0), "UNSUPPORTED_CHAIN");
 
         // signature check
@@ -577,13 +578,13 @@ contract CommonChainContract is
         _allowOnlyVerified(signer);
 
         address[] memory selectedNodes = _selectExecutors(_jobId);
-        for (uint256 index = 0; index < selectedNodes.length; index++) {
-            executors[selectedNodes[index]].activeJobs += 1;
+        // for (uint256 index = 0; index < selectedNodes.length; index++) {
+        //     executors[selectedNodes[index]].activeJobs += 1;
             
-            // if jobCapacity reached then delete from the tree so as to not consider this node in new jobs allocation
-            if(executors[selectedNodes[index]].activeJobs == executors[selectedNodes[index]].jobCapacity)
-                _deleteIfPresent(selectedNodes[index]);
-        }
+        //     // if jobCapacity reached then delete from the tree so as to not consider this node in new jobs allocation
+        //     if(executors[selectedNodes[index]].activeJobs == executors[selectedNodes[index]].jobCapacity)
+        //         _deleteIfPresent(selectedNodes[index]);
+        // }
 
         jobs[_jobId] = Job({
             reqChainId: _reqChainId,
@@ -596,7 +597,8 @@ contract CommonChainContract is
             outputCount: 0
         });
 
-        emit JobRelayed(_jobId, _reqChainId, _codehash, _codeInputs, _deadline, _jobOwner, _msgSender());
+        // TODO emit executors (DONE)
+        emit JobRelayed(_jobId, _reqChainId, _codehash, _codeInputs, _deadline, selectedNodes);
     }
 
     function submitOutput(
@@ -617,8 +619,8 @@ contract CommonChainContract is
         require(isJobExecutor(_jobId, signer), "NOT_SELECTED_EXECUTOR");
 
         // add back the node to the tree as now it can accept a new job
-        if(executors[signer].activeJobs == executors[signer].jobCapacity)
-            _insert_unchecked(signer, uint64(executors[signer].stakeAmount));
+        // if(executors[signer].activeJobs == executors[signer].jobCapacity)
+        //     _insert_unchecked(signer, uint64(executors[signer].stakeAmount));
 
         executors[signer].activeJobs -= 1;
 
@@ -637,12 +639,18 @@ contract CommonChainContract is
     }
 
 
+    address[] temp;
     function _selectExecutors(
         uint256 _jobId
     ) internal returns (address[] memory selectedNodes) {
         uint256 randomizer = uint256(keccak256(abi.encode(blockhash(block.number - 1), block.timestamp)));
-        selectedNodes = _selectN(randomizer, noOfNodesToSelect);
-        require(selectedNodes.length != 0, "NO_EXECUTOR_SELECTED");
+        // selectedNodes = _selectN(randomizer, noOfNodesToSelect);
+        // require(selectedNodes.length != 0, "NO_EXECUTOR_SELECTED");
+        // Update this to enclaves key
+        temp.push(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        temp.push(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+        temp.push(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
+        selectedNodes = temp;
         selectedExecutors[_jobId] = selectedNodes;
     }
 
