@@ -522,16 +522,6 @@ contract CommonChainContract is
     // jobId => executors
     mapping(uint256 => address[]) public selectedExecutors;
 
-    // struct JobOutput {
-    //     bytes output;
-    //     uint256 totalTime;
-    //     uint8 errorCode;
-    // }
-
-    // CAN REMOVE
-    // jobId => JobOutput
-    // mapping(uint256 => JobOutput[]) public jobOutputs;
-
     event JobRelayed(
         uint256 indexed jobId,
         uint256 reqChainId,
@@ -621,12 +611,6 @@ contract CommonChainContract is
             _insert_unchecked(signer, uint64(executors[signer].stakeAmount));
 
         executors[signer].activeJobs -= 1;
-
-        // jobOutputs[_jobId].push(JobOutput({
-        //     output: _output,
-        //     totalTime: _totalTime,
-        //     errorCode: _errorCode
-        // }));
 
         emit JobResponded(_jobId, _output, _totalTime, _errorCode, ++jobs[_jobId].outputCount);
 
