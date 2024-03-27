@@ -647,9 +647,9 @@ contract CommonChainContract is
 
     //-------------------------------- Timeout start --------------------------------//
 
-    event ExecutorReassigned(
+    event SlashedOnExecutionTimeout(
         uint256 jobId,
-        bytes executorPubKey
+        address[] executors
     );
 
     event GatewayReassigned(
@@ -658,29 +658,34 @@ contract CommonChainContract is
         address indexed newGatewayOperator
     );
 
-    // function reassignExecutionNode(
-    //     uint256 _jobId,
-    //     bytes memory _executorPubKey
-    // ) external {
-    //     // check for time
-    //     require(
-    //         block.timestamp > jobs[_jobId].execStartTime + jobs[_jobId].deadline + executionBufferTime,
-    //         "DEADLINE_NOT_OVER"
-    //     );
+    function slashOnExecutionTimeout(
+        uint256 _jobId
+    ) external {
+        // check for time
+        require(
+            block.timestamp > jobs[_jobId].execStartTime + jobs[_jobId].deadline + executionBufferTime,
+            "DEADLINE_NOT_OVER"
+        );
 
-    //     jobs[_jobId].executorId = _executorPubKey;
-    //     jobs[_jobId].execStartTime = block.timestamp;
+        delete jobs[_jobId];
 
-    //     address executorKey = _pubKeyToAddress(_executorPubKey);
-    //     executors[executorKey].activeJobs -= 1;
+        // slash Execution node
 
-    //     emit ExecutorReassigned(_jobId, _executorPubKey);
+        uint256 len = selectedExecutors[_jobId].length;
+        for (uint256 index = 0; index < len; index++) {
+            address executorKey = selectedExecutors[_jobId][index];
+            
+            // add back the node to the tree as now it can accept a new job
+            if(executors[executorKey].activeJobs == executors[executorKey].jobCapacity)
+                _insert_unchecked(executorKey, uint64(executors[executorKey].stakeAmount));
+            
+            executors[executorKey].activeJobs -= 1;
+        }
 
-            // delete job (no new execution node is selected)
-            // delete previously selected list of executors (selectedExecutors[])
-    //     // slash Execution node
+        emit SlashedOnExecutionTimeout(_jobId, selectedExecutors[_jobId]);
 
-    // }
+        delete selectedExecutors[_jobId];
+    }
 
     function reassignGatewayRelay(
         address _gatewayOperatorOld,
