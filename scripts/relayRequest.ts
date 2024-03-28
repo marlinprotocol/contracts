@@ -11,6 +11,7 @@ async function main() {
     let admin_addr = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
     // Deploy Token Contract
     let token_addr = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
+
     // Attestation Verifier
     const AttestationVerifier = await ethers.getContractFactory("AttestationVerifier");
     console.log("Deploying AttestationVerifier")
@@ -50,27 +51,69 @@ async function main() {
     let svls_addr = serverlessrelay.address;
     console.log("ServerlessRelay Deployed address: ", svls_addr);
 
-    // Common Chain Contract
-    const CommonChainContract = await ethers.getContractFactory("CommonChainContract");
-    console.log("Deploying CommonChainContract...")
-    let jobManagement = await upgrades.deployProxy(
-        CommonChainContract,
+    // Common Chain Gateways Contract
+    const CommonChainGateways = await ethers.getContractFactory("CommonChainGateways");
+    console.log("Deploying CommonChainGateways...")
+    let gatewaysContract = await upgrades.deployProxy(
+        CommonChainGateways,
         [
             admin_addr,
             [img],
-            token_addr,
-            10
+            token_addr
         ],
         {
-            initializer : "__CommonChainContract_init",
+            initializer : "__CommonChainGateways_init",
             kind : "uups",
             constructorArgs : [
                 av_addr,
                 1000
             ]
         });
-    let job_mgmt_addr = jobManagement.address;
-    console.log("CommonChainContract Deployed address: ", job_mgmt_addr);
+    let gatewaysAddress = gatewaysContract.address;
+    console.log("CommonChainGateways Deployed address: ", gatewaysAddress);
+
+    // Common Chain Executors Contract
+    const CommonChainExecutors = await ethers.getContractFactory("CommonChainExecutors");
+    console.log("Deploying CommonChainExecutors...")
+    let executorsContract = await upgrades.deployProxy(
+        CommonChainExecutors,
+        [
+            admin_addr,
+            [img],
+            token_addr
+        ],
+        {
+            initializer : "__CommonChainExecutors_init",
+            kind : "uups",
+            constructorArgs : [
+                av_addr,
+                1000
+            ]
+        });
+    let executorsAddress = executorsContract.address;
+    console.log("CommonChainExecutors Deployed address: ", executorsAddress);
+
+    let executionBufferTime = 100,
+        noOfNodesToSelect = 3;
+    // Common Chain Jobs Contract
+    const CommonChainJobs = await ethers.getContractFactory("CommonChainJobs");
+    console.log("Deploying CommonChainJobs...")
+    let jobsContract = await upgrades.deployProxy(
+        CommonChainJobs,
+        [
+            admin_addr,
+            token_addr,
+            gatewaysAddress,
+            executorsAddress,
+            executionBufferTime,
+            noOfNodesToSelect
+        ],
+        {
+            initializer : "__CommonChainJobs_init",
+            kind : "uups"
+        });
+    let jobsAddress = jobsContract.address;
+    console.log("CommonChainJobs Deployed address: ", jobsAddress);
 }
 
 main()
