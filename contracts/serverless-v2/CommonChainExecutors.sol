@@ -257,16 +257,16 @@ contract CommonChainExecutors is
     //-------------------------------- JobsContract functions start --------------------------------//
 
     function selectExecutors(
-        address _executorKey,
         uint256 _noOfNodesToSelect
     ) external onlyJobsContract returns (address[] memory selectedNodes) {
         selectedNodes = _selectExecutors(_noOfNodesToSelect);
         for (uint256 index = 0; index < selectedNodes.length; index++) {
-            executors[_executorKey].activeJobs += 1;
+            address executorKey = selectedNodes[index];
+            executors[executorKey].activeJobs += 1;
             
             // if jobCapacity reached then delete from the tree so as to not consider this node in new jobs allocation
-            if(executors[_executorKey].activeJobs == executors[_executorKey].jobCapacity)
-                _deleteIfPresent(_executorKey);
+            if(executors[executorKey].activeJobs == executors[executorKey].jobCapacity)
+                _deleteIfPresent(executorKey);
         }
     }
 

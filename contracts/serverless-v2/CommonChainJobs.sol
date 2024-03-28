@@ -165,7 +165,7 @@ contract CommonChainJobs is
 
         gateways.allowOnlyVerified(signer);
 
-        selectedExecutors[_jobId] = executors.selectExecutors(signer, noOfNodesToSelect);
+        selectedExecutors[_jobId] = executors.selectExecutors(noOfNodesToSelect);
 
         jobs[_jobId] = Job({
             reqChainId: _reqChainId,
