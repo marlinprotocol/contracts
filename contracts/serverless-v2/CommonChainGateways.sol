@@ -68,7 +68,7 @@ contract CommonChainGateways is
 
     //-------------------------------- Initializer start --------------------------------//
 
-    function __CommonChainContract_init(
+    function __CommonChainGateways_init(
         address _admin,
         EnclaveImage[] memory _images,
         IERC20 _token

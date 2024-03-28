@@ -21,10 +21,7 @@ contract CommonChainJobs is
     /// @custom:oz-upgrades-unsafe-allow constructor
     // initializes the logic contract without any admins
     // safeguard against takeover of the logic contract
-    constructor(
-        IAttestationVerifier attestationVerifier,
-        uint256 maxAge
-    ) initializer {}
+    constructor() initializer {}
 
     using SafeERC20 for IERC20;
     using ECDSA for bytes32;
@@ -67,7 +64,7 @@ contract CommonChainJobs is
 
     //-------------------------------- Initializer start --------------------------------//
 
-    function __CommonChainContract_init(
+    function __CommonChainJobs_init(
         address _admin,
         IERC20 _token,
         CommonChainGateways _gateways,
