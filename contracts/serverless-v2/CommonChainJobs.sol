@@ -264,16 +264,11 @@ contract CommonChainJobs is
         uint256 _jobId,
         bytes memory _signature
     ) external {
-        // check for time
-
-        require(_msgSender() != jobs[_jobId].gatewayOperator, "SAME_GATEWAY");
         // signature check
         bytes32 digest = keccak256(abi.encode(_jobId, _gatewayOperatorOld));
         address signer = digest.recover(_signature);
 
         gateways.allowOnlyVerified(signer);
-        
-        jobs[_jobId].gatewayOperator = _msgSender();
 
         emit GatewayReassigned(_jobId, _gatewayOperatorOld, _msgSender());
 
