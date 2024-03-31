@@ -107,6 +107,8 @@ contract CommonChainGateways is
     // enclaveAddress => Gateway
     mapping(address => Gateway) public gateways;
 
+    address[] public gatewayAddresses;
+
     modifier onlyGatewayOperator(bytes memory _enclavePubKey) {
         address enclaveKey = _pubKeyToAddress(_enclavePubKey);
         require(
@@ -195,6 +197,8 @@ contract CommonChainGateways is
         }
 
         // check missing for validating chainIds array for multiple same chainIds
+
+        gatewayAddresses.push(enclaveKey);
         
         gateways[enclaveKey] = Gateway({
             operator: _msgSender(),
@@ -206,6 +210,29 @@ contract CommonChainGateways is
         // emit GatewayRegistered(_enclavePubKey, enclaveKey, _msgSender());
     }
 
+    function getGateway(address _address) public view returns (address, uint256[] memory, uint256, bool) {
+        Gateway storage gateway = gateways[_address];
+        return (gateway.operator, gateway.chainIds, gateway.stakeAmount, gateway.status);
+    }
+
+    function getActiveGatewaysForReqChain(uint256 _chainId) public view returns (Gateway[] memory) {
+        Gateway[] memory _gateways = new Gateway[](gatewayAddresses.length);
+
+        for (uint i = 0; i < gatewayAddresses.length; i++) {
+            if (gateways[gatewayAddresses[i]].status) {
+                uint256[] memory chainIds = gateways[gatewayAddresses[i]].chainIds;
+                for (uint j = 0; j < chainIds.length; j++) {
+                    if (chainIds[j] == _chainId) {
+                        _gateways[i] = gateways[gatewayAddresses[i]];
+                        break;
+                    }
+                }
+            }
+        }
+
+        return _gateways;
+    }
+
     function deregisterGateway(
         bytes memory _enclavePubKey
     ) external onlyGatewayOperator(_enclavePubKey) {
@@ -214,6 +241,21 @@ contract CommonChainGateways is
             gateways[enclaveKey].operator != address(0),
             "INVALID_ENCLAVE_KEY"
         );
+
+        // find enclaveKey in gatewayAddresses and remove it
+        uint256 len = gatewayAddresses.length;
+        uint256 index = 0;
+        for (; index < len; index++) {
+            if (gatewayAddresses[index] == enclaveKey) 
+                break;
+        }
+
+        if (index != len - 1)
+            gatewayAddresses[index] = gatewayAddresses[len - 1];
+
+        gatewayAddresses.pop();
+        
+        // delete gateway
         delete gateways[enclaveKey];
 
         _revokeEnclaveKey(_enclavePubKey);
