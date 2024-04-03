@@ -30,6 +30,12 @@ import {
   AttestationAutherUpgradeable,
   AttestationAutherSample__factory,
   AttestationAutherSample,
+  CommonChainGateways__factory,
+  CommonChainGateways,
+  CommonChainExecutors__factory,
+  CommonChainExecutors,
+  CommonChainJobs,
+  CommonChainJobs__factory,
 } from "../typechain-types";
 
 export function getMpond(contractAddress: string, signer: Signer): MPond {
@@ -90,4 +96,16 @@ export function getAttestationAutherUpgradeable(contractAddress: string, signer:
 
 export function getAttestationAutherSample(contractAddress: string, signer: Signer): AttestationAutherSample {
   return new AttestationAutherSample__factory(signer).attach(contractAddress);
+}
+
+export function getCommonChainGateways(contractAddress: string, signer: Signer): CommonChainGateways {
+  return new CommonChainGateways__factory(signer).attach(contractAddress);
+}
+
+export function getCommonChainExecutors(contractAddress: string, signer: Signer): CommonChainExecutors {
+  return new CommonChainExecutors__factory(signer).attach(contractAddress);
+}
+
+export function getCommonChainJobs(contractAddress: string, signer: Signer): CommonChainJobs {
+  return new CommonChainJobs__factory(signer).attach(contractAddress);
 }
