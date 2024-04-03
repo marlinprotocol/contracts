@@ -72,6 +72,8 @@ contract CommonChainJobs is
         uint256 _executionBufferTime,
         uint256 _noOfNodesToSelect
     ) public initializer {
+        require(_admin != address(0), "ZERO_ADDRESS_ADMIN");
+
         __Context_init();
         __ERC165_init();
         __AccessControlEnumerable_init();
@@ -100,6 +102,10 @@ contract CommonChainJobs is
 
     function setExecutorsContract(CommonChainExecutors _executors) external onlyAdmin {
         executors = _executors;
+    }
+
+    function setTokenContract(IERC20 _token) external onlyAdmin {
+        token = _token;
     }
 
     //-------------------------------- Job start --------------------------------//

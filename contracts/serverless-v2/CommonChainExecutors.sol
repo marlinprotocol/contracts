@@ -81,6 +81,9 @@ contract CommonChainExecutors is
         EnclaveImage[] memory _images,
         IERC20 _token
     ) public initializer {
+        require(_admin != address(0), "ZERO_ADDRESS_ADMIN");
+        require(address(_token) != address(0), "ZERO_ADDRESS_TOKEN");
+
         __Context_init();
         __ERC165_init();
         __AccessControlEnumerable_init();
@@ -100,6 +103,10 @@ contract CommonChainExecutors is
 
     function setJobsContract(CommonChainJobs _jobs) external onlyAdmin {
         jobs = _jobs;
+    }
+
+    function setTokenContract(IERC20 _token) external onlyAdmin {
+        token = _token;
     }
 
     //-------------------------------- Executor start --------------------------------//
@@ -208,6 +215,7 @@ contract CommonChainExecutors is
 
         // remove node from the tree
         _deleteIfPresent(enclaveKey);
+        _revokeEnclaveKey(_enclavePubKey);
 
         emit ExecutorDeregistered(_enclavePubKey);
 
