@@ -73,6 +73,9 @@ contract CommonChainGateways is
         EnclaveImage[] memory _images,
         IERC20 _token
     ) public initializer {
+        require(_admin != address(0), "ZERO_ADDRESS_ADMIN");
+        require(address(_token) != address(0), "ZERO_ADDRESS_TOKEN");
+
         __Context_init();
         __ERC165_init();
         __AccessControlEnumerable_init();
@@ -86,9 +89,14 @@ contract CommonChainGateways is
 
     //-------------------------------- Initializer end --------------------------------//
 
+    IERC20 public token;
+    
+    function setTokenContract(IERC20 _token) external onlyAdmin {
+        token = _token;
+    }
+
     //-------------------------------- Gateway start --------------------------------//
 
-    IERC20 public token;
 
     struct RequestChain {
         address contractAddress;
@@ -181,10 +189,7 @@ contract CommonChainGateways is
         );
 
         // signature check
-        bytes32 digest = keccak256(abi.encode(_chainIds));
-        address signer = digest.recover(_signature);
-
-        _allowOnlyVerified(signer);
+        _verifySign(_chainIds, _signature);
 
         // transfer stake
         token.safeTransferFrom(_msgSender(), address(this), _stakeAmount);
@@ -203,7 +208,17 @@ contract CommonChainGateways is
             status: true
         });
 
-        // emit GatewayRegistered(_enclavePubKey, enclaveKey, _msgSender());
+        emit GatewayRegistered(_enclavePubKey, enclaveKey, _msgSender());
+    }
+
+    function _verifySign(
+        uint256[] memory _chainIds,
+        bytes memory _signature
+    ) internal view {
+        bytes32 digest = keccak256(abi.encodePacked(_chainIds));
+        address signer = digest.recover(_signature);
+
+        _allowOnlyVerified(signer);
     }
 
     function deregisterGateway(
