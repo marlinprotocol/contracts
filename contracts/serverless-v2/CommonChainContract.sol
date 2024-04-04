@@ -514,6 +514,7 @@ contract CommonChainContract is
         address jobOwner;
         address gatewayOperator;
         uint8 outputCount;
+        uint256 retryNumber;
     }
 
     // jobId => Job
@@ -529,7 +530,8 @@ contract CommonChainContract is
         bytes codeInputs,
         uint256 deadline,
         address jobOwner,
-        address gatewayOperator
+        address gatewayOperator,
+        uint256 retryNumber
     );
 
     event JobResponded(
@@ -547,7 +549,8 @@ contract CommonChainContract is
         bytes32 _codehash,
         bytes memory _codeInputs,
         uint256 _deadline,
-        address _jobOwner
+        address _jobOwner,
+        uint256 _retryNumber
     ) external {
         require(requestChains[_reqChainId].contractAddress != address(0), "UNSUPPORTED_CHAIN");
 
@@ -583,10 +586,11 @@ contract CommonChainContract is
             execStartTime: block.timestamp,
             jobOwner: _jobOwner,
             gatewayOperator: _msgSender(),
-            outputCount: 0
+            outputCount: 0,
+            retryNumber: _retryNumber
         });
 
-        emit JobRelayed(_jobId, _reqChainId, _codehash, _codeInputs, _deadline, _jobOwner, _msgSender());
+        emit JobRelayed(_jobId, _reqChainId, _codehash, _codeInputs, _deadline, _jobOwner, _msgSender(), _retryNumber);
     }
 
     function submitOutput(
