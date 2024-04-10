@@ -1,6 +1,8 @@
 import { ethers, upgrades, run } from 'hardhat';
 import * as fs from 'fs'
 
+import { upgrade as upgradeUtil } from '../utils/Upgrade';
+
 async function main() {
   let chainId = (await ethers.provider.getNetwork()).chainId;
   console.log("Chain Id:", chainId);
@@ -41,6 +43,11 @@ async function main() {
   addresses[chainId]['Bridge'] = bridge.address;
 
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
+}
+
+export async function upgrade() {
+  await upgradeUtil('Bridge', 'Bridge', []);
+  await verify();
 }
 
 async function verify() {
