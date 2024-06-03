@@ -26,7 +26,7 @@
   "homepage": "https://github.com/marlinprotocol/contracts",
   "dependencies": {
     "@openzeppelin/contracts": "4.9.2",
-    "@openzeppelin/contracts-upgradeable": "4.9.2"
+    "@openzeppelin/contracts-upgradeable": "4.9.3"
   },
   "devDependencies": {
     "@ethereum-waffle/mock-contract": "^3.4.4",
