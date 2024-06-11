@@ -45,6 +45,11 @@ async function main() {
   fs.writeFileSync('address.json', JSON.stringify(addresses, null, 2), 'utf8');
 }
 
+export async function importDeployed(proxyAddress: string) {
+  const Bridge = await ethers.getContractFactory('Bridge');
+  await upgrades.forceImport(proxyAddress, Bridge);
+}
+
 export async function upgrade() {
   await upgradeUtil('Bridge', 'Bridge', []);
   await verify();
