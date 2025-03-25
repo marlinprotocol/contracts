@@ -29,19 +29,18 @@ contract Credit is
 
     uint256[500] private __gap0;
 
-    error OnlyAdmin();
-    error OnlyTransferAllowedRole();
     error NoAdminExists();
-    error OnlyOysterMarket();
-    error NotEnoughUSDC();
+    error OnlyAdmin();
     error OnlyToEmergencyWithdrawRole();
+    error OnlyTransferAllowedRole();
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE"); // 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848
     bytes32 public constant TRANSFER_ALLOWED_ROLE = keccak256("TRANSFER_ALLOWED_ROLE"); // 0xed89ee80d998965e2804dad373576bf7ffc490ba5986d52deb7d526e93617101
     bytes32 public constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE"); // 0x44ac9762eec3a11893fefb11d028bb3102560094137c3ed4518712475b2577cc
     bytes32 public constant EMERGENCY_WITHDRAW_ROLE = keccak256("EMERGENCY_WITHDRAW_ROLE"); // 0x66f144ecd65ad16d38ecdba8687842af4bc05fde66fe3d999569a3006349785f
-
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE"); // 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a
+    
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), OnlyAdmin());
         _;
@@ -72,10 +71,18 @@ contract Credit is
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), OnlyAdmin());
     }
 
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
     //-------------------------------- Overrides end --------------------------------//
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address immutable USDC;
+    address public immutable USDC;
 
     uint256[500] private __gap1;
 
@@ -92,7 +99,8 @@ contract Credit is
         __AccessControlEnumerable_init_unchained();
         __ERC20_init_unchained("Oyster Credit", "CREDIT");
         __UUPSUpgradeable_init_unchained();
-        
+        __Pausable_init_unchained();
+
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
