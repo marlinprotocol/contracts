@@ -71,14 +71,6 @@ contract Credit is
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), OnlyAdmin());
     }
 
-    function pause() external onlyRole(PAUSER_ROLE) {
-        _pause();
-    }
-
-    function unpause() external onlyRole(PAUSER_ROLE) {
-        _unpause();
-    }
-
     //-------------------------------- Overrides end --------------------------------//
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
@@ -126,6 +118,18 @@ contract Credit is
     }
 
     //-------------------------------- Oyster Market end --------------------------------//
+
+    //-------------------------------- Pause/Unpause start --------------------------------//
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
+    //-------------------------------- Pause/Unpause end --------------------------------//
 
     //-------------------------------- Emergency Withdraw start --------------------------------//
 
