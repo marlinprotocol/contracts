@@ -18,6 +18,12 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
+/**
+ * @title   Credit
+ * @notice  To transfer Credit tokens, either the sender or the recipient must have `TRANSFER_ALLOWED_ROLE`.
+ * @dev     Admin must track the balance of USDC in the contract compared to the total supply of Credit.
+ */
+
 contract Credit is
     ContextUpgradeable,  // _msgSender, _msgData
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
@@ -100,10 +106,22 @@ contract Credit is
 
     //-------------------------------- Token Mint/Burn start --------------------------------/
 
+    /**
+     * @notice  Mint Credit tokens.
+     * @dev     Caller must have `MINTER_ROLE`.
+     * @param   _to      Address to mint tokens to. Must have `TRANSFER_ALLOWED_ROLE`.
+     * @param   _amount  Amount of tokens to mint.
+     */
     function mint(address _to, uint256 _amount) external whenNotPaused onlyRole(MINTER_ROLE) {
         _mint(_to, _amount);
     }
 
+    /**
+     * @notice  Burn Credit tokens.
+     * @dev     Caller must have `BURNER_ROLE`.
+     * @param   _from    Address to burn tokens from. Must have `TRANSFER_ALLOWED_ROLE`
+     * @param   _amount  Amount of tokens to burn.
+     */
     function burn(address _from, uint256 _amount) external whenNotPaused onlyRole(BURNER_ROLE) {
         _burn(_from, _amount);
     }
@@ -112,9 +130,17 @@ contract Credit is
     
     //-------------------------------- Oyster Market start --------------------------------//
 
+    /**
+     * @notice  Burn Credit tokens and receive USDC.
+     *          `_amount` of Credit tokens will be burned and `_amount` of USDC will be sent to `_to`.
+     * @dev     Caller must have `REDEEMER_ROLE`.
+     * @dev     Can revert if `Credit` contract does not have enough balance of USDC.
+     * @param   _to      Address to receive USDC.
+     * @param   _amount  Amount of tokens to redeem.
+     */
     function redeemAndBurn(address _to, uint256 _amount) external whenNotPaused onlyRole(REDEEMER_ROLE) {
+        _burn(_msgSender(), _amount); 
         IERC20(USDC).safeTransfer(_to, _amount);
-        _burn(_msgSender(), _amount);
     }
 
     //-------------------------------- Oyster Market end --------------------------------//
@@ -133,6 +159,14 @@ contract Credit is
 
     //-------------------------------- Emergency Withdraw start --------------------------------//
 
+    /**
+     * @notice  Emergency withdraw tokens from the contract.
+     * @dev     Caller must have `DEFAULT_ADMIN_ROLE`
+     *          and `_to` address must have `EMERGENCY_WITHDRAW_ROLE`.
+     * @param   _token  Address of the token to withdraw.
+     * @param   _to     Address to receive the tokens. Must have `EMERGENCY_WITHDRAW_ROLE`.
+     * @param   _amount Amount of tokens to withdraw.
+     */
     function emergencyWithdraw(address _token, address _to, uint256 _amount) external onlyAdmin {
         require(hasRole(EMERGENCY_WITHDRAW_ROLE, _to), OnlyToEmergencyWithdrawRole());
         IERC20(_token).safeTransfer(_to, _amount);
