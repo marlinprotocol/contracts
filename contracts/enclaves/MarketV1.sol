@@ -197,9 +197,9 @@ contract MarketV1 is
     event CreditTokenUpdated(address indexed oldCreditToken, address indexed newCreditToken);
     event NoticePeriodUpdated(uint256 noticePeriod);
 
-    event JobOpened(bytes32 indexed jobId, string metadata, address indexed owner, address indexed provider);
+    event JobOpened(bytes32 indexed jobId, string metadata, address indexed owner, address indexed provider, uint256 timestamp);
     event JobSettled(bytes32 indexed jobId, uint256 lastSettled);
-    event JobClosed(bytes32 indexed jobId);
+    event JobClosed(bytes32 indexed jobId, uint256 timestamp);
     event JobDeposited(bytes32 indexed jobId, address indexed token, address indexed from, uint256 amount);
     event JobWithdrawn(bytes32 indexed jobId, address indexed token, address indexed to, uint256 amount);
     event JobSettlementWithdrawn(
@@ -275,7 +275,7 @@ contract MarketV1 is
 
         // create job with initial balance 0
         jobs[jobId] = Job(_metadata, _owner, _provider, 0, 0, block.timestamp);
-        emit JobOpened(jobId, _metadata, _owner, _provider);
+        emit JobOpened(jobId, _metadata, _owner, _provider, block.timestamp);
 
         // deposit initial balance
         _deposit(jobId, _msgSender(), _balance);
@@ -311,7 +311,7 @@ contract MarketV1 is
         }
 
         delete jobs[_jobId];
-        emit JobClosed(_jobId);
+        emit JobClosed(_jobId, block.timestamp);
     }
 
     function _jobDeposit(bytes32 _jobId, uint256 _amount) internal {
