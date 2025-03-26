@@ -277,8 +277,8 @@ describe("Credit", function () {
       //! Transfer 500 USDC to Credit contract
       await usdc.connect(admin).transfer(credit.address, ethers.utils.parseUnits("500", "6"));
 
-      // Transfer 100 Credit to user
-      await credit.connect(admin).transfer(await user.getAddress(), creditAmount(100));
+      // Transfer 1000 Credit to user
+      await credit.connect(admin).transfer(await user.getAddress(), creditAmount(1000));
 
       // Grant `TRANSFER_ALLOWED_ROLE` to user
       await credit.connect(admin).grantRole(await credit.TRANSFER_ALLOWED_ROLE(), await user.getAddress());
