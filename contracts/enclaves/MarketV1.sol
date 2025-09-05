@@ -257,7 +257,9 @@ contract MarketV1 is
             _jobSettle(jobId, jobs[jobId].rate, settleTill);
             uint256 creditBalance = jobCreditBalance[jobId];
             if (creditBalance > 0) {
-                _withdraw(jobId, _to, creditBalance);
+                delete jobCreditBalance[jobId];
+                creditToken.safeTransfer(_to, creditBalance);
+                emit JobWithdrawn(jobId, address(creditToken), _to, creditBalance);
             }
         }
     }
