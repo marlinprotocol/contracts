@@ -181,6 +181,7 @@ contract MarketV1 is
         uint256 rate;
         uint256 balance;
         uint256 lastSettled; // payment has been settled up to this timestamp
+        uint256 maxRate; // max rate for the job
     }
 
     mapping(bytes32 => Job) public jobs;
@@ -250,14 +251,14 @@ contract MarketV1 is
     function _emergencyWithdrawCredit(address _to, bytes32[] calldata _jobIds) internal {
         require(hasRole(EMERGENCY_WITHDRAW_ROLE, _to), "only to emergency withdraw role");
 
-        uint256 settleTill = block.timestamp + noticePeriod;
-
         for (uint256 i = 0; i < _jobIds.length; i++) {
             bytes32 jobId = _jobIds[i];
-            _jobSettle(jobId, jobs[jobId].rate, settleTill);
+            _jobSettle(jobId, jobs[jobId].rate);
             uint256 creditBalance = jobCreditBalance[jobId];
             if (creditBalance > 0) {
-                delete jobCreditBalance[jobId];
+                jobs[jobId].balance -= creditBalance;
+                // set job credit balance to 0
+                jobCreditBalance[jobId] = 0;
                 creditToken.safeTransfer(_to, creditBalance);
                 emit JobWithdrawn(jobId, address(creditToken), _to, creditBalance);
             }
@@ -276,7 +277,7 @@ contract MarketV1 is
         bytes32 jobId = bytes32(_jobIndex);
 
         // create job with initial balance 0
-        jobs[jobId] = Job(_metadata, _owner, _provider, 0, 0, block.timestamp);
+        jobs[jobId] = Job(_metadata, _owner, _provider, 0, 0, block.timestamp, 0);
         emit JobOpened(jobId, _metadata, _owner, _provider, block.timestamp);
 
         // deposit initial balance
@@ -286,25 +287,32 @@ contract MarketV1 is
         _jobReviseRate(jobId, _rate);
     }
 
-    function _jobSettle(bytes32 _jobId, uint256 _rate, uint256 _settleTill) internal returns (bool isBalanceEnough) {
+    function 
+    
+    
+    
+    (bytes32 _jobId, uint256 _rate) internal returns (bool isBalanceEnough) {
         uint256 lastSettled = jobs[_jobId].lastSettled;
 
-        if (_settleTill == lastSettled) return true;
-        require(_settleTill > lastSettled, "cannot settle before lastSettled");
+        if (block.timestamp <= lastSettled) {
+            return true;
+        }
+        require(jobs[_jobId].balance > 0, "insufficient funds to settle");
+        require(jobs[_jobId].rate > 0, "invalid rate");
 
-        uint256 usageDuration = _settleTill - lastSettled;
+        uint256 usageDuration = block.timestamp - lastSettled;
         uint256 amountUsed = _calcAmountUsed(_rate, usageDuration);
         uint256 settleAmount = _min(amountUsed, jobs[_jobId].balance);
         _settle(_jobId, settleAmount);
-        jobs[_jobId].lastSettled = _settleTill;
-        emit JobSettled(_jobId, _settleTill);
+        jobs[_jobId].lastSettled = block.timestamp;
+        emit JobSettled(_jobId, block.timestamp);
 
         isBalanceEnough = amountUsed <= settleAmount;
     }
 
     function _jobClose(bytes32 _jobId) internal {
         // deduct shutdown delay cost
-        _jobSettle(_jobId, jobs[_jobId].rate, block.timestamp + noticePeriod);
+        _jobSettle(_jobId, jobs[_jobId].rate);
 
         // refund leftover balance
         uint256 _balance = jobs[_jobId].balance;
@@ -318,14 +326,14 @@ contract MarketV1 is
 
     function _jobDeposit(bytes32 _jobId, uint256 _amount) internal {
         require(_amount > 0, "invalid amount");
-        require(_jobSettle(_jobId, jobs[_jobId].rate, block.timestamp + noticePeriod), "insufficient funds to deposit");
+        require(_jobSettle(_jobId, jobs[_jobId].rate), "insufficient funds to deposit");
 
         _deposit(_jobId, _msgSender(), _amount);
     }
 
     function _jobWithdraw(bytes32 _jobId, uint256 _amount) internal {
         require(_amount > 0, "invalid amount");
-        require(_jobSettle(_jobId, jobs[_jobId].rate, block.timestamp + noticePeriod), "insufficient funds to withdraw");
+        require(_jobSettle(_jobId, jobs[_jobId].rate), "insufficient funds to withdraw");
 
         // withdraw
         _withdraw(_jobId, _msgSender(), _amount);
@@ -338,7 +346,7 @@ contract MarketV1 is
         uint256 lastSettled = jobs[_jobId].lastSettled;
         if (block.timestamp > lastSettled) {
             require(
-                _jobSettle(_jobId, jobs[_jobId].rate, block.timestamp),
+                _jobSettle(_jobId, jobs[_jobId].rate),
                 "insufficient funds to settle before revising rate"
             );
         }
@@ -351,7 +359,13 @@ contract MarketV1 is
         // deduct shutdown delay cost
         // higher rate is used to calculate shutdown delay cost
         uint256 higherRate = _max(oldRate, _newRate);
-        require(_jobSettle(_jobId, higherRate, block.timestamp + noticePeriod), "insufficient funds to revise rate");
+        uint256 prevHighestRate = jobs[_jobId].maxRate;
+        if (higherRate > prevHighestRate) {
+            jobs[_jobId].maxRate = higherRate;
+            uint256 noticePeriodExtraCost = _calcAmountUsed((higherRate - prevHighestRate), noticePeriod);
+            require(jobs[_jobId].balance > noticePeriodExtraCost, "insufficient funds to revise rate");
+            _settle(_jobId, noticePeriodExtraCost);
+        }
     }
 
     function _jobMetadataUpdate(bytes32 _jobId, string calldata _metadata) internal {
@@ -390,7 +404,7 @@ contract MarketV1 is
      * @param   _jobId  The job to settle.
      */
     function jobSettle(bytes32 _jobId) external onlyExistingJob(_jobId) {
-        _jobSettle(_jobId, jobs[_jobId].rate, block.timestamp);
+        _jobSettle(_jobId, jobs[_jobId].rate);
     }
 
     /**
