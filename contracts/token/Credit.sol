@@ -18,6 +18,12 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
+/**
+ * @title   Credit
+ * @notice  To transfer Credit tokens, either the sender or the recipient must have `TRANSFER_ALLOWED_ROLE`.
+ * @dev     Admin must track the balance of USDC in the contract compared to the total supply of Credit.
+ */
+
 contract Credit is
     ContextUpgradeable,  // _msgSender, _msgData
     AccessControlEnumerableUpgradeable,  // RBAC enumeration
@@ -29,19 +35,18 @@ contract Credit is
 
     uint256[500] private __gap0;
 
-    error OnlyAdmin();
-    error OnlyTransferAllowedRole();
     error NoAdminExists();
-    error OnlyOysterMarket();
-    error NotEnoughUSDC();
+    error OnlyAdmin();
     error OnlyToEmergencyWithdrawRole();
+    error OnlyTransferAllowedRole();
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // 0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE"); // 0x3c11d16cbaffd01df69ce1c404f6340ee057498f5f00246190ea54220576a848
     bytes32 public constant TRANSFER_ALLOWED_ROLE = keccak256("TRANSFER_ALLOWED_ROLE"); // 0xed89ee80d998965e2804dad373576bf7ffc490ba5986d52deb7d526e93617101
     bytes32 public constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE"); // 0x44ac9762eec3a11893fefb11d028bb3102560094137c3ed4518712475b2577cc
     bytes32 public constant EMERGENCY_WITHDRAW_ROLE = keccak256("EMERGENCY_WITHDRAW_ROLE"); // 0x66f144ecd65ad16d38ecdba8687842af4bc05fde66fe3d999569a3006349785f
-
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE"); // 0x65d7a28e3265b37a6474929f336521b332c1681b933f6cb9f3376673440d862a
+    
     modifier onlyAdmin() {
         require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), OnlyAdmin());
         _;
@@ -75,7 +80,7 @@ contract Credit is
     //-------------------------------- Overrides end --------------------------------//
 
     /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
-    address immutable USDC;
+    address public immutable USDC;
 
     uint256[500] private __gap1;
 
@@ -92,7 +97,8 @@ contract Credit is
         __AccessControlEnumerable_init_unchained();
         __ERC20_init_unchained("Oyster Credit", "CREDIT");
         __UUPSUpgradeable_init_unchained();
-        
+        __Pausable_init_unchained();
+
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
@@ -100,10 +106,22 @@ contract Credit is
 
     //-------------------------------- Token Mint/Burn start --------------------------------/
 
+    /**
+     * @notice  Mint Credit tokens.
+     * @dev     Caller must have `MINTER_ROLE`.
+     * @param   _to      Address to mint tokens to. Must have `TRANSFER_ALLOWED_ROLE`.
+     * @param   _amount  Amount of tokens to mint.
+     */
     function mint(address _to, uint256 _amount) external whenNotPaused onlyRole(MINTER_ROLE) {
         _mint(_to, _amount);
     }
 
+    /**
+     * @notice  Burn Credit tokens.
+     * @dev     Caller must have `BURNER_ROLE`.
+     * @param   _from    Address to burn tokens from. Must have `TRANSFER_ALLOWED_ROLE`
+     * @param   _amount  Amount of tokens to burn.
+     */
     function burn(address _from, uint256 _amount) external whenNotPaused onlyRole(BURNER_ROLE) {
         _burn(_from, _amount);
     }
@@ -112,15 +130,43 @@ contract Credit is
     
     //-------------------------------- Oyster Market start --------------------------------//
 
+    /**
+     * @notice  Burn Credit tokens and receive USDC.
+     *          `_amount` of Credit tokens will be burned and `_amount` of USDC will be sent to `_to`.
+     * @dev     Caller must have `REDEEMER_ROLE`.
+     * @dev     Can revert if `Credit` contract does not have enough balance of USDC.
+     * @param   _to      Address to receive USDC.
+     * @param   _amount  Amount of tokens to redeem.
+     */
     function redeemAndBurn(address _to, uint256 _amount) external whenNotPaused onlyRole(REDEEMER_ROLE) {
+        _burn(_msgSender(), _amount); 
         IERC20(USDC).safeTransfer(_to, _amount);
-        _burn(_msgSender(), _amount);
     }
 
     //-------------------------------- Oyster Market end --------------------------------//
 
+    //-------------------------------- Pause/Unpause start --------------------------------//
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
+    //-------------------------------- Pause/Unpause end --------------------------------//
+
     //-------------------------------- Emergency Withdraw start --------------------------------//
 
+    /**
+     * @notice  Emergency withdraw tokens from the contract.
+     * @dev     Caller must have `DEFAULT_ADMIN_ROLE`
+     *          and `_to` address must have `EMERGENCY_WITHDRAW_ROLE`.
+     * @param   _token  Address of the token to withdraw.
+     * @param   _to     Address to receive the tokens. Must have `EMERGENCY_WITHDRAW_ROLE`.
+     * @param   _amount Amount of tokens to withdraw.
+     */
     function emergencyWithdraw(address _token, address _to, uint256 _amount) external onlyAdmin {
         require(hasRole(EMERGENCY_WITHDRAW_ROLE, _to), OnlyToEmergencyWithdrawRole());
         IERC20(_token).safeTransfer(_to, _amount);

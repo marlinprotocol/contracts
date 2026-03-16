@@ -36,10 +36,10 @@ async function deployAndUpgradeMarketV1() {
   const marketV1UpgradeTx = await marketV1Proxy.connect(admin).upgradeTo(newMarketV1Impl.address);
   await marketV1UpgradeTx.wait();
   
-  // Reinitialize MarketV1 (noticePeriod, creditToken)
-  const marketV1 = MarketV1__factory.connect(marketV1Proxy.address, admin);
-  const reinitializeTx = await marketV1.connect(admin).reinitialize(FIVE_MINUTES, addresses.proxy.credit);
-  await reinitializeTx.wait();
+  // // Reinitialize MarketV1 (noticePeriod, creditToken)
+  // const marketV1 = MarketV1__factory.connect(marketV1Proxy.address, admin);
+  // const reinitializeTx = await marketV1.connect(admin).reinitialize(FIVE_MINUTES, addresses.proxy.credit);
+  // await reinitializeTx.wait();
 
   /*//////////////////////////////////////////////////////////////
                           VERIFY CONTRACTS
