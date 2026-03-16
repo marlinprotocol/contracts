@@ -287,11 +287,7 @@ contract MarketV1 is
         _jobReviseRate(jobId, _rate);
     }
 
-    function 
-    
-    
-    
-    (bytes32 _jobId, uint256 _rate) internal returns (bool isBalanceEnough) {
+    function _jobSettle(bytes32 _jobId, uint256 _rate) internal returns (bool isBalanceEnough) {
         uint256 lastSettled = jobs[_jobId].lastSettled;
 
         if (block.timestamp <= lastSettled) {
